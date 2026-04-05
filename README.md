@@ -62,7 +62,7 @@ This approach improves maintainability, scalability, and team collaboration.
 
 ### 1. Clone the repository
 
-git clone https://github.com/academix-platform/academix-front.git
+git clone https://github.com/academix-platform/academix.git
 
 ### 2. Install dependencies
 
