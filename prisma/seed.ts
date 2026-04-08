@@ -244,7 +244,7 @@ async function main() {
         title: `Event ${i}`,
         description: `Event description ${i}`,
         startDate: new Date(),
-        endtDate: new Date(), // matches schema typo
+        endDate: new Date(),
         classId: classes[i % classes.length].id,
       },
     });
