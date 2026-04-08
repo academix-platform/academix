@@ -149,7 +149,7 @@ model Event{
   title String
   description String
   startDate DateTime
-  endtDate DateTime
+  endDate DateTime
   classId Int?
   class Class? @relation(fields:[classId], references: [id])
 }
