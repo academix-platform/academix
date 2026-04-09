@@ -6,14 +6,14 @@ import TableSearch from "@/components/TableSearch";
 import { role } from "@/lib/data";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Prisma, Teacher } from "@prisma/client";
+import { Class, Prisma, Subject, Teacher } from "@prisma/client";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 type TeacherList = Teacher & {
-  subjects: string[];
-  classes: string[];
+  subjects: Subject[];
+  classes: Class[];
 };
 
 const columns = [

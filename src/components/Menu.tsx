@@ -21,12 +21,14 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useMemo } from "react";
 
 type MenuItem = {
   icon: LucideIcon;
   label: string;
   href: string;
+  shouldPrefetch?: boolean;
   visible: string[];
 };
 
@@ -43,18 +45,21 @@ export const menuItems: MenuSection[] = [
         icon: LayoutDashboard,
         label: "Dashboard",
         href: `/${role}`,
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: GraduationCap,
         label: "Teachers",
         href: "/list/teachers",
+        shouldPrefetch: true,
         visible: ["admin", "teacher"],
       },
       {
         icon: User,
         label: "Students",
         href: "/list/students",
+        shouldPrefetch: true,
         visible: ["admin", "teacher"],
       },
       {
@@ -79,24 +84,28 @@ export const menuItems: MenuSection[] = [
         icon: ClipboardList,
         label: "Lessons",
         href: "/list/lessons",
+        shouldPrefetch: true,
         visible: ["admin", "teacher"],
       },
       {
         icon: FileText,
         label: "Exams",
         href: "/list/exams",
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: ClipboardCheck,
         label: "Assignments",
         href: "/list/assignments",
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: BarChart3,
         label: "Results",
         href: "/list/results",
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
@@ -109,6 +118,7 @@ export const menuItems: MenuSection[] = [
         icon: Calendar,
         label: "Events",
         href: "/list/events",
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
@@ -121,6 +131,7 @@ export const menuItems: MenuSection[] = [
         icon: Megaphone,
         label: "Announcements",
         href: "/list/announcements",
+        shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
@@ -152,6 +163,37 @@ export const menuItems: MenuSection[] = [
 
 const Menu = () => {
   const pathname = usePathname();
+  const router = useRouter();
+  const visibleItems = useMemo(
+    () =>
+      menuItems
+        .flatMap((section) => section.items)
+        .filter((item) => item.visible.includes(role)),
+    []
+  );
+
+  useEffect(() => {
+    const keyRoutes = visibleItems
+      .filter((item) => item.shouldPrefetch && item.href !== pathname)
+      .map((item) => item.href)
+      .slice(0, 6);
+
+    if (keyRoutes.length === 0) return;
+
+    const prefetchRoutes = () => {
+      keyRoutes.forEach((href) => router.prefetch(href));
+    };
+
+    if ("requestIdleCallback" in window) {
+      const idleCallbackId = window.requestIdleCallback(prefetchRoutes);
+
+      return () => window.cancelIdleCallback(idleCallbackId);
+    }
+
+    const timeoutId = setTimeout(prefetchRoutes, 300);
+
+    return () => clearTimeout(timeoutId);
+  }, [pathname, router, visibleItems]);
 
   return (
     <div className="mt-4 text-sm">
@@ -173,6 +215,7 @@ const Menu = () => {
               <Link
                 href={item.href}
                 key={item.label}
+                prefetch={item.shouldPrefetch ?? true}
                 className={`
                   relative group flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
                   transition-colors duration-200
