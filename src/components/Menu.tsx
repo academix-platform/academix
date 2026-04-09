@@ -1,15 +1,30 @@
 "use client";
 
 import { role } from "@/lib/data";
+import {
+  BarChart3,
+  BookOpen,
+  Calendar,
+  CheckCircle,
+  ClipboardCheck,
+  ClipboardList,
+  FileText,
+  GraduationCap,
+  LayoutDashboard,
+  LogOut,
+  Megaphone,
+  MessageCircle,
+  School,
+  Settings,
+  User,
+  UsersRound,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
-import Icon from "./Icon";
-import * as Icons from "lucide-react";
 import { usePathname } from "next/navigation";
 
-type IconName = keyof typeof Icons;
-
 type MenuItem = {
-  icon: IconName;
+  icon: LucideIcon;
   label: string;
   href: string;
   visible: string[];
@@ -25,85 +40,85 @@ export const menuItems: MenuSection[] = [
     title: "MENU",
     items: [
       {
-        icon: "LayoutDashboard",
+        icon: LayoutDashboard,
         label: "Dashboard",
         href: `/${role}`,
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "GraduationCap",
+        icon: GraduationCap,
         label: "Teachers",
         href: "/list/teachers",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "User",
+        icon: User,
         label: "Students",
         href: "/list/students",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "UsersRound",
+        icon: UsersRound,
         label: "Parents",
         href: "/list/parents",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "BookOpen",
+        icon: BookOpen,
         label: "Subjects",
         href: "/list/subjects",
         visible: ["admin"],
       },
       {
-        icon: "School",
+        icon: School,
         label: "Classes",
         href: "/list/classes",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "ClipboardList",
+        icon: ClipboardList,
         label: "Lessons",
         href: "/list/lessons",
         visible: ["admin", "teacher"],
       },
       {
-        icon: "FileText",
+        icon: FileText,
         label: "Exams",
         href: "/list/exams",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "ClipboardCheck",
+        icon: ClipboardCheck,
         label: "Assignments",
         href: "/list/assignments",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "BarChart3",
+        icon: BarChart3,
         label: "Results",
         href: "/list/results",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "CheckCircle",
+        icon: CheckCircle,
         label: "Attendance",
         href: "/list/attendance",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "Calendar",
+        icon: Calendar,
         label: "Events",
         href: "/list/events",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "MessageCircle",
+        icon: MessageCircle,
         label: "Messages",
         href: "/list/messages",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "Megaphone",
+        icon: Megaphone,
         label: "Announcements",
         href: "/list/announcements",
         visible: ["admin", "teacher", "student", "parent"],
@@ -114,19 +129,19 @@ export const menuItems: MenuSection[] = [
     title: "OTHER",
     items: [
       {
-        icon: "User",
+        icon: User,
         label: "Profile",
         href: "/profile",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "Settings",
+        icon: Settings,
         label: "Settings",
         href: "/settings",
         visible: ["admin", "teacher", "student", "parent"],
       },
       {
-        icon: "LogOut",
+        icon: LogOut,
         label: "Logout",
         href: "/logout",
         visible: ["admin", "teacher", "student", "parent"],
@@ -172,8 +187,8 @@ const Menu = () => {
                   <span className="top-0 left-0 absolute bg-academixPurpleDark rounded-r w-1 h-full" />
                 )}
 
-                <Icon
-                  name={item.icon}
+                <item.icon
+                  size={20}
                   className={`
                     w-5 h-5 transition-colors
                     ${
