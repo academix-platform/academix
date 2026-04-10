@@ -1,7 +1,6 @@
 "use client";
 
-import dynamic from "next/dynamic";
-import { useState } from "react";
+import { type ReactElement, useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 
 // USE LAZY LOADING
@@ -23,7 +22,10 @@ const iconMap = {
 // });
 
 const forms: {
-  [key: string]: (type: "create" | "update", data?: any) => JSX.Element;
+  [key: string]: (
+    type: "create" | "update",
+    data?: any,
+  ) => ReactElement;
 } = {
   teacher: (type, data) => <TeacherForm type={type} data={data} />,
   student: (type, data) => <StudentForm type={type} data={data} />,
@@ -62,7 +64,7 @@ const FormModal = ({
 
   const [open, setOpen] = useState(false);
 
-  const Form = () => {
+  const renderForm = () => {
     if (type === "delete" && id) {
       return (
         <form className="flex flex-col gap-4 p-4">
@@ -101,7 +103,7 @@ const FormModal = ({
       {open && (
         <div className="top-0 left-0 z-50 absolute flex justify-center items-center bg-black bg-opacity-60 w-screen h-screen">
           <div className="relative bg-white p-4 rounded-md w-[90%] md:w-[70%] lg:w-[60%] 2xl:w-[40%] xl:w-[50%]">
-            <Form />
+            {renderForm()}
             <div
               className="top-4 right-4 absolute cursor-pointer"
               onClick={() => setOpen(false)}
