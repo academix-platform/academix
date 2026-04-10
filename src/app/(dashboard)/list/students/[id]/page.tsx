@@ -1,5 +1,5 @@
 import Announcements from "@/components/Announcements";
-import BigCalendar from "@/components/BigCalender";
+import BigCalendarLoader from "@/components/BigCalendarLoader";
 import Performance from "@/components/Performance";
 import Image from "next/image";
 import Link from "next/link";
@@ -110,7 +110,7 @@ const SingleStudentPage = () => {
         {/* BOTTOM */}
         <div className="bg-white mt-4 p-4 rounded-md h-[800px]">
           <h1>Student&apos;s Schedule</h1>
-          <BigCalendar />
+          <BigCalendarLoader />
         </div>
       </div>
       {/* RIGHT */}

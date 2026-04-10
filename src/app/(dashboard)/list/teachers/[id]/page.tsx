@@ -1,5 +1,5 @@
 import Announcements from "@/components/Announcements";
-import BigCalendar from "@/components/BigCalender";
+import BigCalendarLoader from "@/components/BigCalendarLoader";
 import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";
 import { role } from "@/lib/data";
@@ -134,7 +134,7 @@ const SingleTeacherPage = () => {
         {/* BOTTOM */}
         <div className="bg-white mt-4 p-4 rounded-md h-[800px]">
           <h1>Teacher&apos;s Schedule</h1>
-          <BigCalendar />
+          <BigCalendarLoader />
         </div>
       </div>
       {/* RIGHT */}

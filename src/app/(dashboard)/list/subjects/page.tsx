@@ -4,6 +4,7 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { role } from "@/lib/data";
+import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma, Subject, Teacher } from "@prisma/client";
@@ -50,14 +51,17 @@ const renderRow = (item: SubjectList) => (
 const SubjectListPage = async ({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | undefined };
+  searchParams: PageSearchParams;
 }) => {
-  const { page, ...queryParams } = searchParams;
-  const p = page ? parseInt(page) : 1;
+  const resolvedSearchParams = await searchParams;
+  const { page, ...queryParams } = resolvedSearchParams;
+  const currentPage = getQueryParam(page);
+  const p = currentPage ? parseInt(currentPage) : 1;
 
   const query: Prisma.SubjectWhereInput = {};
   if (queryParams) {
-    for (const [key, value] of Object.entries(queryParams)) {
+    for (const [key, rawValue] of Object.entries(queryParams)) {
+      const value = getQueryParam(rawValue);
       if (value !== undefined) {
         switch (key) {
           case "search": {
