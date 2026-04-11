@@ -2,8 +2,21 @@
 
 import Image from "next/image";
 import { Search, MessageCircle, Bell } from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
 
 const Navbar = () => {
+  const { user, isLoaded } = useUser();
+  const fullName =
+    user?.fullName ||
+    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
+    user?.username ||
+    user?.primaryEmailAddress?.emailAddress ||
+    "User";
+  const role =
+    isLoaded && user
+      ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
+      : null;
+
   return (
     <div className="flex justify-between items-center p-4">
       <div className="hidden md:flex items-center gap-2 px-2 rounded-full ring-[1.5px] ring-gray-300 text-xs">
@@ -30,17 +43,20 @@ const Navbar = () => {
         </div>
 
         <div className="flex flex-col">
-          <span className="font-medium text-xs leading-3">John Doe</span>
-          <span className="text-[10px] text-gray-500 text-right">Admin</span>
+          <span className="font-medium text-xs leading-3">{fullName}</span>
+          <span className="text-[10px] text-gray-500 text-right">
+            {role ? role[0].toUpperCase() + role.slice(1) : ""}
+          </span>
         </div>
 
-        <Image
+        {/* <Image
           src="/avatar.png"
           alt=""
           width={36}
           height={36}
           className="rounded-full"
-        />
+        /> */}
+        <UserButton />
       </div>
     </div>
   );

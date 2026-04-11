@@ -2,11 +2,13 @@ import Announcements from "@/components/Announcements";
 import BigCalendarLoader from "@/components/BigCalendarLoader";
 import FormModal from "@/components/FormModal";
 import Performance from "@/components/Performance";
-import { role } from "@/lib/data";
+import { getCurrentRole } from "@/lib/auth";
 import Image from "next/image";
 import Link from "next/link";
 
-const SingleTeacherPage = () => {
+const SingleTeacherPage = async () => {
+  const role = await getCurrentRole();
+
   return (
     <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
       {/* LEFT */}

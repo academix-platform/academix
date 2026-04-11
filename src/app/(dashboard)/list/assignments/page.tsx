@@ -3,7 +3,7 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { role } from "@/lib/data";
+import { getCurrentRole, type UserRole } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -17,7 +17,7 @@ type AssignmentList = Assignment & {
   };
 };
 
-const columns = [
+const getColumns = (role: UserRole | null) => [
   {
     header: "Subject Name",
     accessor: "name",
@@ -42,7 +42,7 @@ const columns = [
   },
 ];
 
-const renderRow = (item: AssignmentList) => (
+const renderRow = (item: AssignmentList, role: UserRole | null) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
@@ -70,6 +70,7 @@ const AssignmentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const role = await getCurrentRole();
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
@@ -139,7 +140,11 @@ const AssignmentListPage = async ({
         </div>
       </div>
       {/* LIST */}
-      <Table columns={columns} renderRow={renderRow} data={data} />
+      <Table
+        columns={getColumns(role)}
+        renderRow={(item) => renderRow(item, role)}
+        data={data}
+      />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
     </div>
