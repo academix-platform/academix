@@ -72,7 +72,7 @@ export const menuItems: MenuSection[] = [
         icon: BookOpen,
         label: "Subjects",
         href: "/list/subjects",
-        visible: ["admin"],
+        visible: ["admin", "student", "teacher", "parent"],
       },
       {
         icon: School,
@@ -176,7 +176,8 @@ const Menu = () => {
         ...section,
         items: section.items.map((item) => ({
           ...item,
-          href: typeof item.href === "function" ? item.href(role ?? "") : item.href,
+          href:
+            typeof item.href === "function" ? item.href(role ?? "") : item.href,
         })),
       })),
     [role],

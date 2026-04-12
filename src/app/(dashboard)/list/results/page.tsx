@@ -3,7 +3,7 @@ import FormModal from "@/components/FormModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getCurrentRole, type UserRole } from "@/lib/auth";
+import { getCurrentRole, getUserId, type UserRole } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -85,6 +85,7 @@ const ResultListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const role = await getCurrentRole();
+  const userId = await getUserId();
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
@@ -112,6 +113,27 @@ const ResultListPage = async ({
         }
       }
     }
+  }
+
+  // ROLE CONDITIONS
+  switch (role) {
+    case "admin":
+      break;
+    case "teacher":
+      query.OR = [
+        { exam: { lesson: { teacherId: userId! } } },
+        { assignment: { lesson: { teacherId: userId! } } },
+      ];
+      break;
+    case "student":
+      query.studentId = userId!;
+      break;
+    case "parent":
+      query.student = { parentId: userId! };
+      break;
+
+    default:
+      break;
   }
 
   const [dataRes, count] = await prisma.$transaction([

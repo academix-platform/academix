@@ -10,3 +10,9 @@ export const getCurrentRole = async (): Promise<UserRole | null> => {
 
   return role ?? null;
 };
+
+export const getUserId = async (): Promise<string | null> => {
+  const { userId } = await auth();
+
+  return userId ?? null;
+};
