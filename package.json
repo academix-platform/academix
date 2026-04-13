@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev --webpack",
     "build": "next build",
     "start": "next start",
     "lint": "eslint ."
@@ -14,6 +14,7 @@
     "@prisma/adapter-pg": "^7.6.0",
     "@prisma/client": "^7.6.0",
     "@types/react-big-calendar": "^1.8.9",
+    "date-fns": "^4.1.0",
     "dotenv": "^17.4.0",
     "lucide-react": "^1.7.0",
     "moment": "^2.30.1",

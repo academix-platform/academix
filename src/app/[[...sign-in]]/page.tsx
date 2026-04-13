@@ -6,15 +6,36 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 const LoginPage = () => {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const router = useRouter();
 
   useEffect(() => {
-    if (user) {
+    if (isLoaded && user) {
       const role = user.publicMetadata.role;
-      router.push(`/${role}`);
+
+      if (typeof role === "string" && role.length > 0) {
+        router.replace(`/${role}`);
+      }
     }
-  }, [user, router]);
+  }, [isLoaded, user, router]);
+
+  if (!isLoaded) {
+    return null;
+  }
+
+  if (user) {
+    return (
+      <div className="flex justify-center items-center bg-lamaSkyLight h-screen">
+        <div className="flex flex-col justify-center items-center gap-2 bg-white shadow-2xl px-12 py-10 rounded-md text-gray-500">
+          <h1 className="flex items-center gap-2 font-bold text-xl">
+            <Image src="/icon.png" alt="" width={24} height={24} />
+            Academix
+          </h1>
+          <p>Redirecting to your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex justify-center items-center bg-lamaSkyLight h-screen">
