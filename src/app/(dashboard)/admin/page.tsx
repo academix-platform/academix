@@ -1,31 +1,36 @@
 import Announcements from "@/components/Announcements";
-import AttendanceChartLoader from "@/components/AttendanceChartLoader";
-import CountChartLoader from "@/components/CountChartLoader";
-import EventCalendarLoader from "@/components/EventCalendarLoader";
+import AttendanceChartContainer from "@/components/AttendanceChartContainer";
+import CountChartContainer from "@/components/CountChartContainer";
+import EventCalendarContainer from "@/components/EventCalendarContainer";
+import EventCalendarLoader from "@/components/EventCalendarContainer";
 import FinanceChartLoader from "@/components/FinanceChartLoader";
 import UserCard from "@/components/UserCard";
 
-const AdminPage = () => {
+const AdminPage = ({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string }>;
+}) => {
   return (
     <div className="flex md:flex-row flex-col gap-4 p-4">
       {/* LEFT */}
       <div className="flex flex-col gap-8 w-full lg:w-2/3">
         {/* USER CARDS */}
         <div className="flex flex-wrap justify-between gap-4">
-          <UserCard type="student" />
+          <UserCard type="admin" />
           <UserCard type="teacher" />
+          <UserCard type="student" />
           <UserCard type="parent" />
-          <UserCard type="staff" />
         </div>
         {/* MIDDLE CHARTS */}
         <div className="flex lg:flex-row flex-col gap-4">
           {/* COUNT CHART */}
           <div className="w-full lg:w-1/3 h-[450px]">
-            <CountChartLoader />
+            <CountChartContainer />
           </div>
           {/* ATTENDANCE CHART */}
           <div className="w-full lg:w-2/3 h-[450px]">
-            <AttendanceChartLoader />
+            <AttendanceChartContainer />
           </div>
         </div>
         {/* BOTTOM CHART */}
@@ -35,7 +40,7 @@ const AdminPage = () => {
       </div>
       {/* RIGHT */}
       <div className="flex flex-col gap-8 w-full lg:w-1/3">
-        <EventCalendarLoader />
+        <EventCalendarContainer searchParams={searchParams} />
         <Announcements />
       </div>
     </div>
