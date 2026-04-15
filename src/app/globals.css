@@ -46,6 +46,10 @@
 }
 
 .rbc-time-header {
+  display: flex !important;
+}
+
+.rbc-allday-cell {
   display: none !important;
 }
 
@@ -59,6 +63,11 @@
 
 .rbc-time-gutter.rbc-time-column .rbc-timeslot-group {
   padding: 0px 20px !important;
+  padding-top: 25px !important;
+}
+
+.rbc-time-gutter.rbc-time-column .rbc-label {
+  margin: 0 !important;
 }
 
 .rbc-timeslot-group {
@@ -102,7 +111,12 @@
   background-color: #fdf2fb !important;
 }
 
-.rbc-event-label{
+.rbc-event-label {
   color: gray !important;
   margin-bottom: 5px;
+}
+
+.rbc-time-header-content .rbc-header:last-child,
+.rbc-time-content > .rbc-day-slot:last-child {
+  display: none !important;
 }
