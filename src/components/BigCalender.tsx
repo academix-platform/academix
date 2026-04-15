@@ -1,26 +1,42 @@
 "use client";
 
-import { Calendar, dateFnsLocalizer, View, Views } from "react-big-calendar";
-import { format, parse, startOfWeek, getDay } from "date-fns";
-import { enUS } from "date-fns/locale";
-import { calendarEvents } from "@/lib/data";
+import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
+import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
-const locales = {
-  "en-US": enUS,
-};
-
-const localizer = dateFnsLocalizer({
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  locales,
+moment.updateLocale(moment.locale(), {
+  week: {
+    dow: 6,
+    doy: 1,
+  },
 });
 
-const BigCalendar = () => {
-  const [view, setView] = useState<View>(Views.WORK_WEEK);
+const localizer = momentLocalizer(moment);
+const calendarMinTime = new Date(2025, 0, 1, 6, 0, 0);
+const calendarMaxTime = new Date(2025, 0, 1, 12, 0, 0);
+
+const BigCalendar = ({
+  data,
+}: {
+  data: { title: string; start: Date | string; end: Date | string }[];
+}) => {
+  const [view, setView] = useState<View>(Views.WEEK);
+
+  const normalizedEvents = useMemo(
+    () =>
+      data.map((event) => {
+        const start = new Date(event.start);
+        const end = new Date(event.end);
+
+        if (end <= start) {
+          end.setMinutes(start.getMinutes() + 45);
+        }
+
+        return { ...event, start, end };
+      }),
+    [data],
+  );
 
   const handleOnChangeView = (selectedView: View) => {
     setView(selectedView);
@@ -29,15 +45,15 @@ const BigCalendar = () => {
   return (
     <Calendar
       localizer={localizer}
-      events={calendarEvents}
+      events={normalizedEvents}
       startAccessor="start"
       endAccessor="end"
-      views={["work_week", "day"]}
+      views={[Views.WEEK, Views.DAY]}
       view={view}
-      style={{ height: "98%" }}
+      style={{ height: "100%" }}
       onView={handleOnChangeView}
-      min={new Date(2025, 1, 0, 8, 0, 0)}
-      max={new Date(2025, 1, 0, 17, 0, 0)}
+      min={calendarMinTime}
+      max={calendarMaxTime}
     />
   );
 };
