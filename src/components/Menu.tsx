@@ -1,6 +1,6 @@
 "use client";
 
-import { role } from "@/lib/data";
+import { useUser } from "@clerk/nextjs";
 import {
   BarChart3,
   BookOpen,
@@ -27,7 +27,7 @@ import { useEffect, useMemo } from "react";
 type MenuItem = {
   icon: LucideIcon;
   label: string;
-  href: string;
+  href: string | ((role: string) => string);
   shouldPrefetch?: boolean;
   visible: string[];
 };
@@ -44,7 +44,7 @@ export const menuItems: MenuSection[] = [
       {
         icon: LayoutDashboard,
         label: "Dashboard",
-        href: `/${role}`,
+        href: (role) => `/${role}`,
         shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -72,7 +72,7 @@ export const menuItems: MenuSection[] = [
         icon: BookOpen,
         label: "Subjects",
         href: "/list/subjects",
-        visible: ["admin"],
+        visible: ["admin", "student", "teacher", "parent"],
       },
       {
         icon: School,
@@ -162,14 +162,33 @@ export const menuItems: MenuSection[] = [
 ];
 
 const Menu = () => {
+  const { user, isLoaded } = useUser();
   const pathname = usePathname();
   const router = useRouter();
+  const role =
+    isLoaded && user
+      ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
+      : null;
+
+  const resolvedMenuItems = useMemo(
+    () =>
+      menuItems.map((section) => ({
+        ...section,
+        items: section.items.map((item) => ({
+          ...item,
+          href:
+            typeof item.href === "function" ? item.href(role ?? "") : item.href,
+        })),
+      })),
+    [role],
+  );
+
   const visibleItems = useMemo(
     () =>
-      menuItems
+      resolvedMenuItems
         .flatMap((section) => section.items)
-        .filter((item) => item.visible.includes(role)),
-    []
+        .filter((item) => role && item.visible.includes(role)),
+    [resolvedMenuItems, role],
   );
 
   useEffect(() => {
@@ -195,9 +214,13 @@ const Menu = () => {
     return () => clearTimeout(timeoutId);
   }, [pathname, router, visibleItems]);
 
+  if (!role) {
+    return null;
+  }
+
   return (
     <div className="mt-4 text-sm">
-      {menuItems.map((section) => (
+      {resolvedMenuItems.map((section) => (
         <div key={section.title} className="flex flex-col gap-2">
           <span className="hidden lg:block my-4 font-light text-gray-400">
             {section.title}
