@@ -164,27 +164,45 @@ async function main() {
   // LESSONS
   // ======================
   const lessons = [];
-  const days = Object.values(Day);
+  const workingDays: Day[] = [
+    Day.SATURDAY,
+    Day.SUNDAY,
+    Day.MONDAY,
+    Day.TUESDAY,
+    Day.WEDNESDAY,
+    Day.THURSDAY,
+  ];
+  const slotStartHours = [6, 7, 8, 9, 10];
 
-  for (let i = 1; i <= 30; i++) {
-    const lesson = await prisma.lesson.create({
-      data: {
-        name: `Lesson ${i}`,
-        day: days[i % days.length],
-        startTime: new Date(),
-        endTime: new Date(),
-        subjectId: subjects[i % subjects.length].id,
-        classId: classes[i % classes.length].id,
-        teacherId: teachers[i % teachers.length].id,
-      },
-    });
-    lessons.push(lesson);
+  let lessonCounter = 1;
+  for (const day of workingDays) {
+    for (const slotStartHour of slotStartHours) {
+      const timetableIndex = lessonCounter - 1;
+      const startTime = new Date(2025, 0, 6, slotStartHour, 0, 0);
+      const endTime = new Date(2025, 0, 6, slotStartHour + 1, 0, 0);
+
+      const lesson = await prisma.lesson.create({
+        data: {
+          name: `Lesson ${lessonCounter}`,
+          day,
+          startTime,
+          endTime,
+          subjectId: subjects[timetableIndex % subjects.length].id,
+          classId: classes[timetableIndex % classes.length].id,
+          teacherId: teachers[timetableIndex % teachers.length].id,
+        },
+      });
+
+      lessons.push(lesson);
+      lessonCounter++;
+    }
   }
 
   // ======================
   // EXAMS + ASSIGNMENTS
   // ======================
   const exams = [];
+  const assignments = [];
 
   for (let i = 1; i <= 10; i++) {
     const exam = await prisma.exam.create({
@@ -198,14 +216,16 @@ async function main() {
 
     exams.push(exam);
 
-    await prisma.assignment.create({
+    const assignment = await prisma.assignment.create({
       data: {
         title: `Assignment ${i}`,
         startDate: new Date(),
-        endDate: new Date(), // ✅ correct
+        endDate: new Date(),
         lessonId: lessons[i % lessons.length].id,
       },
     });
+
+    assignments.push(assignment);
   }
 
   // ======================
@@ -216,7 +236,9 @@ async function main() {
       data: {
         score: 80 + (i % 20),
         studentId: students[i].id,
-        ...(i < 5 ? { examId: exams[i].id } : { assignmentId: i - 4 }),
+        ...(i < 5
+          ? { examId: exams[i].id }
+          : { assignmentId: assignments[i - 5].id }),
       },
     });
   }

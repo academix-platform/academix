@@ -5,14 +5,19 @@ import prisma from "@/lib/prisma";
 const AttendanceChartContainer = async () => {
   const today = new Date();
   const dayOfWeek = today.getDay();
-  const daysSinceSunday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
-  const lastSunday = new Date(today);
-  lastSunday.setDate(today.getDate() - daysSinceSunday);
+  const daysSinceSaturday = (dayOfWeek + 1) % 7;
+  const weekStart = new Date(today);
+  weekStart.setDate(today.getDate() - daysSinceSaturday);
+  weekStart.setHours(0, 0, 0, 0);
+
+  const weekEnd = new Date(weekStart);
+  weekEnd.setDate(weekStart.getDate() + 6);
 
   const responseData = await prisma.attendance.findMany({
     where: {
       date: {
-        gte: lastSunday,
+        gte: weekStart,
+        lt: weekEnd,
       },
     },
     select: {
@@ -22,6 +27,7 @@ const AttendanceChartContainer = async () => {
   });
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const workingDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
   const attendanceMap: { [key: string]: { present: number; absent: number } } =
     {
       Sun: { present: 0, absent: 0 },
@@ -35,10 +41,9 @@ const AttendanceChartContainer = async () => {
 
   responseData.forEach((item) => {
     const itemDate = new Date(item.date);
+    const dayName = daysOfWeek[itemDate.getDay()];
 
-    if (dayOfWeek >= 1 && dayOfWeek <= 5) {
-      const dayName = daysOfWeek[dayOfWeek - 1];
-
+    if (workingDays.includes(dayName)) {
       if (item.present) {
         attendanceMap[dayName].present += 1;
       } else {
@@ -47,7 +52,7 @@ const AttendanceChartContainer = async () => {
     }
   });
 
-  const data = daysOfWeek.slice(0, 5).map((day) => ({
+  const data = workingDays.map((day) => ({
     name: day,
     present: attendanceMap[day].present,
     absent: attendanceMap[day].absent,
