@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -40,8 +40,8 @@ const renderRow = (item: SubjectList, role: UserRole | null) => (
       <div className="flex items-center gap-2">
         {role === "admin" && (
           <>
-            <FormModal table="subject" type="update" data={item} />
-            <FormModal table="subject" type="delete" id={item.id} />
+            <FormContainer table="subject" type="update" data={item} />
+            <FormContainer table="subject" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -119,7 +119,9 @@ const SubjectListPage = async ({
           <TableSearch />
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && (
+              <FormContainer table="subject" type="create" />
+            )}
           </div>
         </div>
       </div>
