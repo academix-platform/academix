@@ -31,6 +31,15 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         });
         relatedData = { teachers };
         break;
+      case "class":
+        const classGrades = await prisma.grade.findMany({
+          select: { id: true, level: true },
+        });
+        const classTeachers = await prisma.teacher.findMany({
+          select: { id: true, name: true },
+        });
+        relatedData = { grades: classGrades, teachers: classTeachers };
+        break;
     }
   }
   return (
