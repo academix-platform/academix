@@ -4,6 +4,8 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   const date = dateParam ? new Date(dateParam) : new Date();
 
   const data = await prisma.event.findMany({
+    take: 3,
+    orderBy: { startDate: "desc" },
     where: {
       startDate: {
         gte: new Date(date.setHours(0, 0, 0, 0)),
@@ -13,7 +15,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   });
 
   return (
-    <div className="max-h-72 overflow-auto">
+    <div>
       {data.map((event) => (
         <div
           className="mb-2 p-5 border-2 border-gray-100 border-t-4 even:border-t-academixPurple odd:border-t-academixSky rounded-md"

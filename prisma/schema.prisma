@@ -31,6 +31,7 @@ model Student{
   grade Grade @relation(fields:[gradeId], references: [id])
   attendances Attendance[]
   results Result[]
+  birthday DateTime
 }
 model Teacher{  
   id String @id
@@ -46,6 +47,7 @@ model Teacher{
   subjects Subject[]
   lessons Lesson[]
   classes Class[]
+  birthday DateTime
 }
 model Parent{  
   id String @id
