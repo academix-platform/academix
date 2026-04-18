@@ -11,7 +11,12 @@ import {
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
-import { deleteClass, deleteSubject, deleteTeacher } from "@/lib/actions";
+import {
+  deleteClass,
+  deleteStudent,
+  deleteSubject,
+  deleteTeacher,
+} from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
 
@@ -19,7 +24,7 @@ const deleteActionMap = {
   subject: deleteSubject,
   class: deleteClass,
   teacher: deleteTeacher,
-  student: deleteSubject,
+  student: deleteStudent,
   parent: deleteSubject,
   lesson: deleteSubject,
   exam: deleteSubject,
@@ -65,14 +70,14 @@ const forms: {
       relatedData={relatedData}
     />
   ),
-  // student: (setOpen, type, data, relatedData) => (
-  //   <StudentForm
-  //     setOpen={setOpen}
-  //     type={type}
-  //     data={data}
-  //     relatedData={relatedData}
-  //   />
-  // ),
+  student: (setOpen, type, data, relatedData) => (
+    <StudentForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
   subject: (setOpen, type, data, relatedData) => (
     <SubjectForm
       setOpen={setOpen}

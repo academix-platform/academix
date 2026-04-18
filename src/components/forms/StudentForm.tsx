@@ -2,57 +2,86 @@
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { z } from "zod";
 import InputField from "../InputField";
 import Image from "next/image";
+import {
+  Dispatch,
+  SetStateAction,
+  startTransition,
+  useActionState,
+  useEffect,
+  useState,
+} from "react";
+import { studentSchema, StudentSchema } from "@/lib/formValidationSchemas";
+import { createStudent, updateStudent } from "@/lib/actions";
+import { useRouter } from "next/navigation";
+import { toast } from "react-toastify";
+import { CldUploadWidget } from "next-cloudinary";
+import { Eye, EyeOff } from "lucide-react";
 
-const schema = z.object({
-  username: z
-    .string()
-    .min(3, { message: "Username must be at least 3 characters long!" })
-    .max(20, { message: "Username must be at most 20 characters long!" }),
-  email: z.string().email({ message: "Invalid email address!" }),
-  password: z
-    .string()
-    .min(8, { message: "Password must be at least 8 characters long!" }),
-  firstName: z.string().min(1, { message: "First name is required!" }),
-  lastName: z.string().min(1, { message: "Last name is required!" }),
-  phone: z.string().min(1, { message: "Phone is required!" }),
-  address: z.string().min(1, { message: "Address is required!" }),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.date({ message: "Birthday is required!" }),
-  sex: z.enum(["male", "female"], { message: "Sex is required!" }),
-  img: z.instanceof(File, { message: "Image is required" }),
-});
-
-type Inputs = z.infer<typeof schema>;
+type StudentFormState = {
+  success: boolean;
+  error: boolean;
+  message?: string;
+};
 
 const StudentForm = ({
   type,
   data,
+  setOpen,
+  relatedData,
 }: {
   type: "create" | "update";
   data?: any;
+  setOpen: Dispatch<SetStateAction<boolean>>;
+  relatedData?: any;
 }) => {
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
-  } = useForm<Inputs>({
-    resolver: zodResolver(schema),
+  } = useForm<StudentSchema>({
+    resolver: zodResolver(studentSchema),
   });
 
+  const [img, setImg] = useState<any>();
+  const [showPassword, setShowPassword] = useState(false);
+  const [state, formAction] = useActionState<StudentFormState, StudentSchema>(
+    type === "create" ? createStudent : updateStudent,
+    {
+      success: false,
+      error: false,
+      message: undefined,
+    },
+  );
+
   const onSubmit = handleSubmit((data) => {
-    console.log(data);
+    startTransition(() => {
+      formAction(data);
+    });
   });
+  const router = useRouter();
+
+  useEffect(() => {
+    if (state.success) {
+      toast(`Student has been ${type === "create" ? "created" : "updated"}!`);
+      setOpen(false);
+      router.refresh();
+    }
+  }, [state, router, type, setOpen]);
+
+  const { grades, classes } = relatedData;
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="text-xl font-semibold">Create a new student</h1>
-      <span className="text-xs text-gray-400 font-medium">
+      <h1 className="font-semibold text-xl">
+        {type === "create" ? "Create a new student" : "Update the student"}
+      </h1>
+      <span className="font-medium text-gray-400 text-xs">
         Authentication Information
       </span>
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap justify-between gap-4">
         <InputField
           label="Username"
           name="username"
@@ -67,32 +96,40 @@ const StudentForm = ({
           register={register}
           error={errors?.email}
         />
-        <InputField
-          label="Password"
-          name="password"
-          type="password"
-          defaultValue={data?.password}
-          register={register}
-          error={errors?.password}
-        />
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-gray-500 text-xs">Password</label>
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              className="p-2 pr-10 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              aria-label={showPassword ? "Hide password" : "Show password"}
+              className="top-1/2 right-3 absolute text-gray-500 hover:text-gray-700 -translate-y-1/2"
+            >
+              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+            </button>
+          </div>
+          {errors?.password?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.password.message.toString()}
+            </p>
+          )}
+        </div>
       </div>
-      <span className="text-xs text-gray-400 font-medium">
+      <span className="font-medium text-gray-400 text-xs">
         Personal Information
       </span>
-      <div className="flex justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap justify-between gap-4">
         <InputField
-          label="First Name"
-          name="firstName"
-          defaultValue={data?.firstName}
+          label="Full Name"
+          name="name"
+          defaultValue={data?.name}
           register={register}
-          error={errors.firstName}
-        />
-        <InputField
-          label="Last Name"
-          name="lastName"
-          defaultValue={data?.lastName}
-          register={register}
-          error={errors.lastName}
+          error={errors.name}
         />
         <InputField
           label="Phone"
@@ -118,44 +155,137 @@ const StudentForm = ({
         <InputField
           label="Birthday"
           name="birthday"
-          defaultValue={data?.birthday}
+          defaultValue={data?.birthday.toISOString().split("T")[0]}
           register={register}
           error={errors.birthday}
           type="date"
         />
+        <InputField
+          label="Parent Id"
+          name="parentId"
+          defaultValue={data?.parentId}
+          register={register}
+          error={errors.parentId}
+        />
+        {type === "update" && (
+          <input type="hidden" {...register("id")} defaultValue={data?.id} />
+        )}
         <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-xs text-gray-500">Sex</label>
+          <label className="text-gray-500 text-xs">Sex</label>
           <select
-            className="ring-[1.5px] ring-gray-300 p-2 rounded-md text-sm w-full"
+            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
             {...register("sex")}
             defaultValue={data?.sex}
           >
-            <option value="male">Male</option>
-            <option value="female">Female</option>
+            <option value="MALE">Male</option>
+            <option value="FEMALE">Female</option>
           </select>
           {errors.sex?.message && (
-            <p className="text-xs text-red-400">
+            <p className="text-red-400 text-xs">
               {errors.sex.message.toString()}
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-1/4 justify-center">
-          <label
-            className="text-xs text-gray-500 flex items-center gap-2 cursor-pointer"
-            htmlFor="img"
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-gray-500 text-xs">Grade</label>
+          <select
+            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            {...register("gradeId")}
+            defaultValue={data?.gradeId}
           >
-            <Image src="/upload.png" alt="" width={28} height={28} />
-            <span>Upload a photo</span>
-          </label>
-          <input type="file" id="img" {...register("img")} className="hidden" />
-          {errors.img?.message && (
-            <p className="text-xs text-red-400">
-              {errors.img.message.toString()}
+            {grades.map((grade: { id: number; level: number }) => (
+              <option value={grade.id} key={grade.id}>
+                {grade.level}
+              </option>
+            ))}
+          </select>
+          {errors.gradeId?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.gradeId.message.toString()}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-gray-500 text-xs">Class</label>
+          <select
+            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            {...register("classId")}
+            defaultValue={data?.classId}
+          >
+            {classes.map(
+              (classItem: {
+                id: number;
+                name: string;
+                capacity: number;
+                _count: { students: number };
+              }) => (
+                <option value={classItem.id} key={classItem.id}>
+                  ({classItem.name} -{" "}
+                  {classItem._count.students + "/" + classItem.capacity}{" "}
+                  Capacity)
+                </option>
+              ),
+            )}
+          </select>
+          {errors.classId?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.classId.message.toString()}
             </p>
           )}
         </div>
       </div>
-      <button className="bg-blue-400 text-white p-2 rounded-md">
+      <input type="hidden" {...register("img")} defaultValue={img} />
+      <CldUploadWidget
+        uploadPreset="school"
+        onSuccess={(result, widget) => {
+          const secureUrl =
+            (result.info as { secure_url?: string })?.secure_url ?? "";
+          setImg(secureUrl);
+          setValue("img", secureUrl, { shouldDirty: true });
+          widget.close();
+        }}
+      >
+        {({ open }) => {
+          return (
+            <div className="flex flex-col gap-2 text-gray-500 text-xs">
+              <div
+                onClick={() => open()}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <Image src="/upload.png" alt="" width={28} height={28} />
+                <span>Upload a photo</span>
+              </div>
+              {img && (
+                <div className="flex items-end gap-3">
+                  <Image
+                    src={img}
+                    alt="Teacher preview"
+                    width={64}
+                    height={64}
+                    className="border border-gray-200 rounded-md w-16 h-16 object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImg("");
+                      setValue("img", "", { shouldDirty: true });
+                    }}
+                    className="text-red-400 hover:text-red-600"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        }}
+      </CldUploadWidget>
+      {state.error && (
+        <span className="text-red-500">
+          {state.message || "Something went wrong!"}
+        </span>
+      )}
+      <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>
     </form>

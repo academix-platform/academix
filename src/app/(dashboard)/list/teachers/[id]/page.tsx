@@ -19,7 +19,6 @@ const SingleTeacherPage = async ({
 
   const teacher:
     | (Teacher & {
-        subjects: Subject[];
         _count: { subjects: number; lessons: number; classes: number };
       })
     | null = await prisma.teacher.findUnique({
@@ -43,11 +42,11 @@ const SingleTeacherPage = async ({
   return (
     <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
       {/* LEFT */}
-      <div className="w-full xl:w-2/3">
+      <div className="w-full xl:w-3/4">
         {/* TOP */}
         <div className="flex flex-wrap md:flex-nowrap gap-4">
           {/* USER INFO CARD */}
-          <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-12 rounded-md w-full md:w-2/3">
+          <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-6 rounded-md w-full md:w-2/3">
             <div className="top-5 right-5 absolute bg-white rounded-md">
               {role === "admin" && (
                 <FormContainer table="teacher" type="update" data={teacher} />
@@ -97,65 +96,68 @@ const SingleTeacherPage = async ({
           <div className="gap-4 grid grid-cols-2 w-full md:w-1/3">
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <Image
-                src="/singleAttendance.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
+              <div className="flex items-center gap-4">
+                <Image
+                  src="/singleAttendance.png"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
                 <h1 className="font-semibold text-xl">90%</h1>
-                <span className="text-gray-400 text-sm">Attendance</span>
               </div>
+              <span className="text-gray-400 text-sm">Attendance</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <Image
-                src="/singleBranch.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
+              <div className="flex items-center gap-4">
+                {" "}
+                <Image
+                  src="/singleBranch.png"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
                 <h1 className="font-semibold text-xl">
                   {teacher._count.subjects}
                 </h1>
-                <span className="text-gray-400 text-sm">Branches</span>
               </div>
+              <span className="text-gray-400 text-sm">Branches</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <Image
-                src="/singleLesson.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
+              <div className="flex items-center gap-4">
+                {" "}
+                <Image
+                  src="/singleLesson.png"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />
                 <h1 className="font-semibold text-xl">
                   {teacher._count.lessons}
                 </h1>
-                <span className="text-gray-400 text-sm">Lessons</span>
               </div>
+              <span className="text-gray-400 text-sm">Lessons</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <Image
-                src="/singleClass.png"
-                alt=""
-                width={24}
-                height={24}
-                className="w-6 h-6"
-              />
-              <div className="">
+              <div className="flex items-center gap-4">
+                {" "}
+                <Image
+                  src="/singleClass.png"
+                  alt=""
+                  width={24}
+                  height={24}
+                  className="w-6 h-6"
+                />{" "}
                 <h1 className="font-semibold text-xl">
                   {teacher._count.classes}
                 </h1>
-                <span className="text-gray-400 text-sm">Classes</span>
               </div>
+              <span className="text-gray-400 text-sm">Classes</span>
             </div>
           </div>
         </div>
@@ -166,37 +168,37 @@ const SingleTeacherPage = async ({
         </div>
       </div>
       {/* RIGHT */}
-      <div className="flex flex-col gap-4 w-full xl:w-1/3">
+      <div className="flex flex-col gap-4 w-full xl:w-1/4">
         <div className="bg-white p-4 rounded-md">
           <h1 className="font-semibold text-xl">Shortcuts</h1>
           <div className="flex flex-wrap gap-4 mt-4 text-gray-500 text-xs">
             <Link
               className="bg-academixSkyLight p-3 rounded-md"
-              href={`/list/classes?teacherId=${"teacher2"}`}
+              href={`/list/classes?teacherId=${id}`}
             >
               Teacher&apos;s Classes
             </Link>
             <Link
               className="bg-academixPurpleLight p-3 rounded-md"
-              href={`/list/students?teacherId=${"teacher2"}`}
+              href={`/list/students?teacherId=${id}`}
             >
               Teacher&apos;s Students
             </Link>
             <Link
               className="bg-academixYellowLight p-3 rounded-md"
-              href={`/list/lessons?teacherId=${"teacher2"}`}
+              href={`/list/lessons?teacherId=${id}`}
             >
               Teacher&apos;s Lessons
             </Link>
             <Link
               className="bg-pink-50 p-3 rounded-md"
-              href={`/list/exams?teacherId=${"teacher3"}`}
+              href={`/list/exams?teacherId=${id}`}
             >
               Teacher&apos;s Exams
             </Link>
             <Link
               className="bg-academixSkyLight p-3 rounded-md"
-              href={`/list/assignments?teacherId=${"teacher3"}`}
+              href={`/list/assignments?teacherId=${id}`}
             >
               Teacher&apos;s Assignments
             </Link>
