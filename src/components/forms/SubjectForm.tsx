@@ -15,6 +15,7 @@ import {
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { Search, X } from "lucide-react";
 
 const SubjectForm = ({
   type,
@@ -36,6 +37,7 @@ const SubjectForm = ({
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<SubjectSchema>({
     resolver: zodResolver(subjectSchema),
@@ -45,15 +47,15 @@ const SubjectForm = ({
     },
   });
 
+  const [showTeacherDropdown, setShowTeacherDropdown] = useState(false);
   const selectedTeachers =
     useWatch({
       control,
       name: "teachers",
     }) ?? [];
-  const filteredTeacherOptions = teacherOptions.filter(
-    (teacher: { name: string }) =>
-      teacher.name.toLowerCase().includes(teacherSearch.trim().toLowerCase()),
-  );
+  const [filteredTeacherOptions, setFilteredTeacherOptions] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const action = type === "create" ? createSubject : updateSubject;
 
@@ -79,6 +81,18 @@ const SubjectForm = ({
     }
   }, [state, type, setOpen, router]);
 
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".teacher-search")) {
+        setShowTeacherDropdown(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
       <h1 className="font-semibold text-xl">
@@ -95,7 +109,7 @@ const SubjectForm = ({
           register={register}
           error={errors?.name}
         />
-        <div className="flex flex-col gap-3 w-full md:w-3/5">
+        <div className="flex flex-col gap-3 w-full md:w-3/5 teacher-search">
           <div className="flex justify-between items-end gap-4">
             <div>
               <label className="text-gray-500 text-xs">Teachers</label>
@@ -109,56 +123,100 @@ const SubjectForm = ({
             </span>
           </div>
           <div className="relative">
-            <input
-              type="search"
-              value={teacherSearch}
-              onChange={(event) => setTeacherSearch(event.target.value)}
-              placeholder="Search teachers..."
-              aria-label="Search teachers"
-              className="bg-white px-4 py-2 pr-10 border border-gray-200 focus:border-blue-400 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-100 w-full text-sm"
-            />
-            {teacherSearch && (
+            <div className="flex items-center gap-2 bg-white px-4 py-2 border border-gray-200 focus-within:border-blue-400 rounded-xl focus-within:ring-2 focus-within:ring-blue-100">
+              <input
+                type="search"
+                value={teacherSearch}
+                onChange={(event) => setTeacherSearch(event.target.value)}
+                placeholder="Search teachers..."
+                aria-label="Search teachers"
+                className="bg-transparent outline-none w-full text-sm"
+              />
               <button
                 type="button"
-                onClick={() => setTeacherSearch("")}
-                className="top-1/2 right-3 absolute text-gray-400 hover:text-gray-600 -translate-y-1/2"
-                aria-label="Clear teacher search"
+                onClick={() => {
+                  const keyword = teacherSearch.trim().toLowerCase();
+                  const results = teacherOptions.filter(
+                    (teacher: { id: string; name: string }) =>
+                      teacher.name.toLowerCase().includes(keyword) &&
+                      !selectedTeachers.includes(String(teacher.id)),
+                  );
+                  setFilteredTeacherOptions(results);
+                  setShowTeacherDropdown(true);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+                aria-label="Search teachers"
               >
-                ×
+                <Search className="w-4 h-4" />
               </button>
+            </div>
+
+            {showTeacherDropdown && (
+              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-56 overflow-y-auto">
+                {filteredTeacherOptions.length > 0 ? (
+                  filteredTeacherOptions.map(
+                    (teacher: { id: string; name: string }) => (
+                      <div
+                        key={teacher.id}
+                        onClick={() => {
+                          setValue(
+                            "teachers",
+                            [...selectedTeachers, String(teacher.id)],
+                            { shouldDirty: true, shouldValidate: true },
+                          );
+                          setTeacherSearch("");
+                          setShowTeacherDropdown(false);
+                          setFilteredTeacherOptions([]);
+                        }}
+                        className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                      >
+                        {teacher.name}
+                      </div>
+                    ),
+                  )
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
+                    No teachers found
+                  </div>
+                )}
+              </div>
             )}
           </div>
-          <div className="gap-3 grid sm:grid-cols-2 xl:grid-cols-3 pr-1 max-h-72 overflow-y-auto">
-            {filteredTeacherOptions.length > 0 ? (
-              filteredTeacherOptions.map(
-                (teacher: { id: string; name: string }) => {
-                  const isSelected = selectedTeachers.includes(teacher.id);
+          <div className="flex flex-wrap gap-2">
+            {selectedTeachers.length > 0 ? (
+              selectedTeachers.map((teacherId: string) => {
+                const teacher = teacherOptions.find(
+                  (option: { id: string; name: string }) =>
+                    String(option.id) === teacherId,
+                );
 
-                  return (
-                    <label
-                      key={teacher.id}
-                      className={`group flex cursor-pointer items-center justify-between rounded-xl border px-4 py-3 transition-all ${isSelected ? "border-blue-500 bg-blue-50 shadow-sm" : "border-gray-200 bg-white hover:border-blue-200 hover:bg-slate-50"}`}
+                return (
+                  <div
+                    key={teacherId}
+                    className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full text-blue-800 text-sm"
+                  >
+                    <span>{teacher?.name ?? teacherId}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setValue(
+                          "teachers",
+                          selectedTeachers.filter(
+                            (currentId: string) => currentId !== teacherId,
+                          ),
+                          { shouldDirty: true, shouldValidate: true },
+                        );
+                      }}
+                      className="text-blue-600 hover:text-blue-900"
                     >
-                      <div>
-                        <p className="font-medium text-gray-800 text-sm">
-                          {teacher.name}
-                        </p>
-                      </div>
-                      <input
-                        type="checkbox"
-                        value={teacher.id}
-                        {...register("teachers")}
-                        className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-600"
-                      />
-                    </label>
-                  );
-                },
-              )
+                      <X size={16} />
+                    </button>
+                  </div>
+                );
+              })
             ) : (
-              <div className="bg-gray-50 px-4 py-6 border border-gray-300 border-dashed rounded-xl text-gray-500 text-sm">
-                {teacherOptions.length > 0
-                  ? "No teachers match your search."
-                  : "No teachers are available yet."}
+              <div className="bg-gray-50 px-4 py-3 border border-gray-300 border-dashed rounded-xl text-gray-500 text-sm">
+                No teachers selected yet.
               </div>
             )}
           </div>

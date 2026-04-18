@@ -17,7 +17,7 @@ import { createStudent, updateStudent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { CldUploadWidget } from "next-cloudinary";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Search } from "lucide-react";
 
 type StudentFormState = {
   success: boolean;
@@ -47,6 +47,14 @@ const StudentForm = ({
 
   const [img, setImg] = useState<any>();
   const [showPassword, setShowPassword] = useState(false);
+  const [searchInput, setSearchInput] = useState(data?.parent?.name ?? "");
+  const [selectedParentId, setSelectedParentId] = useState<string>(
+    data?.parentId ?? "",
+  );
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [filteredParents, setFilteredParents] = useState<
+    { id: string; name: string }[]
+  >([]);
   const [state, formAction] = useActionState<StudentFormState, StudentSchema>(
     type === "create" ? createStudent : updateStudent,
     {
@@ -71,7 +79,23 @@ const StudentForm = ({
     }
   }, [state, router, type, setOpen]);
 
-  const { grades, classes } = relatedData;
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".parent-search")) {
+        setShowDropdown(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
+
+  const { grades, classes, parents } = relatedData;
+
+  useEffect(() => {
+    setValue("parentId", selectedParentId);
+  }, [selectedParentId, setValue]);
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -160,13 +184,74 @@ const StudentForm = ({
           error={errors.birthday}
           type="date"
         />
-        <InputField
-          label="Parent Id"
-          name="parentId"
-          defaultValue={data?.parentId}
-          register={register}
-          error={errors.parentId}
-        />
+        <div className="flex flex-col gap-2 w-full md:w-1/4 parent-search">
+          <label className="text-gray-500 text-xs">Parent</label>
+          <input type="hidden" {...register("parentId")} />
+          <div className="relative">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
+              <input
+                type="text"
+                placeholder="Search parents..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  if (selectedParentId) {
+                    setSelectedParentId("");
+                    setValue("parentId", "");
+                  }
+                }}
+                className="bg-transparent outline-none w-full text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const results = parents?.filter(
+                    (parent: { id: string; name: string }) =>
+                      parent.name
+                        .toLowerCase()
+                        .includes(searchInput.toLowerCase()),
+                  );
+                  setFilteredParents(results || []);
+                  setShowDropdown(true);
+                }}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+            {showDropdown && (
+              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
+                {filteredParents.length > 0 ? (
+                  filteredParents.map(
+                    (parent: { id: string; name: string }) => (
+                      <div
+                        key={parent.id}
+                        onClick={() => {
+                          setSelectedParentId(String(parent.id));
+                          setSearchInput(parent.name);
+                          setShowDropdown(false);
+                          setFilteredParents([]);
+                        }}
+                        className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                      >
+                        {parent.name}
+                      </div>
+                    ),
+                  )
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
+                    No parents found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          {errors.parentId?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.parentId.message.toString()}
+            </p>
+          )}
+        </div>
         {type === "update" && (
           <input type="hidden" {...register("id")} defaultValue={data?.id} />
         )}

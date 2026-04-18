@@ -11,9 +11,11 @@ import {
   startTransition,
   useActionState,
   useEffect,
+  useState,
 } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { Search } from "lucide-react";
 
 const ClassForm = ({
   type,
@@ -34,6 +36,7 @@ const ClassForm = ({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors },
   } = useForm<ClassSchema>({
     resolver: zodResolver(classSchema),
@@ -51,6 +54,18 @@ const ClassForm = ({
     success: false,
     error: false,
   });
+  const [searchInput, setSearchInput] = useState(
+    teacherOptions.find(
+      (teacher: { id: string; name: string }) =>
+        String(teacher.id) === String(defaultSupervisorId),
+    )?.name ?? "",
+  );
+  const [selectedSupervisorId, setSelectedSupervisorId] =
+    useState<string>(defaultSupervisorId);
+  const [showSupervisorDropdown, setShowSupervisorDropdown] = useState(false);
+  const [filteredTeachers, setFilteredTeachers] = useState<
+    { id: string; name: string }[]
+  >([]);
 
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
@@ -68,6 +83,22 @@ const ClassForm = ({
       router.refresh();
     }
   }, [state, type, setOpen, router]);
+
+  useEffect(() => {
+    setValue("supervisorId", selectedSupervisorId);
+  }, [selectedSupervisorId, setValue]);
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".supervisor-search")) {
+        setShowSupervisorDropdown(false);
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, []);
 
   return (
     <form className="flex flex-col gap-8" onSubmit={onSubmit}>
@@ -119,27 +150,68 @@ const ClassForm = ({
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-3/5">
-          <label className="text-gray-500 text-xs" htmlFor="supervisorId">
-            Supervisor
-          </label>
-          <select
-            id="supervisorId"
-            {...register("supervisorId")}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            defaultValue={defaultSupervisorId}
-          >
-            <option value="">Select a teacher</option>
-            {teacherOptions.map((teacher: { id: string; name: string }) => (
-              <option
-                key={teacher.id}
-                value={teacher.id}
-                defaultValue={data && teacher.id === data.supervisorId}
+        <div className="flex flex-col gap-2 w-full md:w-3/5 supervisor-search">
+          <label className="text-gray-500 text-xs">Supervisor</label>
+          <input type="hidden" {...register("supervisorId")} />
+          <div className="relative">
+            <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
+              <input
+                type="text"
+                placeholder="Search teachers..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  if (selectedSupervisorId) {
+                    setSelectedSupervisorId("");
+                    setValue("supervisorId", "");
+                  }
+                }}
+                className="bg-transparent outline-none w-full text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => {
+                  const results = teacherOptions.filter(
+                    (teacher: { id: string; name: string }) =>
+                      teacher.name
+                        .toLowerCase()
+                        .includes(searchInput.toLowerCase()),
+                  );
+                  setFilteredTeachers(results);
+                  setShowSupervisorDropdown(true);
+                }}
+                className="text-gray-500 hover:text-gray-700"
               >
-                {teacher.name}
-              </option>
-            ))}
-          </select>
+                <Search className="w-4 h-4" />
+              </button>
+            </div>
+            {showSupervisorDropdown && (
+              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
+                {filteredTeachers.length > 0 ? (
+                  filteredTeachers.map(
+                    (teacher: { id: string; name: string }) => (
+                      <div
+                        key={teacher.id}
+                        onClick={() => {
+                          setSelectedSupervisorId(String(teacher.id));
+                          setSearchInput(teacher.name);
+                          setShowSupervisorDropdown(false);
+                          setFilteredTeachers([]);
+                        }}
+                        className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                      >
+                        {teacher.name}
+                      </div>
+                    ),
+                  )
+                ) : (
+                  <div className="px-3 py-2 text-gray-500 text-sm">
+                    No teachers found
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
           {errors.supervisorId?.message && (
             <p className="text-red-400 text-xs">
               {errors.supervisorId.message.toString()}
