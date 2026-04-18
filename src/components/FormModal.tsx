@@ -11,14 +11,14 @@ import {
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
-import { deleteClass, deleteSubject } from "@/lib/actions";
+import { deleteClass, deleteSubject, deleteTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
 
 const deleteActionMap = {
   subject: deleteSubject,
   class: deleteClass,
-  teacher: deleteSubject,
+  teacher: deleteTeacher,
   student: deleteSubject,
   parent: deleteSubject,
   lesson: deleteSubject,
@@ -57,14 +57,14 @@ const forms: {
     relatedData?: any,
   ) => ReactElement;
 } = {
-  // teacher: (setOpen, type, data, relatedData) => (
-  //   <TeacherForm
-  //     setOpen={setOpen}
-  //     type={type}
-  //     data={data}
-  //     relatedData={relatedData}
-  //   />
-  // ),
+  teacher: (setOpen, type, data, relatedData) => (
+    <TeacherForm
+      type={type}
+      data={data}
+      setOpen={setOpen}
+      relatedData={relatedData}
+    />
+  ),
   // student: (setOpen, type, data, relatedData) => (
   //   <StudentForm
   //     setOpen={setOpen}
@@ -162,8 +162,8 @@ const FormModal = ({
         })()}
       </button>
       {open && (
-        <div className="top-0 left-0 z-50 absolute flex justify-center items-center bg-black bg-opacity-60 w-screen h-screen">
-          <div className="relative bg-white p-4 rounded-md w-[90%] md:w-[70%] lg:w-[60%] 2xl:w-[40%] xl:w-[50%]">
+        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4">
+          <div className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <Form />
             <div
               className="top-4 right-4 absolute cursor-pointer"

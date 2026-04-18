@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -88,7 +88,7 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
           </button>
         </Link>
         {role === "admin" && (
-          <FormModal table="teacher" type="delete" id={item.id} />
+          <FormContainer table="teacher" type="delete" id={item.id} />
         )}
       </div>
     </td>
@@ -154,7 +154,9 @@ const TeacherListPage = async ({
           <TableSearch />
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && (
+              <FormContainer table="teacher" type="create" />
+            )}
           </div>
         </div>
       </div>

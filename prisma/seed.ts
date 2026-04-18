@@ -114,6 +114,9 @@ async function main() {
         classes: {
           connect: [{ id: classes[i % classes.length].id }],
         },
+        birthday: new Date(
+          new Date().setFullYear(new Date().getFullYear() - 30),
+        ),
       },
     });
     teachers.push(teacher);
@@ -155,6 +158,9 @@ async function main() {
         parentId: parents[Math.floor((i - 1) / 2)].id,
         gradeId: grades[i % grades.length].id,
         classId: classes[i % classes.length].id,
+        birthday: new Date(
+          new Date().setFullYear(new Date().getFullYear() - 10),
+        ),
       },
     });
     students.push(student);
