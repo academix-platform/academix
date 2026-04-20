@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
 import {
   deleteClass,
+  deleteAssignment,
   deleteExam,
   deleteParent,
   deleteStudent,
@@ -21,6 +22,7 @@ import {
 } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
+import AssignmentForm from "./forms/AssignmentForm";
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -30,7 +32,7 @@ const deleteActionMap = {
   parent: deleteParent,
   exam: deleteExam,
   lesson: deleteSubject,
-  assignment: deleteSubject,
+  assignment: deleteAssignment,
   result: deleteSubject,
   attendance: deleteSubject,
   event: deleteSubject,
@@ -61,7 +63,6 @@ const ClassForm = dynamic(() => import("./forms/ClassForm"), {
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
   loading: () => <h1>Loading...</h1>,
 });
-
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
@@ -112,6 +113,14 @@ const forms: {
   ),
   exam: (setOpen, type, data, relatedData) => (
     <ExamForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  assignment: (setOpen, type, data, relatedData) => (
+    <AssignmentForm
       setOpen={setOpen}
       type={type}
       data={data}

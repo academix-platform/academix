@@ -103,6 +103,48 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           })),
         };
         break;
+      case "assignment":
+        const assignmentRole = await getCurrentRole();
+        const assignmentUserId = await getUserId();
+        const assignmentLessons = await prisma.lesson.findMany({
+          where: {
+            ...(assignmentRole === "teacher"
+              ? { teacherId: assignmentUserId! }
+              : {}),
+          },
+          select: {
+            id: true,
+            subjectId: true,
+            classId: true,
+            subject: { select: { id: true, name: true } },
+            class: { select: { id: true, name: true } },
+          },
+        });
+
+        const assignmentSubjectsMap = new Map<
+          number,
+          { id: number; name: string }
+        >();
+        const assignmentClassesMap = new Map<
+          number,
+          { id: number; name: string }
+        >();
+
+        for (const lesson of assignmentLessons) {
+          assignmentSubjectsMap.set(lesson.subject.id, lesson.subject);
+          assignmentClassesMap.set(lesson.class.id, lesson.class);
+        }
+
+        relatedData = {
+          subjects: Array.from(assignmentSubjectsMap.values()),
+          classes: Array.from(assignmentClassesMap.values()),
+          lessons: assignmentLessons.map((lesson) => ({
+            id: lesson.id,
+            subjectId: lesson.subjectId,
+            classId: lesson.classId,
+          })),
+        };
+        break;
     }
   }
   return (

@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -10,55 +10,89 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Assignment, Class, Prisma, Subject, Teacher } from "@prisma/client";
 
 type AssignmentList = Assignment & {
+  subject: Pick<Subject, "name"> | null;
+  class: Pick<Class, "name"> | null;
   lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
+    teacher: Pick<Teacher, "name">;
   };
 };
 
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
+const getColumns = (role: UserRole | null) => {
+  const columns: { header: string; accessor: string; className?: string }[] = [
+    {
+      header: "Title",
+      accessor: "title",
+    },
+    {
+      header: "Subject",
+      accessor: "name",
+    },
+  ];
+
+  if (role !== "student") {
+    columns.push({
+      header: "Class",
+      accessor: "class",
+    });
+  }
+
+  if (role !== "teacher") {
+    columns.push({
+      header: "Teacher",
+      accessor: "teacher",
+      className: "hidden md:table-cell",
+    });
+  }
+
+  columns.push({
+    header: "Start Date",
+    accessor: "startDate",
     className: "hidden md:table-cell",
-  },
-  {
-    header: "Due Date",
-    accessor: "dueDate",
+  });
+
+  columns.push({
+    header: "End Date",
+    accessor: "endDate",
     className: "hidden md:table-cell",
-  },
-  {
+  });
+
+  columns.push({
     header: role === "admin" || role === "teacher" ? "Actions" : "",
     accessor: "action",
-  },
-];
+  });
+
+  return columns;
+};
 
 const renderRow = (item: AssignmentList, role: UserRole | null) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
-    <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
-    <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+    <td className="p-4">{item.title}</td>
+    <td className="flex items-center gap-4 p-4">{item.subject?.name}</td>
+    {role !== "student" && <td>{item.class?.name}</td>}
+    {role !== "teacher" && (
+      <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+    )}
     <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US").format(item.startDate)}
+      {new Intl.DateTimeFormat("en-US", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(item.startDate)}
+    </td>
+    <td className="hidden md:table-cell">
+      {new Intl.DateTimeFormat("en-US", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(item.endDate)}
     </td>
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
           <>
-            <FormModal table="assignment" type="update" data={item} />
-            <FormModal table="assignment" type="delete" id={item.id} />
+            <FormContainer table="assignment" type="update" data={item} />
+            <FormContainer table="assignment" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -94,8 +128,8 @@ const AssignmentListPage = async ({
             break;
           }
           case "search": {
-            query.lesson = {
-              subject: { name: { contains: value, mode: "insensitive" } },
+            query.lesson.subject = {
+              name: { contains: value, mode: "insensitive" },
             };
             break;
           }
@@ -140,10 +174,10 @@ const AssignmentListPage = async ({
     prisma.assignment.findMany({
       where: query,
       include: {
+        subject: { select: { name: true } },
+        class: { select: { name: true } },
         lesson: {
           select: {
-            subject: { select: { name: true } },
-            class: { select: { name: true } },
             teacher: { select: { name: true } },
           },
         },
@@ -167,7 +201,7 @@ const AssignmentListPage = async ({
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
             {(role === "admin" || role === "teacher") && (
-              <FormModal table="assignment" type="create" />
+              <FormContainer table="assignment" type="create" />
             )}
           </div>
         </div>
