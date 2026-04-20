@@ -14,6 +14,8 @@ async function main() {
   // ======================
   // CLEAN (order matters)
   // ======================
+  await prisma.announcement.deleteMany();
+  await prisma.event.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.result.deleteMany();
   await prisma.assignment.deleteMany();
@@ -23,6 +25,9 @@ async function main() {
   await prisma.parent.deleteMany();
   await prisma.teacher.deleteMany();
   await prisma.class.deleteMany();
+  await prisma.subject.deleteMany();
+  await prisma.grade.deleteMany();
+  await prisma.admin.deleteMany();
 
   // ======================
   // ADMIN
@@ -211,12 +216,16 @@ async function main() {
   const assignments = [];
 
   for (let i = 1; i <= 10; i++) {
+    const linkedLesson = lessons[i % lessons.length];
+
     const exam = await prisma.exam.create({
       data: {
         title: `Exam ${i}`,
         startTime: new Date(),
         endTime: new Date(),
-        lessonId: lessons[i % lessons.length].id,
+        lessonId: linkedLesson.id,
+        classId: linkedLesson.classId,
+        subjectId: linkedLesson.subjectId,
       },
     });
 
@@ -227,7 +236,9 @@ async function main() {
         title: `Assignment ${i}`,
         startDate: new Date(),
         endDate: new Date(),
-        lessonId: lessons[i % lessons.length].id,
+        lessonId: linkedLesson.id,
+        classId: linkedLesson.classId,
+        subjectId: linkedLesson.subjectId,
       },
     });
 
