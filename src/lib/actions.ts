@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import {
   ClassSchema,
+  ExamSchema,
   ParentSchema,
   StudentSchema,
   SubjectSchema,
@@ -10,6 +11,7 @@ import {
 } from "./formValidationSchemas";
 import prisma from "./prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { getCurrentRole, getUserId } from "./auth";
 
 type CurrentState = { success: boolean; error: boolean; message?: string };
 
@@ -490,6 +492,214 @@ export const deleteParent = async (
 
     await prisma.parent.delete({
       where: { id: id },
+    });
+
+    return { success: true, error: false };
+  } catch (err) {
+    return { success: false, error: true };
+  }
+};
+
+////////////////////////////////////////////////////
+
+export const createExam = async (
+  currentState: CurrentState,
+  data: ExamSchema,
+) => {
+  const role = await getCurrentRole();
+  const userId = await getUserId();
+
+  try {
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        subjectId: data.subjectId,
+        classId: { in: data.classIds },
+        ...(role === "teacher" ? { teacherId: userId! } : {}),
+      },
+      select: { id: true, classId: true },
+    });
+
+    const matchedClassIds = new Set(lessons.map((lesson) => lesson.classId));
+    if (lessons.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No lessons were found for the selected subject and classes.",
+      };
+    }
+
+    if (matchedClassIds.size !== data.classIds.length) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "One or more selected classes do not have a lesson for that subject.",
+      };
+    }
+
+    await prisma.$transaction(
+      lessons.map((lesson) =>
+        prisma.exam.create({
+          data: {
+            title: data.title,
+            startTime: data.startTime,
+            endTime: data.endTime,
+            lessonId: lesson.id,
+            classId: lesson.classId,
+            subjectId: data.subjectId,
+          },
+        }),
+      ),
+    );
+
+    revalidatePath("/list/exams");
+    return { success: true, error: false };
+  } catch (err) {
+    return {
+      success: false,
+      error: true,
+      message: getReadableActionErrorMessage(err),
+    };
+  }
+};
+
+export const updateExam = async (
+  currentState: CurrentState,
+  data: ExamSchema,
+) => {
+  const role = await getCurrentRole();
+  const userId = await getUserId();
+
+  try {
+    const existingExam = await prisma.exam.findUnique({
+      where: { id: data.id },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        subjectId: true,
+      },
+    });
+
+    if (!existingExam) {
+      return {
+        success: false,
+        error: true,
+        message: "The exam you are trying to update was not found.",
+      };
+    }
+
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        subjectId: data.subjectId,
+        classId: { in: data.classIds },
+        ...(role === "teacher" ? { teacherId: userId! } : {}),
+      },
+      select: { id: true, classId: true },
+    });
+
+    const matchedClassIds = new Set(lessons.map((lesson) => lesson.classId));
+    if (lessons.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No lessons were found for the selected subject and classes.",
+      };
+    }
+
+    if (matchedClassIds.size !== data.classIds.length) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "One or more selected classes do not have a lesson for that subject.",
+      };
+    }
+
+    const groupExams = await prisma.exam.findMany({
+      where: {
+        title: existingExam.title,
+        startTime: existingExam.startTime,
+        endTime: existingExam.endTime,
+        subjectId: existingExam.subjectId,
+        ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+      },
+      select: { id: true, classId: true },
+    });
+
+    const selectedLessonsByClass = new Map<
+      number,
+      { id: number; classId: number }
+    >();
+    for (const lesson of lessons) {
+      selectedLessonsByClass.set(lesson.classId, lesson);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const exam of groupExams) {
+        if (exam.classId && !selectedLessonsByClass.has(exam.classId)) {
+          await tx.exam.delete({ where: { id: exam.id } });
+        }
+      }
+
+      for (const [classId, lesson] of selectedLessonsByClass) {
+        const existingClassExam = groupExams.find(
+          (exam) => exam.classId === classId,
+        );
+
+        if (existingClassExam) {
+          await tx.exam.update({
+            where: { id: existingClassExam.id },
+            data: {
+              title: data.title,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              lessonId: lesson.id,
+              classId,
+              subjectId: data.subjectId,
+            },
+          });
+        } else {
+          await tx.exam.create({
+            data: {
+              title: data.title,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              lessonId: lesson.id,
+              classId,
+              subjectId: data.subjectId,
+            },
+          });
+        }
+      }
+    });
+
+    revalidatePath("/list/exams");
+    return { success: true, error: false };
+  } catch (err) {
+    return {
+      success: false,
+      error: true,
+      message: getReadableActionErrorMessage(err),
+    };
+  }
+};
+
+export const deleteExam = async (
+  currentState: CurrentState,
+  data: FormData,
+) => {
+  const id = data.get("id") as string;
+
+  const role = await getCurrentRole();
+  const userId = await getUserId();
+  try {
+    await prisma.exam.delete({
+      where: {
+        id: parseInt(id),
+        ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+      },
     });
 
     return { success: true, error: false };

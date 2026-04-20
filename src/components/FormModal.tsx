@@ -13,6 +13,7 @@ import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
 import {
   deleteClass,
+  deleteExam,
   deleteParent,
   deleteStudent,
   deleteSubject,
@@ -27,8 +28,8 @@ const deleteActionMap = {
   teacher: deleteTeacher,
   student: deleteStudent,
   parent: deleteParent,
+  exam: deleteExam,
   lesson: deleteSubject,
-  exam: deleteSubject,
   assignment: deleteSubject,
   result: deleteSubject,
   attendance: deleteSubject,
@@ -55,6 +56,9 @@ const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ClassForm = dynamic(() => import("./forms/ClassForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ExamForm = dynamic(() => import("./forms/ExamForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -100,6 +104,14 @@ const forms: {
   ),
   class: (setOpen, type, data, relatedData) => (
     <ClassForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  exam: (setOpen, type, data, relatedData) => (
+    <ExamForm
       setOpen={setOpen}
       type={type}
       data={data}

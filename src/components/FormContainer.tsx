@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
+import { getCurrentRole, getUserId } from "@/lib/auth";
 
 export type FormContainerProps = {
   table:
@@ -67,6 +68,40 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           select: { id: true, name: true },
         });
         relatedData = { students: parentStudents };
+        break;
+      case "exam":
+        const role = await getCurrentRole();
+        const userId = await getUserId();
+        const examLessons = await prisma.lesson.findMany({
+          where: {
+            ...(role === "teacher" ? { teacherId: userId! } : {}),
+          },
+          select: {
+            id: true,
+            subjectId: true,
+            classId: true,
+            subject: { select: { id: true, name: true } },
+            class: { select: { id: true, name: true } },
+          },
+        });
+
+        const subjectsMap = new Map<number, { id: number; name: string }>();
+        const classesMap = new Map<number, { id: number; name: string }>();
+
+        for (const lesson of examLessons) {
+          subjectsMap.set(lesson.subject.id, lesson.subject);
+          classesMap.set(lesson.class.id, lesson.class);
+        }
+
+        relatedData = {
+          subjects: Array.from(subjectsMap.values()),
+          classes: Array.from(classesMap.values()),
+          lessons: examLessons.map((lesson) => ({
+            id: lesson.id,
+            subjectId: lesson.subjectId,
+            classId: lesson.classId,
+          })),
+        };
         break;
     }
   }

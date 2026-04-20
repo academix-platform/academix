@@ -109,3 +109,18 @@ export const parentSchema = z.object({
 });
 
 export type ParentSchema = z.infer<typeof parentSchema>;
+
+////////////////////////////////////////////////////////////////////
+
+export const examSchema = z.object({
+  id: z.coerce.number().optional(),
+  title: z.string().min(1, { message: "Exam title is required!" }),
+  startTime: z.coerce.date({ message: "Start time is required!" }),
+  endTime: z.coerce.date({ message: "End time is required!" }),
+  subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+  classIds: z
+    .array(z.coerce.number())
+    .min(1, { message: "At least one class is required!" }),
+});
+
+export type ExamSchema = z.infer<typeof examSchema>;
