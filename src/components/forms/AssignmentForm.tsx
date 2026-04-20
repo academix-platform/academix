@@ -42,6 +42,7 @@ const AssignmentForm = ({
     register,
     handleSubmit,
     control,
+    setValue,
     formState: { errors },
   } = useForm<AssignmentSchema>({
     resolver: zodResolver(assignmentSchema),
@@ -82,7 +83,12 @@ const AssignmentForm = ({
 
   const { subjects = [], classes = [], lessons = [] } = relatedData ?? {};
   const selectedSubjectId = useWatch({ control, name: "subjectId" });
-  const selectedClassIds = useWatch({ control, name: "classIds" }) ?? [];
+  const watchedClassIds = useWatch({ control, name: "classIds" });
+  const classIdsRegister = register("classIds");
+  const selectedClassIds = useMemo(
+    () => (watchedClassIds ?? []) as Array<string | number>,
+    [watchedClassIds],
+  );
   const selectedSubjectIdNumber = Number(selectedSubjectId);
 
   const availableClassIds = useMemo(() => {
@@ -107,6 +113,57 @@ const AssignmentForm = ({
           availableClassIds.has(cls.id),
         )
       : classes;
+
+  const selectedClassIdsAsNumbers = useMemo(
+    () =>
+      (selectedClassIds as Array<string | number>)
+        .map((id) => Number(id))
+        .filter((id) => !Number.isNaN(id)),
+    [selectedClassIds],
+  );
+
+  const filteredClassIds = useMemo<number[]>(
+    () => filteredClasses.map((cls: { id: number; name: string }) => cls.id),
+    [filteredClasses],
+  );
+
+  const areAllFilteredSelected =
+    filteredClassIds.length > 0 &&
+    filteredClassIds.every((id) => selectedClassIdsAsNumbers.includes(id));
+
+  const toggleAllFilteredClasses = (checked: boolean) => {
+    const selectedSet = new Set<number>(selectedClassIdsAsNumbers);
+
+    if (checked) {
+      for (const classId of filteredClassIds) {
+        selectedSet.add(classId);
+      }
+    } else {
+      for (const classId of filteredClassIds) {
+        selectedSet.delete(classId);
+      }
+    }
+
+    setValue("classIds", Array.from(selectedSet), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
+  const toggleSingleClass = (classId: number, checked: boolean) => {
+    const selectedSet = new Set<number>(selectedClassIdsAsNumbers);
+
+    if (checked) {
+      selectedSet.add(classId);
+    } else {
+      selectedSet.delete(classId);
+    }
+
+    setValue("classIds", Array.from(selectedSet), {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
 
   const nowDefault = toDatetimeLocalValue(new Date());
   const startDefaultValue =
@@ -175,23 +232,35 @@ const AssignmentForm = ({
         <div className="flex flex-col gap-2 w-full md:w-1/3">
           <label className="text-gray-500 text-xs">Classes</label>
           <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[220px] overflow-y-auto">
+            <label className="flex items-center gap-2 mb-4 text-gray-700 text-sm">
+              <input
+                type="checkbox"
+                checked={areAllFilteredSelected}
+                onChange={(e) => toggleAllFilteredClasses(e.target.checked)}
+                disabled={filteredClassIds.length === 0}
+                className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
+              />
+              <span className="font-medium">Select all</span>
+            </label>
             {filteredClasses.map((cls: { id: number; name: string }) => (
               <label
                 key={cls.id}
                 className="flex items-center gap-2 text-gray-700 text-sm"
               >
                 <input
+                  {...classIdsRegister}
                   type="checkbox"
                   value={cls.id}
-                  defaultChecked={
-                    data?.classId ? data.classId === cls.id : false
-                  }
-                  {...register("classIds")}
+                  checked={selectedClassIdsAsNumbers.includes(cls.id)}
+                  onChange={(e) => toggleSingleClass(cls.id, e.target.checked)}
                   className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
                 />
                 <span>{cls.name}</span>
               </label>
             ))}
+            {filteredClasses.length === 0 && (
+              <p className="text-gray-400 text-xs">No classes available.</p>
+            )}
           </div>
           {selectedClassIds.length > 0 && (
             <p className="text-gray-400 text-xs">
