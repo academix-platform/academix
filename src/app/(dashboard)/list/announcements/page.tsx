@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -9,7 +9,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Announcement, Class, Prisma } from "@prisma/client";
 
-type AnnouncementList = Announcement & { class: Class };
+type AnnouncementList = Announcement & { classes: Pick<Class, "id" | "name">[] };
 
 const getColumns = (role: UserRole | null) => [
   {
@@ -31,13 +31,21 @@ const getColumns = (role: UserRole | null) => [
   },
 ];
 
-const renderRow = (item: AnnouncementList, role: UserRole | null) => (
+const renderRow = (
+  item: AnnouncementList,
+  role: UserRole | null,
+  totalClassesCount: number,
+) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td>{item.class?.name || "-"}</td>
+    <td>
+      {item.classes.length === totalClassesCount && totalClassesCount > 0
+        ? "All Classes"
+        : item.classes.map((cls) => cls.name).join(", ") || "-"}
+    </td>
     <td className="hidden md:table-cell">
       {" "}
       {new Intl.DateTimeFormat("en-US").format(item.date)}
@@ -46,8 +54,8 @@ const renderRow = (item: AnnouncementList, role: UserRole | null) => (
       <div className="flex items-center gap-2">
         {role === "admin" && (
           <>
-            <FormModal table="announcement" type="update" data={item} />
-            <FormModal table="announcement" type="delete" id={item.id} />
+            <FormContainer table="announcement" type="update" data={item} />
+            <FormContainer table="announcement" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -84,22 +92,23 @@ const AnnouncementListPage = async ({
   }
 
   // ROLE CONDITIONS
-  const roleConditions = {
-    teacher: { lessons: { some: { teacherId: userId! } } },
-    student: { students: { some: { id: userId! } } },
-    parent: { students: { some: { parentId: userId! } } },
-  };
+  if (role !== "admin") {
+    const roleConditions = {
+      teacher: { lessons: { some: { teacherId: userId! } } },
+      student: { students: { some: { id: userId! } } },
+      parent: { students: { some: { parentId: userId! } } },
+    };
 
-  query.OR = [
-    { classId: null },
-    { class: roleConditions[role as keyof typeof roleConditions] || {} },
-  ];
+    query.classes = {
+      some: roleConditions[role as keyof typeof roleConditions] || undefined,
+    };
+  }
 
-  const [data, count] = await prisma.$transaction([
+  const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
       include: {
-        class: true,
+        classes: { select: { id: true, name: true } },
       },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
@@ -107,6 +116,7 @@ const AnnouncementListPage = async ({
     prisma.announcement.count({
       where: query,
     }),
+    prisma.class.count(),
   ]);
 
   return (
@@ -121,7 +131,7 @@ const AnnouncementListPage = async ({
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
             {role === "admin" && (
-              <FormModal table="announcement" type="create" />
+              <FormContainer table="announcement" type="create" />
             )}
           </div>
         </div>
@@ -129,7 +139,7 @@ const AnnouncementListPage = async ({
       {/* LIST */}
       <Table
         columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, totalClassesCount)}
         data={data}
       />
       {/* PAGINATION */}

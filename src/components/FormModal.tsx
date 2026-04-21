@@ -12,9 +12,11 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
 import {
+  deleteAnnouncement,
   deleteClass,
   deleteAssignment,
   deleteExam,
+  deleteEvent,
   deleteParent,
   deleteStudent,
   deleteSubject,
@@ -36,8 +38,8 @@ const deleteActionMap = {
   result: deleteResult,
   lesson: deleteSubject,
   attendance: deleteSubject,
-  event: deleteSubject,
-  announcement: deleteSubject,
+  event: deleteEvent,
+  announcement: deleteAnnouncement,
 };
 
 const iconMap = {
@@ -65,6 +67,12 @@ const ExamForm = dynamic(() => import("./forms/ExamForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ResultForm = dynamic(() => import("./forms/ResultForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const EventForm = dynamic(() => import("./forms/EventForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const forms: {
@@ -133,6 +141,22 @@ const forms: {
   ),
   result: (setOpen, type, data, relatedData) => (
     <ResultForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  event: (setOpen, type, data, relatedData) => (
+    <EventForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  announcement: (setOpen, type, data, relatedData) => (
+    <AnnouncementForm
       setOpen={setOpen}
       type={type}
       data={data}

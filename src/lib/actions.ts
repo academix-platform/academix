@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  AnnouncementSchema,
   AssignmentSchema,
   ClassSchema,
   ExamSchema,
+  EventSchema,
   ParentSchema,
   ResultSchema,
   StudentSchema,
@@ -40,6 +42,20 @@ const parseNumericId = (raw: FormDataEntryValue | null): number | null => {
   if (typeof raw !== "string") return null;
   const parsed = Number.parseInt(raw, 10);
   return Number.isNaN(parsed) ? null : parsed;
+};
+
+const ensureAdminAccess = async () => {
+  const role = await getCurrentRole();
+
+  if (role !== "admin") {
+    return {
+      success: false,
+      error: true,
+      message: "You are not allowed to perform this action.",
+    } as ActionResult;
+  }
+
+  return null;
 };
 
 const serializeActionError = (err: unknown) => {
@@ -1217,6 +1233,160 @@ export const deleteResult = async (
       where: { id },
     });
 
+    return successResult();
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const createEvent = async (
+  currentState: CurrentState,
+  data: EventSchema,
+) => {
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.event.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        classes: {
+          connect: data.classIds.map((classId) => ({ id: classId })),
+        },
+      },
+    });
+
+    return successResult(["/list/events"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const updateEvent = async (
+  currentState: CurrentState,
+  data: EventSchema,
+) => {
+  if (!data.id) {
+    return { success: false, error: true, message: "Event id is required." };
+  }
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.event.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        description: data.description,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        classes: {
+          set: data.classIds.map((classId) => ({ id: classId })),
+        },
+      },
+    });
+
+    return successResult(["/list/events"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const deleteEvent = async (
+  currentState: CurrentState,
+  data: FormData,
+) => {
+  const id = parseNumericId(data.get("id"));
+  if (!id) return { success: false, error: true, message: "Invalid event id." };
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.event.delete({ where: { id } });
+    return successResult();
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const createAnnouncement = async (
+  currentState: CurrentState,
+  data: AnnouncementSchema,
+) => {
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.announcement.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        classes: {
+          connect: data.classIds.map((classId) => ({ id: classId })),
+        },
+      },
+    });
+
+    return successResult(["/list/announcements"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const updateAnnouncement = async (
+  currentState: CurrentState,
+  data: AnnouncementSchema,
+) => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Announcement id is required.",
+    };
+  }
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.announcement.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        classes: {
+          set: data.classIds.map((classId) => ({ id: classId })),
+        },
+      },
+    });
+
+    return successResult(["/list/announcements"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const deleteAnnouncement = async (
+  currentState: CurrentState,
+  data: FormData,
+) => {
+  const id = parseNumericId(data.get("id"));
+  if (!id) {
+    return { success: false, error: true, message: "Invalid announcement id." };
+  }
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.announcement.delete({ where: { id } });
     return successResult();
   } catch (err) {
     return errorResult(err);
