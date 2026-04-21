@@ -179,3 +179,28 @@ export const announcementSchema = z.object({
 });
 
 export type AnnouncementSchema = z.infer<typeof announcementSchema>;
+
+export const messageSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    title: z.string().min(1, { message: "Message title is required!" }),
+    description: z.string().min(1, { message: "Description is required!" }),
+    date: z.coerce.date({ message: "Date is required!" }),
+    classIds: z.array(z.coerce.number()).optional().default([]),
+    studentIds: z.array(z.string()).optional().default([]),
+    parentIds: z.array(z.string()).optional().default([]),
+    teacherIds: z.array(z.string()).optional().default([]),
+  })
+  .refine(
+    (data) =>
+      (data.studentIds?.length ?? 0) +
+        (data.parentIds?.length ?? 0) +
+        (data.teacherIds?.length ?? 0) >
+      0,
+    {
+      message: "Select at least one recipient.",
+      path: ["studentIds"],
+    },
+  );
+
+export type MessageSchema = z.infer<typeof messageSchema>;

@@ -7,6 +7,7 @@ import {
   ClassSchema,
   ExamSchema,
   EventSchema,
+  MessageSchema,
   ParentSchema,
   ResultSchema,
   StudentSchema,
@@ -186,7 +187,8 @@ export const deleteSubject = async (
   data: FormData,
 ) => {
   const id = parseNumericId(data.get("id"));
-  if (!id) return { success: false, error: true, message: "Invalid subject id." };
+  if (!id)
+    return { success: false, error: true, message: "Invalid subject id." };
 
   try {
     await prisma.subject.delete({
@@ -314,7 +316,9 @@ export const updateTeacher = async (
   }
 
   try {
-    await (await clerkClient()).users.updateUser(data.id, {
+    await (
+      await clerkClient()
+    ).users.updateUser(data.id, {
       username: data.username,
       ...(data.password !== "" && { password: data.password }),
       firstName: data.name,
@@ -353,7 +357,8 @@ export const deleteTeacher = async (
   data: FormData,
 ) => {
   const id = data.get("id") as string;
-  if (!id) return { success: false, error: true, message: "Invalid teacher id." };
+  if (!id)
+    return { success: false, error: true, message: "Invalid teacher id." };
 
   try {
     await (await clerkClient()).users.deleteUser(id);
@@ -440,7 +445,9 @@ export const updateStudent = async (
   }
 
   try {
-    await (await clerkClient()).users.updateUser(data.id, {
+    await (
+      await clerkClient()
+    ).users.updateUser(data.id, {
       username: data.username,
       ...(data.password !== "" && { password: data.password }),
       firstName: data.name,
@@ -477,7 +484,8 @@ export const deleteStudent = async (
   data: FormData,
 ) => {
   const id = data.get("id") as string;
-  if (!id) return { success: false, error: true, message: "Invalid student id." };
+  if (!id)
+    return { success: false, error: true, message: "Invalid student id." };
 
   try {
     await (await clerkClient()).users.deleteUser(id);
@@ -547,7 +555,9 @@ export const updateParent = async (
   }
 
   try {
-    await (await clerkClient()).users.updateUser(data.id, {
+    await (
+      await clerkClient()
+    ).users.updateUser(data.id, {
       username: data.username,
       ...(data.password !== "" && { password: data.password }),
       firstName: data.name,
@@ -582,7 +592,8 @@ export const deleteParent = async (
   data: FormData,
 ) => {
   const id = data.get("id") as string;
-  if (!id) return { success: false, error: true, message: "Invalid parent id." };
+  if (!id)
+    return { success: false, error: true, message: "Invalid parent id." };
 
   try {
     await (await clerkClient()).users.deleteUser(id);
@@ -1187,7 +1198,8 @@ export const deleteResult = async (
   data: FormData,
 ) => {
   const id = parseNumericId(data.get("id"));
-  if (!id) return { success: false, error: true, message: "Invalid result id." };
+  if (!id)
+    return { success: false, error: true, message: "Invalid result id." };
 
   const role = await getCurrentRole();
   const userId = await getUserId();
@@ -1387,6 +1399,108 @@ export const deleteAnnouncement = async (
 
   try {
     await prisma.announcement.delete({ where: { id } });
+    return successResult();
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const createMessage = async (
+  currentState: CurrentState,
+  data: MessageSchema,
+) => {
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.message.create({
+      data: {
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        classes: {
+          connect: (data.classIds ?? []).map((classId) => ({ id: classId })),
+        },
+        students: {
+          connect: (data.studentIds ?? []).map((studentId) => ({
+            id: studentId,
+          })),
+        },
+        parents: {
+          connect: (data.parentIds ?? []).map((parentId) => ({
+            id: parentId,
+          })),
+        },
+        teachers: {
+          connect: (data.teacherIds ?? []).map((teacherId) => ({
+            id: teacherId,
+          })),
+        },
+      },
+    });
+
+    return successResult(["/list/messages"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const updateMessage = async (
+  currentState: CurrentState,
+  data: MessageSchema,
+) => {
+  if (!data.id) {
+    return {
+      success: false,
+      error: true,
+      message: "Message id is required.",
+    };
+  }
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.message.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        description: data.description,
+        date: data.date,
+        classes: {
+          set: (data.classIds ?? []).map((classId) => ({ id: classId })),
+        },
+        students: {
+          set: (data.studentIds ?? []).map((studentId) => ({ id: studentId })),
+        },
+        parents: {
+          set: (data.parentIds ?? []).map((parentId) => ({ id: parentId })),
+        },
+        teachers: {
+          set: (data.teacherIds ?? []).map((teacherId) => ({ id: teacherId })),
+        },
+      },
+    });
+
+    return successResult(["/list/messages"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+export const deleteMessage = async (
+  currentState: CurrentState,
+  data: FormData,
+) => {
+  const id = parseNumericId(data.get("id"));
+  if (!id)
+    return { success: false, error: true, message: "Invalid message id." };
+
+  const adminError = await ensureAdminAccess();
+  if (adminError) return adminError;
+
+  try {
+    await prisma.message.delete({ where: { id } });
     return successResult();
   } catch (err) {
     return errorResult(err);
