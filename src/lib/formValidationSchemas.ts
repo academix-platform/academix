@@ -137,3 +137,20 @@ export const assignmentSchema = z.object({
 });
 
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
+
+export const resultSchema = z.object({
+  id: z.coerce.number().optional(),
+  studentId: z.string().min(1, { message: "Student is required!" }),
+  score: z.coerce
+    .number()
+    .min(0, { message: "Score must be at least 0!" })
+    .max(100, { message: "Score cannot be greater than 100!" }),
+  assessmentType: z.enum(["exam", "assignment"], {
+    message: "Assessment type is required!",
+  }),
+  assessmentId: z.coerce
+    .number()
+    .min(1, { message: "Assessment is required!" }),
+});
+
+export type ResultSchema = z.infer<typeof resultSchema>;

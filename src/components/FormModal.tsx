@@ -19,6 +19,7 @@ import {
   deleteStudent,
   deleteSubject,
   deleteTeacher,
+  deleteResult,
 } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
@@ -31,9 +32,9 @@ const deleteActionMap = {
   student: deleteStudent,
   parent: deleteParent,
   exam: deleteExam,
-  lesson: deleteSubject,
   assignment: deleteAssignment,
-  result: deleteSubject,
+  result: deleteResult,
+  lesson: deleteSubject,
   attendance: deleteSubject,
   event: deleteSubject,
   announcement: deleteSubject,
@@ -61,6 +62,9 @@ const ClassForm = dynamic(() => import("./forms/ClassForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const ResultForm = dynamic(() => import("./forms/ResultForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const forms: {
@@ -121,6 +125,14 @@ const forms: {
   ),
   assignment: (setOpen, type, data, relatedData) => (
     <AssignmentForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  result: (setOpen, type, data, relatedData) => (
+    <ResultForm
       setOpen={setOpen}
       type={type}
       data={data}

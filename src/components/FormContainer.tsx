@@ -145,6 +145,77 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           })),
         };
         break;
+      case "result":
+        const resultRole = await getCurrentRole();
+        const resultUserId = await getUserId();
+
+        const resultStudents = await prisma.student.findMany({
+          where:
+            resultRole === "teacher"
+              ? {
+                  class: {
+                    lessons: {
+                      some: { teacherId: resultUserId! },
+                    },
+                  },
+                }
+              : undefined,
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+
+        const resultExams = await prisma.exam.findMany({
+          where:
+            resultRole === "teacher"
+              ? { lesson: { teacherId: resultUserId! } }
+              : undefined,
+          select: {
+            id: true,
+            title: true,
+            lesson: {
+              select: {
+                subject: { select: { name: true } },
+                class: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: [{ title: "asc" }, { id: "asc" }],
+        });
+
+        const resultAssignments = await prisma.assignment.findMany({
+          where:
+            resultRole === "teacher"
+              ? { lesson: { teacherId: resultUserId! } }
+              : undefined,
+          select: {
+            id: true,
+            title: true,
+            lesson: {
+              select: {
+                subject: { select: { name: true } },
+                class: { select: { name: true } },
+              },
+            },
+          },
+          orderBy: [{ title: "asc" }, { id: "asc" }],
+        });
+
+        relatedData = {
+          students: resultStudents,
+          exams: resultExams.map((exam) => ({
+            id: exam.id,
+            title: exam.title,
+            subjectName: exam.lesson.subject.name,
+            className: exam.lesson.class.name,
+          })),
+          assignments: resultAssignments.map((assignment) => ({
+            id: assignment.id,
+            title: assignment.title,
+            subjectName: assignment.lesson.subject.name,
+            className: assignment.lesson.class.name,
+          })),
+        };
+        break;
     }
   }
   return (
