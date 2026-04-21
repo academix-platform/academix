@@ -31,6 +31,7 @@ model Student{
   grade Grade @relation(fields:[gradeId], references: [id])
   attendances Attendance[]
   results Result[]
+  messages Message[]
   birthday DateTime
 }
 model Teacher{  
@@ -47,6 +48,7 @@ model Teacher{
   subjects Subject[]
   lessons Lesson[]
   classes Class[]
+  messages Message[]
   birthday DateTime
 }
 model Parent{  
@@ -58,6 +60,7 @@ model Parent{
   address String
   createdAt DateTime @default(now())
   students Student[]
+  messages Message[]
 }
 model Grade{
   id Int @id @default(autoincrement())
@@ -78,6 +81,7 @@ model Class{
   grade Grade @relation(fields: [gradeId], references: [id])
   events Event[]
   announcements Announcement[]
+  messages Message[]
   exams Exam[]
   assignments Assignment[]
 }
@@ -173,6 +177,17 @@ model Announcement{
   title String
   description String
   date DateTime
+  classes Class[]
+}
+
+model Message {
+  id Int @id @default(autoincrement())
+  title String
+  description String
+  date DateTime @default(now())
+  students Student[]
+  parents Parent[]
+  teachers Teacher[]
   classes Class[]
 }
 

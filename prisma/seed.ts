@@ -14,6 +14,7 @@ async function main() {
   // ======================
   // CLEAN (order matters)
   // ======================
+  await prisma.message.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.event.deleteMany();
   await prisma.attendance.deleteMany();
@@ -284,7 +285,9 @@ async function main() {
         description: `Event description ${i}`,
         startDate: new Date(),
         endDate: new Date(),
-        classId: classes[i % classes.length].id,
+        classes: {
+          connect: [{ id: classes[i % classes.length].id }],
+        },
       },
     });
   }
@@ -298,7 +301,39 @@ async function main() {
         title: `Announcement ${i}`,
         description: `Announcement ${i}`,
         date: new Date(),
-        classId: classes[i % classes.length].id,
+        classes: {
+          connect: [{ id: classes[i % classes.length].id }],
+        },
+      },
+    });
+  }
+
+  // ======================
+  // MESSAGES
+  // ======================
+  for (let i = 1; i <= 10; i++) {
+    const classIndex = i % classes.length;
+
+    await prisma.message.create({
+      data: {
+        title: `Message ${i}`,
+        description: `Message content ${i}`,
+        date: new Date(),
+        students: {
+          connect: [
+            { id: students[i % students.length].id },
+            { id: students[(i + 7) % students.length].id },
+          ],
+        },
+        parents: {
+          connect: [{ id: parents[i % parents.length].id }],
+        },
+        teachers: {
+          connect: [{ id: teachers[i % teachers.length].id }],
+        },
+        classes: {
+          connect: [{ id: classes[classIndex].id }],
+        },
       },
     });
   }
