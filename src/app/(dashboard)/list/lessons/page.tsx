@@ -1,136 +1,185 @@
-import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
-import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
-import TableSearch from "@/components/TableSearch";
-import { getCurrentRole, type UserRole } from "@/lib/auth";
+import BigCalendarContainer from "@/components/BigCalendarContainer";
+import FormContainer from "@/components/FormContainer";
+import { getCurrentRole, getUserId } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
-import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Lesson, Prisma, Subject, Teacher } from "@prisma/client";
+import { Prisma } from "@prisma/client";
+import Link from "next/link";
 
-type LessonList = Lesson & {
-  teacher: Teacher;
-  class: Class;
-  subject: Subject;
-};
-
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: role === "admin" ? "Actions" : "",
-    accessor: "action",
-  },
-];
-
-const renderRow = (item: LessonList, role: UserRole | null) => (
-  <tr
-    key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
-  >
-    <td className="flex items-center gap-4 p-4">{item.subject.name}</td>
-    <td>{item.class.name}</td>
-    <td className="hidden md:table-cell">{item.teacher.name}</td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormModal table="lesson" type="update" data={item} />
-            <FormModal table="lesson" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 const LessonListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
   const role = await getCurrentRole();
+  const userId = await getUserId();
   const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.LessonWhereInput = {};
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-      if (value !== undefined) {
-        switch (key) {
-          case "classId": {
-            query.classId = parseInt(value);
-            break;
-          }
-          case "teacherId": {
-            query.teacherId = value;
-            break;
-          }
-          case "search": {
-            query.OR = [
-              { subject: { name: { contains: value, mode: "insensitive" } } },
-              { teacher: { name: { contains: value, mode: "insensitive" } } },
-            ];
-            break;
-          }
-          default:
-            break;
-        }
-      }
-    }
+  const selectedClassIdParam = getQueryParam(resolvedSearchParams.classId);
+  const selectedGradeParam = getQueryParam(resolvedSearchParams.grade);
+  const teacherIdParam = getQueryParam(resolvedSearchParams.teacherId);
+
+  const classWhere: Prisma.ClassWhereInput = {};
+  const scopedTeacherId = role === "teacher" ? userId : teacherIdParam;
+
+  if (role === "teacher" && !userId) {
+    classWhere.id = -1;
+  } else if (scopedTeacherId) {
+    classWhere.lessons = {
+      some: {
+        teacherId: scopedTeacherId,
+      },
+    };
   }
 
-  const [data, count] = await prisma.$transaction([
-    prisma.lesson.findMany({
-      where: query,
-      include: {
-        subject: { select: { name: true } },
-        class: { select: { name: true } },
-        teacher: { select: { name: true } },
-      },
-      take: ITEM_PER_PAGE,
-      skip: (p - 1) * ITEM_PER_PAGE,
-    }),
-    prisma.lesson.count({
-      where: query,
-    }),
-  ]);
+  const classes = await prisma.class.findMany({
+    where: classWhere,
+    select: {
+      id: true,
+      name: true,
+      grade: { select: { level: true } },
+    },
+    orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
+  });
+
+  const selectedClassIdFromQuery = selectedClassIdParam
+    ? Number.parseInt(selectedClassIdParam, 10)
+    : null;
+
+  const selectedGradeFromQuery = selectedGradeParam
+    ? Number.parseInt(selectedGradeParam, 10)
+    : null;
+
+  const availableGradeLevels = Array.from(
+    new Set(classes.map((item) => item.grade.level)),
+  ).sort((a, b) => a - b);
+
+  const defaultGradeLevel = availableGradeLevels.includes(1)
+    ? 1
+    : availableGradeLevels[0];
+
+  const selectedGradeLevel =
+    selectedGradeFromQuery &&
+    availableGradeLevels.includes(selectedGradeFromQuery)
+      ? selectedGradeFromQuery
+      : defaultGradeLevel;
+
+  const filteredClasses = classes.filter(
+    (item) => item.grade.level === selectedGradeLevel,
+  );
+
+  const selectedClass =
+    filteredClasses.find((item) => item.id === selectedClassIdFromQuery) ||
+    filteredClasses[0];
+
+  const buildTabHref = (classId: number) => {
+    const params = new URLSearchParams();
+
+    for (const [key, rawValue] of Object.entries(resolvedSearchParams)) {
+      if (key === "classId" || key === "page") continue;
+      const value = getQueryParam(rawValue);
+      if (value !== undefined) {
+        params.set(key, value);
+      }
+    }
+
+    params.set("grade", selectedGradeLevel.toString());
+    params.set("classId", classId.toString());
+    return `/list/lessons?${params.toString()}`;
+  };
+
+  const buildGradeHref = (gradeLevel: number) => {
+    const params = new URLSearchParams();
+
+    for (const [key, rawValue] of Object.entries(resolvedSearchParams)) {
+      if (key === "classId" || key === "page" || key === "grade") continue;
+      const value = getQueryParam(rawValue);
+      if (value !== undefined) {
+        params.set(key, value);
+      }
+    }
+
+    params.set("grade", gradeLevel.toString());
+
+    return `/list/lessons?${params.toString()}`;
+  };
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Lessons</h1>
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
-            {role === "admin" && <FormModal table="lesson" type="create" />}
+      <div className="flex md:flex-row flex-col justify-between md:items-center gap-4">
+        <h1 className="font-semibold text-xl">Lessons Calendar</h1>
+        {role === "admin" && selectedClass && (
+          <div className="self-end md:self-auto">
+            <FormContainer
+              table="lesson"
+              type="update"
+              data={{ classId: selectedClass.id }}
+            />
           </div>
-        </div>
+        )}
       </div>
-      {/* LIST */}
-      <Table
-        columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role)}
-        data={data}
-      />
-      {/* PAGINATION */}
-      <Pagination page={p} count={count} />
+
+      {classes.length === 0 ? (
+        <div className="mt-6 text-gray-500 text-sm">
+          No classes with lessons are available for this view.
+        </div>
+      ) : (
+        <>
+          <div className="flex flex-wrap items-center gap-2 mt-6">
+            <span className="mr-1 font-medium text-gray-600 text-xs">
+              Grade:
+            </span>
+            {availableGradeLevels.map((gradeLevel) => (
+              <Link
+                key={gradeLevel}
+                href={buildGradeHref(gradeLevel)}
+                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
+                  selectedGradeLevel === gradeLevel
+                    ? "bg-academixPurple text-white border-academixPurple"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {`Grade ${gradeLevel}`}
+              </Link>
+            ))}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2 mt-6">
+            <span className="mr-1 font-medium text-gray-600 text-xs">
+              Classes:
+            </span>
+            {filteredClasses.map((item) => {
+              const isActive = selectedClass?.id === item.id;
+              return (
+                <Link
+                  key={item.id}
+                  href={buildTabHref(item.id)}
+                  className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border transition-colors ${
+                    isActive
+                      ? "bg-academixSky text-white border-academixSky"
+                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                  }`}
+                >
+                  {`G${item.grade.level} - ${item.name}`}
+                </Link>
+              );
+            })}
+          </div>
+
+          {selectedClass ? (
+            <div className="mt-4">
+              <h2 className="mb-3 font-medium text-gray-700 text-sm">
+                {`Schedule for Grade ${selectedClass.grade.level} - ${selectedClass.name}`}
+              </h2>
+              <BigCalendarContainer type="classId" id={selectedClass.id} />
+            </div>
+          ) : (
+            <div className="mt-4 text-gray-500 text-sm">
+              No classes found for the selected grade.
+            </div>
+          )}
+        </>
+      )}
     </div>
   );
 };

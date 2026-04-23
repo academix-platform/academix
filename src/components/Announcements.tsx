@@ -1,5 +1,6 @@
 import { getCurrentRole, getUserId } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 const Announcements = async () => {
   const role = await getCurrentRole();
@@ -10,20 +11,20 @@ const Announcements = async () => {
     student: { students: { some: { id: userId! } } },
     parent: { students: { some: { parentId: userId! } } },
   };
+  const where: Prisma.AnnouncementWhereInput =
+    role !== "admin"
+      ? {
+          classes: {
+            some:
+              roleConditions[role as keyof typeof roleConditions] || undefined,
+          },
+        }
+      : {};
 
   const data = await prisma.announcement.findMany({
     take: 3,
     orderBy: { date: "desc" },
-    where: {
-      ...(role !== "admin" && {
-        OR: [
-          { classId: null },
-          {
-            class: roleConditions[(role as keyof typeof roleConditions) || {}],
-          },
-        ],
-      }),
-    },
+    where,
   });
 
   return (

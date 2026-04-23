@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -12,47 +12,68 @@ import { Prisma } from "@prisma/client";
 type ResultList = {
   id: number;
   title: string;
+  subjectName: string;
+  studentId: string;
   studentName: string;
   teacherName: string;
   score: number;
   className: string;
   startTime: Date;
+  examId: number | null;
+  assignmentId: number | null;
 };
 
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Title",
-    accessor: "name",
-  },
-  {
-    header: "Student",
-    accessor: "student",
-  },
-  {
-    header: "Score",
-    accessor: "score",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: role === "admin" || role === "teacher" ? "Actions" : "",
-    accessor: "action",
-  },
-];
+const getColumns = (role: UserRole | null) => {
+  const columns = [
+    {
+      header: "Title",
+      accessor: "name",
+    },
+    ...(role !== "student"
+      ? [
+          {
+            header: "Student",
+            accessor: "student",
+          },
+        ]
+      : []),
+    {
+      header: "Subject",
+      accessor: "subject",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Score",
+      accessor: "score",
+      className: "hidden md:table-cell",
+    },
+    ...(role !== "teacher"
+      ? [
+          {
+            header: "Teacher",
+            accessor: "teacher",
+            className: "hidden md:table-cell",
+          },
+        ]
+      : []),
+    {
+      header: "Class",
+      accessor: "class",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: "Date",
+      accessor: "date",
+      className: "hidden md:table-cell",
+    },
+    {
+      header: role === "admin" || role === "teacher" ? "Actions" : "",
+      accessor: "action",
+    },
+  ];
+
+  return columns;
+};
 
 const renderRow = (item: ResultList, role: UserRole | null) => (
   <tr
@@ -60,9 +81,12 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td>{item.studentName}</td>
+    {role !== "student" && <td>{item.studentName}</td>}
+    <td className="hidden md:table-cell">{item.subjectName}</td>
     <td className="hidden md:table-cell">{item.score}</td>
-    <td className="hidden md:table-cell">{item.teacherName}</td>
+    {role !== "teacher" && (
+      <td className="hidden md:table-cell">{item.teacherName}</td>
+    )}
     <td className="hidden md:table-cell">{item.className}</td>
     <td className="hidden md:table-cell">
       {new Intl.DateTimeFormat("en-US").format(item.startTime)}
@@ -71,8 +95,8 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
           <>
-            <FormModal table="result" type="update" data={item} />
-            <FormModal table="result" type="delete" id={item.id} />
+            <FormContainer table="result" type="update" data={item} />
+            <FormContainer table="result" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -172,21 +196,27 @@ const ResultListPage = async ({
     }),
   ]);
 
-  const data = dataRes.map((item) => {
+  const data = dataRes.flatMap((item) => {
     const assesment = item.exam || item.assignment;
 
-    if (!assesment) return null;
+    if (!assesment) return [];
 
     const isExam = "startTime" in assesment;
-    return {
-      id: item.id,
-      title: assesment.title,
-      studentName: item.student.name,
-      teacherName: assesment.lesson.teacher.name,
-      score: item.score,
-      className: assesment.lesson.class.name,
-      startTime: isExam ? assesment.startTime : assesment.startDate,
-    };
+    return [
+      {
+        id: item.id,
+        title: assesment.title,
+        subjectName: assesment.lesson.subject.name,
+        studentId: item.studentId,
+        studentName: item.student.name,
+        teacherName: assesment.lesson.teacher.name,
+        score: item.score,
+        className: assesment.lesson.class.name,
+        startTime: isExam ? assesment.startTime : assesment.startDate,
+        examId: item.examId,
+        assignmentId: item.assignmentId,
+      },
+    ];
   });
 
   return (
@@ -198,10 +228,9 @@ const ResultListPage = async ({
           <TableSearch />
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
-            {role === "admin" ||
-              (role === "teacher" && (
-                <FormModal table="result" type="create" />
-              ))}
+            {(role === "admin" || role === "teacher") && (
+              <FormContainer table="result" type="create" />
+            )}
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -7,14 +7,13 @@ import { getCurrentRole, type UserRole } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Subject, Teacher } from "@prisma/client";
+import { Prisma, Subject, Teacher } from "@prisma/client";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
 type TeacherList = Teacher & {
   subjects: Subject[];
-  classes: Class[];
 };
 
 const getColumns = (role: UserRole | null) => [
@@ -30,11 +29,6 @@ const getColumns = (role: UserRole | null) => [
   {
     header: "Subjects",
     accessor: "subjects",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Classes",
-    accessor: "classes",
     className: "hidden md:table-cell",
   },
   {
@@ -75,9 +69,6 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
     <td className="hidden md:table-cell">
       {item.subjects.map((subject) => subject.name).join(", ")}
     </td>
-    <td className="hidden md:table-cell">
-      {item.classes.map((cls) => cls.name).join(", ")}
-    </td>
     <td className="hidden md:table-cell">{item.phone}</td>
     <td className="hidden md:table-cell">{item.address}</td>
     <td>
@@ -88,7 +79,7 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
           </button>
         </Link>
         {role === "admin" && (
-          <FormModal table="teacher" type="delete" id={item.id} />
+          <FormContainer table="teacher" type="delete" id={item.id} />
         )}
       </div>
     </td>
@@ -135,7 +126,6 @@ const TeacherListPage = async ({
       where: query,
       include: {
         subjects: true,
-        classes: true,
       },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
@@ -154,7 +144,9 @@ const TeacherListPage = async ({
           <TableSearch />
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
-            {role === "admin" && <FormModal table="teacher" type="create" />}
+            {role === "admin" && (
+              <FormContainer table="teacher" type="create" />
+            )}
           </div>
         </div>
       </div>

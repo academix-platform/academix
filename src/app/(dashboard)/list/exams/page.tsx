@@ -1,5 +1,5 @@
 import FilterSortActions from "@/components/FilterSortActions";
-import FormModal from "@/components/FormModal";
+import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -10,55 +10,90 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
 
 type ExamList = Exam & {
+  displayClasses?: string;
+  subject: Pick<Subject, "name"> | null;
+  class: Pick<Class, "name"> | null;
   lesson: {
-    subject: Subject;
-    class: Class;
-    teacher: Teacher;
+    teacher: Pick<Teacher, "name">;
   };
 };
 
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Class",
-    accessor: "class",
-  },
-  {
-    header: "Teacher",
-    accessor: "teacher",
+const getColumns = (role: UserRole | null) => {
+  const columns: { header: string; accessor: string; className?: string }[] = [
+    {
+      header: "Title",
+      accessor: "title",
+    },
+    {
+      header: "Subject",
+      accessor: "name",
+    },
+  ];
+
+  if (role !== "student") {
+    columns.push({
+      header: "Class",
+      accessor: "class",
+    });
+  }
+
+  if (role !== "teacher") {
+    columns.push({
+      header: "Teacher",
+      accessor: "teacher",
+      className: "hidden md:table-cell",
+    });
+  }
+
+  columns.push({
+    header: "Start Time",
+    accessor: "startTime",
     className: "hidden md:table-cell",
-  },
-  {
-    header: "Date",
-    accessor: "date",
+  });
+
+  columns.push({
+    header: "End Time",
+    accessor: "endTime",
     className: "hidden md:table-cell",
-  },
-  {
+  });
+
+  columns.push({
     header: role === "admin" || role === "teacher" ? "Actions" : "",
     accessor: "action",
-  },
-];
+  });
+
+  return columns;
+};
 
 const renderRow = (item: ExamList, role: UserRole | null) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
-    <td className="flex items-center gap-4 p-4">{item.lesson.subject.name}</td>
-    <td>{item.lesson.class.name}</td>
-    <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+    <td className="p-4">{item.title}</td>
+    <td className="flex items-center gap-4 p-4">{item.subject?.name}</td>
+    {role !== "student" && <td>{item.displayClasses ?? item.class?.name}</td>}
+    {role !== "teacher" && (
+      <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+    )}
     <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US").format(item.startTime)}
+      {new Intl.DateTimeFormat("en-US", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(item.startTime)}
+    </td>
+    <td className="hidden md:table-cell">
+      {new Intl.DateTimeFormat("en-US", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(item.endTime)}
     </td>
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
           <>
-            <FormModal table="exam" type="update" data={item} />
-            <FormModal table="exam" type="delete" id={item.id} />
+            <FormContainer table="exam" type="update" data={item} />
+            <FormContainer table="exam" type="delete" id={item.id} />
           </>
         )}
       </div>
@@ -138,10 +173,10 @@ const ExamListPage = async ({
     prisma.exam.findMany({
       where: query,
       include: {
+        subject: { select: { name: true } },
+        class: { select: { name: true } },
         lesson: {
           select: {
-            subject: { select: { name: true } },
-            class: { select: { name: true } },
             teacher: { select: { name: true } },
           },
         },
@@ -154,6 +189,48 @@ const ExamListPage = async ({
     }),
   ]);
 
+  const dataWithClassDisplay: ExamList[] =
+    role === "admin" || role === "teacher"
+      ? (() => {
+          const classGroups = new Map<string, Set<string>>();
+
+          for (const exam of data) {
+            const groupKey = [
+              exam.title,
+              exam.startTime.toISOString(),
+              exam.endTime.toISOString(),
+              exam.subject?.name,
+            ].join("|");
+
+            if (!classGroups.has(groupKey)) {
+              classGroups.set(groupKey, new Set<string>());
+            }
+
+            if (exam.class?.name) {
+              classGroups.get(groupKey)!.add(exam.class.name);
+            }
+          }
+
+          return data.map((exam) => {
+            const groupKey = [
+              exam.title,
+              exam.startTime.toISOString(),
+              exam.endTime.toISOString(),
+              exam.subject?.name,
+            ].join("|");
+
+            const groupedClasses = classGroups.get(groupKey);
+            return {
+              ...exam,
+              displayClasses:
+                groupedClasses && groupedClasses.size > 1
+                  ? Array.from(groupedClasses).sort().join(", ")
+                  : exam.class?.name,
+            };
+          });
+        })()
+      : data;
+
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
@@ -164,7 +241,7 @@ const ExamListPage = async ({
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
             {(role === "admin" || role === "teacher") && (
-              <FormModal table="exam" type="create" />
+              <FormContainer table="exam" type="create" />
             )}
           </div>
         </div>
@@ -173,7 +250,7 @@ const ExamListPage = async ({
       <Table
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
-        data={data}
+        data={dataWithClassDisplay}
       />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />
