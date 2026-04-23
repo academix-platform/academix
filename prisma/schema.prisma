@@ -47,7 +47,8 @@ model Teacher{
   createdAt DateTime @default(now())
   subjects Subject[]
   lessons Lesson[]
-  classes Class[]
+  classes Class[] @relation("TeacherClasses")
+  supervisedClasses Class[] @relation("ClassSupervisor")
   messages Message[]
   birthday DateTime
 }
@@ -68,13 +69,15 @@ model Grade{
 
   students Student[]
   classes Class[]
+  subjects Subject[]
 }
 model Class{
   id Int @id @default(autoincrement())
   name String @unique
   capacity Int
   supervisorId String?
-  supervisor Teacher? @relation(fields: [supervisorId], references: [id])
+  supervisor Teacher? @relation("ClassSupervisor", fields: [supervisorId], references: [id])
+  teachers Teacher[] @relation("TeacherClasses")
   lessons Lesson[]
   students Student[]
   gradeId Int
@@ -88,6 +91,8 @@ model Class{
 model Subject{
   id Int @id @default(autoincrement())
   name String @unique
+  gradeId Int
+  grade Grade @relation(fields: [gradeId], references: [id])
   teachers Teacher[]
   lessons Lesson[]
   exams Exam[]
