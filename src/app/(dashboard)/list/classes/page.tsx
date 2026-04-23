@@ -9,7 +9,7 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Teacher } from "@prisma/client";
 
-type ClassList = Class & { supervisor: Teacher };
+type ClassList = Class & { supervisor: Teacher | null };
 
 const getColumns = (role: UserRole | null) => [
   {
@@ -45,7 +45,9 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
     <td className="flex items-center gap-4 p-4">{item.name}</td>
     <td className="hidden md:table-cell">{item.capacity}</td>
     <td className="hidden md:table-cell">{item.name[0]}</td>
-    <td className="hidden md:table-cell">{item.supervisor.name}</td>
+    <td className="hidden md:table-cell">
+      {item.supervisor?.name ?? "No supervisor"}
+    </td>
     <td>
       <div className="flex items-center gap-2">
         {role === "admin" && (

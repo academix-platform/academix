@@ -185,12 +185,6 @@ const SingleTeacherPage = async ({
               Teacher&apos;s Students
             </Link>
             <Link
-              className="bg-academixYellowLight p-3 rounded-md"
-              href={`/list/lessons?teacherId=${id}`}
-            >
-              Teacher&apos;s Lessons
-            </Link>
-            <Link
               className="bg-pink-50 p-3 rounded-md"
               href={`/list/exams?teacherId=${id}`}
             >
