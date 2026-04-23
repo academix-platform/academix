@@ -82,7 +82,7 @@ export const menuItems: MenuSection[] = [
       },
       {
         icon: ClipboardList,
-        label: "Lessons",
+        label: "Schedules",
         href: "/list/lessons",
         shouldPrefetch: true,
         visible: ["admin", "teacher"],
