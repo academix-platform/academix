@@ -81,9 +81,9 @@
 .rbc-event {
   border: none !important;
   color: black !important;
-  padding: 10px !important;
+  /* padding: 10px !important;
   margin: 10px !important;
-  width: 99% !important;
+  width: 99% !important; */
 }
 
 .rbc-event:nth-child(1) {
@@ -116,7 +116,13 @@
   margin-bottom: 5px;
 }
 
-.rbc-time-header-content .rbc-header:last-child,
-.rbc-time-content > .rbc-day-slot:last-child {
+.lesson-duration {
+  display: block;
+  color: gray;
+  margin-bottom: 5px;
+}
+
+.calendar-week-mode .rbc-time-header-content .rbc-header:last-child,
+.calendar-week-mode .rbc-time-content > .rbc-day-slot:last-child {
   display: none !important;
 }

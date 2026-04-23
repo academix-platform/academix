@@ -21,11 +21,12 @@ type LessonDay = keyof typeof dayOffsets | "FRIDAY";
 export const adjustScheduleToCurrentWeek = (
   lessons: {
     title: string;
+    lessonName?: string;
     day: LessonDay;
     start: Date;
     end: Date;
   }[],
-): { title: string; start: Date; end: Date }[] => {
+): { title: string; lessonName?: string; start: Date; end: Date }[] => {
   const latestSaturday = getLatestSaturday();
 
   return lessons.flatMap((lesson) => {
@@ -55,10 +56,13 @@ export const adjustScheduleToCurrentWeek = (
       adjustedEndDate.setMinutes(adjustedStartDate.getMinutes() + 45);
     }
 
-    return [{
-      title: lesson.title,
-      start: adjustedStartDate,
-      end: adjustedEndDate,
-    }];
+    return [
+      {
+        title: lesson.title,
+        lessonName: lesson.lessonName,
+        start: adjustedStartDate,
+        end: adjustedEndDate,
+      },
+    ];
   });
 };

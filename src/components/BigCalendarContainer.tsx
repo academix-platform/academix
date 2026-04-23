@@ -16,7 +16,12 @@ const BigCalendarContainer = async ({
         : { classId: id as number }),
     },
     include: {
-      class: {
+      subject: {
+        select: {
+          name: true,
+        },
+      },
+      teacher: {
         select: {
           name: true,
         },
@@ -24,15 +29,20 @@ const BigCalendarContainer = async ({
     },
   });
 
-  const data = dataRes.map((lesson) => ({
-    title:
-      type === "teacherId"
-        ? `${lesson.name}/${lesson.class.name}`
-        : lesson.name,
-    day: lesson.day,
-    start: lesson.startTime,
-    end: lesson.endTime,
-  }));
+  const isPlaceholderSubject = (name?: string | null) => {
+    const normalized = name?.trim().toLowerCase();
+    return !normalized || normalized === "no subject" || normalized === "free";
+  };
+
+  const data = dataRes
+    .filter((lesson) => !isPlaceholderSubject(lesson.subject?.name))
+    .map((lesson) => ({
+      title: `${lesson.subject.name}/${lesson.teacher.name}`,
+      lessonName: lesson.name,
+      day: lesson.day,
+      start: lesson.startTime,
+      end: lesson.endTime,
+    }));
 
   const schedule = adjustScheduleToCurrentWeek(data);
 
