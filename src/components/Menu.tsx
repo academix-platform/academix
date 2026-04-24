@@ -85,7 +85,7 @@ export const menuItems: MenuSection[] = [
         label: "Schedules",
         href: "/list/lessons",
         shouldPrefetch: true,
-        visible: ["admin", "teacher"],
+        visible: ["admin"],
       },
       {
         icon: FileText,
@@ -112,7 +112,7 @@ export const menuItems: MenuSection[] = [
         icon: CheckCircle,
         label: "Attendance",
         href: "/list/attendance",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher"],
       },
       {
         icon: Calendar,

@@ -259,7 +259,28 @@ export const resultSchema = z.object({
 });
 
 export type ResultSchema = z.infer<typeof resultSchema>;
+////////////////////////////////////////////////////////////////////////////////////
+export const attendanceBulkSchema = z.object({
+  date: z.coerce.date({ message: "Date is required!" }),
 
+  scope: z.enum(["students", "teachers"], {
+    message: "Attendance scope is required!",
+  }),
+
+  classId: z.coerce.number().optional(),
+
+  records: z
+    .array(
+      z.object({
+        id: z.string().min(1, { message: "Record id is required!" }),
+        present: z.boolean(),
+      }),
+    )
+    .min(1, { message: "At least one attendance record is required!" }),
+});
+
+export type AttendanceBulkSchema = z.infer<typeof attendanceBulkSchema>;
+////////////////////////////////////////////////////////////////////////////////////
 export const eventSchema = z.object({
   id: z.coerce.number().optional(),
   title: z.string().min(1, { message: "Event title is required!" }),

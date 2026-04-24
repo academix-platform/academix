@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import {
+  AttendanceBulkSchema,
   AnnouncementSchema,
   AssignmentSchema,
   ClassSchema,
@@ -210,13 +211,14 @@ const deleteLessonGraph = async (
     });
   }
 
-  await tx.attendance.deleteMany({
-    where: { lessonId: { in: lessonIds } },
-  });
-
   await tx.lesson.deleteMany({
     where: { id: { in: lessonIds } },
   });
+};
+
+const normalizeAttendanceDate = (date: Date) => {
+  const isoDate = date.toISOString().slice(0, 10);
+  return new Date(`${isoDate}T00:00:00.000Z`);
 };
 
 ////////////////////////////////////////////////////
@@ -1110,11 +1112,6 @@ export const saveLessonSchedule = async (
           where: { lessonId: { in: staleLessonIds } },
         });
 
-        // Delete dependent attendances
-        await tx.attendance.deleteMany({
-          where: { lessonId: { in: staleLessonIds } },
-        });
-
         // Finally, delete the stale lessons
         await tx.lesson.deleteMany({
           where: { id: { in: staleLessonIds } },
@@ -1438,7 +1435,7 @@ export const deleteExam = async (
     return errorResult(err);
   }
 };
-
+////////////////////////////////////////////////////
 export const createAssignment = async (
   currentState: CurrentState,
   data: AssignmentSchema,
@@ -1689,7 +1686,7 @@ const canTeacherManageResultAssessment = async ({
   });
   return Boolean(assignment);
 };
-
+/////////////////////////////////////////////////////////////////
 export const createResult = async (
   currentState: CurrentState,
   data: ResultSchema,
@@ -1866,7 +1863,98 @@ export const deleteResult = async (
     return errorResult(err);
   }
 };
+/////////////////////////////////////////////////////////////
+export const saveDailyAttendance = async (
+  prevState: any,
+  formData: FormData,
+) => {
+  const role = await getCurrentRole();
+  const userId = await getUserId();
 
+  if (role !== "admin" && role !== "teacher") {
+    return {
+      success: false,
+      error: true,
+      message: "You are not allowed to manage attendance.",
+    };
+  }
+
+  const date = new Date(formData.get("date") as string);
+
+  const raw = formData.get("changes");
+
+  if (!raw || typeof raw !== "string") {
+    return {
+      success: false,
+      error: true,
+      message: "No changes detected.",
+    };
+  }
+
+  const changes = JSON.parse(raw) as Record<string, boolean>;
+
+  const records = Object.entries(changes).map(([id, present]) => ({
+    id,
+    present,
+  }));
+
+  if (records.length === 0) {
+    return {
+      success: false,
+      error: true,
+      message: "No changes to save.",
+    };
+  }
+
+  // ❗ safety
+  if (records.length === 0) {
+    return {
+      success: false,
+      error: true,
+      message: "No attendance data submitted.",
+    };
+  }
+
+  try {
+    // =========================
+    // STUDENT ATTENDANCE
+    // =========================
+    await prisma.$transaction(
+      records.map((record) =>
+        prisma.attendance.upsert({
+          where: {
+            studentId_date: {
+              studentId: record.id,
+              date,
+            },
+          },
+          update: {
+            present: record.present,
+          },
+          create: {
+            studentId: record.id,
+            date,
+            present: record.present,
+          },
+        }),
+      ),
+    );
+
+    return {
+      success: true,
+      error: false,
+      message: "Attendance saved successfully",
+    };
+  } catch (err) {
+    console.error(err);
+    return {
+      success: false,
+      error: true,
+      message: "Something went wrong while saving attendance.",
+    };
+  }
+};
+///////////////////////////////////////////////////////
 export const createEvent = async (
   currentState: CurrentState,
   data: EventSchema,
