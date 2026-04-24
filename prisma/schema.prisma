@@ -49,6 +49,7 @@ model Teacher{
   lessons Lesson[]
   classes Class[] @relation("TeacherClasses")
   supervisedClasses Class[] @relation("ClassSupervisor")
+  attendances Attendance[]
   messages Message[]
   birthday DateTime
 }
@@ -112,7 +113,6 @@ model Lesson{
   teacher Teacher @relation(fields: [teacherId], references: [id])
   exams Exam[]
   assignments Assignment[]
-  attendances Attendance[]
 }
 model Exam{
   id Int @id @default(autoincrement())
@@ -163,11 +163,17 @@ model Attendance{
   date DateTime
   present Boolean
 
-  studentId String
-  student Student @relation(fields: [studentId], references: [id])
+  studentId String?
+  student Student? @relation(fields: [studentId], references: [id])
 
-  lessonId Int
-  lesson Lesson @relation(fields: [lessonId], references: [id])
+  teacherId String?
+  teacher Teacher? @relation(fields: [teacherId], references: [id])
+
+  @@unique([studentId, date])
+  @@unique([teacherId, date])
+  @@index([date])
+  @@index([studentId])
+  @@index([teacherId])
 }
 model Event{
   id Int @id @default(autoincrement())

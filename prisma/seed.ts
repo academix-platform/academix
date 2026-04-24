@@ -1,5 +1,17 @@
 import "dotenv/config";
-import { Day, UserSex, PrismaClient } from "@prisma/client";
+import {
+  Day,
+  UserSex,
+  PrismaClient,
+  type Assignment,
+  type Class,
+  type Exam,
+  type Grade,
+  type Lesson,
+  type Parent,
+  type Student,
+  type Teacher,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
@@ -8,8 +20,42 @@ const adapter = new PrismaPg({
 
 const prisma = new PrismaClient({ adapter });
 
+const schoolDays = [
+  Day.SATURDAY,
+  Day.SUNDAY,
+  Day.MONDAY,
+  Day.TUESDAY,
+  Day.WEDNESDAY,
+  Day.THURSDAY,
+];
+
+function getSchoolWeekStart(baseDate: Date) {
+  const date = new Date(baseDate);
+  const day = date.getDay();
+  const daysSinceSaturday = (day + 1) % 7;
+  date.setDate(date.getDate() - daysSinceSaturday);
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function withTime(date: Date, hour: number, minute = 0) {
+  const copy = new Date(date);
+  copy.setHours(hour, minute, 0, 0);
+  return copy;
+}
+
+function addDays(date: Date, days: number) {
+  const copy = new Date(date);
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
 async function main() {
   console.log("🌱 Seeding...");
+
+  const now = new Date();
+  const weekStart = getSchoolWeekStart(now);
+  const weekDates = schoolDays.map((_, index) => addDays(weekStart, index));
 
   // ======================
   // CLEAN (order matters)
@@ -48,7 +94,7 @@ async function main() {
   // ======================
   // GRADES
   // ======================
-  const grades = [];
+  const grades: Grade[] = [];
   for (let i = 1; i <= 6; i++) {
     const grade = await prisma.grade.upsert({
       where: { level: i },
@@ -87,12 +133,12 @@ async function main() {
   // ======================
   // CLASSES
   // ======================
-  const classes = [];
+  const classes: Class[] = [];
   for (let i = 0; i < 6; i++) {
     const cls = await prisma.class.create({
       data: {
         name: `${i + 1}A`,
-        capacity: Math.floor(Math.random() * 6) + 15,
+        capacity: 24,
         gradeId: grades[i].id,
       },
     });
@@ -102,43 +148,333 @@ async function main() {
   // ======================
   // TEACHERS
   // ======================
+  const teacherSeeds = [
+    {
+      id: "teacher1",
+      username: "teacher1",
+      name: "Amina Hassan",
+      email: "amina.hassan@academix.edu",
+      phone: "+201000000101",
+      address: "Cairo",
+      bloodType: "A+",
+      sex: UserSex.FEMALE,
+      img: "https://images.pexels.com/photos/5212703/pexels-photo-5212703.jpeg",
+      birthday: new Date("1988-03-11"),
+    },
+    {
+      id: "teacher2",
+      username: "teacher2",
+      name: "Omar Khaled",
+      email: "omar.khaled@academix.edu",
+      phone: "+201000000102",
+      address: "Giza",
+      bloodType: "B+",
+      sex: UserSex.MALE,
+      img: "https://images.pexels.com/photos/5905483/pexels-photo-5905483.jpeg",
+      birthday: new Date("1985-08-04"),
+    },
+    {
+      id: "teacher3",
+      username: "teacher3",
+      name: "Nour Adel",
+      email: "nour.adel@academix.edu",
+      phone: "+201000000103",
+      address: "Alexandria",
+      bloodType: "O+",
+      sex: UserSex.FEMALE,
+      img: "https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg",
+      birthday: new Date("1990-02-20"),
+    },
+    {
+      id: "teacher4",
+      username: "teacher4",
+      name: "Youssef Nabil",
+      email: "youssef.nabil@academix.edu",
+      phone: "+201000000104",
+      address: "Mansoura",
+      bloodType: "AB+",
+      sex: UserSex.MALE,
+      img: "https://images.pexels.com/photos/5212324/pexels-photo-5212324.jpeg",
+      birthday: new Date("1987-11-15"),
+    },
+    {
+      id: "teacher5",
+      username: "teacher5",
+      name: "Laila Mostafa",
+      email: "laila.mostafa@academix.edu",
+      phone: "+201000000105",
+      address: "Tanta",
+      bloodType: "A-",
+      sex: UserSex.FEMALE,
+      img: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg",
+      birthday: new Date("1991-06-01"),
+    },
+    {
+      id: "teacher6",
+      username: "teacher6",
+      name: "Karim Fawzy",
+      email: "karim.fawzy@academix.edu",
+      phone: "+201000000106",
+      address: "Asyut",
+      bloodType: "O-",
+      sex: UserSex.MALE,
+      img: "https://images.pexels.com/photos/8617608/pexels-photo-8617608.jpeg",
+      birthday: new Date("1989-09-22"),
+    },
+  ];
+
+  const teachers: Teacher[] = [];
+  for (const teacherSeed of teacherSeeds) {
+    const teacher = await prisma.teacher.create({
+      data: teacherSeed,
+    });
+    teachers.push(teacher);
+  }
+
+  const subjectTeacherByBase: Record<string, string> = {
+    Arabic: teachers[0].id,
+    English: teachers[1].id,
+    Math: teachers[2].id,
+    Science: teachers[3].id,
+  };
+
+  for (const subject of subjects) {
+    const baseSubject = subject.name.split("-")[0];
+    const teacherId = subjectTeacherByBase[baseSubject] ?? teachers[0].id;
+    await prisma.teacher.update({
+      where: { id: teacherId },
+      data: {
+        subjects: {
+          connect: [{ id: subject.id }],
+        },
+      },
+    });
+  }
+
+  for (let i = 0; i < classes.length; i++) {
+    const cls = classes[i];
+    const classGrade = grades.find((g) => g.id === cls.gradeId);
+    if (!classGrade) continue;
+
+    const classSubjects = gradeSubjects.get(classGrade.id) ?? [];
+    const connectedTeacherIds = Array.from(
+      new Set([
+        teachers[4 + (i % 2)].id,
+        ...classSubjects.map((subject) => {
+          const base = subject.name.split("-")[0];
+          return subjectTeacherByBase[base] ?? teachers[0].id;
+        }),
+      ]),
+    );
+
+    await prisma.class.update({
+      where: { id: cls.id },
+      data: {
+        supervisorId: teachers[4 + (i % 2)].id,
+        teachers: {
+          connect: connectedTeacherIds.map((id) => ({ id })),
+        },
+      },
+    });
+  }
 
   // ======================
   // PARENTS
   // ======================
+  const parents: Parent[] = [];
+  for (let i = 1; i <= 18; i++) {
+    const parent = await prisma.parent.create({
+      data: {
+        id: `parent${i}`,
+        username: `parent${i}`,
+        name: `Parent ${i}`,
+        email: `parent${i}@mail.com`,
+        phone: `+20110000${String(i).padStart(4, "0")}`,
+        address: `District ${((i - 1) % 6) + 1}`,
+      },
+    });
+    parents.push(parent);
+  }
 
   // ======================
   // STUDENTS
   // ======================
+  const students: Student[] = [];
+  let studentCounter = 1;
+
+  for (const cls of classes) {
+    for (let seat = 0; seat < 3; seat++) {
+      const parent = parents[(studentCounter - 1) % parents.length];
+      const student = await prisma.student.create({
+        data: {
+          id: `student${studentCounter}`,
+          username: `student${studentCounter}`,
+          name: `Student ${studentCounter}`,
+          email: `student${studentCounter}@mail.com`,
+          phone: `+20120000${String(studentCounter).padStart(4, "0")}`,
+          address: `Block ${((studentCounter - 1) % 9) + 1}`,
+          img: "https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg",
+          bloodType: ["A+", "B+", "O+", "AB+"][studentCounter % 4],
+          sex: studentCounter % 2 === 0 ? UserSex.FEMALE : UserSex.MALE,
+          parentId: parent.id,
+          classId: cls.id,
+          gradeId: cls.gradeId,
+          birthday: new Date(
+            2013,
+            (studentCounter + 2) % 12,
+            ((studentCounter * 2) % 27) + 1,
+          ),
+        },
+      });
+
+      students.push(student);
+      studentCounter++;
+    }
+  }
 
   // ======================
   // LESSONS
   // ======================
+  const lessons: Lesson[] = [];
+  for (const cls of classes) {
+    const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
+
+    for (let i = 0; i < classSubjects.length; i++) {
+      const subject = classSubjects[i];
+      const day = schoolDays[i % schoolDays.length];
+      const date = weekDates[i % weekDates.length];
+      const startTime = withTime(date, 8 + i * 2, 0);
+      const endTime = withTime(date, 9 + i * 2, 30);
+      const base = subject.name.split("-")[0];
+      const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
+
+      const lesson = await prisma.lesson.create({
+        data: {
+          name: `${base} - ${cls.name}`,
+          day,
+          startTime,
+          endTime,
+          subjectId: subject.id,
+          classId: cls.id,
+          teacherId,
+        },
+      });
+      lessons.push(lesson);
+    }
+  }
 
   // ======================
   // EXAMS + ASSIGNMENTS
   // ======================
+  const exams: Exam[] = [];
+  const assignments: Assignment[] = [];
+
+  for (let i = 0; i < lessons.length; i++) {
+    const lesson = lessons[i];
+
+    const examStart = withTime(lesson.startTime, 11, 0);
+    const examEnd = withTime(lesson.startTime, 12, 0);
+    const exam = await prisma.exam.create({
+      data: {
+        title: `${lesson.name} Weekly Quiz`,
+        startTime: examStart,
+        endTime: examEnd,
+        classId: lesson.classId,
+        subjectId: lesson.subjectId,
+        lessonId: lesson.id,
+      },
+    });
+    exams.push(exam);
+
+    const assignmentStart = withTime(lesson.startTime, 13, 0);
+    const assignmentEnd = withTime(addDays(lesson.startTime, 2), 18, 0);
+    const assignment = await prisma.assignment.create({
+      data: {
+        title: `${lesson.name} Homework`,
+        startDate: assignmentStart,
+        endDate: assignmentEnd,
+        classId: lesson.classId,
+        subjectId: lesson.subjectId,
+        lessonId: lesson.id,
+      },
+    });
+    assignments.push(assignment);
+  }
 
   // ======================
   // RESULTS
   // ======================
+  for (const student of students) {
+    const classExams = exams
+      .filter((exam) => exam.classId === student.classId)
+      .slice(0, 2);
+    const classAssignments = assignments
+      .filter((assignment) => assignment.classId === student.classId)
+      .slice(0, 2);
+
+    for (let i = 0; i < classExams.length; i++) {
+      await prisma.result.create({
+        data: {
+          score: 70 + ((student.id.length + i * 7) % 31),
+          examId: classExams[i].id,
+          studentId: student.id,
+        },
+      });
+    }
+
+    for (let i = 0; i < classAssignments.length; i++) {
+      await prisma.result.create({
+        data: {
+          score: 72 + ((student.id.length + i * 5) % 27),
+          assignmentId: classAssignments[i].id,
+          studentId: student.id,
+        },
+      });
+    }
+  }
 
   // ======================
   // ATTENDANCE
   // ======================
+  for (let dayIndex = 0; dayIndex < weekDates.length; dayIndex++) {
+    const attendanceDate = withTime(weekDates[dayIndex], 7, 45);
+
+    for (let i = 0; i < students.length; i++) {
+      await prisma.attendance.create({
+        data: {
+          date: attendanceDate,
+          present: (i + dayIndex) % 8 !== 0,
+          studentId: students[i].id,
+        },
+      });
+    }
+
+    for (let i = 0; i < teachers.length; i++) {
+      await prisma.attendance.create({
+        data: {
+          date: attendanceDate,
+          present: (i + dayIndex) % 9 !== 0,
+          teacherId: teachers[i].id,
+        },
+      });
+    }
+  }
 
   // ======================
   // EVENTS
   // ======================
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 0; i < weekDates.length; i++) {
     await prisma.event.create({
       data: {
-        title: `Event ${i}`,
-        description: `Event description ${i}`,
-        startDate: new Date(),
-        endDate: new Date(),
+        title: `Campus Event Day ${i + 1}`,
+        description: `This week activity #${i + 1}`,
+        startDate: withTime(weekDates[i], 10, 0),
+        endDate: withTime(weekDates[i], 12, 0),
         classes: {
-          connect: [{ id: classes[i % classes.length].id }],
+          connect: [
+            { id: classes[i % classes.length].id },
+            { id: classes[(i + 1) % classes.length].id },
+          ],
         },
       },
     });
@@ -147,12 +483,12 @@ async function main() {
   // ======================
   // ANNOUNCEMENTS
   // ======================
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 0; i < weekDates.length; i++) {
     await prisma.announcement.create({
       data: {
-        title: `Announcement ${i}`,
-        description: `Announcement ${i}`,
-        date: new Date(),
+        title: `Weekly Notice ${i + 1}`,
+        description: `Important update for day ${i + 1}`,
+        date: withTime(weekDates[i], 8, 30),
         classes: {
           connect: [{ id: classes[i % classes.length].id }],
         },
@@ -163,6 +499,34 @@ async function main() {
   // ======================
   // MESSAGES
   // ======================
+  for (let i = 0; i < classes.length; i++) {
+    const classStudents = students.filter(
+      (student) => student.classId === classes[i].id,
+    );
+    const classParents = classStudents.map((student) => ({
+      id: student.parentId,
+    }));
+
+    await prisma.message.create({
+      data: {
+        title: `Class ${classes[i].name} Weekly Brief`,
+        description: "Lessons, tasks, and reminders for this week.",
+        date: withTime(weekDates[i % weekDates.length], 14, 0),
+        classes: {
+          connect: [{ id: classes[i].id }],
+        },
+        teachers: {
+          connect: [{ id: teachers[i % teachers.length].id }],
+        },
+        students: {
+          connect: classStudents.map((student) => ({ id: student.id })),
+        },
+        parents: {
+          connect: classParents,
+        },
+      },
+    });
+  }
 
   console.log("✅ Seeding completed successfully.");
 }
