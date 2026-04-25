@@ -158,7 +158,7 @@ async function main() {
       address: "Cairo",
       bloodType: "A+",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/5212703/pexels-photo-5212703.jpeg",
+      img: "",
       birthday: new Date("1988-03-11"),
     },
     {
@@ -170,7 +170,7 @@ async function main() {
       address: "Giza",
       bloodType: "B+",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/5905483/pexels-photo-5905483.jpeg",
+      img: "",
       birthday: new Date("1985-08-04"),
     },
     {
@@ -182,7 +182,7 @@ async function main() {
       address: "Alexandria",
       bloodType: "O+",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg",
+      img: "",
       birthday: new Date("1990-02-20"),
     },
     {
@@ -194,7 +194,7 @@ async function main() {
       address: "Mansoura",
       bloodType: "AB+",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/5212324/pexels-photo-5212324.jpeg",
+      img: "",
       birthday: new Date("1987-11-15"),
     },
     {
@@ -206,7 +206,7 @@ async function main() {
       address: "Tanta",
       bloodType: "A-",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg",
+      img: "",
       birthday: new Date("1991-06-01"),
     },
     {
@@ -218,7 +218,7 @@ async function main() {
       address: "Asyut",
       bloodType: "O-",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/8617608/pexels-photo-8617608.jpeg",
+      img: "",
       birthday: new Date("1989-09-22"),
     },
   ];
@@ -313,7 +313,7 @@ async function main() {
           email: `student${studentCounter}@mail.com`,
           phone: `+20120000${String(studentCounter).padStart(4, "0")}`,
           address: `Block ${((studentCounter - 1) % 9) + 1}`,
-          img: "https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg",
+          img: "",
           bloodType: ["A+", "B+", "O+", "AB+"][studentCounter % 4],
           sex: studentCounter % 2 === 0 ? UserSex.FEMALE : UserSex.MALE,
           parentId: parent.id,
