@@ -36,6 +36,7 @@ type RelatedData = {
     classId: number;
     day: DayValue;
     name: string;
+    startTime?: Date;
     subjectId: number;
     teacherId?: string;
     teacher?: { name: string };
@@ -71,6 +72,80 @@ const extractSlotFromName = (name?: string) => {
   const slot = Number(match[1]);
   if (Number.isNaN(slot) || slot < 1 || slot > 6) return null;
   return slot as SlotValue;
+};
+
+const getMinutesFromDate = (value?: Date) => {
+  if (!value) return null;
+  return value.getUTCHours() * 60 + value.getUTCMinutes();
+};
+
+const mapLessonsToSlots = (
+  classLessons: Array<{
+    day: DayValue;
+    name: string;
+    startTime?: Date;
+    subjectId: number;
+    teacherId?: string;
+  }>,
+) => {
+  const byDay = new Map<DayValue, typeof classLessons>();
+
+  for (const lesson of classLessons) {
+    const dayLessons = byDay.get(lesson.day) ?? [];
+    dayLessons.push(lesson);
+    byDay.set(lesson.day, dayLessons);
+  }
+
+  const mapped: Array<{
+    day: DayValue;
+    slot: SlotValue;
+    subjectId: number;
+    teacherId?: string;
+  }> = [];
+
+  for (const day of lessonDays) {
+    const dayLessons = (byDay.get(day) ?? []).sort((a, b) => {
+      const minutesA =
+        getMinutesFromDate(a.startTime) ?? Number.MAX_SAFE_INTEGER;
+      const minutesB =
+        getMinutesFromDate(b.startTime) ?? Number.MAX_SAFE_INTEGER;
+      return minutesA - minutesB;
+    });
+
+    const usedSlots = new Set<number>();
+
+    for (const lesson of dayLessons) {
+      const namedSlot = extractSlotFromName(lesson.name);
+      if (!namedSlot || usedSlots.has(namedSlot)) continue;
+
+      usedSlots.add(namedSlot);
+      mapped.push({
+        day,
+        slot: namedSlot,
+        subjectId: lesson.subjectId,
+        teacherId: lesson.teacherId,
+      });
+    }
+
+    for (const lesson of dayLessons) {
+      const namedSlot = extractSlotFromName(lesson.name);
+      if (namedSlot && !usedSlots.has(namedSlot)) continue;
+      if (namedSlot && usedSlots.has(namedSlot)) continue;
+
+      const nextFreeSlot = slotNumbers.find((slot) => !usedSlots.has(slot));
+      if (!nextFreeSlot) continue;
+
+      usedSlots.add(nextFreeSlot);
+      mapped.push({
+        day,
+        slot: nextFreeSlot,
+        subjectId: lesson.subjectId,
+        teacherId: lesson.teacherId,
+      });
+    }
+  }
+
+  return mapped;
 };
 
 const getGradeFromClassName = (name?: string) => {
@@ -189,20 +264,21 @@ const LessonForm = ({
 
       const nextEntries = buildInitialEntries();
 
-      for (const lesson of lessons) {
-        if (lesson.classId !== classId) continue;
+      const classLessons = lessons.filter(
+        (lesson) => lesson.classId === classId,
+      );
+      const slottedLessons = mapLessonsToSlots(classLessons);
+
+      for (const lesson of slottedLessons) {
         const dayIndex = lessonDays.findIndex((day) => day === lesson.day);
         if (dayIndex < 0) continue;
 
-        const slot = extractSlotFromName(lesson.name);
-        if (!slot) continue;
-
-        const index = dayIndex * 6 + (slot - 1);
+        const index = dayIndex * 6 + (lesson.slot - 1);
         if (!nextEntries[index]) continue;
 
         nextEntries[index] = {
           day: lesson.day,
-          slot,
+          slot: lesson.slot,
           subjectId: lesson.subjectId,
           teacherId: lesson.teacherId ?? null,
         };
@@ -242,11 +318,21 @@ const LessonForm = ({
     const allowedTeachers = nextSubjectId
       ? (teacherOptionsBySubject.get(nextSubjectId) ?? [])
       : [];
+    const singleTeacherId =
+      allowedTeachers.length === 1 ? allowedTeachers[0].id : null;
 
     setValue(`entries.${entryIndex}.subjectId`, nextSubjectId, {
       shouldDirty: true,
       shouldValidate: true,
     });
+
+    if (singleTeacherId) {
+      setValue(`entries.${entryIndex}.teacherId`, singleTeacherId, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
 
     if (
       !nextSubjectId ||

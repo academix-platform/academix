@@ -52,17 +52,12 @@ const BigCalendar = ({
           end.setMinutes(start.getMinutes() + SLOT_DURATION_MINUTES);
         }
 
-        const durationMinutes = Math.max(
-          1,
-          Math.round((end.getTime() - start.getTime()) / 60000),
-        );
-
         return {
           ...event,
           start,
           end,
           actualStart: start,
-          durationMinutes,
+          durationMinutes: SLOT_DURATION_MINUTES,
         };
       }),
     [data],

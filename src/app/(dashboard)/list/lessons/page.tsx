@@ -1,9 +1,10 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
-import { getCurrentRole, getUserId } from "@/lib/auth";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
-import prisma from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { computeClassSelection } from "@/lib/lessons/classSelection";
+import { getAccessibleClasses } from "@/lib/lessons/getClasses";
+import { parseLessonParams } from "@/lib/lessons/lessonParams";
+import { type PageSearchParams } from "@/lib/pageParams";
 import Link from "next/link";
 
 const LessonListPage = async ({
@@ -11,99 +12,51 @@ const LessonListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const role = await getCurrentRole();
-  const userId = await getUserId();
+  const user = await enforceRouteAccess("/list/lessons");
   const resolvedSearchParams = await searchParams;
 
-  const selectedClassIdParam = getQueryParam(resolvedSearchParams.classId);
-  const selectedGradeParam = getQueryParam(resolvedSearchParams.grade);
-  const teacherIdParam = getQueryParam(resolvedSearchParams.teacherId);
+  const role = user.role;
 
-  const classWhere: Prisma.ClassWhereInput = {};
-  const scopedTeacherId = role === "teacher" ? userId : teacherIdParam;
+  const { classId, grade, teacherId } = parseLessonParams(resolvedSearchParams);
 
-  if (role === "teacher" && !userId) {
-    classWhere.id = -1;
-  } else if (scopedTeacherId) {
-    classWhere.lessons = {
-      some: {
-        teacherId: scopedTeacherId,
-      },
-    };
-  }
-
-  const classes = await prisma.class.findMany({
-    where: classWhere,
-    select: {
-      id: true,
-      name: true,
-      grade: { select: { level: true } },
-    },
-    orderBy: [{ grade: { level: "asc" } }, { name: "asc" }],
+  const classes = await getAccessibleClasses({
+    role: user.role,
+    userId: user.userId,
+    teacherIdParam: teacherId,
   });
 
-  const selectedClassIdFromQuery = selectedClassIdParam
-    ? Number.parseInt(selectedClassIdParam, 10)
-    : null;
+  const { availableGrades, selectedGrade, filteredClasses, selectedClass } =
+    computeClassSelection({
+      classes,
+      selectedClassId: classId,
+      selectedGrade: grade,
+    });
 
-  const selectedGradeFromQuery = selectedGradeParam
-    ? Number.parseInt(selectedGradeParam, 10)
-    : null;
+  //  preserve params
+  const baseParams: Record<string, string> = {};
 
-  const availableGradeLevels = Array.from(
-    new Set(classes.map((item) => item.grade.level)),
-  ).sort((a, b) => a - b);
+  for (const [key, value] of Object.entries(resolvedSearchParams)) {
+    if (key === "classId" || key === "page") continue;
 
-  const defaultGradeLevel = availableGradeLevels.includes(1)
-    ? 1
-    : availableGradeLevels[0];
+    if (typeof value === "string") {
+      baseParams[key] = value;
+    } else if (Array.isArray(value) && value[0]) {
+      baseParams[key] = value[0];
+    }
+  }
 
-  const selectedGradeLevel =
-    selectedGradeFromQuery &&
-    availableGradeLevels.includes(selectedGradeFromQuery)
-      ? selectedGradeFromQuery
-      : defaultGradeLevel;
-
-  const filteredClasses = classes.filter(
-    (item) => item.grade.level === selectedGradeLevel,
-  );
-
-  const selectedClass =
-    filteredClasses.find((item) => item.id === selectedClassIdFromQuery) ||
-    filteredClasses[0];
+  const buildGradeHref = (gradeLevel: number) => {
+    const params = new URLSearchParams(baseParams);
+    params.set("grade", gradeLevel.toString());
+    return `/list/lessons?${params.toString()}`;
+  };
 
   const buildTabHref = (classId: number) => {
-    const params = new URLSearchParams();
-
-    for (const [key, rawValue] of Object.entries(resolvedSearchParams)) {
-      if (key === "classId" || key === "page") continue;
-      const value = getQueryParam(rawValue);
-      if (value !== undefined) {
-        params.set(key, value);
-      }
-    }
-
-    params.set("grade", selectedGradeLevel.toString());
+    const params = new URLSearchParams(baseParams);
+    params.set("grade", selectedGrade.toString());
     params.set("classId", classId.toString());
     return `/list/lessons?${params.toString()}`;
   };
-
-  const buildGradeHref = (gradeLevel: number) => {
-    const params = new URLSearchParams();
-
-    for (const [key, rawValue] of Object.entries(resolvedSearchParams)) {
-      if (key === "classId" || key === "page" || key === "grade") continue;
-      const value = getQueryParam(rawValue);
-      if (value !== undefined) {
-        params.set(key, value);
-      }
-    }
-
-    params.set("grade", gradeLevel.toString());
-
-    return `/list/lessons?${params.toString()}`;
-  };
-
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex md:flex-row flex-col justify-between md:items-center gap-4">
@@ -129,12 +82,12 @@ const LessonListPage = async ({
             <span className="mr-1 font-medium text-gray-600 text-xs">
               Grade:
             </span>
-            {availableGradeLevels.map((gradeLevel) => (
+            {availableGrades.map((gradeLevel) => (
               <Link
                 key={gradeLevel}
                 href={buildGradeHref(gradeLevel)}
                 className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
-                  selectedGradeLevel === gradeLevel
+                  selectedGrade === gradeLevel
                     ? "bg-academixPurple text-white border-academixPurple"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
