@@ -3,28 +3,52 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
-import { getCurrentRole } from "@/lib/auth";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
-import { Class, Student } from "@prisma/client";
+import { Class, Prisma, Student } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-const SingleStudentPage = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const role = await getCurrentRole();
-  const { id } = await params;
+const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
+  const { id } = params;
 
-  const student:
-    | (Student & {
-        class: Class & { _count: { lessons: number } };
-      })
-    | null = await prisma.student.findUnique({
-    where: { id },
+  const user = await enforceRouteAccess("/list/students");
+
+  const role = user.role;
+  const userId = user.userId;
+
+  const where: Prisma.StudentWhereInput = {
+    id,
+  };
+
+  switch (role) {
+    case "teacher":
+      where.class = {
+        lessons: {
+          some: {
+            teacherId: userId,
+          },
+        },
+      };
+      break;
+
+    case "student":
+      where.id = userId;
+      break;
+
+    case "parent":
+      where.parentId = userId;
+      break;
+
+    case "admin":
+    default:
+      break;
+  }
+
+  const student = await prisma.student.findFirst({
+    where,
     include: {
       class: {
         include: {

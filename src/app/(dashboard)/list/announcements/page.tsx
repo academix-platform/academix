@@ -3,13 +3,16 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getCurrentRole, getUserId, type UserRole } from "@/lib/auth";
+import { type UserRole } from "@/lib/auth";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Announcement, Class, Prisma } from "@prisma/client";
 
-type AnnouncementList = Announcement & { classes: Pick<Class, "id" | "name">[] };
+type AnnouncementList = Announcement & {
+  classes: Pick<Class, "id" | "name">[];
+};
 
 const getColumns = (role: UserRole | null) => [
   {
@@ -67,8 +70,7 @@ const AnnouncementListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const role = await getCurrentRole();
-  const userId = await getUserId();
+  const { role, userId } = await enforceRouteAccess("/list/announcements");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);

@@ -2,27 +2,26 @@ import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
-import { getCurrentRole } from "@/lib/auth";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
-import { Subject, Teacher } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-const SingleTeacherPage = async ({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) => {
-  const role = await getCurrentRole();
-  const { id } = await params;
+const SingleTeacherPage = async ({ params }: { params: { id: string } }) => {
+  const { id } = params;
 
-  const teacher:
-    | (Teacher & {
-        _count: { subjects: number; lessons: number; classes: number };
-      })
-    | null = await prisma.teacher.findUnique({
-    where: { id },
+  const user = await enforceRouteAccess("/list/teachers");
+
+  const role = user.role;
+
+  const where: Prisma.TeacherWhereInput = {
+    id,
+  };
+
+  const teacher = await prisma.teacher.findFirst({
+    where,
     include: {
       subjects: true,
       _count: {
