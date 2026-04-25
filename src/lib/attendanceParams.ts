@@ -1,3 +1,4 @@
+// lib/attendanceParams.ts
 import { getQueryParam } from "@/lib/pageParams";
 
 const normalizeDate = (raw?: string) => {
@@ -7,7 +8,9 @@ const normalizeDate = (raw?: string) => {
 };
 
 export const getAttendanceParams = (resolved: any) => {
-  const scope = getQueryParam(resolved.scope) || "students";
+  const rawScope = getQueryParam(resolved.scope);
+  const scope: "students" | "teachers" =
+    rawScope === "teachers" ? "teachers" : "students";
 
   const classIdParam = getQueryParam(resolved.classId);
   const classId = classIdParam ? parseInt(classIdParam) : undefined;
@@ -17,8 +20,7 @@ export const getAttendanceParams = (resolved: any) => {
 
   const selectedDate = normalizeDate(getQueryParam(resolved.date));
 
-  const dayStart = new Date(`${selectedDate}T00:00:00.000Z`);
-  const dayEnd = new Date(`${selectedDate}T23:59:59.999Z`);
+  const day = new Date(`${selectedDate}T00:00:00.000Z`);
 
   const today = new Date().toISOString().slice(0, 10);
   const isToday = selectedDate === today;
@@ -28,8 +30,7 @@ export const getAttendanceParams = (resolved: any) => {
     classId,
     page,
     selectedDate,
-    dayStart,
-    dayEnd,
+    day,
     isToday,
   };
 };

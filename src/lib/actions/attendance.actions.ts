@@ -1,3 +1,4 @@
+// lib/actions.ts
 "use server";
 
 import prisma from "../prisma";
@@ -9,88 +10,70 @@ export const saveDailyAttendance = async (
 ) => {
   const user = await getAuthUser();
   const role = user?.role;
-  const userId = user?.userId;
 
   if (role !== "admin" && role !== "teacher") {
-    return {
-      success: false,
-      error: true,
-      message: "You are not allowed to manage attendance.",
-    };
-  }
-
-  const date = new Date(formData.get("date") as string);
-
-  const raw = formData.get("changes");
-
-  if (!raw || typeof raw !== "string") {
-    return {
-      success: false,
-      error: true,
-      message: "No changes detected.",
-    };
-  }
-
-  const changes = JSON.parse(raw) as Record<string, boolean>;
-
-  const records = Object.entries(changes).map(([id, present]) => ({
-    id,
-    present,
-  }));
-
-  if (records.length === 0) {
-    return {
-      success: false,
-      error: true,
-      message: "No changes to save.",
-    };
-  }
-
-  // ❗ safety
-  if (records.length === 0) {
-    return {
-      success: false,
-      error: true,
-      message: "No attendance data submitted.",
-    };
+    return { success: false, error: true, message: "Unauthorized" };
   }
 
   try {
-    // =========================
-    // STUDENT ATTENDANCE
-    // =========================
+    const scope = formData.get("scope");
+    if (scope !== "students" && scope !== "teachers") {
+      throw new Error("Invalid scope");
+    }
+
+    const rawDate = formData.get("date") as string;
+
+    //  normalize date
+    const day = new Date(new Date(rawDate).toISOString().slice(0, 10));
+
+    const raw = formData.get("changes");
+    if (!raw || typeof raw !== "string") {
+      throw new Error("No changes");
+    }
+
+    const changes = JSON.parse(raw) as Record<string, boolean>;
+
+    const records = Object.entries(changes);
+
     await prisma.$transaction(
-      records.map((record) =>
-        prisma.attendance.upsert({
+      records.map(([id, present]) => {
+        if (scope === "students") {
+          return prisma.attendance.upsert({
+            where: {
+              studentId_date: {
+                studentId: id,
+                date: day,
+              },
+            },
+            update: { present },
+            create: {
+              studentId: id,
+              date: day,
+              present,
+            },
+          });
+        }
+
+        return prisma.attendance.upsert({
           where: {
-            studentId_date: {
-              studentId: record.id,
-              date,
+            teacherId_date: {
+              teacherId: id,
+              date: day,
             },
           },
-          update: {
-            present: record.present,
-          },
+          update: { present },
           create: {
-            studentId: record.id,
-            date,
-            present: record.present,
+            teacherId: id,
+            date: day,
+            present,
           },
-        }),
-      ),
+        });
+      }),
     );
 
-    return {
-      success: true,
-      error: false,
-      message: "Attendance saved successfully",
-    };
-  } catch (err) {
+    return { success: true, error: false };
+  } catch (err: any) {
     console.error(err);
-    return {
-      success: false,
-      error: true,
-      message: "Something went wrong while saving attendance.",
-    };
+    return { success: false, error: true, message: err.message };
   }
 };

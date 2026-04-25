@@ -23,14 +23,16 @@ const AttendancePage = async ({
 
   // PARAMS
   const {
-    scope,
+    scope: rawScope,
     classId,
     page: p,
     selectedDate,
-    dayStart,
-    dayEnd,
+    day,
     isToday,
   } = getAttendanceParams(resolved);
+
+  const scope: "students" | "teachers" =
+    rawScope === "teachers" ? "teachers" : "students";
 
   // =========================
   // CLASSES
@@ -68,8 +70,7 @@ const AttendancePage = async ({
     userId,
     scope,
     classId: effectiveClassId,
-    dayStart,
-    dayEnd,
+    day,
   });
 
   // PAGINATION
@@ -89,6 +90,12 @@ const AttendancePage = async ({
             defaultValue={selectedDate}
             className="p-2 border rounded-md text-sm"
           />
+
+          <input type="hidden" name="scope" value={scope} />
+          {effectiveClassId && (
+            <input type="hidden" name="classId" value={effectiveClassId} />
+          )}
+
           <button className="bg-gray-100 px-3 py-2 rounded-md text-sm">
             Filter
           </button>
@@ -154,6 +161,7 @@ const AttendancePage = async ({
         selectedDate={selectedDate}
         isToday={isToday}
         hasAttendance={hasAttendance}
+        scope={scope}
       />
 
       <Pagination page={p} count={count} />

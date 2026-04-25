@@ -5,35 +5,42 @@ export const getAttendanceData = async ({
   userId,
   scope,
   classId,
-  dayStart,
-  dayEnd,
+  day,
 }: {
   role: string | null;
   userId: string | null;
-  scope: string;
+  scope: "students" | "teachers";
   classId?: number;
-  dayStart: Date;
-  dayEnd: Date;
+  day: Date;
 }) => {
+  // exact date match ONLY
   const attendance = await prisma.attendance.findMany({
     where: {
-      date: {
-        gte: dayStart,
-        lte: dayEnd,
-      },
+      date: day,
+      ...(scope === "students"
+        ? { studentId: { not: null } }
+        : { teacherId: { not: null } }),
     },
   });
 
-  const studentMap = new Map(
-    attendance.filter((a) => a.studentId).map((a) => [a.studentId, a.present]),
+  // safe maps
+  const studentMap = new Map<string, boolean>(
+    attendance
+      .filter((a): a is typeof a & { studentId: string } => !!a.studentId)
+      .map((a) => [a.studentId, a.present]),
   );
 
-  const teacherMap = new Map(
-    attendance.filter((a) => a.teacherId).map((a) => [a.teacherId, a.present]),
+  const teacherMap = new Map<string, boolean>(
+    attendance
+      .filter((a): a is typeof a & { teacherId: string } => !!a.teacherId)
+      .map((a) => [a.teacherId, a.present]),
   );
 
   let data: any[] = [];
 
+  // =========================
+  // STUDENTS
+  // =========================
   if (scope === "students") {
     const students = await prisma.student.findMany({
       where: classId ? { classId } : {},
@@ -46,13 +53,19 @@ export const getAttendanceData = async ({
     data = students.map((s) => ({
       id: s.id,
       name: s.name,
-      type: "Student",
       className: s.class.name,
       present: studentMap.get(s.id) ?? false,
     }));
   }
 
-  if (scope === "teachers" && role === "admin") {
+  // =========================
+  // TEACHERS
+  // =========================
+  if (scope === "teachers") {
+    if (role !== "admin") {
+      return { data: [], hasAttendance: false };
+    }
+
     const teachers = await prisma.teacher.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },
@@ -61,7 +74,6 @@ export const getAttendanceData = async ({
     data = teachers.map((t) => ({
       id: t.id,
       name: t.name,
-      type: "Teacher",
       className: "-",
       present: teacherMap.get(t.id) ?? false,
     }));
