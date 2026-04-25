@@ -1,4 +1,4 @@
-import Announcements from "@/components/Announcements";
+﻿import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import Performance from "@/components/Performance";
@@ -11,10 +11,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-const SingleStudentPage = async ({ params }: { params: { id: string } }) => {
-  const { id } = params;
+const SingleStudentPage = async ({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) => {
+  const { id } = await params;
 
-  const user = await enforceRouteAccess("/list/students");
+  const user = await enforceRouteAccess(`/list/students/${id}`);
 
   const role = user.role;
   const userId = user.userId;
