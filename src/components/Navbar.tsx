@@ -1,11 +1,12 @@
 "use client";
 
-import Image from "next/image";
 import { Search, MessageCircle, Bell } from "lucide-react";
-import { UserButton, useUser } from "@clerk/nextjs";
+import { useUser } from "@clerk/nextjs";
+import UserAvatarMenu from "./UserAvatarMenu";
 
 const Navbar = () => {
   const { user, isLoaded } = useUser();
+
   const fullName =
     user?.fullName ||
     [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
@@ -16,6 +17,14 @@ const Navbar = () => {
     isLoaded && user
       ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
       : null;
+
+  const initials =
+    fullName
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((namePart) => namePart[0]?.toUpperCase())
+      .join("") || "U";
 
   return (
     <div className="flex justify-between items-center p-4">
@@ -49,14 +58,12 @@ const Navbar = () => {
           </span>
         </div>
 
-        {/* <Image
-          src="/avatar.png"
-          alt=""
-          width={36}
-          height={36}
-          className="rounded-full"
-        /> */}
-        <UserButton />
+        <UserAvatarMenu
+          fullName={fullName}
+          role={role ? role[0].toUpperCase() + role.slice(1) : ""}
+          initials={initials}
+          imageUrl={user?.imageUrl}
+        />
       </div>
     </div>
   );

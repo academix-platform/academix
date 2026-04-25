@@ -1,6 +1,6 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
+import { useClerk, useUser } from "@clerk/nextjs";
 import {
   BarChart3,
   BookOpen,
@@ -22,7 +22,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 type MenuItem = {
   icon: LucideIcon;
@@ -53,7 +53,7 @@ export const menuItems: MenuSection[] = [
         label: "Teachers",
         href: "/list/teachers",
         shouldPrefetch: true,
-        visible: ["admin", "teacher"],
+        visible: ["admin"],
       },
       {
         icon: User,
@@ -154,7 +154,7 @@ export const menuItems: MenuSection[] = [
       {
         icon: LogOut,
         label: "Logout",
-        href: "/logout",
+        href: "/sign-in",
         visible: ["admin", "teacher", "student", "parent"],
       },
     ],
@@ -162,13 +162,20 @@ export const menuItems: MenuSection[] = [
 ];
 
 const Menu = () => {
+  const { signOut } = useClerk();
   const { user, isLoaded } = useUser();
   const pathname = usePathname();
   const router = useRouter();
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const role =
     isLoaded && user
       ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
       : null;
+
+  const handleSignOut = async () => {
+    setIsSigningOut(true);
+    await signOut({ redirectUrl: "/sign-in" });
+  };
 
   const resolvedMenuItems = useMemo(
     () =>
@@ -228,6 +235,27 @@ const Menu = () => {
 
           {section.items.map((item) => {
             if (!item.visible.includes(role)) return null;
+
+            if (item.label === "Logout") {
+              return (
+                <button
+                  key={item.label}
+                  type="button"
+                  onClick={handleSignOut}
+                  disabled={isSigningOut}
+                  className="group relative flex justify-center lg:justify-start items-center gap-4 hover:bg-academixSkyLight disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-left transition-colors duration-200"
+                >
+                  <item.icon
+                    size={20}
+                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark transition-colors"
+                  />
+
+                  <span className="hidden lg:block text-gray-500 group-hover:text-academixPurpleDark transition-colors">
+                    {isSigningOut ? "Signing out..." : item.label}
+                  </span>
+                </button>
+              );
+            }
 
             const isActive =
               item.href === `/${role}`
