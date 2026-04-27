@@ -1,8 +1,16 @@
 import { MoreHorizontal } from "lucide-react";
 import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 
 const AttendanceChartContainer = async () => {
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return <NoCurrentAcademicYearMessage compact />;
+  }
+
   const today = new Date();
   const dayOfWeek = today.getDay();
   const daysSinceSaturday = (dayOfWeek + 1) % 7;
@@ -15,6 +23,7 @@ const AttendanceChartContainer = async () => {
 
   const responseData = await prisma.attendance.findMany({
     where: {
+      academicYearId,
       date: {
         gte: weekStart,
         lt: weekEnd,

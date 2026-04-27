@@ -144,12 +144,17 @@ async function main() {
     });
   }
 
-  const currentAcademicYear = await prisma.academicYear.findFirst({
-    where: { isCurrent: true },
-    select: { id: true },
+  const seededAcademicYears = await prisma.academicYear.findMany({
+    select: { id: true, isCurrent: true },
+    orderBy: { startDate: "asc" },
   });
 
-  if (!currentAcademicYear) {
+  const currentAcademicYear = seededAcademicYears.find(
+    (year) => year.isCurrent,
+  );
+  const nextAcademicYear = seededAcademicYears.find((year) => !year.isCurrent);
+
+  if (!currentAcademicYear || !nextAcademicYear) {
     throw new Error("Current academic year seed was not created.");
   }
 
@@ -341,6 +346,49 @@ async function main() {
   }
 
   // ======================
+  // LESSONS
+  // ======================
+  const createLessonsForYear = async (
+    academicYearId: number,
+    subjectIndexes: number[],
+    classIndexes: number[],
+    labelPrefix: string,
+  ) => {
+    for (const classIndex of classIndexes) {
+      const cls = classes[classIndex];
+      const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
+
+      for (let i = 0; i < subjectIndexes.length; i++) {
+        const subject = classSubjects[subjectIndexes[i]];
+        if (!subject) continue;
+
+        const base = subject.name.split("-")[0];
+        const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
+        const weekIndex = (classIndex + i) % weekDates.length;
+        const startTime = withTime(weekDates[weekIndex], 8 + i * 2, 0);
+        const endTime = withTime(weekDates[weekIndex], 9 + i * 2, 30);
+
+        await prisma.lesson.create({
+          data: {
+            name: `${labelPrefix} ${base} - ${cls.name}`,
+            day: schoolDays[weekIndex],
+            startTime,
+            endTime,
+            subjectId: subject.id,
+            classId: cls.id,
+            teacherId,
+            academicYearId,
+          },
+        });
+      }
+    }
+  };
+
+  await createLessonsForYear(currentAcademicYear.id, [0, 2], [0, 1], "Current");
+
+  await createLessonsForYear(nextAcademicYear.id, [1, 3], [0, 1], "Next");
+
+  // ======================
   // PARENTS
   // ======================
   const parents: Parent[] = [];
@@ -393,37 +441,6 @@ async function main() {
       studentCounter++;
     }
   }
-
-  // ======================
-  // LESSONS
-  // ======================
-  // const lessons: Lesson[] = [];
-  // for (const cls of classes) {
-  //   const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
-
-  //   for (let i = 0; i < classSubjects.length; i++) {
-  //     const subject = classSubjects[i];
-  //     const day = schoolDays[i % schoolDays.length];
-  //     const date = weekDates[i % weekDates.length];
-  //     const startTime = withTime(date, 8 + i * 2, 0);
-  //     const endTime = withTime(date, 9 + i * 2, 30);
-  //     const base = subject.name.split("-")[0];
-  //     const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
-
-  //     const lesson = await prisma.lesson.create({
-  //       data: {
-  //         name: `${base} - ${cls.name}`,
-  //         day,
-  //         startTime,
-  //         endTime,
-  //         subjectId: subject.id,
-  //         classId: cls.id,
-  //         teacherId,
-  //       },
-  //     });
-  //     lessons.push(lesson);
-  //   }
-  // }
 
   // ======================
   // EXAMS + ASSIGNMENTS

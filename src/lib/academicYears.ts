@@ -65,17 +65,25 @@ export const getAcademicYears = async (): Promise<AcademicYearItem[]> => {
 };
 
 export const getCurrentAcademicYearId = async (): Promise<number> => {
+  const currentYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!currentYearId) {
+    throw new Error(
+      "No current academic year found. Create one and mark it as current in settings.",
+    );
+  }
+
+  return currentYearId;
+};
+
+export const getCurrentAcademicYearIdOrNull = async (): Promise<
+  number | null
+> => {
   const currentYear = await prisma.academicYear.findFirst({
     where: { isCurrent: true },
     orderBy: { startDate: "desc" },
     select: { id: true },
   });
 
-  if (!currentYear) {
-    throw new Error(
-      "No current academic year found. Create one and mark it as current in settings.",
-    );
-  }
-
-  return currentYear.id;
+  return currentYear?.id ?? null;
 };

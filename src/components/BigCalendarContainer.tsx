@@ -2,6 +2,8 @@ import prisma from "@/lib/prisma";
 import BigCalendar from "./BigCalender";
 import { adjustScheduleToCurrentWeek } from "@/lib/utils";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 
 const BigCalendarContainer = async ({
   type,
@@ -11,9 +13,15 @@ const BigCalendarContainer = async ({
   id: string | number;
 }) => {
   const schoolSettings = await getSchoolScheduleSettings();
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return <NoCurrentAcademicYearMessage compact />;
+  }
 
   const dataRes = await prisma.lesson.findMany({
     where: {
+      academicYearId,
       ...(type === "teacherId"
         ? { teacherId: id as string }
         : { classId: id as number }),

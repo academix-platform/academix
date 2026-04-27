@@ -1,12 +1,20 @@
 import prisma from "@/lib/prisma";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 
 const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   const date = dateParam ? new Date(dateParam) : new Date();
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return <NoCurrentAcademicYearMessage compact />;
+  }
 
   const data = await prisma.event.findMany({
     take: 3,
     orderBy: { startDate: "desc" },
     where: {
+      academicYearId,
       startDate: {
         gte: new Date(date.setHours(0, 0, 0, 0)),
         lte: new Date(date.setHours(23, 59, 59, 999)),
