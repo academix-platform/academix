@@ -12,6 +12,18 @@ model Admin{
   username String @unique
 }
 
+model SchoolSettings {
+  id Int @id @default(1)
+
+  workDayStart DateTime @db.Time
+  workDayEnd DateTime @db.Time
+
+  lessonDuration Int
+  lessonsPerDay Int
+
+  updatedAt DateTime @updatedAt
+}
+
 model Student{  
   id String @id
   username String @unique
