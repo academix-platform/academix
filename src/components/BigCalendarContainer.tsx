@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import BigCalendar from "./BigCalender";
 import { adjustScheduleToCurrentWeek } from "@/lib/utils";
+import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 
 const BigCalendarContainer = async ({
   type,
@@ -9,6 +10,8 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
+  const schoolSettings = await getSchoolScheduleSettings();
+
   const dataRes = await prisma.lesson.findMany({
     where: {
       ...(type === "teacherId"
@@ -48,7 +51,7 @@ const BigCalendarContainer = async ({
 
   return (
     <div className="h-[560px]">
-      <BigCalendar data={schedule} />
+      <BigCalendar data={schedule} settings={schoolSettings} />
     </div>
   );
 };

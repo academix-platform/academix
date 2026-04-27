@@ -21,7 +21,6 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
 type DayValue = (typeof lessonDays)[number];
-type SlotValue = 1 | 2 | 3 | 4 | 5 | 6;
 
 type RelatedData = {
   classes?: Array<{ id: number; name: string }>;
@@ -41,6 +40,14 @@ type RelatedData = {
     teacherId?: string;
     teacher?: { name: string };
   }>;
+  schoolSettings?: {
+    lessonsPerDay: number;
+    lessonDurationMinutes: number;
+    workDayStartHour: number;
+    workDayStartMinute: number;
+    workDayEndHour: number;
+    workDayEndMinute: number;
+  };
 };
 
 const dayLabels: Record<DayValue, string> = {
@@ -52,9 +59,10 @@ const dayLabels: Record<DayValue, string> = {
   THURSDAY: "THU",
 };
 
-const slotNumbers = [1, 2, 3, 4, 5, 6] as const;
+const buildSlotNumbers = (lessonsPerDay: number) =>
+  Array.from({ length: lessonsPerDay }, (_, index) => index + 1);
 
-const buildInitialEntries = () => {
+const buildInitialEntries = (slotNumbers: number[]) => {
   return lessonDays.flatMap((day) =>
     slotNumbers.map((slot) => ({
       day,
@@ -65,13 +73,13 @@ const buildInitialEntries = () => {
   );
 };
 
-const extractSlotFromName = (name?: string) => {
+const extractSlotFromName = (name: string | undefined, maxSlot: number) => {
   if (!name) return null;
   const match = /lesson\s*(\d+)/i.exec(name);
   if (!match) return null;
   const slot = Number(match[1]);
-  if (Number.isNaN(slot) || slot < 1 || slot > 6) return null;
-  return slot as SlotValue;
+  if (Number.isNaN(slot) || slot < 1 || slot > maxSlot) return null;
+  return slot;
 };
 
 const getMinutesFromDate = (value?: Date) => {
@@ -87,6 +95,7 @@ const mapLessonsToSlots = (
     subjectId: number;
     teacherId?: string;
   }>,
+  slotNumbers: number[],
 ) => {
   const byDay = new Map<DayValue, typeof classLessons>();
 
@@ -98,7 +107,7 @@ const mapLessonsToSlots = (
 
   const mapped: Array<{
     day: DayValue;
-    slot: SlotValue;
+    slot: number;
     subjectId: number;
     teacherId?: string;
   }> = [];
@@ -113,9 +122,10 @@ const mapLessonsToSlots = (
     });
 
     const usedSlots = new Set<number>();
+    const maxSlot = slotNumbers[slotNumbers.length - 1] ?? 1;
 
     for (const lesson of dayLessons) {
-      const namedSlot = extractSlotFromName(lesson.name);
+      const namedSlot = extractSlotFromName(lesson.name, maxSlot);
       if (!namedSlot || usedSlots.has(namedSlot)) continue;
 
       usedSlots.add(namedSlot);
@@ -128,7 +138,7 @@ const mapLessonsToSlots = (
     }
 
     for (const lesson of dayLessons) {
-      const namedSlot = extractSlotFromName(lesson.name);
+      const namedSlot = extractSlotFromName(lesson.name, maxSlot);
       if (namedSlot && !usedSlots.has(namedSlot)) continue;
       if (namedSlot && usedSlots.has(namedSlot)) continue;
 
@@ -184,7 +194,15 @@ const LessonForm = ({
     subjects = [],
     teachers = [],
     lessons = [],
+    schoolSettings,
   } = relatedData ?? {};
+
+  const lessonsPerDay = schoolSettings?.lessonsPerDay ?? 6;
+  const slotNumbers = useMemo(
+    () => buildSlotNumbers(lessonsPerDay),
+    [lessonsPerDay],
+  );
+  const slotsPerDay = slotNumbers.length;
 
   const {
     register,
@@ -197,7 +215,7 @@ const LessonForm = ({
     resolver: zodResolver(lessonScheduleSchema),
     defaultValues: {
       classId: data?.classId,
-      entries: buildInitialEntries(),
+      entries: buildInitialEntries(slotNumbers),
     },
   });
 
@@ -246,34 +264,35 @@ const LessonForm = ({
   const activeRows = useMemo(() => {
     return slotNumbers.map((slot) => {
       const index =
-        lessonDays.findIndex((day) => day === activeDay) * 6 + (slot - 1);
+        lessonDays.findIndex((day) => day === activeDay) * slotsPerDay +
+        (slot - 1);
       return { slot, index };
     });
-  }, [activeDay]);
+  }, [activeDay, slotNumbers, slotsPerDay]);
 
   const applyClassSchedule = useCallback(
     (classIdValue?: number) => {
       const classId = Number(classIdValue);
       if (Number.isNaN(classId) || classId <= 0) {
-        setValue("entries", buildInitialEntries(), {
+        setValue("entries", buildInitialEntries(slotNumbers), {
           shouldDirty: true,
           shouldValidate: true,
         });
         return;
       }
 
-      const nextEntries = buildInitialEntries();
+      const nextEntries = buildInitialEntries(slotNumbers);
 
       const classLessons = lessons.filter(
         (lesson) => lesson.classId === classId,
       );
-      const slottedLessons = mapLessonsToSlots(classLessons);
+      const slottedLessons = mapLessonsToSlots(classLessons, slotNumbers);
 
       for (const lesson of slottedLessons) {
         const dayIndex = lessonDays.findIndex((day) => day === lesson.day);
         if (dayIndex < 0) continue;
 
-        const index = dayIndex * 6 + (lesson.slot - 1);
+        const index = dayIndex * slotsPerDay + (lesson.slot - 1);
         if (!nextEntries[index]) continue;
 
         nextEntries[index] = {
@@ -289,7 +308,7 @@ const LessonForm = ({
         shouldValidate: true,
       });
     },
-    [lessons, setValue],
+    [lessons, setValue, slotNumbers, slotsPerDay],
   );
 
   useEffect(() => {
@@ -486,7 +505,7 @@ const LessonForm = ({
         {...register("classId")}
         value={selectedClassId ?? ""}
       />
-      {buildInitialEntries().map((entry, index) => {
+      {buildInitialEntries(slotNumbers).map((entry, index) => {
         const current = getValues(`entries.${index}`) ?? entry;
         return (
           <div key={`${entry.day}-${entry.slot}-hidden`} className="hidden">

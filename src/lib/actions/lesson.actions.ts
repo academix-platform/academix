@@ -1,40 +1,152 @@
 "use server";
 
-import { LessonSchema, LessonScheduleSchema } from "../formValidationSchemas";
+import { revalidatePath } from "next/cache";
+
+import { ensureAdminAccess, errorResult, successResult } from "./helpers";
 import prisma from "../prisma";
+import { LessonScheduleSchema } from "../formValidationSchemas";
+import type { CurrentState } from "./helpers";
 import {
-  CurrentState,
-  errorResult,
-  parseNumericId,
-  successResult,
-  ensureAdminAccess,
-  deleteLessonGraph,
-} from "./helpers";
+  getDefaultSchoolScheduleSettings,
+  getSchoolScheduleSettings,
+  type SchoolScheduleSettings,
+} from "../schoolSettings";
 
-export const createLesson = async (
-  currentState: CurrentState,
-  data: LessonSchema,
+type SelectedScheduleEntry = {
+  day: LessonScheduleSchema["entries"][number]["day"];
+  slot: number;
+  subjectId: number;
+  teacherId: string;
+};
+
+const scheduleKey = (
+  day: LessonScheduleSchema["entries"][number]["day"],
+  slot: number,
+) => `${day}-${slot}`;
+
+const toSelectedEntries = (entries: LessonScheduleSchema["entries"]) =>
+  entries
+    .filter((entry) => Number(entry.subjectId) > 0 && !!entry.teacherId)
+    .map((entry) => ({
+      day: entry.day,
+      slot: Number(entry.slot),
+      subjectId: Number(entry.subjectId),
+      teacherId: String(entry.teacherId),
+    }));
+
+const extractSlotFromLessonName = (name: string, lessonsPerDay: number) => {
+  const match = /lesson\s*(\d+)/i.exec(name);
+  if (!match) return null;
+
+  const parsed = Number(match[1]);
+  if (Number.isNaN(parsed) || parsed < 1 || parsed > lessonsPerDay) return null;
+
+  return parsed;
+};
+
+const extractSlotFromStartTime = (
+  startTime: Date,
+  settings: SchoolScheduleSettings,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const totalMinutes = startTime.getUTCHours() * 60 + startTime.getUTCMinutes();
+  const slotBaseMinutes =
+    settings.workDayStartHour * 60 + settings.workDayStartMinute;
+  const offset = totalMinutes - slotBaseMinutes;
+  if (offset < 0) return null;
 
-  try {
-    await prisma.lesson.create({
-      data: {
-        name: data.name,
-        day: data.day,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        subjectId: data.subjectId,
-        classId: data.classId,
-        teacherId: data.teacherId,
-      },
+  const slot = Math.floor(offset / settings.lessonDurationMinutes) + 1;
+  if (slot < 1 || slot > settings.lessonsPerDay) return null;
+
+  const alignedMinutes =
+    slotBaseMinutes + (slot - 1) * settings.lessonDurationMinutes;
+  if (alignedMinutes !== totalMinutes) return null;
+
+  return slot;
+};
+
+const slotToDateRange = (slot: number, settings: SchoolScheduleSettings) => {
+  const baseMinutes =
+    settings.workDayStartHour * 60 + settings.workDayStartMinute;
+  const slotStartMinutes =
+    baseMinutes + (slot - 1) * settings.lessonDurationMinutes;
+  const startHour = Math.floor(slotStartMinutes / 60);
+  const startMinute = slotStartMinutes % 60;
+
+  const start = new Date(Date.UTC(2000, 0, 1, startHour, startMinute, 0, 0));
+
+  const end = new Date(start);
+  end.setUTCMinutes(end.getUTCMinutes() + settings.lessonDurationMinutes);
+
+  return { start, end };
+};
+
+const detectTeacherConflicts = async ({
+  classId,
+  selectedEntries,
+  settings,
+}: {
+  classId: number;
+  selectedEntries: SelectedScheduleEntry[];
+  settings: SchoolScheduleSettings;
+}) => {
+  if (selectedEntries.length === 0) return null;
+
+  const seenInPayload = new Set<string>();
+  for (const entry of selectedEntries) {
+    const key = `${entry.teacherId}-${entry.day}-${entry.slot}`;
+    if (seenInPayload.has(key)) {
+      return {
+        message: `Teacher conflict detected in schedule payload for ${entry.day} lesson ${entry.slot}.`,
+      };
+    }
+    seenInPayload.add(key);
+  }
+
+  const teacherIds = Array.from(
+    new Set(selectedEntries.map((entry) => entry.teacherId)),
+  );
+  const days = Array.from(new Set(selectedEntries.map((entry) => entry.day)));
+
+  const existingLessons = await prisma.lesson.findMany({
+    where: {
+      classId: { not: classId },
+      teacherId: { in: teacherIds },
+      day: { in: days },
+    },
+    select: {
+      day: true,
+      name: true,
+      startTime: true,
+      teacherId: true,
+      teacher: { select: { name: true } },
+      class: { select: { name: true } },
+    },
+  });
+
+  for (const entry of selectedEntries) {
+    const conflict = existingLessons.find((lesson) => {
+      if (lesson.teacherId !== entry.teacherId || lesson.day !== entry.day) {
+        return false;
+      }
+
+      const lessonSlot =
+        extractSlotFromLessonName(lesson.name, settings.lessonsPerDay) ??
+        extractSlotFromStartTime(lesson.startTime, settings);
+
+      return lessonSlot === entry.slot;
     });
 
-    return successResult(["/list/lessons"]);
-  } catch (err) {
-    return errorResult(err);
+    if (conflict) {
+      const teacherLabel = conflict.teacher?.name ?? "Selected teacher";
+      const classLabel = conflict.class?.name ?? "another class";
+
+      return {
+        message: `${teacherLabel} already assigned at lesson ${entry.slot} in class ${classLabel} on ${entry.day}`,
+      };
+    }
   }
+
+  return null;
 };
 
 export const saveLessonSchedule = async (
@@ -45,9 +157,21 @@ export const saveLessonSchedule = async (
   if (adminError) return adminError;
 
   try {
-    const selectedEntries = data.entries.filter(
-      (entry) => entry.subjectId && entry.subjectId > 0,
+    const settings =
+      (await getSchoolScheduleSettings()) ?? getDefaultSchoolScheduleSettings();
+    const selectedEntries = toSelectedEntries(data.entries);
+
+    const hasInvalidSlot = selectedEntries.some(
+      (entry) => entry.slot < 1 || entry.slot > settings.lessonsPerDay,
     );
+
+    if (hasInvalidSlot) {
+      return {
+        success: false,
+        error: true,
+        message: `Lesson slots must be between 1 and ${settings.lessonsPerDay}.`,
+      };
+    }
 
     if (selectedEntries.length === 0) {
       return {
@@ -57,298 +181,88 @@ export const saveLessonSchedule = async (
       };
     }
 
-    const getGradeFromClassName = (name?: string) => {
-      if (!name) return null;
-      const match = /^(\d+)/.exec(name.trim());
-      if (!match) return null;
-      const grade = Number(match[1]);
-      return Number.isNaN(grade) ? null : grade;
-    };
+    const conflict = await detectTeacherConflicts({
+      classId: data.classId,
+      selectedEntries,
+      settings,
+    });
 
-    const getGradeFromSubjectName = (name?: string) => {
-      if (!name) return null;
-      const match = /-G(\d+)$/i.exec(name.trim());
-      if (!match) return null;
-      const grade = Number(match[1]);
-      return Number.isNaN(grade) ? null : grade;
-    };
-
-    const subjectIds = Array.from(
-      new Set(selectedEntries.map((entry) => Number(entry.subjectId))),
-    );
-
-    const [selectedClass, subjects] = await Promise.all([
-      prisma.class.findUnique({
-        where: { id: data.classId },
-        select: {
-          id: true,
-          name: true,
-        },
-      }),
-      prisma.subject.findMany({
-        where: { id: { in: subjectIds } },
-        select: {
-          id: true,
-          name: true,
-          teachers: { select: { id: true } },
-        },
-      }),
-    ]);
-
-    if (!selectedClass) {
+    if (conflict) {
       return {
         success: false,
         error: true,
-        message: "Selected class was not found.",
+        message: conflict.message,
       };
-    }
-
-    const classGrade = getGradeFromClassName(selectedClass.name);
-
-    const subjectTeacherMap = new Map<number, Set<string>>();
-
-    for (const subject of subjects) {
-      const subjectGrade = getGradeFromSubjectName(subject.name);
-      if (classGrade !== null && subjectGrade !== classGrade) {
-        return {
-          success: false,
-          error: true,
-          message:
-            "Only subjects from the selected class grade can be scheduled.",
-        };
-      }
-
-      const allowedTeacherIds = new Set(
-        subject.teachers.map((teacher) => teacher.id),
-      );
-
-      if (allowedTeacherIds.size === 0) {
-        return {
-          success: false,
-          error: true,
-          message:
-            "One or more selected subjects do not have an assigned teacher.",
-        };
-      }
-
-      subjectTeacherMap.set(subject.id, allowedTeacherIds);
-    }
-
-    for (const entry of selectedEntries) {
-      const subjectId = Number(entry.subjectId);
-      const teacherId = entry.teacherId;
-
-      if (!teacherId) {
-        return {
-          success: false,
-          error: true,
-          message: "Teacher is required for each selected subject.",
-        };
-      }
-
-      const allowedTeacherIds = subjectTeacherMap.get(subjectId);
-      if (!allowedTeacherIds || !allowedTeacherIds.has(teacherId)) {
-        return {
-          success: false,
-          error: true,
-          message:
-            "The selected teacher cannot teach one or more of the selected subjects.",
-        };
-      }
-    }
-
-    const slotStartHour = 7;
-    const slotDurationMinutes = 45;
-    const selectedSlotKeys = new Set(
-      selectedEntries.map((entry) => `${entry.day}-${entry.slot}`),
-    );
-
-    const plannedLessons = selectedEntries.map((entry) => ({
-      day: entry.day,
-      slot: entry.slot,
-      subjectId: Number(entry.subjectId),
-      teacherId: entry.teacherId!,
-    }));
-
-    const plannedTeacherIds = Array.from(
-      new Set(plannedLessons.map((entry) => entry.teacherId)),
-    );
-    const plannedDays = Array.from(
-      new Set(plannedLessons.map((entry) => entry.day)),
-    );
-
-    const teacherExistingLessons = await prisma.lesson.findMany({
-      where: {
-        teacherId: { in: plannedTeacherIds },
-        day: { in: plannedDays },
-        classId: { not: data.classId },
-      },
-      select: {
-        teacherId: true,
-        day: true,
-        startTime: true,
-        endTime: true,
-      },
-    });
-
-    for (const planned of plannedLessons) {
-      const plannedStart = new Date();
-      plannedStart.setUTCFullYear(2000, 0, 1);
-      const startMinutes = (planned.slot - 1) * slotDurationMinutes;
-      plannedStart.setUTCHours(slotStartHour, startMinutes, 0, 0);
-
-      const plannedEnd = new Date(plannedStart);
-      plannedEnd.setUTCMinutes(
-        plannedEnd.getUTCMinutes() + slotDurationMinutes,
-      );
-
-      const hasConflict = teacherExistingLessons.some((lesson) => {
-        if (
-          lesson.teacherId !== planned.teacherId ||
-          lesson.day !== planned.day
-        ) {
-          return false;
-        }
-
-        return plannedStart < lesson.endTime && plannedEnd > lesson.startTime;
-      });
-
-      if (hasConflict) {
-        return {
-          success: false,
-          error: true,
-          message:
-            "Teacher conflict detected: one or more teachers already have a lesson at the same time.",
-        };
-      }
     }
 
     await prisma.$transaction(async (tx) => {
-      const getSlotFromName = (name?: string) => {
-        if (!name) return null;
-        const match = /lesson\s*(\d+)/i.exec(name);
-        if (!match) return null;
-
-        const slot = Number(match[1]);
-        if (Number.isNaN(slot) || slot < 1 || slot > 6) return null;
-        return slot;
-      };
-
-      const getMinutesFromDate = (value?: Date) => {
-        if (!value) return null;
-        return value.getUTCHours() * 60 + value.getUTCMinutes();
-      };
-
       const existingLessons = await tx.lesson.findMany({
         where: { classId: data.classId },
-        select: { id: true, day: true, name: true, startTime: true },
+        select: {
+          id: true,
+          day: true,
+          name: true,
+          startTime: true,
+          subjectId: true,
+          teacherId: true,
+        },
       });
 
-      const existingLessonBySlot = new Map<string, { id: number }>();
+      const selectedByKey = new Map(
+        selectedEntries.map((entry) => [
+          scheduleKey(entry.day, entry.slot),
+          entry,
+        ]),
+      );
 
-      const lessonsByDay = new Map<
-        (typeof existingLessons)[number]["day"],
-        typeof existingLessons
+      const existingByKey = new Map<
+        string,
+        {
+          id: number;
+          subjectId: number;
+          teacherId: string;
+        }
       >();
 
       for (const lesson of existingLessons) {
-        const dayLessons = lessonsByDay.get(lesson.day) ?? [];
-        dayLessons.push(lesson);
-        lessonsByDay.set(lesson.day, dayLessons);
-      }
+        const slot =
+          extractSlotFromLessonName(lesson.name, settings.lessonsPerDay) ??
+          extractSlotFromStartTime(lesson.startTime, settings);
+        if (!slot) continue;
 
-      for (const [, dayLessons] of lessonsByDay) {
-        dayLessons.sort((a, b) => {
-          const minutesA =
-            getMinutesFromDate(a.startTime) ?? Number.MAX_SAFE_INTEGER;
-          const minutesB =
-            getMinutesFromDate(b.startTime) ?? Number.MAX_SAFE_INTEGER;
-          return minutesA - minutesB;
+        existingByKey.set(scheduleKey(lesson.day, slot), {
+          id: lesson.id,
+          subjectId: lesson.subjectId,
+          teacherId: lesson.teacherId,
         });
+      }
 
-        const usedSlots = new Set<number>();
-
-        for (const lesson of dayLessons) {
-          const slot = getSlotFromName(lesson.name);
-          if (!slot || usedSlots.has(slot)) continue;
-
-          usedSlots.add(slot);
-          const key = `${lesson.day}-${slot}`;
-          if (!existingLessonBySlot.has(key)) {
-            existingLessonBySlot.set(key, { id: lesson.id });
-          }
-        }
-
-        for (const lesson of dayLessons) {
-          const namedSlot = getSlotFromName(lesson.name);
-          if (namedSlot && usedSlots.has(namedSlot)) continue;
-
-          const fallbackSlot = [1, 2, 3, 4, 5, 6].find(
-            (slot) => !usedSlots.has(slot),
-          );
-
-          if (!fallbackSlot) continue;
-
-          usedSlots.add(fallbackSlot);
-          const key = `${lesson.day}-${fallbackSlot}`;
-          if (!existingLessonBySlot.has(key)) {
-            existingLessonBySlot.set(key, { id: lesson.id });
-          }
+      const lessonIdsToDelete: number[] = [];
+      for (const [key, lesson] of existingByKey) {
+        if (!selectedByKey.has(key)) {
+          lessonIdsToDelete.push(lesson.id);
         }
       }
 
-      const staleLessons = Array.from(existingLessonBySlot.entries())
-        .filter(([slotKey]) => !selectedSlotKeys.has(slotKey))
-        .map(([, lesson]) => lesson);
-
-      const staleLessonIds = staleLessons.map((lesson) => lesson.id);
-
-      if (staleLessonIds.length > 0) {
-        // Delete dependent exams first
+      if (lessonIdsToDelete.length > 0) {
         await tx.exam.deleteMany({
-          where: { lessonId: { in: staleLessonIds } },
+          where: { lessonId: { in: lessonIdsToDelete } },
         });
-
-        // Delete dependent assignments
         await tx.assignment.deleteMany({
-          where: { lessonId: { in: staleLessonIds } },
+          where: { lessonId: { in: lessonIdsToDelete } },
         });
-
-        // Finally, delete the stale lessons
         await tx.lesson.deleteMany({
-          where: { id: { in: staleLessonIds } },
+          where: { id: { in: lessonIdsToDelete } },
         });
       }
 
       for (const entry of selectedEntries) {
-        const subjectId = Number(entry.subjectId);
-        const teacherId = entry.teacherId!;
+        const key = scheduleKey(entry.day, entry.slot);
+        const existing = existingByKey.get(key);
 
-        const start = new Date();
-        start.setUTCFullYear(2000, 0, 1);
-        const startMinutes = (entry.slot - 1) * slotDurationMinutes;
-        start.setUTCHours(slotStartHour, startMinutes, 0, 0);
+        if (!existing) {
+          const { start, end } = slotToDateRange(entry.slot, settings);
 
-        const end = new Date(start);
-        end.setUTCMinutes(end.getUTCMinutes() + slotDurationMinutes);
-
-        const slotKey = `${entry.day}-${entry.slot}`;
-        const existingLesson = existingLessonBySlot.get(slotKey);
-
-        if (existingLesson) {
-          await tx.lesson.update({
-            where: { id: existingLesson.id },
-            data: {
-              name: `Lesson ${entry.slot}`,
-              day: entry.day,
-              startTime: start,
-              endTime: end,
-              classId: data.classId,
-              subjectId,
-              teacherId,
-            },
-          });
-        } else {
           await tx.lesson.create({
             data: {
               name: `Lesson ${entry.slot}`,
@@ -356,68 +270,34 @@ export const saveLessonSchedule = async (
               startTime: start,
               endTime: end,
               classId: data.classId,
-              subjectId,
-              teacherId,
+              subjectId: entry.subjectId,
+              teacherId: entry.teacherId,
             },
           });
+
+          continue;
         }
+
+        const hasChanged =
+          existing.subjectId !== entry.subjectId ||
+          existing.teacherId !== entry.teacherId;
+
+        if (!hasChanged) continue;
+
+        await tx.lesson.update({
+          where: { id: existing.id },
+          data: {
+            name: `Lesson ${entry.slot}`,
+            day: entry.day,
+            subjectId: entry.subjectId,
+            teacherId: entry.teacherId,
+          },
+        });
       }
     });
 
+    revalidatePath("/list/lessons");
     return successResult(["/list/lessons"]);
-  } catch (err) {
-    return errorResult(err);
-  }
-};
-
-export const updateLesson = async (
-  currentState: CurrentState,
-  data: LessonSchema,
-) => {
-  if (!data.id) {
-    return { success: false, error: true, message: "Lesson id is required." };
-  }
-
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
-
-  try {
-    await prisma.lesson.update({
-      where: { id: data.id },
-      data: {
-        name: data.name,
-        day: data.day,
-        startTime: data.startTime,
-        endTime: data.endTime,
-        subjectId: data.subjectId,
-        classId: data.classId,
-        teacherId: data.teacherId,
-      },
-    });
-
-    return successResult(["/list/lessons"]);
-  } catch (err) {
-    return errorResult(err);
-  }
-};
-
-export const deleteLesson = async (
-  currentState: CurrentState,
-  data: FormData,
-) => {
-  const id = parseNumericId(data.get("id"));
-  if (!id)
-    return { success: false, error: true, message: "Invalid lesson id." };
-
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      await deleteLessonGraph(tx, [id]);
-    });
-
-    return successResult();
   } catch (err) {
     return errorResult(err);
   }

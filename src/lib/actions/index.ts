@@ -14,13 +14,7 @@ export { createStudent, updateStudent, deleteStudent } from "./student.actions";
 export { createParent, updateParent, deleteParent } from "./parent.actions";
 
 // Lesson actions
-export {
-  createLesson,
-  saveLessonSchedule,
-  updateLesson,
-  deleteLesson,
-} from "./lesson.actions";
-
+export { saveLessonSchedule } from "./lesson.actions";
 // Exam actions
 export { createExam, updateExam, deleteExam } from "./exam.actions";
 
@@ -49,3 +43,6 @@ export {
 
 // Message actions
 export { createMessage, updateMessage, deleteMessage } from "./message.actions";
+
+// School settings actions
+export { updateSchoolSettings } from "./schoolSettings.actions";

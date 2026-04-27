@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
 import { getAuthUser } from "@/lib/auth";
+import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 
 export type FormContainerProps = {
   table:
@@ -43,6 +44,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { grades: classGrades, teachers: classTeachers };
         break;
       case "lesson":
+        const schoolSettings = await getSchoolScheduleSettings();
         const lessonClasses = await prisma.class.findMany({
           select: { id: true, name: true },
           orderBy: { name: "asc" },
@@ -78,6 +80,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           subjects: lessonSubjects,
           teachers: lessonTeachers,
           lessons: classLessons,
+          schoolSettings,
         };
         break;
       case "teacher":
