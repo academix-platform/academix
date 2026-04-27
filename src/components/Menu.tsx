@@ -149,7 +149,7 @@ export const menuItems: MenuSection[] = [
         icon: Settings,
         label: "Settings",
         href: "/settings",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin"],
       },
       {
         icon: LogOut,

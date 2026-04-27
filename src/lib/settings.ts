@@ -20,6 +20,7 @@ export const routePermissions: Record<string, UserRole[]> = {
   "/list/attendance(.*)": ["admin", "teacher"],
   "/list/events(.*)": ["admin", "teacher", "student", "parent"],
   "/list/announcements(.*)": ["admin", "teacher", "student", "parent"],
+  "/settings(.*)": ["admin"],
 };
 
 // Get allowed roles for a given pathname
