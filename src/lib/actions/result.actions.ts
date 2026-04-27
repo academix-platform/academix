@@ -3,6 +3,7 @@
 import { ResultSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { getAuthUser } from "../auth";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -20,6 +21,8 @@ export const createResult = async (
   const userId = user?.userId ?? null;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const isAllowed = await canTeacherManageResultAssessment({
       role,
       userId,
@@ -42,6 +45,7 @@ export const createResult = async (
         examId: data.assessmentType === "exam" ? data.assessmentId : null,
         assignmentId:
           data.assessmentType === "assignment" ? data.assessmentId : null,
+        academicYearId,
       },
     });
 
@@ -64,6 +68,29 @@ export const updateResult = async (
   const userId = user?.userId ?? null;
 
   try {
+    const assessmentYearId =
+      data.assessmentType === "exam"
+        ? (
+            await prisma.exam.findUnique({
+              where: { id: data.assessmentId },
+              select: { academicYearId: true },
+            })
+          )?.academicYearId
+        : (
+            await prisma.assignment.findUnique({
+              where: { id: data.assessmentId },
+              select: { academicYearId: true },
+            })
+          )?.academicYearId;
+
+    if (!assessmentYearId) {
+      return {
+        success: false,
+        error: true,
+        message: "Selected assessment was not found.",
+      };
+    }
+
     const existingResult = await prisma.result.findUnique({
       where: { id: data.id },
       include: {
@@ -123,6 +150,7 @@ export const updateResult = async (
         examId: data.assessmentType === "exam" ? data.assessmentId : null,
         assignmentId:
           data.assessmentType === "assignment" ? data.assessmentId : null,
+        academicYearId: assessmentYearId,
       },
     });
 

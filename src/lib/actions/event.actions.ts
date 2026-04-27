@@ -2,6 +2,7 @@
 
 import { EventSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -18,12 +19,15 @@ export const createEvent = async (
   if (adminError) return adminError;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     await prisma.event.create({
       data: {
         title: data.title,
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
+        academicYearId,
         classes: {
           connect: data.classIds.map((classId) => ({ id: classId })),
         },

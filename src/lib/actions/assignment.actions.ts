@@ -3,6 +3,7 @@
 import { AssignmentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { getAuthUser } from "../auth";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -18,8 +19,11 @@ export const createAssignment = async (
   const role = user?.role;
   const userId = user?.userId;
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const lessons = await prisma.lesson.findMany({
       where: {
+        academicYearId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -55,6 +59,7 @@ export const createAssignment = async (
             lessonId: lesson.id,
             classId: lesson.classId,
             subjectId: data.subjectId,
+            academicYearId,
           },
         }),
       ),
@@ -83,6 +88,8 @@ export const updateAssignment = async (
   const userId = user?.userId;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const existingAssignment = await prisma.assignment.findUnique({
       where: { id: data.id },
       select: {
@@ -104,6 +111,7 @@ export const updateAssignment = async (
 
     const lessons = await prisma.lesson.findMany({
       where: {
+        academicYearId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -134,6 +142,7 @@ export const updateAssignment = async (
         title: existingAssignment.title,
         startDate: existingAssignment.startDate,
         endDate: existingAssignment.endDate,
+        academicYearId,
         subjectId: existingAssignment.subjectId,
         ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
@@ -173,6 +182,7 @@ export const updateAssignment = async (
               lessonId: lesson.id,
               classId,
               subjectId: data.subjectId,
+              academicYearId,
             },
           });
         } else {
@@ -184,6 +194,7 @@ export const updateAssignment = async (
               lessonId: lesson.id,
               classId,
               subjectId: data.subjectId,
+              academicYearId,
             },
           });
         }

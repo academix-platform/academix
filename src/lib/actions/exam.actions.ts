@@ -3,6 +3,7 @@
 import { ExamSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { getAuthUser } from "../auth";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -19,8 +20,11 @@ export const createExam = async (
   const userId = user?.userId;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const lessons = await prisma.lesson.findMany({
       where: {
+        academicYearId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -56,6 +60,7 @@ export const createExam = async (
             lessonId: lesson.id,
             classId: lesson.classId,
             subjectId: data.subjectId,
+            academicYearId,
           },
         }),
       ),
@@ -80,6 +85,8 @@ export const updateExam = async (
   const userId = user?.userId;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const existingExam = await prisma.exam.findUnique({
       where: { id: data.id },
       select: {
@@ -101,6 +108,7 @@ export const updateExam = async (
 
     const lessons = await prisma.lesson.findMany({
       where: {
+        academicYearId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -131,6 +139,7 @@ export const updateExam = async (
         title: existingExam.title,
         startTime: existingExam.startTime,
         endTime: existingExam.endTime,
+        academicYearId,
         subjectId: existingExam.subjectId,
         ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
@@ -167,6 +176,7 @@ export const updateExam = async (
               lessonId: lesson.id,
               classId,
               subjectId: data.subjectId,
+              academicYearId,
             },
           });
         } else {
@@ -178,6 +188,7 @@ export const updateExam = async (
               lessonId: lesson.id,
               classId,
               subjectId: data.subjectId,
+              academicYearId,
             },
           });
         }

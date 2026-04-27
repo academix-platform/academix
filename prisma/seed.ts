@@ -64,7 +64,6 @@ async function main() {
   // ======================
   // CLEAN (order matters)
   // ======================
-  await prisma.academicYear.deleteMany();
   await prisma.message.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.event.deleteMany();
@@ -81,6 +80,7 @@ async function main() {
   await prisma.grade.deleteMany();
   await prisma.admin.deleteMany();
   await prisma.schoolSettings.deleteMany();
+  await prisma.academicYear.deleteMany();
 
   // ======================
   // ADMIN
@@ -142,6 +142,15 @@ async function main() {
       },
       create: year,
     });
+  }
+
+  const currentAcademicYear = await prisma.academicYear.findFirst({
+    where: { isCurrent: true },
+    select: { id: true },
+  });
+
+  if (!currentAcademicYear) {
+    throw new Error("Current academic year seed was not created.");
   }
 
   // ======================
@@ -498,6 +507,7 @@ async function main() {
           date: attendanceDate,
           present: (i + dayIndex) % 8 !== 0,
           studentId: students[i].id,
+          academicYearId: currentAcademicYear.id,
         },
       });
     }
@@ -508,6 +518,7 @@ async function main() {
           date: attendanceDate,
           present: (i + dayIndex) % 9 !== 0,
           teacherId: teachers[i].id,
+          academicYearId: currentAcademicYear.id,
         },
       });
     }
@@ -523,6 +534,7 @@ async function main() {
         description: `This week activity #${i + 1}`,
         startDate: withTime(weekDates[i], 10, 0),
         endDate: withTime(weekDates[i], 12, 0),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [
             { id: classes[i % classes.length].id },
@@ -542,6 +554,7 @@ async function main() {
         title: `Weekly Notice ${i + 1}`,
         description: `Important update for day ${i + 1}`,
         date: withTime(weekDates[i], 8, 30),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [{ id: classes[i % classes.length].id }],
         },
@@ -565,6 +578,7 @@ async function main() {
         title: `Class ${classes[i].name} Weekly Brief`,
         description: "Lessons, tasks, and reminders for this week.",
         date: withTime(weekDates[i % weekDates.length], 14, 0),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [{ id: classes[i].id }],
         },

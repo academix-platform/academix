@@ -2,6 +2,7 @@
 
 import { MessageSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -18,11 +19,14 @@ export const createMessage = async (
   if (adminError) return adminError;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     await prisma.message.create({
       data: {
         title: data.title,
         description: data.description,
         date: data.date,
+        academicYearId,
         classes: {
           connect: (data.classIds ?? []).map((classId) => ({ id: classId })),
         },

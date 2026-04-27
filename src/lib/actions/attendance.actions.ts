@@ -3,6 +3,7 @@
 
 import prisma from "../prisma";
 import { getAuthUser } from "../auth";
+import { getCurrentAcademicYearId } from "../academicYears";
 
 export const saveDailyAttendance = async (
   prevState: any,
@@ -16,6 +17,8 @@ export const saveDailyAttendance = async (
   }
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     const scope = formData.get("scope");
     if (scope !== "students" && scope !== "teachers") {
       throw new Error("Invalid scope");
@@ -40,14 +43,16 @@ export const saveDailyAttendance = async (
         if (scope === "students") {
           return prisma.attendance.upsert({
             where: {
-              studentId_date: {
+              studentId_academicYearId_date: {
                 studentId: id,
+                academicYearId,
                 date: day,
               },
             },
             update: { present },
             create: {
               studentId: id,
+              academicYearId,
               date: day,
               present,
             },
@@ -56,14 +61,16 @@ export const saveDailyAttendance = async (
 
         return prisma.attendance.upsert({
           where: {
-            teacherId_date: {
+            teacherId_academicYearId_date: {
               teacherId: id,
+              academicYearId,
               date: day,
             },
           },
           update: { present },
           create: {
             teacherId: id,
+            academicYearId,
             date: day,
             present,
           },
