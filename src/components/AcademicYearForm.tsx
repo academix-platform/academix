@@ -57,8 +57,8 @@ const AcademicYearForm = ({ academicYears }: Props) => {
       const payload = {
         id: form.id,
         name: form.name,
-        startDate: form.startDate,
-        endDate: form.endDate,
+        startDate: new Date(form.startDate),
+        endDate: new Date(form.endDate),
         isCurrent: form.isCurrent,
       };
 

@@ -272,6 +272,24 @@ const StudentForm = ({
           )}
         </div>
         <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-gray-500 text-xs">Status</label>
+          <select
+            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            {...register("status")}
+            defaultValue={data?.status || "ACTIVE"}
+          >
+            <option value="ACTIVE">Regular</option>
+            <option value="REPEATED">Repeated</option>
+            <option value="GRADUATED">Graduated</option>
+            <option value="LEFT">Left</option>
+          </select>
+          {errors.status?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.status.message.toString()}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
           <label className="text-gray-500 text-xs">Grade</label>
           <select
             className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"

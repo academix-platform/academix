@@ -3,6 +3,7 @@
 import { StudentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
+import { getCurrentAcademicYearIdOrNull } from "../academicYears";
 import { CurrentState, errorResult, successResult } from "./helpers";
 
 export const createStudent = async (
@@ -52,8 +53,23 @@ export const createStudent = async (
         gradeId: data.gradeId,
         classId: data.classId,
         parentId: data.parentId,
+        status: data.status || "ACTIVE",
       },
     });
+
+    // Automatically enroll student in the current academic year
+    const currentAcademicYearId = await getCurrentAcademicYearIdOrNull();
+    if (currentAcademicYearId) {
+      await prisma.studentAcademicYear.create({
+        data: {
+          studentId: createdUserId,
+          academicYearId: currentAcademicYearId,
+          gradeId: data.gradeId,
+          classId: data.classId,
+          performanceStatus: null,
+        },
+      });
+    }
 
     return successResult(["/list/students"]);
   } catch (err) {
@@ -102,6 +118,7 @@ export const updateStudent = async (
         gradeId: data.gradeId,
         classId: data.classId,
         parentId: data.parentId,
+        ...(data.status && { status: data.status }),
       },
     });
 
