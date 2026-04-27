@@ -271,6 +271,26 @@ export const schoolSettingsSchema = z
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+export const academicYearSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    name: z.string().min(1, { message: "Academic year name is required." }),
+    startDate: z.coerce.date({ message: "Start date is required." }),
+    endDate: z.coerce.date({ message: "End date is required." }),
+    isCurrent: z.coerce.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.endDate <= data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Academic year end date must be after start date.",
+        path: ["endDate"],
+      });
+    }
+  });
+
+export type AcademicYearSchema = z.infer<typeof academicYearSchema>;
+
 ////////////////////////////////////////////////////////////////////
 
 export const examSchema = z.object({

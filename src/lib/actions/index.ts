@@ -46,3 +46,6 @@ export { createMessage, updateMessage, deleteMessage } from "./message.actions";
 
 // School settings actions
 export { updateSchoolSettings } from "./schoolSettings.actions";
+
+// Academic year actions
+export { createAcademicYear, updateAcademicYear } from "./academicYear.actions";

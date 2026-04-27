@@ -1,4 +1,6 @@
+import AcademicYearForm from "@/components/AcademicYearForm";
 import SchoolSettingsForm from "@/components/SchoolSettingsForm";
+import { getAcademicYears } from "@/lib/academicYears";
 import { getAuthUser } from "@/lib/auth";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { redirect } from "next/navigation";
@@ -15,6 +17,7 @@ const SettingsPage = async () => {
   }
 
   const settings = await getSchoolScheduleSettings();
+  const academicYears = await getAcademicYears();
 
   return (
     <div className="bg-white m-4 mt-0 p-6 rounded-md">
@@ -26,6 +29,17 @@ const SettingsPage = async () => {
 
       <div className="mt-6 max-w-3xl">
         <SchoolSettingsForm initialSettings={settings} />
+      </div>
+
+      <div className="mt-10 max-w-4xl">
+        <h2 className="font-semibold text-lg">Academic Years</h2>
+        <p className="mt-2 text-gray-500 text-sm">
+          Create and maintain academic year ranges.
+        </p>
+
+        <div className="mt-4">
+          <AcademicYearForm academicYears={academicYears} />
+        </div>
       </div>
     </div>
   );

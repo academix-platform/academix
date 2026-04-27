@@ -64,6 +64,7 @@ async function main() {
   // ======================
   // CLEAN (order matters)
   // ======================
+  await prisma.academicYear.deleteMany();
   await prisma.message.deleteMany();
   await prisma.announcement.deleteMany();
   await prisma.event.deleteMany();
@@ -112,6 +113,36 @@ async function main() {
       lessonsPerDay: 6,
     },
   });
+
+  const currentAcademicYearStart =
+    now.getUTCMonth() >= 8 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+
+  const academicYearSeeds = [
+    {
+      name: `${currentAcademicYearStart}/${currentAcademicYearStart + 1}`,
+      startDate: new Date(Date.UTC(currentAcademicYearStart, 8, 1)),
+      endDate: new Date(Date.UTC(currentAcademicYearStart + 1, 5, 30)),
+      isCurrent: true,
+    },
+    {
+      name: `${currentAcademicYearStart + 1}/${currentAcademicYearStart + 2}`,
+      startDate: new Date(Date.UTC(currentAcademicYearStart + 1, 8, 1)),
+      endDate: new Date(Date.UTC(currentAcademicYearStart + 2, 5, 30)),
+      isCurrent: false,
+    },
+  ];
+
+  for (const year of academicYearSeeds) {
+    await prisma.academicYear.upsert({
+      where: { name: year.name },
+      update: {
+        startDate: year.startDate,
+        endDate: year.endDate,
+        isCurrent: year.isCurrent,
+      },
+      create: year,
+    });
+  }
 
   // ======================
   // GRADES
