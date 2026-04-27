@@ -41,6 +41,7 @@ model AcademicYear {
   events Event[]
   announcements Announcement[]
   messages Message[]
+  studentAcademicYears StudentAcademicYear[]
 }
 
 model Student{  
@@ -53,6 +54,8 @@ model Student{
   img String?
   bloodType String
   sex UserSex
+  status StudentStatus @default(ACTIVE)
+  repeatCount Int @default(0)
   createdAt DateTime @default(now())
   parentId String
   parent Parent @relation(fields:[parentId], references: [id])
@@ -63,6 +66,7 @@ model Student{
   attendances Attendance[]
   results Result[]
   messages Message[]
+  academicYears StudentAcademicYear[]
   birthday DateTime
 }
 model Teacher{  
@@ -102,6 +106,7 @@ model Grade{
   students Student[]
   classes Class[]
   subjects Subject[]
+  studentAcademicYears StudentAcademicYear[]
 }
 model Class{
   id Int @id @default(autoincrement())
@@ -119,6 +124,33 @@ model Class{
   messages Message[]
   exams Exam[]
   assignments Assignment[]
+  studentAcademicYears StudentAcademicYear[]
+}
+
+model StudentAcademicYear {
+  id Int @id @default(autoincrement())
+
+  studentId String
+  student Student @relation(fields: [studentId], references: [id])
+
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  gradeId Int
+  grade Grade @relation(fields: [gradeId], references: [id])
+
+  classId Int?
+  class Class? @relation(fields: [classId], references: [id])
+
+  performanceStatus PassFailStatus?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, academicYearId])
+  @@index([academicYearId])
+  @@index([gradeId])
+  @@index([classId])
 }
 model Subject{
   id Int @id @default(autoincrement())
@@ -267,4 +299,16 @@ enum Day{
   TUESDAY
   WEDNESDAY
   THURSDAY
+}
+
+enum StudentStatus {
+  ACTIVE
+  REPEATED
+  GRADUATED
+  LEFT
+}
+
+enum PassFailStatus {
+  PASS
+  FAIL
 }

@@ -1,8 +1,10 @@
 import "dotenv/config";
 import {
   Day,
+  PassFailStatus,
   UserSex,
   PrismaClient,
+  StudentStatus,
   type Assignment,
   type Class,
   type Exam,
@@ -415,6 +417,15 @@ async function main() {
   for (const cls of classes) {
     for (let seat = 0; seat < 3; seat++) {
       const parent = parents[(studentCounter - 1) % parents.length];
+      const seedStatus: StudentStatus =
+        studentCounter <= 11
+          ? StudentStatus.ACTIVE
+          : studentCounter <= 14
+            ? StudentStatus.REPEATED
+            : studentCounter <= 16
+              ? StudentStatus.GRADUATED
+              : StudentStatus.LEFT;
+
       const student = await prisma.student.create({
         data: {
           id: `student${studentCounter}`,
@@ -426,6 +437,15 @@ async function main() {
           img: "",
           bloodType: ["A+", "B+", "O+", "AB+"][studentCounter % 4],
           sex: studentCounter % 2 === 0 ? UserSex.FEMALE : UserSex.MALE,
+          status: seedStatus,
+          repeatCount:
+            studentCounter === 12
+              ? 1
+              : studentCounter === 13
+                ? 2
+                : studentCounter === 14
+                  ? 3
+                  : 0,
           parentId: parent.id,
           classId: cls.id,
           gradeId: cls.gradeId,
@@ -440,6 +460,42 @@ async function main() {
       students.push(student);
       studentCounter++;
     }
+  }
+
+  // ======================
+  // STUDENT ACADEMIC YEARS
+  // ======================
+  for (let i = 0; i < students.length; i++) {
+    const student = students[i];
+    const performanceStatus: PassFailStatus | null =
+      student.status === StudentStatus.LEFT
+        ? null
+        : i % 4 === 0
+          ? PassFailStatus.FAIL
+          : PassFailStatus.PASS;
+
+    await prisma.studentAcademicYear.create({
+      data: {
+        studentId: student.id,
+        academicYearId: currentAcademicYear.id,
+        gradeId: student.gradeId,
+        classId: student.classId,
+        performanceStatus,
+      },
+    });
+  }
+
+  // Seed a few next-year enrollment rows for switching and testing scenarios.
+  for (const student of students.slice(0, 6)) {
+    await prisma.studentAcademicYear.create({
+      data: {
+        studentId: student.id,
+        academicYearId: nextAcademicYear.id,
+        gradeId: student.gradeId,
+        classId: student.classId,
+        performanceStatus: null,
+      },
+    });
   }
 
   // ======================

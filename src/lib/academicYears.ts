@@ -64,6 +64,36 @@ export const getAcademicYears = async (): Promise<AcademicYearItem[]> => {
   }
 };
 
+export const getCurrentAcademicYearOrNull = async (): Promise<
+  AcademicYearItem | null
+> => {
+  const currentYear = await prisma.academicYear.findFirst({
+    where: { isCurrent: true },
+    orderBy: { startDate: "desc" },
+    select: {
+      id: true,
+      name: true,
+      startDate: true,
+      endDate: true,
+      isCurrent: true,
+    },
+  });
+
+  if (!currentYear) {
+    return null;
+  }
+
+  return {
+    id: currentYear.id,
+    name: currentYear.name,
+    startDate: toIsoDate(currentYear.startDate),
+    endDate: toIsoDate(currentYear.endDate),
+    isCurrent: currentYear.isCurrent,
+  };
+};
+
+export const getCurrentAcademicYear = getCurrentAcademicYearOrNull;
+
 export const getCurrentAcademicYearId = async (): Promise<number> => {
   const currentYearId = await getCurrentAcademicYearIdOrNull();
 
@@ -79,11 +109,7 @@ export const getCurrentAcademicYearId = async (): Promise<number> => {
 export const getCurrentAcademicYearIdOrNull = async (): Promise<
   number | null
 > => {
-  const currentYear = await prisma.academicYear.findFirst({
-    where: { isCurrent: true },
-    orderBy: { startDate: "desc" },
-    select: { id: true },
-  });
+  const currentYear = await getCurrentAcademicYearOrNull();
 
   return currentYear?.id ?? null;
 };

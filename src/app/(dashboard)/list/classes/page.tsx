@@ -1,9 +1,11 @@
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { type UserRole } from "@/lib/auth";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -67,12 +69,25 @@ const ClassListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const { role } = await enforceRouteAccess("/list/classes");
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return <NoCurrentAcademicYearMessage role={role} />;
+  }
+
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.ClassWhereInput = {};
+  const query: Prisma.ClassWhereInput = {
+    studentAcademicYears: {
+      some: {
+        academicYearId,
+        student: { status: "ACTIVE" },
+      },
+    },
+  };
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
