@@ -6,7 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createEvent, updateEvent } from "@/lib/actions";
-import { eventSchema, EventSchema } from "@/lib/formValidationSchemas";
+import { eventSchema, examSchema } from "@/lib/formValidationSchemas";
 import InputField from "../InputField";
 
 const toDatetimeLocalValue = (value: unknown) => {
@@ -22,6 +22,15 @@ const toDatetimeLocalValue = (value: unknown) => {
   const minutes = String(date.getMinutes()).padStart(2, "0");
 
   return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
+type EventFormValues = {
+  id?: number;
+  title: string;
+  description?: string;
+  startDate: string;
+  endDate: string;
+  classIds: number[];
 };
 
 const EventForm = ({
@@ -47,7 +56,7 @@ const EventForm = ({
     setValue,
     control,
     formState: { errors },
-  } = useForm<EventSchema>({
+  } = useForm<EventFormValues>({
     resolver: zodResolver(eventSchema),
     defaultValues: {
       id: data?.id,
@@ -65,13 +74,11 @@ const EventForm = ({
 
   const onSubmit = handleSubmit((formValues) => {
     const action = type === "create" ? createEvent : updateEvent;
+    const parsed = eventSchema.parse(formValues);
 
     startTransition(async () => {
       try {
-        const result = await action(
-          { success: false, error: false },
-          formValues,
-        );
+        const result = await action({ success: false, error: false }, parsed);
 
         if (result.success) {
           toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
@@ -213,7 +220,8 @@ const EventForm = ({
           {selectedClassIdsAsNumbers.length > 0 && (
             <p className="text-gray-400 text-xs">
               {selectedClassIdsAsNumbers.length} class
-              {selectedClassIdsAsNumbers.length === 1 ? " is" : "es are"} selected
+              {selectedClassIdsAsNumbers.length === 1 ? " is" : "es are"}{" "}
+              selected
             </p>
           )}
           {errors.classIds?.message && (

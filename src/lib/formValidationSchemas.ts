@@ -151,6 +151,8 @@ export const lessonDays = [
   "THURSDAY",
 ] as const;
 
+const MAX_LESSON_SLOTS_PER_DAY = 12;
+
 export const lessonScheduleSchema = z
   .object({
     classId: z.coerce.number().min(1, { message: "Class is required!" }),
@@ -161,8 +163,12 @@ export const lessonScheduleSchema = z
           slot: z.coerce
             .number()
             .int()
-            .min(1, { message: "Slot must be between 1 and 6." })
-            .max(6, { message: "Slot must be between 1 and 6." }),
+            .min(1, {
+              message: `Slot must be between 1 and ${MAX_LESSON_SLOTS_PER_DAY}.`,
+            })
+            .max(MAX_LESSON_SLOTS_PER_DAY, {
+              message: `Slot must be between 1 and ${MAX_LESSON_SLOTS_PER_DAY}.`,
+            }),
           subjectId: z.preprocess(
             (value) => (value === "" || value == null ? null : value),
             z.coerce.number().min(1).nullable(),
@@ -173,7 +179,7 @@ export const lessonScheduleSchema = z
           ),
         }),
       )
-      .length(36, { message: "All 36 lesson slots are required." }),
+      .min(lessonDays.length, { message: "Schedule entries are required." }),
   })
   .superRefine((data, ctx) => {
     const seen = new Set<string>();
@@ -214,6 +220,56 @@ export const lessonScheduleSchema = z
   });
 
 export type LessonScheduleSchema = z.infer<typeof lessonScheduleSchema>;
+
+export const schoolSettingsSchema = z
+  .object({
+    workDayStart: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "Invalid start time." }),
+    workDayEnd: z
+      .string()
+      .regex(/^([01]\d|2[0-3]):[0-5]\d$/, { message: "Invalid end time." }),
+    lessonDurationMinutes: z.coerce
+      .number()
+      .int()
+      .min(15, { message: "Lesson duration must be at least 15 minutes." })
+      .max(180, { message: "Lesson duration cannot exceed 180 minutes." }),
+    lessonsPerDay: z.coerce
+      .number()
+      .int()
+      .min(1, { message: "Lessons per day must be at least 1." })
+      .max(12, { message: "Lessons per day cannot exceed 12." }),
+  })
+  .superRefine((data, ctx) => {
+    const [startHour, startMinute] = data.workDayStart.split(":").map(Number);
+    const [endHour, endMinute] = data.workDayEnd.split(":").map(Number);
+
+    const startMinutes = startHour * 60 + startMinute;
+    const endMinutes = endHour * 60 + endMinute;
+
+    if (endMinutes <= startMinutes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Work day end must be after work day start.",
+        path: ["workDayEnd"],
+      });
+      return;
+    }
+
+    const totalLessonMinutes = data.lessonDurationMinutes * data.lessonsPerDay;
+    const availableMinutes = endMinutes - startMinutes;
+
+    if (totalLessonMinutes > availableMinutes) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message:
+          "Total lessons duration exceeds the available work day time window.",
+        path: ["lessonsPerDay"],
+      });
+    }
+  });
+
+export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
 ////////////////////////////////////////////////////////////////////
 

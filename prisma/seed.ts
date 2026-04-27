@@ -50,6 +50,10 @@ function addDays(date: Date, days: number) {
   return copy;
 }
 
+function utcTime(hour: number, minute = 0) {
+  return new Date(Date.UTC(1970, 0, 1, hour, minute, 0, 0));
+}
+
 async function main() {
   console.log("🌱 Seeding...");
 
@@ -75,6 +79,7 @@ async function main() {
   await prisma.subject.deleteMany();
   await prisma.grade.deleteMany();
   await prisma.admin.deleteMany();
+  await prisma.schoolSettings.deleteMany();
 
   // ======================
   // ADMIN
@@ -89,6 +94,23 @@ async function main() {
     where: { id: "admin2" },
     update: {},
     create: { id: "admin2", username: "admin2" },
+  });
+
+  await prisma.schoolSettings.upsert({
+    where: { id: 1 },
+    update: {
+      workDayStart: utcTime(7, 0),
+      workDayEnd: utcTime(11, 30),
+      lessonDuration: 45,
+      lessonsPerDay: 6,
+    },
+    create: {
+      id: 1,
+      workDayStart: utcTime(7, 0),
+      workDayEnd: utcTime(11, 30),
+      lessonDuration: 45,
+      lessonsPerDay: 6,
+    },
   });
 
   // ======================
@@ -158,7 +180,7 @@ async function main() {
       address: "Cairo",
       bloodType: "A+",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/5212703/pexels-photo-5212703.jpeg",
+      img: "",
       birthday: new Date("1988-03-11"),
     },
     {
@@ -170,7 +192,7 @@ async function main() {
       address: "Giza",
       bloodType: "B+",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/5905483/pexels-photo-5905483.jpeg",
+      img: "",
       birthday: new Date("1985-08-04"),
     },
     {
@@ -182,7 +204,7 @@ async function main() {
       address: "Alexandria",
       bloodType: "O+",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/5905902/pexels-photo-5905902.jpeg",
+      img: "",
       birthday: new Date("1990-02-20"),
     },
     {
@@ -194,7 +216,7 @@ async function main() {
       address: "Mansoura",
       bloodType: "AB+",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/5212324/pexels-photo-5212324.jpeg",
+      img: "",
       birthday: new Date("1987-11-15"),
     },
     {
@@ -206,7 +228,7 @@ async function main() {
       address: "Tanta",
       bloodType: "A-",
       sex: UserSex.FEMALE,
-      img: "https://images.pexels.com/photos/3769021/pexels-photo-3769021.jpeg",
+      img: "",
       birthday: new Date("1991-06-01"),
     },
     {
@@ -218,7 +240,7 @@ async function main() {
       address: "Asyut",
       bloodType: "O-",
       sex: UserSex.MALE,
-      img: "https://images.pexels.com/photos/8617608/pexels-photo-8617608.jpeg",
+      img: "",
       birthday: new Date("1989-09-22"),
     },
   ];
@@ -313,7 +335,7 @@ async function main() {
           email: `student${studentCounter}@mail.com`,
           phone: `+20120000${String(studentCounter).padStart(4, "0")}`,
           address: `Block ${((studentCounter - 1) % 9) + 1}`,
-          img: "https://images.pexels.com/photos/8613089/pexels-photo-8613089.jpeg",
+          img: "",
           bloodType: ["A+", "B+", "O+", "AB+"][studentCounter % 4],
           sex: studentCounter % 2 === 0 ? UserSex.FEMALE : UserSex.MALE,
           parentId: parent.id,
@@ -335,103 +357,103 @@ async function main() {
   // ======================
   // LESSONS
   // ======================
-  const lessons: Lesson[] = [];
-  for (const cls of classes) {
-    const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
+  // const lessons: Lesson[] = [];
+  // for (const cls of classes) {
+  //   const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
 
-    for (let i = 0; i < classSubjects.length; i++) {
-      const subject = classSubjects[i];
-      const day = schoolDays[i % schoolDays.length];
-      const date = weekDates[i % weekDates.length];
-      const startTime = withTime(date, 8 + i * 2, 0);
-      const endTime = withTime(date, 9 + i * 2, 30);
-      const base = subject.name.split("-")[0];
-      const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
+  //   for (let i = 0; i < classSubjects.length; i++) {
+  //     const subject = classSubjects[i];
+  //     const day = schoolDays[i % schoolDays.length];
+  //     const date = weekDates[i % weekDates.length];
+  //     const startTime = withTime(date, 8 + i * 2, 0);
+  //     const endTime = withTime(date, 9 + i * 2, 30);
+  //     const base = subject.name.split("-")[0];
+  //     const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
 
-      const lesson = await prisma.lesson.create({
-        data: {
-          name: `${base} - ${cls.name}`,
-          day,
-          startTime,
-          endTime,
-          subjectId: subject.id,
-          classId: cls.id,
-          teacherId,
-        },
-      });
-      lessons.push(lesson);
-    }
-  }
+  //     const lesson = await prisma.lesson.create({
+  //       data: {
+  //         name: `${base} - ${cls.name}`,
+  //         day,
+  //         startTime,
+  //         endTime,
+  //         subjectId: subject.id,
+  //         classId: cls.id,
+  //         teacherId,
+  //       },
+  //     });
+  //     lessons.push(lesson);
+  //   }
+  // }
 
   // ======================
   // EXAMS + ASSIGNMENTS
   // ======================
-  const exams: Exam[] = [];
-  const assignments: Assignment[] = [];
+  // const exams: Exam[] = [];
+  // const assignments: Assignment[] = [];
 
-  for (let i = 0; i < lessons.length; i++) {
-    const lesson = lessons[i];
+  // for (let i = 0; i < lessons.length; i++) {
+  //   const lesson = lessons[i];
 
-    const examStart = withTime(lesson.startTime, 11, 0);
-    const examEnd = withTime(lesson.startTime, 12, 0);
-    const exam = await prisma.exam.create({
-      data: {
-        title: `${lesson.name} Weekly Quiz`,
-        startTime: examStart,
-        endTime: examEnd,
-        classId: lesson.classId,
-        subjectId: lesson.subjectId,
-        lessonId: lesson.id,
-      },
-    });
-    exams.push(exam);
+  //   const examStart = withTime(lesson.startTime, 11, 0);
+  //   const examEnd = withTime(lesson.startTime, 12, 0);
+  //   const exam = await prisma.exam.create({
+  //     data: {
+  //       title: `${lesson.name} Weekly Quiz`,
+  //       startTime: examStart,
+  //       endTime: examEnd,
+  //       classId: lesson.classId,
+  //       subjectId: lesson.subjectId,
+  //       lessonId: lesson.id,
+  //     },
+  //   });
+  //   exams.push(exam);
 
-    const assignmentStart = withTime(lesson.startTime, 13, 0);
-    const assignmentEnd = withTime(addDays(lesson.startTime, 2), 18, 0);
-    const assignment = await prisma.assignment.create({
-      data: {
-        title: `${lesson.name} Homework`,
-        startDate: assignmentStart,
-        endDate: assignmentEnd,
-        classId: lesson.classId,
-        subjectId: lesson.subjectId,
-        lessonId: lesson.id,
-      },
-    });
-    assignments.push(assignment);
-  }
+  //   const assignmentStart = withTime(lesson.startTime, 13, 0);
+  //   const assignmentEnd = withTime(addDays(lesson.startTime, 2), 18, 0);
+  //   const assignment = await prisma.assignment.create({
+  //     data: {
+  //       title: `${lesson.name} Homework`,
+  //       startDate: assignmentStart,
+  //       endDate: assignmentEnd,
+  //       classId: lesson.classId,
+  //       subjectId: lesson.subjectId,
+  //       lessonId: lesson.id,
+  //     },
+  //   });
+  //   assignments.push(assignment);
+  // }
 
   // ======================
   // RESULTS
   // ======================
-  for (const student of students) {
-    const classExams = exams
-      .filter((exam) => exam.classId === student.classId)
-      .slice(0, 2);
-    const classAssignments = assignments
-      .filter((assignment) => assignment.classId === student.classId)
-      .slice(0, 2);
+  // for (const student of students) {
+  //   const classExams = exams
+  //     .filter((exam) => exam.classId === student.classId)
+  //     .slice(0, 2);
+  //   const classAssignments = assignments
+  //     .filter((assignment) => assignment.classId === student.classId)
+  //     .slice(0, 2);
 
-    for (let i = 0; i < classExams.length; i++) {
-      await prisma.result.create({
-        data: {
-          score: 70 + ((student.id.length + i * 7) % 31),
-          examId: classExams[i].id,
-          studentId: student.id,
-        },
-      });
-    }
+  //   for (let i = 0; i < classExams.length; i++) {
+  //     await prisma.result.create({
+  //       data: {
+  //         score: 70 + ((student.id.length + i * 7) % 31),
+  //         examId: classExams[i].id,
+  //         studentId: student.id,
+  //       },
+  //     });
+  //   }
 
-    for (let i = 0; i < classAssignments.length; i++) {
-      await prisma.result.create({
-        data: {
-          score: 72 + ((student.id.length + i * 5) % 27),
-          assignmentId: classAssignments[i].id,
-          studentId: student.id,
-        },
-      });
-    }
-  }
+  //   for (let i = 0; i < classAssignments.length; i++) {
+  //     await prisma.result.create({
+  //       data: {
+  //         score: 72 + ((student.id.length + i * 5) % 27),
+  //         assignmentId: classAssignments[i].id,
+  //         studentId: student.id,
+  //       },
+  //     });
+  //   }
+  // }
 
   // ======================
   // ATTENDANCE

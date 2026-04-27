@@ -4,6 +4,7 @@ import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { useMemo, useState } from "react";
+import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
 
 moment.updateLocale(moment.locale(), {
   week: {
@@ -13,25 +14,51 @@ moment.updateLocale(moment.locale(), {
 });
 
 const localizer = momentLocalizer(moment);
-const calendarMinTime = new Date(2025, 0, 1, 7, 0, 0);
-const calendarMaxTime = new Date(2025, 0, 1, 12, 0, 0);
-const SLOT_START_HOUR = 7;
-const SLOT_DURATION_MINUTES = 45;
-const SLOT_COUNT = 6;
 
-const getLessonSlot = (lessonName?: string) => {
+const toTimeOfDayDate = (hour: number, minute: number) =>
+  new Date(2025, 0, 1, hour, minute, 0, 0);
+
+const getSlotStartDate = (
+  slot: number,
+  settings: Pick<
+    SchoolScheduleSettings,
+    "workDayStartHour" | "workDayStartMinute" | "lessonDurationMinutes"
+  >,
+  baseDate?: Date,
+) => {
+  const startTotalMinutes =
+    settings.workDayStartHour * 60 +
+    settings.workDayStartMinute +
+    (slot - 1) * settings.lessonDurationMinutes;
+  const hour = Math.floor(startTotalMinutes / 60);
+  const minute = startTotalMinutes % 60;
+
+  if (!baseDate) {
+    return toTimeOfDayDate(hour, minute);
+  }
+
+  const slotStartDate = new Date(baseDate);
+  slotStartDate.setHours(hour, minute, 0, 0);
+  return slotStartDate;
+};
+
+const getLessonSlot = (
+  lessonName: string | undefined,
+  lessonsPerDay: number,
+) => {
   if (!lessonName) return null;
   const match = /lesson\s*(\d+)/i.exec(lessonName);
   if (!match) return null;
 
   const slot = Number(match[1]);
-  if (Number.isNaN(slot) || slot < 1 || slot > 6) return null;
+  if (Number.isNaN(slot) || slot < 1 || slot > lessonsPerDay) return null;
 
   return slot;
 };
 
 const BigCalendar = ({
   data,
+  settings,
 }: {
   data: {
     title: string;
@@ -39,8 +66,29 @@ const BigCalendar = ({
     start: Date | string;
     end: Date | string;
   }[];
+  settings: SchoolScheduleSettings;
 }) => {
   const [view, setView] = useState<View>(Views.WEEK);
+
+  const calendarMinTime = useMemo(
+    () =>
+      toTimeOfDayDate(settings.workDayStartHour, settings.workDayStartMinute),
+    [settings.workDayStartHour, settings.workDayStartMinute],
+  );
+
+  const calendarMaxTime = useMemo(() => {
+    const totalMinutes =
+      settings.workDayStartHour * 60 +
+      settings.workDayStartMinute +
+      settings.lessonsPerDay * settings.lessonDurationMinutes;
+
+    return toTimeOfDayDate(Math.floor(totalMinutes / 60), totalMinutes % 60);
+  }, [
+    settings.lessonDurationMinutes,
+    settings.lessonsPerDay,
+    settings.workDayStartHour,
+    settings.workDayStartMinute,
+  ]);
 
   const normalizedEvents = useMemo(
     () =>
@@ -49,23 +97,18 @@ const BigCalendar = ({
         const end = new Date(event.end);
 
         if (end <= start) {
-          end.setMinutes(start.getMinutes() + SLOT_DURATION_MINUTES);
+          end.setMinutes(start.getMinutes() + settings.lessonDurationMinutes);
         }
-
-        const durationMinutes = Math.max(
-          1,
-          Math.round((end.getTime() - start.getTime()) / 60000),
-        );
 
         return {
           ...event,
           start,
           end,
           actualStart: start,
-          durationMinutes,
+          durationMinutes: settings.lessonDurationMinutes,
         };
       }),
-    [data],
+    [data, settings.lessonDurationMinutes],
   );
 
   const EventContent = ({
@@ -82,20 +125,16 @@ const BigCalendar = ({
   const displayEvents = useMemo(
     () =>
       normalizedEvents.map((event, index) => {
-        const fallbackSlot = (index % 6) + 1;
-        const slot = getLessonSlot(event.lessonName) ?? fallbackSlot;
+        const fallbackSlot = (index % settings.lessonsPerDay) + 1;
+        const slot =
+          getLessonSlot(event.lessonName, settings.lessonsPerDay) ??
+          fallbackSlot;
 
-        const displayStart = new Date(event.start);
-        displayStart.setHours(
-          SLOT_START_HOUR,
-          (slot - 1) * SLOT_DURATION_MINUTES,
-          0,
-          0,
-        );
+        const displayStart = getSlotStartDate(slot, settings, event.start);
 
         const displayEnd = new Date(displayStart);
         displayEnd.setMinutes(
-          displayStart.getMinutes() + SLOT_DURATION_MINUTES,
+          displayStart.getMinutes() + settings.lessonDurationMinutes,
         );
 
         return {
@@ -104,21 +143,20 @@ const BigCalendar = ({
           end: displayEnd,
         };
       }),
-    [normalizedEvents],
+    [normalizedEvents, settings],
   );
 
   const lessonStartLabels = useMemo(() => {
     const labelsByTime = new Map<string, string>();
 
-    for (let slot = 1; slot <= SLOT_COUNT; slot += 1) {
-      const minutes = (slot - 1) * SLOT_DURATION_MINUTES;
-      const labelDate = new Date(2025, 0, 1, SLOT_START_HOUR, minutes, 0, 0);
+    for (let slot = 1; slot <= settings.lessonsPerDay; slot += 1) {
+      const labelDate = getSlotStartDate(slot, settings);
       const timeKey = moment(labelDate).format("HH:mm");
       labelsByTime.set(timeKey, `Lesson ${slot}`);
     }
 
     return labelsByTime;
-  }, []);
+  }, [settings]);
 
   const timeGutterFormat = (date: Date) => {
     const key = moment(date).format("HH:mm");
@@ -142,7 +180,7 @@ const BigCalendar = ({
       onView={handleOnChangeView}
       min={calendarMinTime}
       max={calendarMaxTime}
-      step={SLOT_DURATION_MINUTES}
+      step={settings.lessonDurationMinutes}
       timeslots={1}
       formats={{
         timeGutterFormat,

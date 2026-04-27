@@ -2,7 +2,6 @@ import Announcements from "@/components/Announcements";
 import AttendanceChartContainer from "@/components/AttendanceChartContainer";
 import CountChartContainer from "@/components/CountChartContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import EventCalendarLoader from "@/components/EventCalendarContainer";
 import FinanceChartLoader from "@/components/FinanceChartLoader";
 import UserCard from "@/components/UserCard";
 

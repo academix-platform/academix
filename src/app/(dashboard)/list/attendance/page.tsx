@@ -1,32 +1,38 @@
 import prisma from "@/lib/prisma";
-import { getCurrentRole, getUserId } from "@/lib/auth";
 import { type PageSearchParams } from "@/lib/pageParams";
 import { getAttendanceData } from "@/lib/attendance";
 
 import AttendanceClient from "@/components/AttendanceClient";
+import AttendanceClassSelect from "@/components/AttendanceClassSelect";
 import Pagination from "@/components/Pagination";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
 
 const AttendancePage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const role = await getCurrentRole();
-  const userId = await getUserId();
+  const user = await enforceRouteAccess("/list/attendance");
+
+  const role = user.role;
+  const userId = user.userId;
+
   const resolved = await searchParams;
 
   // PARAMS
   const {
-    scope,
+    scope: rawScope,
     classId,
     page: p,
     selectedDate,
-    dayStart,
-    dayEnd,
+    day,
     isToday,
   } = getAttendanceParams(resolved);
+
+  const scope: "students" | "teachers" =
+    rawScope === "teachers" ? "teachers" : "students";
 
   // =========================
   // CLASSES
@@ -37,7 +43,7 @@ const AttendancePage = async ({
           orderBy: { name: "asc" },
         })
       : await prisma.class.findMany({
-          where: { supervisorId: userId! },
+          where: { supervisorId: userId },
           select: { id: true, name: true },
         });
 
@@ -47,14 +53,16 @@ const AttendancePage = async ({
       <div className="flex-1 bg-white m-4 p-6 rounded-md">
         <h1 className="mb-2 font-semibold text-lg">Attendance</h1>
         <div className="text-gray-500 text-sm">
-          You are not assigned to any class yet.
+          You are not assigned to supervise any class yet.
         </div>
       </div>
     );
   }
 
+  const validClassIds = new Set(classes.map((c) => c.id));
+
   const effectiveClassId =
-    classId ?? (classes.length > 0 ? classes[0].id : undefined);
+    classId && validClassIds.has(classId) ? classId : classes[0]?.id;
 
   // DATA
   const { data, hasAttendance } = await getAttendanceData({
@@ -62,8 +70,7 @@ const AttendancePage = async ({
     userId,
     scope,
     classId: effectiveClassId,
-    dayStart,
-    dayEnd,
+    day,
   });
 
   // PAGINATION
@@ -83,6 +90,12 @@ const AttendancePage = async ({
             defaultValue={selectedDate}
             className="p-2 border rounded-md text-sm"
           />
+
+          <input type="hidden" name="scope" value={scope} />
+          {effectiveClassId && (
+            <input type="hidden" name="classId" value={effectiveClassId} />
+          )}
+
           <button className="bg-gray-100 px-3 py-2 rounded-md text-sm">
             Filter
           </button>
@@ -114,24 +127,13 @@ const AttendancePage = async ({
 
       {/* CLASS SELECT (ADMIN) */}
       {role === "admin" && scope === "students" && (
-        <form className="flex gap-2 mb-4">
-          <input type="hidden" name="scope" value="students" />
-          <input type="hidden" name="date" value={selectedDate} />
-
-          <select
-            name="classId"
-            defaultValue={effectiveClassId}
-            className="p-2 border rounded-md text-sm"
-          >
-            {classes.map((cls) => (
-              <option key={cls.id} value={cls.id}>
-                {cls.name}
-              </option>
-            ))}
-          </select>
-
-          <button type="submit" className="hidden" />
-        </form>
+        <div className="mb-4">
+          <AttendanceClassSelect
+            classes={classes}
+            value={effectiveClassId}
+            selectedDate={selectedDate}
+          />
+        </div>
       )}
 
       {/* TEACHER CLASS TABS */}
@@ -159,6 +161,7 @@ const AttendancePage = async ({
         selectedDate={selectedDate}
         isToday={isToday}
         hasAttendance={hasAttendance}
+        scope={scope}
       />
 
       <Pagination page={p} count={count} />

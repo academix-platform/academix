@@ -4,7 +4,8 @@ import MessageViewModal from "@/components/MessageViewModal";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getCurrentRole, getUserId, type UserRole } from "@/lib/auth";
+import { type UserRole } from "@/lib/auth";
+import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -85,22 +86,6 @@ const getColumns = (role: UserRole | null) => {
       accessor: "action",
     },
   ];
-};
-
-const getRecipientsLabel = (item: MessageList) => {
-  const parts: string[] = [];
-
-  if (item.students.length > 0) {
-    parts.push(`Students: ${item.students.map((s) => s.name).join(", ")}`);
-  }
-  if (item.parents.length > 0) {
-    parts.push(`Parents: ${item.parents.map((p) => p.name).join(", ")}`);
-  }
-  if (item.teachers.length > 0) {
-    parts.push(`Teachers: ${item.teachers.map((t) => t.name).join(", ")}`);
-  }
-
-  return parts.join(" | ") || "-";
 };
 
 const getRecipientsPreview = (item: MessageList) => {
@@ -199,8 +184,7 @@ const MessageListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const role = await getCurrentRole();
-  const userId = await getUserId();
+  const { role, userId } = await enforceRouteAccess("/list/messages");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);

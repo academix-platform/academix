@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
-import { getCurrentRole, getUserId } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
+import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 
 export type FormContainerProps = {
   table:
@@ -43,6 +44,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { grades: classGrades, teachers: classTeachers };
         break;
       case "lesson":
+        const schoolSettings = await getSchoolScheduleSettings();
         const lessonClasses = await prisma.class.findMany({
           select: { id: true, name: true },
           orderBy: { name: "asc" },
@@ -67,6 +69,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             classId: true,
             day: true,
             name: true,
+            startTime: true,
             subjectId: true,
             teacherId: true,
             teacher: { select: { name: true } },
@@ -77,6 +80,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           subjects: lessonSubjects,
           teachers: lessonTeachers,
           lessons: classLessons,
+          schoolSettings,
         };
         break;
       case "teacher":
@@ -109,8 +113,9 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         relatedData = { students: parentStudents };
         break;
       case "exam":
-        const role = await getCurrentRole();
-        const userId = await getUserId();
+        const user = await getAuthUser();
+        const role = user?.role;
+        const userId = user?.userId;
         const examLessons = await prisma.lesson.findMany({
           where: {
             ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -143,8 +148,9 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         };
         break;
       case "assignment":
-        const assignmentRole = await getCurrentRole();
-        const assignmentUserId = await getUserId();
+        const assignment = await getAuthUser();
+        const assignmentRole = assignment?.role;
+        const assignmentUserId = assignment?.userId;
         const assignmentLessons = await prisma.lesson.findMany({
           where: {
             ...(assignmentRole === "teacher"
@@ -185,8 +191,9 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         };
         break;
       case "result":
-        const resultRole = await getCurrentRole();
-        const resultUserId = await getUserId();
+        const result = await getAuthUser();
+        const resultRole = result?.role;
+        const resultUserId = result?.userId;
 
         const resultStudents = await prisma.student.findMany({
           where:

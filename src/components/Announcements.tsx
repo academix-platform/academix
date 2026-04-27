@@ -1,10 +1,11 @@
-import { getCurrentRole, getUserId } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
 const Announcements = async () => {
-  const role = await getCurrentRole();
-  const userId = await getUserId();
+  const user = await getAuthUser();
+  const role = user?.role;
+  const userId = user?.userId;
 
   const roleConditions = {
     teacher: { lessons: { some: { teacherId: userId! } } },
