@@ -1,6 +1,7 @@
 ﻿import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
+import UserActionButtons from "@/components/UserActionButtons";
 import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
@@ -74,10 +75,15 @@ const SingleStudentPage = async ({
         <div className="flex flex-wrap md:flex-nowrap gap-4">
           {/* USER INFO CARD */}
           <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-6 rounded-md w-full md:w-2/3">
-            <div className="top-5 right-5 absolute bg-white rounded-md">
+            <div className="top-5 right-5 absolute flex items-center gap-2">
               {role === "admin" && (
                 <FormContainer table="student" type="update" data={student} />
               )}
+              <UserActionButtons
+                table="student"
+                userId={student.id}
+                userName={student.name}
+              />
             </div>
 
             <div className="rounded-full">
