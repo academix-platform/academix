@@ -84,6 +84,10 @@ const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
 const MessageForm = dynamic(() => import("@/components/forms/MessageForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const StudentDeleteForm = dynamic(() => import("./forms/StudentDeleteForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
@@ -228,6 +232,16 @@ const FormModal = ({
       if (table === "class") {
         return (
           <ClassDeleteForm
+            data={data}
+            relatedData={relatedData}
+            setOpen={setOpen}
+          />
+        );
+      }
+
+      if (table === "student") {
+        return (
+          <StudentDeleteForm
             data={data}
             relatedData={relatedData}
             setOpen={setOpen}

@@ -11,6 +11,14 @@ export const createParent = async (
 ) => {
   let createdUserId: string | null = null;
 
+  if (!data.students || data.students.length === 0) {
+    return {
+      success: false,
+      error: true,
+      message: "At least one student is required when creating a parent.",
+    };
+  }
+
   try {
     const user = await (
       await clerkClient()

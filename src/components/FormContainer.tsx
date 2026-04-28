@@ -409,6 +409,26 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
       };
       modalData = currentClass ?? data;
     }
+  } else if (table === "student" && id) {
+    const studentId = typeof id === "string" ? id : String(id);
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        name: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { students: true } },
+          },
+        },
+      },
+    });
+
+    relatedData = { parent: student?.parent ?? null };
+    modalData = student ?? data;
   }
   return (
     <div>
