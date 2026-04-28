@@ -11,6 +11,7 @@ import {
   getSchoolScheduleSettings,
   type SchoolScheduleSettings,
 } from "../schoolSettings";
+import { getCurrentAcademicYearId } from "../academicYears";
 
 type SelectedScheduleEntry = {
   day: LessonScheduleSchema["entries"][number]["day"];
@@ -84,10 +85,12 @@ const detectTeacherConflicts = async ({
   classId,
   selectedEntries,
   settings,
+  academicYearId,
 }: {
   classId: number;
   selectedEntries: SelectedScheduleEntry[];
   settings: SchoolScheduleSettings;
+  academicYearId: number;
 }) => {
   if (selectedEntries.length === 0) return null;
 
@@ -110,6 +113,7 @@ const detectTeacherConflicts = async ({
   const existingLessons = await prisma.lesson.findMany({
     where: {
       classId: { not: classId },
+      academicYearId,
       teacherId: { in: teacherIds },
       day: { in: days },
     },
@@ -159,6 +163,7 @@ export const saveLessonSchedule = async (
   try {
     const settings =
       (await getSchoolScheduleSettings()) ?? getDefaultSchoolScheduleSettings();
+    const academicYearId = await getCurrentAcademicYearId();
     const selectedEntries = toSelectedEntries(data.entries);
 
     const hasInvalidSlot = selectedEntries.some(
@@ -185,6 +190,7 @@ export const saveLessonSchedule = async (
       classId: data.classId,
       selectedEntries,
       settings,
+      academicYearId,
     });
 
     if (conflict) {
@@ -197,7 +203,7 @@ export const saveLessonSchedule = async (
 
     await prisma.$transaction(async (tx) => {
       const existingLessons = await tx.lesson.findMany({
-        where: { classId: data.classId },
+        where: { classId: data.classId, academicYearId },
         select: {
           id: true,
           day: true,
@@ -272,6 +278,7 @@ export const saveLessonSchedule = async (
               classId: data.classId,
               subjectId: entry.subjectId,
               teacherId: entry.teacherId,
+              academicYearId,
             },
           });
 

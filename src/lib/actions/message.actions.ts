@@ -2,6 +2,7 @@
 
 import { MessageSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
+import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
@@ -18,11 +19,14 @@ export const createMessage = async (
   if (adminError) return adminError;
 
   try {
+    const academicYearId = await getCurrentAcademicYearId();
+
     await prisma.message.create({
       data: {
         title: data.title,
         description: data.description,
-        date: data.date,
+        date: new Date(),
+        academicYearId,
         classes: {
           connect: (data.classIds ?? []).map((classId) => ({ id: classId })),
         },
@@ -66,12 +70,25 @@ export const updateMessage = async (
   if (adminError) return adminError;
 
   try {
+    const existingMessage = await prisma.message.findUnique({
+      where: { id: data.id },
+      select: { date: true },
+    });
+
+    if (!existingMessage) {
+      return {
+        success: false,
+        error: true,
+        message: "Message not found.",
+      };
+    }
+
     await prisma.message.update({
       where: { id: data.id },
       data: {
         title: data.title,
         description: data.description,
-        date: data.date,
+        date: existingMessage.date,
         classes: {
           set: (data.classIds ?? []).map((classId) => ({ id: classId })),
         },

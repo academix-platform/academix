@@ -1,8 +1,10 @@
 import "dotenv/config";
 import {
   Day,
+  PassFailStatus,
   UserSex,
   PrismaClient,
+  StudentStatus,
   type Assignment,
   type Class,
   type Exam,
@@ -80,6 +82,7 @@ async function main() {
   await prisma.grade.deleteMany();
   await prisma.admin.deleteMany();
   await prisma.schoolSettings.deleteMany();
+  await prisma.academicYear.deleteMany();
 
   // ======================
   // ADMIN
@@ -112,6 +115,50 @@ async function main() {
       lessonsPerDay: 6,
     },
   });
+
+  const currentAcademicYearStart =
+    now.getUTCMonth() >= 8 ? now.getUTCFullYear() : now.getUTCFullYear() - 1;
+
+  const academicYearSeeds = [
+    {
+      name: `${currentAcademicYearStart}/${currentAcademicYearStart + 1}`,
+      startDate: new Date(Date.UTC(currentAcademicYearStart, 8, 1)),
+      endDate: new Date(Date.UTC(currentAcademicYearStart + 1, 5, 30)),
+      isCurrent: true,
+    },
+    {
+      name: `${currentAcademicYearStart + 1}/${currentAcademicYearStart + 2}`,
+      startDate: new Date(Date.UTC(currentAcademicYearStart + 1, 8, 1)),
+      endDate: new Date(Date.UTC(currentAcademicYearStart + 2, 5, 30)),
+      isCurrent: false,
+    },
+  ];
+
+  for (const year of academicYearSeeds) {
+    await prisma.academicYear.upsert({
+      where: { name: year.name },
+      update: {
+        startDate: year.startDate,
+        endDate: year.endDate,
+        isCurrent: year.isCurrent,
+      },
+      create: year,
+    });
+  }
+
+  const seededAcademicYears = await prisma.academicYear.findMany({
+    select: { id: true, isCurrent: true },
+    orderBy: { startDate: "asc" },
+  });
+
+  const currentAcademicYear = seededAcademicYears.find(
+    (year) => year.isCurrent,
+  );
+  const nextAcademicYear = seededAcademicYears.find((year) => !year.isCurrent);
+
+  if (!currentAcademicYear || !nextAcademicYear) {
+    throw new Error("Current academic year seed was not created.");
+  }
 
   // ======================
   // GRADES
@@ -301,6 +348,49 @@ async function main() {
   }
 
   // ======================
+  // LESSONS
+  // ======================
+  // const createLessonsForYear = async (
+  //   academicYearId: number,
+  //   subjectIndexes: number[],
+  //   classIndexes: number[],
+  //   labelPrefix: string,
+  // ) => {
+  //   for (const classIndex of classIndexes) {
+  //     const cls = classes[classIndex];
+  //     const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
+
+  //     for (let i = 0; i < subjectIndexes.length; i++) {
+  //       const subject = classSubjects[subjectIndexes[i]];
+  //       if (!subject) continue;
+
+  //       const base = subject.name.split("-")[0];
+  //       const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
+  //       const weekIndex = (classIndex + i) % weekDates.length;
+  //       const startTime = withTime(weekDates[weekIndex], 8 + i * 2, 0);
+  //       const endTime = withTime(weekDates[weekIndex], 9 + i * 2, 30);
+
+  //       await prisma.lesson.create({
+  //         data: {
+  //           name: `${labelPrefix} ${base} - ${cls.name}`,
+  //           day: schoolDays[weekIndex],
+  //           startTime,
+  //           endTime,
+  //           subjectId: subject.id,
+  //           classId: cls.id,
+  //           teacherId,
+  //           academicYearId,
+  //         },
+  //       });
+  //     }
+  //   }
+  // };
+
+  // await createLessonsForYear(currentAcademicYear.id, [0, 2], [0, 1], "Current");
+
+  // await createLessonsForYear(nextAcademicYear.id, [1, 3], [0, 1], "Next");
+
+  // ======================
   // PARENTS
   // ======================
   const parents: Parent[] = [];
@@ -327,6 +417,15 @@ async function main() {
   for (const cls of classes) {
     for (let seat = 0; seat < 3; seat++) {
       const parent = parents[(studentCounter - 1) % parents.length];
+      const seedStatus: StudentStatus =
+        studentCounter <= 11
+          ? StudentStatus.ACTIVE
+          : studentCounter <= 14
+            ? StudentStatus.REPEATED
+            : studentCounter <= 16
+              ? StudentStatus.GRADUATED
+              : StudentStatus.LEFT;
+
       const student = await prisma.student.create({
         data: {
           id: `student${studentCounter}`,
@@ -338,6 +437,15 @@ async function main() {
           img: "",
           bloodType: ["A+", "B+", "O+", "AB+"][studentCounter % 4],
           sex: studentCounter % 2 === 0 ? UserSex.FEMALE : UserSex.MALE,
+          status: seedStatus,
+          repeatCount:
+            studentCounter === 12
+              ? 1
+              : studentCounter === 13
+                ? 2
+                : studentCounter === 14
+                  ? 3
+                  : 0,
           parentId: parent.id,
           classId: cls.id,
           gradeId: cls.gradeId,
@@ -355,35 +463,40 @@ async function main() {
   }
 
   // ======================
-  // LESSONS
+  // STUDENT ACADEMIC YEARS
   // ======================
-  // const lessons: Lesson[] = [];
-  // for (const cls of classes) {
-  //   const classSubjects = gradeSubjects.get(cls.gradeId) ?? [];
+  for (let i = 0; i < students.length; i++) {
+    const student = students[i];
+    const performanceStatus: PassFailStatus | null =
+      student.status === StudentStatus.LEFT
+        ? null
+        : i % 4 === 0
+          ? PassFailStatus.FAIL
+          : PassFailStatus.PASS;
 
-  //   for (let i = 0; i < classSubjects.length; i++) {
-  //     const subject = classSubjects[i];
-  //     const day = schoolDays[i % schoolDays.length];
-  //     const date = weekDates[i % weekDates.length];
-  //     const startTime = withTime(date, 8 + i * 2, 0);
-  //     const endTime = withTime(date, 9 + i * 2, 30);
-  //     const base = subject.name.split("-")[0];
-  //     const teacherId = subjectTeacherByBase[base] ?? teachers[0].id;
+    await prisma.studentAcademicYear.create({
+      data: {
+        studentId: student.id,
+        academicYearId: currentAcademicYear.id,
+        gradeId: student.gradeId,
+        classId: student.classId,
+        performanceStatus,
+      },
+    });
+  }
 
-  //     const lesson = await prisma.lesson.create({
-  //       data: {
-  //         name: `${base} - ${cls.name}`,
-  //         day,
-  //         startTime,
-  //         endTime,
-  //         subjectId: subject.id,
-  //         classId: cls.id,
-  //         teacherId,
-  //       },
-  //     });
-  //     lessons.push(lesson);
-  //   }
-  // }
+  // Seed a few next-year enrollment rows for switching and testing scenarios.
+  for (const student of students.slice(0, 6)) {
+    await prisma.studentAcademicYear.create({
+      data: {
+        studentId: student.id,
+        academicYearId: nextAcademicYear.id,
+        gradeId: student.gradeId,
+        classId: student.classId,
+        performanceStatus: null,
+      },
+    });
+  }
 
   // ======================
   // EXAMS + ASSIGNMENTS
@@ -467,6 +580,7 @@ async function main() {
           date: attendanceDate,
           present: (i + dayIndex) % 8 !== 0,
           studentId: students[i].id,
+          academicYearId: currentAcademicYear.id,
         },
       });
     }
@@ -477,6 +591,7 @@ async function main() {
           date: attendanceDate,
           present: (i + dayIndex) % 9 !== 0,
           teacherId: teachers[i].id,
+          academicYearId: currentAcademicYear.id,
         },
       });
     }
@@ -492,6 +607,7 @@ async function main() {
         description: `This week activity #${i + 1}`,
         startDate: withTime(weekDates[i], 10, 0),
         endDate: withTime(weekDates[i], 12, 0),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [
             { id: classes[i % classes.length].id },
@@ -511,6 +627,7 @@ async function main() {
         title: `Weekly Notice ${i + 1}`,
         description: `Important update for day ${i + 1}`,
         date: withTime(weekDates[i], 8, 30),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [{ id: classes[i % classes.length].id }],
         },
@@ -525,15 +642,17 @@ async function main() {
     const classStudents = students.filter(
       (student) => student.classId === classes[i].id,
     );
-    const classParents = classStudents.map((student) => ({
-      id: student.parentId,
-    }));
+    const classParents = classStudents
+      .map((student) => student.parentId)
+      .filter((parentId): parentId is string => Boolean(parentId))
+      .map((parentId) => ({ id: parentId }));
 
     await prisma.message.create({
       data: {
         title: `Class ${classes[i].name} Weekly Brief`,
         description: "Lessons, tasks, and reminders for this week.",
         date: withTime(weekDates[i % weekDates.length], 14, 0),
+        academicYearId: currentAcademicYear.id,
         classes: {
           connect: [{ id: classes[i].id }],
         },

@@ -5,6 +5,7 @@ import { getAttendanceData } from "@/lib/attendance";
 import AttendanceClient from "@/components/AttendanceClient";
 import AttendanceClassSelect from "@/components/AttendanceClassSelect";
 import Pagination from "@/components/Pagination";
+import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
@@ -65,13 +66,17 @@ const AttendancePage = async ({
     classId && validClassIds.has(classId) ? classId : classes[0]?.id;
 
   // DATA
-  const { data, hasAttendance } = await getAttendanceData({
+  const { data, hasAttendance, noCurrentYear } = await getAttendanceData({
     role,
     userId,
     scope,
     classId: effectiveClassId,
     day,
   });
+
+  if (noCurrentYear) {
+    return <NoCurrentAcademicYearMessage />;
+  }
 
   // PAGINATION
   const count = data.length;

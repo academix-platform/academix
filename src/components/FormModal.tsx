@@ -17,7 +17,6 @@ import {
   deleteAssignment,
   deleteExam,
   deleteEvent,
-  deleteLesson,
   deleteMessage,
   deleteParent,
   deleteStudent,
@@ -28,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
 import AssignmentForm from "./forms/AssignmentForm";
+import ClassDeleteForm from "./forms/ClassDeleteForm";
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -38,7 +38,7 @@ const deleteActionMap = {
   exam: deleteExam,
   assignment: deleteAssignment,
   result: deleteResult,
-  lesson: deleteLesson,
+  lesson: deleteStudent,
   attendance: deleteSubject,
   event: deleteEvent,
   announcement: deleteAnnouncement,
@@ -84,6 +84,10 @@ const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
 const MessageForm = dynamic(() => import("@/components/forms/MessageForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const StudentDeleteForm = dynamic(() => import("./forms/StudentDeleteForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+
 const forms: {
   [key: string]: (
     setOpen: Dispatch<SetStateAction<boolean>>,
@@ -225,6 +229,26 @@ const FormModal = ({
     }, [state, router]);
 
     if (type === "delete" && id) {
+      if (table === "class") {
+        return (
+          <ClassDeleteForm
+            data={data}
+            relatedData={relatedData}
+            setOpen={setOpen}
+          />
+        );
+      }
+
+      if (table === "student") {
+        return (
+          <StudentDeleteForm
+            data={data}
+            relatedData={relatedData}
+            setOpen={setOpen}
+          />
+        );
+      }
+
       return (
         <form action={formAction} className="flex flex-col gap-4 p-4">
           <input type="hidden" name="id" defaultValue={id} />
@@ -252,7 +276,7 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`${size} flex items-center justify-center rounded-full ${bgColor}`}
+        className={`p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixPurple`}
         onClick={() => setOpen(true)}
       >
         {(() => {

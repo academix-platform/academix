@@ -8,7 +8,6 @@ import {
   Dispatch,
   SetStateAction,
   startTransition,
-  useActionState,
   useEffect,
   useState,
 } from "react";
@@ -55,29 +54,30 @@ const StudentForm = ({
   const [filteredParents, setFilteredParents] = useState<
     { id: string; name: string }[]
   >([]);
-  const [state, formAction] = useActionState<StudentFormState, StudentSchema>(
-    type === "create" ? createStudent : updateStudent,
-    {
-      success: false,
-      error: false,
-      message: undefined,
-    },
-  );
 
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
-      formAction(data);
+      void (async () => {
+        const action = type === "create" ? createStudent : updateStudent;
+        const result = await action(
+          { success: false, error: false },
+          data as any,
+        );
+
+        if (result.success) {
+          toast(
+            `Student has been ${type === "create" ? "created" : "updated"}!`,
+          );
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.message ?? "Something went wrong!");
+      })();
     });
   });
   const router = useRouter();
-
-  useEffect(() => {
-    if (state.success) {
-      toast(`Student has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state, router, type, setOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -185,7 +185,7 @@ const StudentForm = ({
           type="date"
         />
         <div className="flex flex-col gap-2 w-full md:w-1/4 parent-search">
-          <label className="text-gray-500 text-xs">Parent</label>
+          <label className="text-gray-500 text-xs">Parent (optional)</label>
           <input type="hidden" {...register("parentId")} />
           <div className="relative">
             <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
@@ -268,6 +268,24 @@ const StudentForm = ({
           {errors.sex?.message && (
             <p className="text-red-400 text-xs">
               {errors.sex.message.toString()}
+            </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full md:w-1/4">
+          <label className="text-gray-500 text-xs">Status</label>
+          <select
+            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            {...register("status")}
+            defaultValue={data?.status || "ACTIVE"}
+          >
+            <option value="ACTIVE">Regular</option>
+            <option value="REPEATED">Repeated</option>
+            <option value="GRADUATED">Graduated</option>
+            <option value="LEFT">Left</option>
+          </select>
+          {errors.status?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.status.message.toString()}
             </p>
           )}
         </div>
@@ -365,11 +383,6 @@ const StudentForm = ({
           );
         }}
       </CldUploadWidget>
-      {state.error && (
-        <span className="text-red-500">
-          {state.message || "Something went wrong!"}
-        </span>
-      )}
       <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>

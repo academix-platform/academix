@@ -1,4 +1,5 @@
 import prisma from "@/lib/prisma";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 
 export const getAttendanceData = async ({
   role,
@@ -14,8 +15,19 @@ export const getAttendanceData = async ({
   day: Date;
 }) => {
   // exact date match ONLY
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return {
+      data: [],
+      hasAttendance: false,
+      noCurrentYear: true,
+    };
+  }
+
   const attendance = await prisma.attendance.findMany({
     where: {
+      academicYearId,
       date: day,
       ...(scope === "students"
         ? { studentId: { not: null } }
@@ -82,5 +94,6 @@ export const getAttendanceData = async ({
   return {
     data,
     hasAttendance: attendance.length > 0,
+    noCurrentYear: false,
   };
 };

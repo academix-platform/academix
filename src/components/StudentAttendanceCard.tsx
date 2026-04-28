@@ -1,13 +1,18 @@
 import prisma from "@/lib/prisma";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import Image from "next/image";
 
 const StudentAttendanceCard = async ({ id }: { id: string }) => {
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  if (!academicYearId) {
+    return <h1 className="font-semibold text-xl">-</h1>;
+  }
+
   const attendance = await prisma.attendance.findMany({
     where: {
       studentId: id,
-      date: {
-        gte: new Date(new Date().getFullYear(), 0, 1),
-      },
+      academicYearId,
     },
   });
   const totalDays = attendance.length;

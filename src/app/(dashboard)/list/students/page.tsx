@@ -1,17 +1,20 @@
-import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import PromoteStudentsButton from "@/components/PromoteStudentsButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import StudentsFilters from "@/components/StudentsFilters";
 import { type UserRole } from "@/lib/auth";
+import { getAcademicYears, getCurrentAcademicYear } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student } from "@prisma/client";
+import { Class, Prisma, Student, StudentStatus } from "@prisma/client";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 
 type StudentList = Student & { class: Class };
 
@@ -88,13 +91,56 @@ const StudentListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const { role } = await enforceRouteAccess("/list/students");
+  const currentAcademicYear = await getCurrentAcademicYear();
+  const academicYearId = currentAcademicYear?.id ?? null;
+  const academicYears = role === "admin" ? await getAcademicYears() : [];
+
+  if (!academicYearId || !currentAcademicYear) {
+    return <NoCurrentAcademicYearMessage role={role} />;
+  }
 
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.StudentWhereInput = {};
+  const academicYearParam = getQueryParam(queryParams.academicYearId);
+  const statusParam = getQueryParam(queryParams.status);
+  const repeatCountParam = getQueryParam(queryParams.repeatCount);
+  const selectedAcademicYearId = academicYearParam
+    ? Number.parseInt(academicYearParam, 10)
+    : academicYearId;
+
+  const validStatuses: StudentStatus[] = [
+    "ACTIVE",
+    "REPEATED",
+    "GRADUATED",
+    "LEFT",
+  ];
+  const selectedStatus = validStatuses.includes(statusParam as StudentStatus)
+    ? (statusParam as StudentStatus)
+    : "ACTIVE";
+
+  const selectedRepeatCount =
+    repeatCountParam && selectedStatus === "REPEATED"
+      ? Number.parseInt(repeatCountParam, 10)
+      : 1;
+
+  const query: Prisma.StudentWhereInput = {
+    academicYears: {
+      some: {
+        academicYearId: selectedAcademicYearId,
+      },
+    },
+    status: selectedStatus,
+  };
+
+  if (selectedStatus === "REPEATED") {
+    query.repeatCount = Number.isNaN(selectedRepeatCount)
+      ? 1
+      : selectedRepeatCount;
+  }
+
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
@@ -142,10 +188,21 @@ const StudentListPage = async ({
         <h1 className="hidden md:block font-semibold text-lg">All Students</h1>
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && (
+            <StudentsFilters
+              academicYears={academicYears}
+              currentAcademicYearId={academicYearId}
+            />
+          )}
           <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
             {role === "admin" && (
-              <FormContainer table="student" type="create" />
+              <>
+                <PromoteStudentsButton
+                  academicYearName={currentAcademicYear.name}
+                  academicYearEndDate={currentAcademicYear.endDate}
+                />
+                <FormContainer table="student" type="create" />
+              </>
             )}
           </div>
         </div>

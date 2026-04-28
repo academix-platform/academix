@@ -24,6 +24,26 @@ model SchoolSettings {
   updatedAt DateTime @updatedAt
 }
 
+model AcademicYear {
+  id Int @id @default(autoincrement())
+  name String @unique
+  startDate DateTime @db.Date
+  endDate DateTime @db.Date
+  isCurrent Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lessons Lesson[]
+  exams Exam[]
+  assignments Assignment[]
+  results Result[]
+  attendances Attendance[]
+  events Event[]
+  announcements Announcement[]
+  messages Message[]
+  studentAcademicYears StudentAcademicYear[]
+}
+
 model Student{  
   id String @id
   username String @unique
@@ -34,9 +54,11 @@ model Student{
   img String?
   bloodType String
   sex UserSex
+  status StudentStatus @default(ACTIVE)
+  repeatCount Int @default(0)
   createdAt DateTime @default(now())
-  parentId String
-  parent Parent @relation(fields:[parentId], references: [id])
+  parentId String?
+  parent Parent? @relation(fields:[parentId], references: [id])
   classId Int
   class Class @relation(fields:[classId], references: [id])
   gradeId Int
@@ -44,6 +66,7 @@ model Student{
   attendances Attendance[]
   results Result[]
   messages Message[]
+  academicYears StudentAcademicYear[]
   birthday DateTime
 }
 model Teacher{  
@@ -83,6 +106,7 @@ model Grade{
   students Student[]
   classes Class[]
   subjects Subject[]
+  studentAcademicYears StudentAcademicYear[]
 }
 model Class{
   id Int @id @default(autoincrement())
@@ -100,6 +124,33 @@ model Class{
   messages Message[]
   exams Exam[]
   assignments Assignment[]
+  studentAcademicYears StudentAcademicYear[]
+}
+
+model StudentAcademicYear {
+  id Int @id @default(autoincrement())
+
+  studentId String
+  student Student @relation(fields: [studentId], references: [id])
+
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  gradeId Int
+  grade Grade @relation(fields: [gradeId], references: [id])
+
+  classId Int?
+  class Class? @relation(fields: [classId], references: [id])
+
+  performanceStatus PassFailStatus?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([studentId, academicYearId])
+  @@index([academicYearId])
+  @@index([gradeId])
+  @@index([classId])
 }
 model Subject{
   id Int @id @default(autoincrement())
@@ -123,6 +174,8 @@ model Lesson{
   class Class @relation(fields: [classId], references: [id])
   teacherId String
   teacher Teacher @relation(fields: [teacherId], references: [id])
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   exams Exam[]
   assignments Assignment[]
 }
@@ -140,6 +193,9 @@ model Exam{
   lessonId Int
   lesson Lesson @relation(fields: [lessonId], references: [id])
 
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
   results Result[]
 }
 model Assignment{
@@ -156,6 +212,9 @@ model Assignment{
   lessonId Int
   lesson Lesson @relation(fields: [lessonId], references: [id])
 
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+
   results Result[]
 }
 model Result{
@@ -169,11 +228,17 @@ model Result{
 
   studentId String
   student Student @relation(fields: [studentId], references: [id])
+
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
 }
 model Attendance{
   id Int @id @default(autoincrement())
   date DateTime
   present Boolean
+
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
 
   studentId String?
   student Student? @relation(fields: [studentId], references: [id])
@@ -181,8 +246,9 @@ model Attendance{
   teacherId String?
   teacher Teacher? @relation(fields: [teacherId], references: [id])
 
-  @@unique([studentId, date])
-  @@unique([teacherId, date])
+  @@unique([studentId, academicYearId, date])
+  @@unique([teacherId, academicYearId, date])
+  @@index([academicYearId])
   @@index([date])
   @@index([studentId])
   @@index([teacherId])
@@ -193,6 +259,8 @@ model Event{
   description String
   startDate DateTime
   endDate DateTime
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   classes Class[]
 }
 model Announcement{
@@ -200,6 +268,8 @@ model Announcement{
   title String
   description String
   date DateTime
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   classes Class[]
 }
 
@@ -208,6 +278,8 @@ model Message {
   title String
   description String
   date DateTime @default(now())
+  academicYearId Int
+  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
   students Student[]
   parents Parent[]
   teachers Teacher[]
@@ -227,4 +299,16 @@ enum Day{
   TUESDAY
   WEDNESDAY
   THURSDAY
+}
+
+enum StudentStatus {
+  ACTIVE
+  REPEATED
+  GRADUATED
+  LEFT
+}
+
+enum PassFailStatus {
+  PASS
+  FAIL
 }

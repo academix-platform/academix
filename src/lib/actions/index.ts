@@ -9,6 +9,7 @@ export { createTeacher, updateTeacher, deleteTeacher } from "./teacher.actions";
 
 // Student actions
 export { createStudent, updateStudent, deleteStudent } from "./student.actions";
+export { promoteStudentsByPerformance } from "./studentPromotion.actions";
 
 // Parent actions
 export { createParent, updateParent, deleteParent } from "./parent.actions";
@@ -46,3 +47,6 @@ export { createMessage, updateMessage, deleteMessage } from "./message.actions";
 
 // School settings actions
 export { updateSchoolSettings } from "./schoolSettings.actions";
+
+// Academic year actions
+export { createAcademicYear, updateAcademicYear } from "./academicYear.actions";

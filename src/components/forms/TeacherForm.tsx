@@ -5,7 +5,7 @@ import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import InputField from "../InputField";
 import Image from "next/image";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
-import { startTransition, useActionState, useEffect, useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -79,15 +79,6 @@ const TeacherForm = ({
     name: "subjectClassPairs",
   }) as SubjectClassPair[] | undefined;
 
-  const [state, formAction] = useActionState<TeacherFormState, TeacherSchema>(
-    type === "create" ? createTeacher : updateTeacher,
-    {
-      success: false,
-      error: false,
-      message: undefined,
-    },
-  );
-
   const onSubmit = handleSubmit((formValues) => {
     const payload = {
       ...formValues,
@@ -96,20 +87,29 @@ const TeacherForm = ({
     };
 
     startTransition(() => {
-      formAction(payload);
+      void (async () => {
+        const action = type === "create" ? createTeacher : updateTeacher;
+        const result = await action(
+          { success: false, error: false },
+          payload as any,
+        );
+
+        if (result.success) {
+          toast(
+            `${type === "create" ? "Teacher created" : "Teacher updated"} successfully!`,
+          );
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.message ?? "Something went wrong!");
+      })();
     });
   });
 
   const router = useRouter();
-  useEffect(() => {
-    if (state.success) {
-      toast(
-        `${type === "create" ? "Teacher created" : "Teacher updated"} successfully!`,
-      );
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state, type, setOpen, router]);
+  // effect not needed; action handled directly in onSubmit
 
   const getSubjectById = (subjectId: string) =>
     subjects.find((subject) => String(subject.id) === subjectId);
@@ -398,11 +398,6 @@ const TeacherForm = ({
           }}
         </CldUploadWidget>
       </div>
-      {state.error && (
-        <span className="text-red-500">
-          {state.message || "Something went wrong!"}
-        </span>
-      )}
       <button className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>

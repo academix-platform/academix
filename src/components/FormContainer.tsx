@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
 import { getAuthUser } from "@/lib/auth";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 
 export type FormContainerProps = {
   table:
@@ -24,15 +25,48 @@ export type FormContainerProps = {
 };
 
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
-  let relatedData = {};
+  let relatedData: any = {};
+  let modalData = data;
 
   if (type !== "delete") {
+    const yearScopedTables: Array<FormContainerProps["table"]> = [
+      "lesson",
+      "exam",
+      "assignment",
+      "result",
+    ];
+
+    let academicYearId: number | undefined;
+    if (yearScopedTables.includes(table)) {
+      const currentAcademicYearId = await getCurrentAcademicYearIdOrNull();
+
+      if (!currentAcademicYearId) {
+        return (
+          <div>
+            <FormModal
+              table={table}
+              type={type}
+              data={data}
+              id={id}
+              relatedData={{}}
+            />
+          </div>
+        );
+      }
+
+      academicYearId = currentAcademicYearId;
+    }
+
     switch (table) {
       case "subject":
         const teachers = await prisma.teacher.findMany({
           select: { id: true, name: true },
         });
-        relatedData = { teachers };
+        const grades = await prisma.grade.findMany({
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        });
+        relatedData = { teachers, grades };
         break;
       case "class":
         const classGrades = await prisma.grade.findMany({
@@ -64,6 +98,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           orderBy: { name: "asc" },
         });
         const classLessons = await prisma.lesson.findMany({
+          where: { academicYearId: academicYearId! },
           select: {
             id: true,
             classId: true,
@@ -118,6 +153,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         const userId = user?.userId;
         const examLessons = await prisma.lesson.findMany({
           where: {
+            academicYearId: academicYearId!,
             ...(role === "teacher" ? { teacherId: userId! } : {}),
           },
           select: {
@@ -153,6 +189,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         const assignmentUserId = assignment?.userId;
         const assignmentLessons = await prisma.lesson.findMany({
           where: {
+            academicYearId: academicYearId!,
             ...(assignmentRole === "teacher"
               ? { teacherId: assignmentUserId! }
               : {}),
@@ -201,7 +238,10 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
               ? {
                   class: {
                     lessons: {
-                      some: { teacherId: resultUserId! },
+                      some: {
+                        teacherId: resultUserId!,
+                        academicYearId: academicYearId!,
+                      },
                     },
                   },
                 }
@@ -211,10 +251,12 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         });
 
         const resultExams = await prisma.exam.findMany({
-          where:
-            resultRole === "teacher"
+          where: {
+            academicYearId: academicYearId!,
+            ...(resultRole === "teacher"
               ? { lesson: { teacherId: resultUserId! } }
-              : undefined,
+              : {}),
+          },
           select: {
             id: true,
             title: true,
@@ -229,10 +271,12 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         });
 
         const resultAssignments = await prisma.assignment.findMany({
-          where:
-            resultRole === "teacher"
+          where: {
+            academicYearId: academicYearId!,
+            ...(resultRole === "teacher"
               ? { lesson: { teacherId: resultUserId! } }
-              : undefined,
+              : {}),
+          },
           select: {
             id: true,
             title: true,
@@ -318,13 +362,80 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         };
         break;
     }
+  } else if (table === "class" && id) {
+    const classId = typeof id === "string" ? Number.parseInt(id, 10) : id;
+
+    if (!Number.isNaN(classId)) {
+      const [classGrades, classTeachers, classItems, currentClass] =
+        await prisma.$transaction([
+          prisma.grade.findMany({
+            select: { id: true, level: true },
+          }),
+          prisma.teacher.findMany({
+            select: { id: true, name: true },
+          }),
+          prisma.class.findMany({
+            where: { id: { not: classId } },
+            include: {
+              grade: { select: { id: true, level: true } },
+              _count: {
+                select: {
+                  students: true,
+                  lessons: true,
+                },
+              },
+            },
+            orderBy: { name: "asc" },
+          }),
+          prisma.class.findUnique({
+            where: { id: classId },
+            include: {
+              grade: { select: { id: true, level: true } },
+              supervisor: { select: { id: true, name: true } },
+              _count: {
+                select: {
+                  students: true,
+                  lessons: true,
+                },
+              },
+            },
+          }),
+        ]);
+
+      relatedData = {
+        grades: classGrades,
+        teachers: classTeachers,
+        classes: classItems,
+      };
+      modalData = currentClass ?? data;
+    }
+  } else if (table === "student" && id) {
+    const studentId = typeof id === "string" ? id : String(id);
+
+    const student = await prisma.student.findUnique({
+      where: { id: studentId },
+      select: {
+        id: true,
+        name: true,
+        parent: {
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { students: true } },
+          },
+        },
+      },
+    });
+
+    relatedData = { parent: student?.parent ?? null };
+    modalData = student ?? data;
   }
   return (
     <div>
       <FormModal
         table={table}
         type={type}
-        data={data}
+        data={modalData}
         id={id}
         relatedData={relatedData}
       />

@@ -67,6 +67,7 @@ const ClassListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const { role } = await enforceRouteAccess("/list/classes");
+
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);

@@ -3,7 +3,13 @@
 import { StudentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
-import { CurrentState, errorResult, successResult } from "./helpers";
+import { getCurrentAcademicYearIdOrNull } from "../academicYears";
+import {
+  CurrentState,
+  errorResult,
+  isClerkUserNotFoundError,
+  successResult,
+} from "./helpers";
 
 export const createStudent = async (
   currentState: CurrentState,
@@ -51,9 +57,26 @@ export const createStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
-      },
+        ...(data.parentId
+          ? { parent: { connect: { id: data.parentId } } }
+          : {}),
+        status: data.status || "ACTIVE",
+      } as any,
     });
+
+    // Automatically enroll student in the current academic year
+    const currentAcademicYearId = await getCurrentAcademicYearIdOrNull();
+    if (currentAcademicYearId) {
+      await prisma.studentAcademicYear.create({
+        data: {
+          studentId: createdUserId,
+          academicYearId: currentAcademicYearId,
+          gradeId: data.gradeId,
+          classId: data.classId,
+          performanceStatus: null,
+        },
+      });
+    }
 
     return successResult(["/list/students"]);
   } catch (err) {
@@ -101,7 +124,8 @@ export const updateStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        parentId: data.parentId,
+        ...(data.parentId ? { parentId: data.parentId } : {}),
+        ...(data.status && { status: data.status }),
       },
     });
 
@@ -116,15 +140,61 @@ export const deleteStudent = async (
   data: FormData,
 ) => {
   const id = data.get("id") as string;
+  const deleteParent = data.get("deleteParent") === "true";
   if (!id)
     return { success: false, error: true, message: "Invalid student id." };
 
   try {
-    await (await clerkClient()).users.deleteUser(id);
-
-    await prisma.student.delete({
-      where: { id: id },
+    const student = await prisma.student.findUnique({
+      where: { id },
+      select: { parentId: true },
     });
+
+    const parentId = student?.parentId ?? null;
+
+    if (deleteParent && parentId) {
+      const siblingCount = await prisma.student.count({
+        where: { parentId },
+      });
+
+      if (siblingCount > 1) {
+        return {
+          success: false,
+          error: true,
+          message:
+            "This parent has more than one student, so only the student can be deleted.",
+        };
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.studentAcademicYear.deleteMany({ where: { studentId: id } });
+      await tx.attendance.deleteMany({ where: { studentId: id } });
+      await tx.result.deleteMany({ where: { studentId: id } });
+      await tx.student.delete({ where: { id } });
+
+      if (deleteParent && parentId) {
+        await tx.parent.delete({ where: { id: parentId } });
+      }
+    });
+
+    try {
+      await (await clerkClient()).users.deleteUser(id);
+    } catch (err) {
+      if (!isClerkUserNotFoundError(err)) {
+        throw err;
+      }
+    }
+
+    if (deleteParent && parentId) {
+      try {
+        await (await clerkClient()).users.deleteUser(parentId);
+      } catch (err) {
+        if (!isClerkUserNotFoundError(err)) {
+          throw err;
+        }
+      }
+    }
 
     return successResult();
   } catch (err) {

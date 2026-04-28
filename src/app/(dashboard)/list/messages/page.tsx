@@ -1,6 +1,7 @@
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import MessageViewModal from "@/components/MessageViewModal";
+import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -9,6 +10,7 @@ import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import {
   Class,
   Message,
@@ -189,8 +191,13 @@ const MessageListPage = async ({
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
+  const academicYearId = await getCurrentAcademicYearIdOrNull();
 
-  const query: Prisma.MessageWhereInput = {};
+  if (!academicYearId) {
+    return <NoCurrentAcademicYearMessage />;
+  }
+
+  const query: Prisma.MessageWhereInput = { academicYearId };
   const andConditions: Prisma.MessageWhereInput[] = [];
 
   if (queryParams) {

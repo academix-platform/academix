@@ -7,7 +7,6 @@ import {
   Dispatch,
   SetStateAction,
   startTransition,
-  useActionState,
   useEffect,
   useState,
 } from "react";
@@ -53,29 +52,37 @@ const ParentForm = ({
   const [filteredStudents, setFilteredStudents] = useState<
     { id: string; name: string }[]
   >([]);
-  const [state, formAction] = useActionState<ParentFormState, ParentSchema>(
-    type === "create" ? createParent : updateParent,
-    {
-      success: false,
-      error: false,
-      message: undefined,
-    },
-  );
+  const [studentsError, setStudentsError] = useState("");
 
   const onSubmit = handleSubmit((data) => {
+    if (type === "create" && selectedStudentIds.length === 0) {
+      setStudentsError("Select at least one student.");
+      toast.error("Select at least one student before creating a parent.");
+      return;
+    }
+
     startTransition(() => {
-      formAction({ ...data, students: selectedStudentIds });
+      void (async () => {
+        const action = type === "create" ? createParent : updateParent;
+        const result = await action({ success: false, error: false }, {
+          ...data,
+          students: selectedStudentIds,
+        } as any);
+
+        if (result.success) {
+          toast(
+            `Parent has been ${type === "create" ? "created" : "updated"}!`,
+          );
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.message || "Something went wrong!");
+      })();
     });
   });
   const router = useRouter();
-
-  useEffect(() => {
-    if (state.success) {
-      toast(`Parent has been ${type === "create" ? "created" : "updated"}!`);
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state, router, type, setOpen]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -204,6 +211,7 @@ const ParentForm = ({
                     <div
                       key={student.id}
                       onClick={() => {
+                        setStudentsError("");
                         setSelectedStudentIds([
                           ...selectedStudentIds,
                           String(student.id),
@@ -259,12 +267,10 @@ const ParentForm = ({
             {errors.students.message.toString()}
           </p>
         )}
+        {studentsError && (
+          <p className="text-red-400 text-xs">{studentsError}</p>
+        )}
       </div>
-      {state.error && (
-        <span className="text-red-500">
-          {state.message || "Something went wrong!"}
-        </span>
-      )}
       <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>

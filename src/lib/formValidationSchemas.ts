@@ -4,6 +4,7 @@ export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
   name: z.string().min(1, { message: "Subject name is required!" }),
   teachers: z.array(z.string()),
+  gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
 });
 
 export type SubjectSchema = z.infer<typeof subjectSchema>;
@@ -84,7 +85,11 @@ export const studentSchema = z.object({
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
-  parentId: z.string().min(1, { message: "Parent Id is required!" }),
+  parentId: z.preprocess(
+    (value) => (value === "" || value == null ? undefined : value),
+    z.string().optional(),
+  ),
+  status: z.enum(["ACTIVE", "REPEATED", "GRADUATED", "LEFT"]).optional(),
 });
 
 export type StudentSchema = z.infer<typeof studentSchema>;
@@ -271,6 +276,26 @@ export const schoolSettingsSchema = z
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+export const academicYearSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    name: z.string().min(1, { message: "Academic year name is required." }),
+    startDate: z.coerce.date({ message: "Start date is required." }),
+    endDate: z.coerce.date({ message: "End date is required." }),
+    isCurrent: z.coerce.boolean().default(false),
+  })
+  .superRefine((data, ctx) => {
+    if (data.endDate <= data.startDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Academic year end date must be after start date.",
+        path: ["endDate"],
+      });
+    }
+  });
+
+export type AcademicYearSchema = z.infer<typeof academicYearSchema>;
+
 ////////////////////////////////////////////////////////////////////
 
 export const examSchema = z.object({
@@ -367,7 +392,7 @@ export const messageSchema = z
     id: z.coerce.number().optional(),
     title: z.string().min(1, { message: "Message title is required!" }),
     description: z.string().min(1, { message: "Description is required!" }),
-    date: z.coerce.date({ message: "Date is required!" }),
+    date: z.coerce.date({ message: "Date is required!" }).optional(),
     classIds: z.array(z.coerce.number()).optional().default([]),
     studentIds: z.array(z.string()).optional().default([]),
     parentIds: z.array(z.string()).optional().default([]),
