@@ -9,7 +9,6 @@ import {
   Dispatch,
   SetStateAction,
   startTransition,
-  useActionState,
   useEffect,
   useState,
 } from "react";
@@ -44,6 +43,7 @@ const SubjectForm = ({
     defaultValues: {
       name: data?.name ?? "",
       teachers: defaultTeacherIds,
+      gradeId: data?.grade?.id ?? data?.gradeId ?? "",
     },
   });
 
@@ -58,28 +58,26 @@ const SubjectForm = ({
   >([]);
 
   const action = type === "create" ? createSubject : updateSubject;
-
-  const [state, formAction] = useActionState(action, {
-    success: false,
-    error: false,
-  });
+  const router = useRouter();
 
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
-      formAction(data);
+      void (async () => {
+        const result = await action({ success: false, error: false }, data);
+
+        if (result.success) {
+          toast(
+            `${type === "create" ? "Subject created" : "Subject updated"} successfully!`,
+          );
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.message ?? "Something went wrong!");
+      })();
     });
   });
-
-  const router = useRouter();
-  useEffect(() => {
-    if (state.success) {
-      toast(
-        `${type === "create" ? "Subject created" : "Subject updated"} successfully!`,
-      );
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state, type, setOpen, router]);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -109,6 +107,26 @@ const SubjectForm = ({
           register={register}
           error={errors?.name}
         />
+        <div className="flex flex-col gap-1 w-full md:w-1/5">
+          <label className="text-gray-500 text-xs">Grade</label>
+          <select
+            className="bg-white px-3 py-2 border border-gray-200 rounded-xl"
+            {...register("gradeId")}
+            defaultValue={data?.grade?.id ?? data?.gradeId ?? ""}
+          >
+            <option value="">Select grade</option>
+            {(relatedData?.grades ?? []).map((g: any) => (
+              <option key={g.id} value={g.id}>
+                {g.level}
+              </option>
+            ))}
+          </select>
+          {errors.gradeId?.message && (
+            <p className="text-red-400 text-xs">
+              {errors.gradeId.message.toString()}
+            </p>
+          )}
+        </div>
         <div className="flex flex-col gap-3 w-full md:w-3/5 teacher-search">
           <div className="flex justify-between items-end gap-4">
             <div>
@@ -227,9 +245,6 @@ const SubjectForm = ({
           )}
         </div>
       </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
       <button className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>

@@ -10,12 +10,20 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma, Subject, Teacher } from "@prisma/client";
 
-type SubjectList = Subject & { teachers: Teacher[] };
+type SubjectList = Subject & {
+  teachers: Teacher[];
+  grade: { id: number; level: number } | null;
+};
 
 const getColumns = (role: UserRole | null) => [
   {
     header: "Subject Name",
     accessor: "name",
+  },
+  {
+    header: "Grade",
+    accessor: "grade",
+    className: "hidden md:table-cell",
   },
   {
     header: "Teachers",
@@ -34,6 +42,7 @@ const renderRow = (item: SubjectList, role: UserRole | null) => (
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="flex items-center gap-4 p-4">{item.name}</td>
+    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
     <td className="hidden md:table-cell">
       {item.teachers.map((t) => t.name).join(",")}
     </td>
@@ -102,6 +111,7 @@ const SubjectListPage = async ({
       where: query,
       include: {
         teachers: true,
+        grade: true,
       },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
