@@ -388,7 +388,7 @@ export const messageSchema = z
     id: z.coerce.number().optional(),
     title: z.string().min(1, { message: "Message title is required!" }),
     description: z.string().min(1, { message: "Description is required!" }),
-    date: z.coerce.date({ message: "Date is required!" }),
+    date: z.coerce.date({ message: "Date is required!" }).optional(),
     classIds: z.array(z.coerce.number()).optional().default([]),
     studentIds: z.array(z.string()).optional().default([]),
     parentIds: z.array(z.string()).optional().default([]),

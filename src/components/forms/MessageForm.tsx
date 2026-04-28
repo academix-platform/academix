@@ -11,21 +11,6 @@ import InputField from "../InputField";
 import MessageClassSelector from "./message/MessageClassSelector";
 import RecipientPicker from "./message/RecipientPicker";
 
-const toDatetimeLocalValue = (value: unknown) => {
-  if (!value) return "";
-
-  const date = value instanceof Date ? value : new Date(String(value));
-  if (Number.isNaN(date.getTime())) return "";
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
-
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-};
-
 const EMPTY_STRING_ARRAY: string[] = [];
 const EMPTY_CLASS_ARRAY: Array<string | number> = [];
 
@@ -40,16 +25,6 @@ const MessageForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
-  const nowDefault = toDatetimeLocalValue(new Date());
-  const dateDefaultValue =
-    type === "create" ? nowDefault : toDatetimeLocalValue(data?.date);
-  const dateSchemaDefault =
-    data?.date instanceof Date
-      ? data.date
-      : data?.date
-        ? new Date(data.date)
-        : new Date();
-
   const {
     register,
     handleSubmit,
@@ -62,7 +37,6 @@ const MessageForm = ({
       id: data?.id,
       title: data?.title,
       description: data?.description,
-      date: dateDefaultValue as any,
       classIds:
         data?.classes?.map((classItem: { id: number }) => classItem.id) ?? [],
       studentIds:
@@ -191,62 +165,66 @@ const MessageForm = ({
           inputProps={{ placeholder: "e.g. Reminder" }}
         />
 
-        <InputField
-          label="Date"
-          name="date"
-          type="datetime-local"
-          defaultValue={dateDefaultValue}
-          register={register}
-          error={errors?.date}
-        />
+        {type === "create" && (
+          <>
+            <input type="hidden" {...register("classIds")} />
+            <MessageClassSelector
+              classes={classes}
+              selectedClassIds={selectedClassIdsAsNumbers}
+              onChange={(nextClassIds) =>
+                setValue("classIds", nextClassIds, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
 
-        <input type="hidden" {...register("classIds")} />
-        <MessageClassSelector
-          classes={classes}
-          selectedClassIds={selectedClassIdsAsNumbers}
-          onChange={(nextClassIds) =>
-            setValue("classIds", nextClassIds, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
+            <RecipientPicker
+              label="Student recipients"
+              items={eligibleStudents}
+              selectedIds={selectedStudentIds}
+              onChange={(nextIds) =>
+                setValue("studentIds", nextIds, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
 
-        <RecipientPicker
-          label="Student recipients"
-          items={eligibleStudents}
-          selectedIds={selectedStudentIds}
-          onChange={(nextIds) =>
-            setValue("studentIds", nextIds, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
+            <RecipientPicker
+              label="Parent recipients"
+              items={eligibleParents}
+              selectedIds={selectedParentIds}
+              onChange={(nextIds) =>
+                setValue("parentIds", nextIds, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
 
-        <RecipientPicker
-          label="Parent recipients"
-          items={eligibleParents}
-          selectedIds={selectedParentIds}
-          onChange={(nextIds) =>
-            setValue("parentIds", nextIds, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
+            <RecipientPicker
+              label="Teacher recipients"
+              items={eligibleTeachers}
+              selectedIds={selectedTeacherIds}
+              onChange={(nextIds) =>
+                setValue("teacherIds", nextIds, {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
+          </>
+        )}
 
-        <RecipientPicker
-          label="Teacher recipients"
-          items={eligibleTeachers}
-          selectedIds={selectedTeacherIds}
-          onChange={(nextIds) =>
-            setValue("teacherIds", nextIds, {
-              shouldDirty: true,
-              shouldValidate: true,
-            })
-          }
-        />
+        {type === "update" && (
+          <>
+            <input type="hidden" {...register("classIds")} />
+            <input type="hidden" {...register("studentIds")} />
+            <input type="hidden" {...register("parentIds")} />
+            <input type="hidden" {...register("teacherIds")} />
+          </>
+        )}
 
         <div className="flex flex-col gap-2 w-full">
           <label className="text-gray-500 text-xs">Description</label>
