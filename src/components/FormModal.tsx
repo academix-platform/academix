@@ -27,6 +27,7 @@ import {
 import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
 import AssignmentForm from "./forms/AssignmentForm";
+import ClassDeleteForm from "./forms/ClassDeleteForm";
 
 const deleteActionMap = {
   subject: deleteSubject,
@@ -224,6 +225,16 @@ const FormModal = ({
     }, [state, router]);
 
     if (type === "delete" && id) {
+      if (table === "class") {
+        return (
+          <ClassDeleteForm
+            data={data}
+            relatedData={relatedData}
+            setOpen={setOpen}
+          />
+        );
+      }
+
       return (
         <form action={formAction} className="flex flex-col gap-4 p-4">
           <input type="hidden" name="id" defaultValue={id} />

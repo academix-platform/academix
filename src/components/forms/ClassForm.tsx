@@ -9,7 +9,6 @@ import {
   Dispatch,
   SetStateAction,
   startTransition,
-  useActionState,
   useEffect,
   useState,
 } from "react";
@@ -49,11 +48,6 @@ const ClassForm = ({
   });
 
   const action = type === "create" ? createClass : updateClass;
-
-  const [state, formAction] = useActionState(action, {
-    success: false,
-    error: false,
-  });
   const [searchInput, setSearchInput] = useState(
     teacherOptions.find(
       (teacher: { id: string; name: string }) =>
@@ -69,20 +63,24 @@ const ClassForm = ({
 
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
-      formAction(data);
+      void (async () => {
+        const result = await action({ success: false, error: false }, data);
+
+        if (result.success) {
+          toast(
+            `${type === "create" ? "Class created" : "Class updated"} successfully!`,
+          );
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
+        toast.error(result.message ?? "Something went wrong!");
+      })();
     });
   });
 
   const router = useRouter();
-  useEffect(() => {
-    if (state.success) {
-      toast(
-        `${type === "create" ? "Class created" : "Class updated"} successfully!`,
-      );
-      setOpen(false);
-      router.refresh();
-    }
-  }, [state, type, setOpen, router]);
 
   useEffect(() => {
     setValue("supervisorId", selectedSupervisorId);
@@ -219,9 +217,6 @@ const ClassForm = ({
           )}
         </div>
       </div>
-      {state.error && (
-        <span className="text-red-500">Something went wrong!</span>
-      )}
       <button className="bg-blue-400 p-2 rounded-md text-white">
         {type === "create" ? "Create" : "Update"}
       </button>

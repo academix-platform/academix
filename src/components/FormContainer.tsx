@@ -25,7 +25,8 @@ export type FormContainerProps = {
 };
 
 const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
-  let relatedData = {};
+  let relatedData: any = {};
+  let modalData = data;
 
   if (type !== "delete") {
     const yearScopedTables: Array<FormContainerProps["table"]> = [
@@ -357,13 +358,60 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         };
         break;
     }
+  } else if (table === "class" && id) {
+    const classId = typeof id === "string" ? Number.parseInt(id, 10) : id;
+
+    if (!Number.isNaN(classId)) {
+      const [classGrades, classTeachers, classItems, currentClass] =
+        await prisma.$transaction([
+          prisma.grade.findMany({
+            select: { id: true, level: true },
+          }),
+          prisma.teacher.findMany({
+            select: { id: true, name: true },
+          }),
+          prisma.class.findMany({
+            where: { id: { not: classId } },
+            include: {
+              grade: { select: { id: true, level: true } },
+              _count: {
+                select: {
+                  students: true,
+                  lessons: true,
+                },
+              },
+            },
+            orderBy: { name: "asc" },
+          }),
+          prisma.class.findUnique({
+            where: { id: classId },
+            include: {
+              grade: { select: { id: true, level: true } },
+              supervisor: { select: { id: true, name: true } },
+              _count: {
+                select: {
+                  students: true,
+                  lessons: true,
+                },
+              },
+            },
+          }),
+        ]);
+
+      relatedData = {
+        grades: classGrades,
+        teachers: classTeachers,
+        classes: classItems,
+      };
+      modalData = currentClass ?? data;
+    }
   }
   return (
     <div>
       <FormModal
         table={table}
         type={type}
-        data={data}
+        data={modalData}
         id={id}
         relatedData={relatedData}
       />
