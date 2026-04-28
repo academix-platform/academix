@@ -57,8 +57,8 @@ model Student{
   status StudentStatus @default(ACTIVE)
   repeatCount Int @default(0)
   createdAt DateTime @default(now())
-  parentId String
-  parent Parent @relation(fields:[parentId], references: [id])
+  parentId String?
+  parent Parent? @relation(fields:[parentId], references: [id])
   classId Int
   class Class @relation(fields:[classId], references: [id])
   gradeId Int
