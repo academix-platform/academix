@@ -10,38 +10,12 @@ export type AcademicYearItem = {
 
 const toIsoDate = (value: Date) => value.toISOString().slice(0, 10);
 
-export const getAcademicYears = async (): Promise<AcademicYearItem[]> => {
-  const academicYearDelegate = (
-    prisma as unknown as {
-      academicYear?: {
-        findMany: (args: {
-          orderBy: Array<{ startDate: "asc" | "desc" }>;
-          select: {
-            id: boolean;
-            name: boolean;
-            startDate: boolean;
-            endDate: boolean;
-            isCurrent: boolean;
-          };
-        }) => Promise<
-          Array<{
-            id: number;
-            name: string;
-            startDate: Date;
-            endDate: Date;
-            isCurrent: boolean;
-          }>
-        >;
-      };
-    }
-  ).academicYear;
-
-  if (!academicYearDelegate?.findMany) {
-    return [];
-  }
-
+export const getAcademicYears = async (
+  schoolId: number,
+): Promise<AcademicYearItem[]> => {
   try {
-    const years = await academicYearDelegate.findMany({
+    const years = await prisma.academicYear.findMany({
+      where: { schoolId },
       orderBy: [{ startDate: "desc" }],
       select: {
         id: true,
@@ -64,11 +38,14 @@ export const getAcademicYears = async (): Promise<AcademicYearItem[]> => {
   }
 };
 
-export const getCurrentAcademicYearOrNull = async (): Promise<
-  AcademicYearItem | null
-> => {
+export const getCurrentAcademicYearOrNull = async (
+  schoolId: number,
+): Promise<AcademicYearItem | null> => {
   const currentYear = await prisma.academicYear.findFirst({
-    where: { isCurrent: true },
+    where: {
+      schoolId,
+      isCurrent: true,
+    },
     orderBy: { startDate: "desc" },
     select: {
       id: true,
@@ -92,24 +69,23 @@ export const getCurrentAcademicYearOrNull = async (): Promise<
   };
 };
 
-export const getCurrentAcademicYear = getCurrentAcademicYearOrNull;
-
-export const getCurrentAcademicYearId = async (): Promise<number> => {
-  const currentYearId = await getCurrentAcademicYearIdOrNull();
-
-  if (!currentYearId) {
-    throw new Error(
-      "No current academic year found. Create one and mark it as current in settings.",
-    );
-  }
-
-  return currentYearId;
-};
-
-export const getCurrentAcademicYearIdOrNull = async (): Promise<
-  number | null
-> => {
-  const currentYear = await getCurrentAcademicYearOrNull();
-
+export const getCurrentAcademicYearIdOrNull = async (
+  schoolId: number,
+): Promise<number | null> => {
+  const currentYear = await getCurrentAcademicYearOrNull(schoolId);
   return currentYear?.id ?? null;
 };
+
+// export const getCurrentAcademicYear = getCurrentAcademicYearOrNull;
+
+// export const getCurrentAcademicYearId = async (): Promise<number> => {
+//   const currentYearId = await getCurrentAcademicYearIdOrNull();
+
+//   if (!currentYearId) {
+//     throw new Error(
+//       "No current academic year found. Create one and mark it as current in settings.",
+//     );
+//   }
+
+//   return currentYearId;
+// };

@@ -30,67 +30,43 @@ export const getDefaultSchoolScheduleSettings = (): SchoolScheduleSettings => ({
   ...DEFAULT_SCHEDULE,
 });
 
-export const getSchoolScheduleSettings =
-  async (): Promise<SchoolScheduleSettings> => {
-    const schoolSettingsDelegate = (
-      prisma as unknown as {
-        schoolSettings?: {
-          findUnique: (args: {
-            where: { id: number };
-            select: {
-              workDayStart: boolean;
-              workDayEnd: boolean;
-              lessonDuration: boolean;
-              lessonsPerDay: boolean;
-            };
-          }) => Promise<{
-            workDayStart: Date;
-            workDayEnd: Date;
-            lessonDuration: number;
-            lessonsPerDay: number;
-          } | null>;
-        };
-      }
-    ).schoolSettings;
+export const getSchoolScheduleSettings = async (
+  schoolId: number,
+): Promise<SchoolScheduleSettings> => {
+  let settings: {
+    workDayStart: Date;
+    workDayEnd: Date;
+    lessonDuration: number;
+    lessonsPerDay: number;
+  } | null = null;
 
-    if (!schoolSettingsDelegate?.findUnique) {
-      return getDefaultSchoolScheduleSettings();
-    }
+  try {
+    settings = await prisma.schoolSettings.findUnique({
+      where: { schoolId },
+      select: {
+        workDayStart: true,
+        workDayEnd: true,
+        lessonDuration: true,
+        lessonsPerDay: true,
+      },
+    });
+  } catch {
+    return getDefaultSchoolScheduleSettings();
+  }
 
-    let settings: {
-      workDayStart: Date;
-      workDayEnd: Date;
-      lessonDuration: number;
-      lessonsPerDay: number;
-    } | null = null;
+  if (!settings) {
+    return getDefaultSchoolScheduleSettings();
+  }
 
-    try {
-      settings = await schoolSettingsDelegate.findUnique({
-        where: { id: 1 },
-        select: {
-          workDayStart: true,
-          workDayEnd: true,
-          lessonDuration: true,
-          lessonsPerDay: true,
-        },
-      });
-    } catch {
-      return getDefaultSchoolScheduleSettings();
-    }
+  const start = toHourMinute(settings.workDayStart);
+  const end = toHourMinute(settings.workDayEnd);
 
-    if (!settings) {
-      return getDefaultSchoolScheduleSettings();
-    }
-
-    const start = toHourMinute(settings.workDayStart);
-    const end = toHourMinute(settings.workDayEnd);
-
-    return {
-      workDayStartHour: clamp(start.hour, 0, 23),
-      workDayStartMinute: clamp(start.minute, 0, 59),
-      workDayEndHour: clamp(end.hour, 0, 23),
-      workDayEndMinute: clamp(end.minute, 0, 59),
-      lessonDurationMinutes: clamp(settings.lessonDuration, 15, 180),
-      lessonsPerDay: clamp(settings.lessonsPerDay, 1, 12),
-    };
+  return {
+    workDayStartHour: clamp(start.hour, 0, 23),
+    workDayStartMinute: clamp(start.minute, 0, 59),
+    workDayEndHour: clamp(end.hour, 0, 23),
+    workDayEndMinute: clamp(end.minute, 0, 59),
+    lessonDurationMinutes: clamp(settings.lessonDuration, 15, 180),
+    lessonsPerDay: clamp(settings.lessonsPerDay, 1, 12),
   };
+};
