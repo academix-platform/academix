@@ -1,11 +1,50 @@
 import { auth } from "@clerk/nextjs/server";
+import prisma from "./prisma";
+import { redirect } from "next/navigation";
 
 export type UserRole = "admin" | "teacher" | "student" | "parent";
 
 export type AuthUser = {
   userId: string;
   role: UserRole | null;
+  schoolId: number;
 };
+
+async function getSchoolId(userId: string, role: UserRole): Promise<number> {
+  switch (role) {
+    case "admin":
+      return (
+        await prisma.admin.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true },
+        })
+      ).schoolId;
+
+    case "teacher":
+      return (
+        await prisma.teacher.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true },
+        })
+      ).schoolId;
+
+    case "student":
+      return (
+        await prisma.student.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true },
+        })
+      ).schoolId;
+
+    case "parent":
+      return (
+        await prisma.parent.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true },
+        })
+      ).schoolId;
+  }
+}
 
 // Get the authenticated user + role
 
@@ -14,10 +53,18 @@ export const getAuthUser = async (): Promise<AuthUser | null> => {
 
   if (!userId) return null;
 
-  const role =
-    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
+  const role = (sessionClaims?.metadata as { role?: UserRole } | undefined)
+    ?.role;
 
-  return { userId, role };
+  if (!role) return null;
+
+  const schoolId = await getSchoolId(userId, role);
+
+  return {
+    userId,
+    role,
+    schoolId,
+  };
 };
 
 // Require authentication
@@ -31,9 +78,9 @@ export function requireAuth(user: AuthUser | null): AuthUser {
 
 // Require specific roles
 
-export function requireRole(user: AuthUser, roles: UserRole[]) {
+export function requireRoleRedirect(user: AuthUser, roles: UserRole[]) {
   if (!user.role || !roles.includes(user.role)) {
-    throw new Error("Forbidden");
+    redirect("/unauthorized");
   }
 }
 
