@@ -107,74 +107,101 @@ const AssignmentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId } = await enforceRouteAccess("/list/assignments");
+  const { role, userId, schoolId } =
+    await enforceRouteAccess("/list/assignments");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.AssignmentWhereInput = { academicYearId };
-  query.lesson = {};
+  const query: Prisma.AssignmentWhereInput = {
+    schoolId,
+    academicYearId,
+  };
+  query.lesson = query.lesson || {};
+
+  const conditions: Prisma.AssignmentWhereInput[] = [];
 
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "classId": {
-            query.lesson.classId = parseInt(value);
+          case "classId":
+            conditions.push({
+              lesson: {
+                classId: parseInt(value),
+              },
+            });
             break;
-          }
-          case "teacherId": {
-            query.lesson.teacherId = value;
+
+          case "teacherId":
+            conditions.push({
+              lesson: {
+                teacherId: value,
+              },
+            });
             break;
-          }
-          case "search": {
-            query.lesson.subject = {
-              name: { contains: value, mode: "insensitive" },
-            };
-            break;
-          }
-          default:
+
+          case "search":
+            conditions.push({
+              lesson: {
+                subject: {
+                  name: { contains: value, mode: "insensitive" },
+                },
+              },
+            });
             break;
         }
       }
     }
   }
 
-  // ROLE CONDITIONS
   switch (role) {
     case "admin":
       break;
+
     case "teacher":
-      query.lesson.teacherId = userId!;
-      break;
-    case "student":
-      query.lesson.class = {
-        students: {
-          some: {
-            id: userId!,
-          },
+      conditions.push({
+        lesson: {
+          teacherId: userId,
         },
-      };
-      break;
-    case "parent":
-      query.lesson.class = {
-        students: {
-          some: {
-            parentId: userId!,
-          },
-        },
-      };
+      });
       break;
 
-    default:
+    case "student":
+      conditions.push({
+        lesson: {
+          class: {
+            students: {
+              some: { id: userId },
+            },
+          },
+        },
+      });
       break;
+
+    case "parent":
+      conditions.push({
+        lesson: {
+          class: {
+            students: {
+              some: { parentId: userId },
+            },
+          },
+        },
+      });
+      break;
+  }
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -189,6 +216,7 @@ const AssignmentListPage = async ({
           },
         },
       },
+      orderBy: { startDate: "desc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),

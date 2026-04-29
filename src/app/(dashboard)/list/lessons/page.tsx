@@ -22,6 +22,7 @@ const LessonListPage = async ({
   const classes = await getAccessibleClasses({
     role: user.role,
     userId: user.userId,
+    schoolId: user.schoolId,
     teacherIdParam: teacherId,
   });
 

@@ -72,25 +72,30 @@ const AnnouncementListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId } = await enforceRouteAccess("/list/announcements");
+  const { role, userId, schoolId } = await enforceRouteAccess(
+    "/list/announcements",
+  );
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.AnnouncementWhereInput = { academicYearId };
+  const query: Prisma.AnnouncementWhereInput = { schoolId, academicYearId };
+  const conditions: Prisma.AnnouncementWhereInput[] = [];
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
       if (value !== undefined) {
         switch (key) {
           case "search": {
-            query.title = { contains: value, mode: "insensitive" };
+            conditions.push({
+              title: { contains: value, mode: "insensitive" },
+            });
             break;
           }
           default:
@@ -100,17 +105,26 @@ const AnnouncementListPage = async ({
     }
   }
 
-  // ROLE CONDITIONS
   if (role !== "admin") {
     const roleConditions = {
-      teacher: { lessons: { some: { teacherId: userId! } } },
-      student: { students: { some: { id: userId! } } },
-      parent: { students: { some: { parentId: userId! } } },
+      teacher: { lessons: { some: { teacherId: userId } } },
+      student: { students: { some: { id: userId } } },
+      parent: { students: { some: { parentId: userId } } },
     };
 
-    query.classes = {
-      some: roleConditions[role as keyof typeof roleConditions] || undefined,
-    };
+    const condition = roleConditions[role as keyof typeof roleConditions];
+
+    if (!condition) throw new Error("Invalid role");
+
+    conditions.push({
+      classes: {
+        some: condition,
+      },
+    });
+  }
+
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count, totalClassesCount] = await prisma.$transaction([
@@ -119,13 +133,12 @@ const AnnouncementListPage = async ({
       include: {
         classes: { select: { id: true, name: true } },
       },
+      orderBy: { date: "desc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.announcement.count({
-      where: query,
-    }),
-    prisma.class.count(),
+    prisma.announcement.count({ where: query }),
+    prisma.class.count({ where: { schoolId } }),
   ]);
 
   return (

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAuthUser, requireRole } from "@/lib/auth";
+import { getAuthUser, requireRoleRedirect } from "@/lib/auth";
 
 export default async function TeacherLayout({
   children,
@@ -12,7 +12,7 @@ export default async function TeacherLayout({
     redirect("/sign-in");
   }
 
-  requireRole(user, ["teacher"]);
+  requireRoleRedirect(user, ["teacher"]);
 
   return <>{children}</>;
 }

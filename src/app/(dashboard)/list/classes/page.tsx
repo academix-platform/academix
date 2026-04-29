@@ -10,7 +10,12 @@ import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Prisma, Teacher } from "@prisma/client";
 
-type ClassList = Class & { supervisor: Teacher | null };
+type ClassList = Class & {
+  supervisor: Teacher | null;
+  grade: {
+    level: number;
+  };
+};
 
 const getColumns = (role: UserRole | null) => [
   {
@@ -45,7 +50,7 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
   >
     <td className="flex items-center gap-4 p-4">{item.name}</td>
     <td className="hidden md:table-cell">{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.name[0]}</td>
+    <td className="hidden md:table-cell">{item.grade?.level}</td>
     <td className="hidden md:table-cell">
       {item.supervisor?.name ?? "No supervisor"}
     </td>
@@ -66,32 +71,42 @@ const ClassListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role } = await enforceRouteAccess("/list/classes");
+  const { role, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.ClassWhereInput = {};
+  const query: Prisma.ClassWhereInput = {
+    schoolId,
+  };
+  const conditions: Prisma.ClassWhereInput[] = [];
+
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "supervisorId": {
-            query.supervisorId = value;
+          case "supervisorId":
+            conditions.push({
+              supervisorId: value,
+            });
             break;
-          }
-          case "search": {
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          }
-          default:
+
+          case "search":
+            conditions.push({
+              name: { contains: value, mode: "insensitive" },
+            });
             break;
         }
       }
     }
+  }
+
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -99,7 +114,13 @@ const ClassListPage = async ({
       where: query,
       include: {
         supervisor: true,
+        grade: {
+          select: {
+            level: true,
+          },
+        },
       },
+      orderBy: { name: "asc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),

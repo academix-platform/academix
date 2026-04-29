@@ -71,27 +71,49 @@ const ParentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role } = await enforceRouteAccess("/list/parents");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/parents");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.ParentWhereInput = {};
+  const query: Prisma.ParentWhereInput = { schoolId };
+  const conditions: Prisma.ParentWhereInput[] = [];
+
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "search": {
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          }
-          default:
+          case "search":
+            conditions.push({
+              name: { contains: value, mode: "insensitive" },
+            });
             break;
         }
       }
     }
+  }
+
+  if (role === "teacher") {
+    conditions.push({
+      students: {
+        some: {
+          class: {
+            lessons: {
+              some: {
+                teacherId: userId,
+              },
+            },
+          },
+        },
+      },
+    });
+  }
+
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -100,6 +122,7 @@ const ParentListPage = async ({
       include: {
         students: true,
       },
+      orderBy: { name: "asc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),

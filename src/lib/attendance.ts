@@ -7,15 +7,17 @@ export const getAttendanceData = async ({
   scope,
   classId,
   day,
+  schoolId,
 }: {
   role: string | null;
   userId: string | null;
   scope: "students" | "teachers";
   classId?: number;
   day: Date;
+  schoolId: number;
 }) => {
   // exact date match ONLY
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!academicYearId) {
     return {
@@ -27,6 +29,7 @@ export const getAttendanceData = async ({
 
   const attendance = await prisma.attendance.findMany({
     where: {
+      schoolId,
       academicYearId,
       date: day,
       ...(scope === "students"
@@ -55,7 +58,10 @@ export const getAttendanceData = async ({
   // =========================
   if (scope === "students") {
     const students = await prisma.student.findMany({
-      where: classId ? { classId } : {},
+      where: {
+        schoolId,
+        ...(classId ? { classId } : {}),
+      },
       include: {
         class: { select: { name: true } },
       },
@@ -79,6 +85,7 @@ export const getAttendanceData = async ({
     }
 
     const teachers = await prisma.teacher.findMany({
+      where: { schoolId },
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });

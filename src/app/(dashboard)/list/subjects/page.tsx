@@ -44,7 +44,7 @@ const renderRow = (item: SubjectList, role: UserRole | null) => (
     <td className="flex items-center gap-4 p-4">{item.name}</td>
     <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
     <td className="hidden md:table-cell">
-      {item.teachers.map((t) => t.name).join(",")}
+      {item.teachers.map((t) => t.name).join(", ")}
     </td>
     <td>
       <div className="flex items-center gap-2">
@@ -63,23 +63,24 @@ const SubjectListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId } = await enforceRouteAccess("/list/subjects");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.SubjectWhereInput = {};
+  const query: Prisma.SubjectWhereInput = { schoolId };
+  const conditions: Prisma.SubjectWhereInput[] = [];
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "search": {
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          }
-          default:
+          case "search":
+            conditions.push({
+              name: { contains: value, mode: "insensitive" },
+            });
             break;
         }
       }
@@ -90,20 +91,58 @@ const SubjectListPage = async ({
   switch (role) {
     case "admin":
       break;
+
     case "teacher":
-      query.teachers = {
-        some: {
-          id: userId!,
+      if (!userId) throw new Error("Unauthorized");
+
+      conditions.push({
+        teachers: {
+          some: { id: userId },
         },
-      };
+      });
       break;
+
     case "student":
+      if (!userId) throw new Error("Unauthorized");
+
+      const student = await prisma.student.findUnique({
+        where: { id: userId },
+        select: { gradeId: true },
+      });
+
+      if (student?.gradeId) {
+        conditions.push({
+          gradeId: student.gradeId,
+        });
+      }
       break;
+
     case "parent":
+      if (!userId) throw new Error("Unauthorized");
+
+      const children = await prisma.student.findMany({
+        where: { parentId: userId },
+        select: { gradeId: true },
+      });
+
+      const gradeIds = children.map((c) => c.gradeId);
+
+      if (gradeIds.length > 0) {
+        conditions.push({
+          gradeId: { in: gradeIds },
+        });
+      } else {
+        conditions.push({ id: -1 });
+      }
+
       break;
 
     default:
       break;
+  }
+
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -113,6 +152,7 @@ const SubjectListPage = async ({
         teachers: true,
         grade: true,
       },
+      orderBy: { name: "asc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
