@@ -1,7 +1,7 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 const StudentPage = async ({
@@ -9,21 +9,21 @@ const StudentPage = async ({
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
-  const user = await getAuthUser();
+  const user = requireAuth(await getAuthUser());
 
-  if (!user) return null;
-
-  const classes = await prisma.class.findMany({
+  const studentClass = await prisma.class.findFirst({
     where: {
+      schoolId: user.schoolId,
       students: {
         some: {
           id: user.userId,
         },
       },
     },
+    select: { id: true },
   });
 
-  const classId = classes[0]?.id;
+  const classId = studentClass?.id;
 
   return (
     <div className="flex xl:flex-row flex-col gap-4 p-4">

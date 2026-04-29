@@ -1,13 +1,30 @@
-import { UserRole } from "@/lib/auth";
+import { getAuthUser, requireAuth, UserRole } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { MoreHorizontal } from "lucide-react";
 
 const UserCard = async ({ type }: { type: UserRole }) => {
+  const user = requireAuth(await getAuthUser());
+
   const countByRole: Record<UserRole, () => Promise<number>> = {
-    admin: () => prisma.admin.count(),
-    teacher: () => prisma.teacher.count(),
-    student: () => prisma.student.count(),
-    parent: () => prisma.parent.count(),
+    admin: () =>
+      prisma.admin.count({
+        where: { schoolId: user.schoolId },
+      }),
+
+    teacher: () =>
+      prisma.teacher.count({
+        where: { schoolId: user.schoolId },
+      }),
+
+    student: () =>
+      prisma.student.count({
+        where: { schoolId: user.schoolId },
+      }),
+
+    parent: () =>
+      prisma.parent.count({
+        where: { schoolId: user.schoolId },
+      }),
   };
 
   const data = await countByRole[type]();

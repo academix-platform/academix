@@ -1,23 +1,34 @@
 import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
-  const date = dateParam ? new Date(dateParam) : new Date();
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const user = requireAuth(await getAuthUser());
+
+  const baseDate = dateParam ? new Date(dateParam) : new Date();
+
+  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
+  const startOfDay = new Date(baseDate);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const endOfDay = new Date(baseDate);
+  endOfDay.setHours(23, 59, 59, 999);
+
   const data = await prisma.event.findMany({
     take: 3,
     orderBy: { startDate: "desc" },
     where: {
+      schoolId: user.schoolId,
       academicYearId,
       startDate: {
-        gte: new Date(date.setHours(0, 0, 0, 0)),
-        lte: new Date(date.setHours(23, 59, 59, 999)),
+        gte: startOfDay,
+        lte: endOfDay,
       },
     },
   });
@@ -45,5 +56,4 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
     </div>
   );
 };
-
 export default EventList;

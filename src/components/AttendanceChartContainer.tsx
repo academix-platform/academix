@@ -3,9 +3,12 @@ import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const AttendanceChartContainer = async () => {
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const user = requireAuth(await getAuthUser());
+
+  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -14,6 +17,7 @@ const AttendanceChartContainer = async () => {
   const today = new Date();
   const dayOfWeek = today.getDay();
   const daysSinceSaturday = (dayOfWeek + 1) % 7;
+
   const weekStart = new Date(today);
   weekStart.setDate(today.getDate() - daysSinceSaturday);
   weekStart.setHours(0, 0, 0, 0);
@@ -23,6 +27,7 @@ const AttendanceChartContainer = async () => {
 
   const responseData = await prisma.attendance.findMany({
     where: {
+      schoolId: user.schoolId,
       academicYearId,
       date: {
         gte: weekStart,
@@ -37,20 +42,19 @@ const AttendanceChartContainer = async () => {
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const workingDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
-  const attendanceMap: { [key: string]: { present: number; absent: number } } =
-    {
-      Sun: { present: 0, absent: 0 },
-      Mon: { present: 0, absent: 0 },
-      Tue: { present: 0, absent: 0 },
-      Wed: { present: 0, absent: 0 },
-      Thu: { present: 0, absent: 0 },
-      Fri: { present: 0, absent: 0 },
-      Sat: { present: 0, absent: 0 },
-    };
+
+  const attendanceMap: Record<string, { present: number; absent: number }> = {
+    Sun: { present: 0, absent: 0 },
+    Mon: { present: 0, absent: 0 },
+    Tue: { present: 0, absent: 0 },
+    Wed: { present: 0, absent: 0 },
+    Thu: { present: 0, absent: 0 },
+    Fri: { present: 0, absent: 0 },
+    Sat: { present: 0, absent: 0 },
+  };
 
   responseData.forEach((item) => {
-    const itemDate = new Date(item.date);
-    const dayName = daysOfWeek[itemDate.getDay()];
+    const dayName = daysOfWeek[new Date(item.date).getDay()];
 
     if (workingDays.includes(dayName)) {
       if (item.present) {
@@ -66,6 +70,7 @@ const AttendanceChartContainer = async () => {
     present: attendanceMap[day].present,
     absent: attendanceMap[day].absent,
   }));
+
   return (
     <div className="bg-white p-4 rounded-lg h-full">
       <div className="flex justify-between items-center">

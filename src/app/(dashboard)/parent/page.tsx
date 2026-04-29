@@ -1,7 +1,8 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import { getAuthUser } from "@/lib/auth";
+import StudentSelector from "@/components/StudentSelector";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 
 const ParentPage = async ({
@@ -9,21 +10,30 @@ const ParentPage = async ({
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
-  const user = await getAuthUser();
+  const params = await searchParams;
+  const user = requireAuth(await getAuthUser());
 
-  if (!user) return null;
-
-  const classes = await prisma.class.findMany({
+  const students = await prisma.student.findMany({
     where: {
-      students: {
-        some: {
-          parentId: user.userId,
-        },
-      },
+      parentId: user.userId,
+      schoolId: user.schoolId,
+    },
+    select: {
+      id: true,
+      name: true,
+      classId: true,
     },
   });
 
-  const classId = classes[0]?.id;
+  if (!students.length) {
+    return <div>No students found</div>;
+  }
+
+  const selectedStudentId = params?.studentId || students[0].id;
+
+  const selectedStudent = students.find((s) => s.id === selectedStudentId);
+
+  const classId = selectedStudent?.classId;
 
   return (
     <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
@@ -31,7 +41,7 @@ const ParentPage = async ({
       <div className="w-full xl:w-2/3">
         <div className="bg-white p-4 rounded-md h-full">
           <h1 className="font-semibold text-xl">Schedule</h1>
-
+          {students.length > 1 && <StudentSelector students={students} />}
           {classId ? (
             <BigCalendarContainer type="classId" id={classId} />
           ) : (

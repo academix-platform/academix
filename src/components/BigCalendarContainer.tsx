@@ -4,6 +4,7 @@ import { adjustScheduleToCurrentWeek } from "@/lib/utils";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const BigCalendarContainer = async ({
   type,
@@ -12,15 +13,40 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
-  const schoolSettings = await getSchoolScheduleSettings();
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const user = requireAuth(await getAuthUser());
+
+  const schoolSettings = await getSchoolScheduleSettings(user.schoolId);
+  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
+  if (type === "teacherId") {
+    const teacher = await prisma.teacher.findFirst({
+      where: {
+        id: id as string,
+        schoolId: user.schoolId,
+      },
+    });
+
+    if (!teacher) throw new Error("Unauthorized teacher access");
+  }
+
+  if (type === "classId") {
+    const cls = await prisma.class.findFirst({
+      where: {
+        id: id as number,
+        schoolId: user.schoolId,
+      },
+    });
+
+    if (!cls) throw new Error("Unauthorized class access");
+  }
+
   const dataRes = await prisma.lesson.findMany({
     where: {
+      schoolId: user.schoolId,
       academicYearId,
       ...(type === "teacherId"
         ? { teacherId: id as string }
@@ -28,14 +54,10 @@ const BigCalendarContainer = async ({
     },
     include: {
       subject: {
-        select: {
-          name: true,
-        },
+        select: { name: true },
       },
       teacher: {
-        select: {
-          name: true,
-        },
+        select: { name: true },
       },
     },
   });
