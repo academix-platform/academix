@@ -2,22 +2,17 @@
 "use server";
 
 import prisma from "../prisma";
-import { getAuthUser } from "../auth";
-import { getCurrentAcademicYearId } from "../academicYears";
+import { getRequiredAcademicYearId, requireActionAccess } from "./helpers";
 
 export const saveDailyAttendance = async (
   prevState: any,
   formData: FormData,
 ) => {
-  const user = await getAuthUser();
-  const role = user?.role;
-
-  if (role !== "admin" && role !== "teacher") {
-    return { success: false, error: true, message: "Unauthorized" };
-  }
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const scope = formData.get("scope");
     if (scope !== "students" && scope !== "teachers") {
@@ -51,6 +46,7 @@ export const saveDailyAttendance = async (
             },
             update: { present },
             create: {
+              schoolId: access.schoolId,
               studentId: id,
               academicYearId,
               date: day,
@@ -69,6 +65,7 @@ export const saveDailyAttendance = async (
           },
           update: { present },
           create: {
+            schoolId: access.schoolId,
             teacherId: id,
             academicYearId,
             date: day,

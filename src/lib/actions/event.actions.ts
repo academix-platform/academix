@@ -2,24 +2,24 @@
 
 import { EventSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
   parseNumericId,
   successResult,
-  ensureAdminAccess,
+  getRequiredAcademicYearId,
+  requireActionAccess,
 } from "./helpers";
 
 export const createEvent = async (
   currentState: CurrentState,
   data: EventSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     await prisma.event.create({
       data: {
@@ -27,6 +27,7 @@ export const createEvent = async (
         description: data.description,
         startDate: data.startDate,
         endDate: data.endDate,
+        schoolId: access.schoolId,
         academicYearId,
         classes: {
           connect: data.classIds.map((classId) => ({ id: classId })),
@@ -48,10 +49,18 @@ export const updateEvent = async (
     return { success: false, error: true, message: "Event id is required." };
   }
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
+    const existing = await prisma.event.findFirst({
+      where: { id: data.id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: true, message: "Event not found." };
+    }
+
     await prisma.event.update({
       where: { id: data.id },
       data: {
@@ -78,11 +87,16 @@ export const deleteEvent = async (
   const id = parseNumericId(data.get("id"));
   if (!id) return { success: false, error: true, message: "Invalid event id." };
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    await prisma.event.delete({ where: { id } });
+    const deleted = await prisma.event.deleteMany({
+      where: { id, schoolId: access.schoolId },
+    });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Event not found." };
+    }
     return successResult();
   } catch (err) {
     return errorResult(err);

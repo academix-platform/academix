@@ -1,8 +1,11 @@
 "use server";
 
-import { getCurrentAcademicYearIdOrNull } from "../academicYears";
 import prisma from "../prisma";
-import { ensureAdminAccess, errorResult, successResult } from "./helpers";
+import {
+  errorResult,
+  requireActionAccess,
+  successResult,
+} from "./helpers";
 import type { CurrentState } from "./helpers";
 
 export type PromotionActionResult = {
@@ -18,11 +21,16 @@ export type PromotionActionResult = {
 export const promoteStudentsByPerformance = async (
   currentState: CurrentState,
 ): Promise<PromotionActionResult> => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    const currentAcademicYearId = await getCurrentAcademicYearIdOrNull();
+    const currentAcademicYearId = (
+      await prisma.academicYear.findFirst({
+        where: { schoolId: access.schoolId, isCurrent: true },
+        select: { id: true },
+      })
+    )?.id ?? null;
 
     if (!currentAcademicYearId) {
       return {
@@ -41,11 +49,13 @@ export const promoteStudentsByPerformance = async (
         const localGrades = await tx.grade.findMany({
           select: { id: true, level: true },
           orderBy: { level: "asc" },
+          where: { schoolId: access.schoolId },
         });
 
         const localClasses = await tx.class.findMany({
           select: { id: true, gradeId: true },
           orderBy: { id: "asc" },
+          where: { schoolId: access.schoolId },
         });
 
         const localEnrollments = await (
@@ -54,8 +64,12 @@ export const promoteStudentsByPerformance = async (
               findMany: (args: {
                 where: {
                   academicYearId: number;
+                  schoolId?: number;
                   performanceStatus: { in: Array<"PASS" | "FAIL"> };
-                  student: { status: { in: Array<"ACTIVE" | "REPEATED"> } };
+                  student: {
+                    schoolId?: number;
+                    status: { in: Array<"ACTIVE" | "REPEATED"> };
+                  };
                 };
                 select: {
                   id: boolean;
@@ -78,8 +92,12 @@ export const promoteStudentsByPerformance = async (
         ).studentAcademicYear.findMany({
           where: {
             academicYearId: currentAcademicYearId,
+            schoolId: access.schoolId,
             performanceStatus: { in: ["PASS", "FAIL"] },
-            student: { status: { in: ["ACTIVE", "REPEATED"] } },
+            student: {
+              schoolId: access.schoolId,
+              status: { in: ["ACTIVE", "REPEATED"] },
+            },
           },
           select: {
             id: true,

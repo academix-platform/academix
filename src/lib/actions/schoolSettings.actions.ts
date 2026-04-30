@@ -7,7 +7,7 @@ import {
   type SchoolSettingsSchema,
 } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { ensureAdminAccess, errorResult, successResult } from "./helpers";
+import { errorResult, requireActionAccess, successResult } from "./helpers";
 import type { CurrentState } from "./helpers";
 
 const parseTime = (value: string) => {
@@ -30,8 +30,8 @@ export const updateSchoolSettings = async (
   currentState: CurrentState,
   data: SchoolSettingsSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
     const parsed = schoolSettingsSchema.safeParse(data);
@@ -61,7 +61,7 @@ export const updateSchoolSettings = async (
       prisma as unknown as {
         schoolSettings?: {
           upsert: (args: {
-            where: { id: number };
+            where: { schoolId: number };
             update: {
               workDayStart: Date;
               workDayEnd: Date;
@@ -69,7 +69,7 @@ export const updateSchoolSettings = async (
               lessonsPerDay: number;
             };
             create: {
-              id: number;
+              schoolId: number;
               workDayStart: Date;
               workDayEnd: Date;
               lessonDuration: number;
@@ -90,7 +90,7 @@ export const updateSchoolSettings = async (
     }
 
     await schoolSettingsDelegate.upsert({
-      where: { id: 1 },
+      where: { schoolId: access.schoolId },
       update: {
         workDayStart: toUtcTime(start.hour, start.minute),
         workDayEnd: toUtcTime(end.hour, end.minute),
@@ -98,7 +98,7 @@ export const updateSchoolSettings = async (
         lessonsPerDay,
       },
       create: {
-        id: 1,
+        schoolId: access.schoolId,
         workDayStart: toUtcTime(start.hour, start.minute),
         workDayEnd: toUtcTime(end.hour, end.minute),
         lessonDuration: lessonDurationMinutes,

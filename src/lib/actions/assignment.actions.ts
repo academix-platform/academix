@@ -2,12 +2,12 @@
 
 import { AssignmentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getAuthUser } from "../auth";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
+  getRequiredAcademicYearId,
   parseNumericId,
+  requireActionAccess,
   successResult,
 } from "./helpers";
 
@@ -15,15 +15,17 @@ export const createAssignment = async (
   currentState: CurrentState,
   data: AssignmentSchema,
 ) => {
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const lessons = await prisma.lesson.findMany({
       where: {
         academicYearId,
+        schoolId: access.schoolId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -60,6 +62,7 @@ export const createAssignment = async (
             classId: lesson.classId,
             subjectId: data.subjectId,
             academicYearId,
+            schoolId: access.schoolId,
           },
         }),
       ),
@@ -83,15 +86,16 @@ export const updateAssignment = async (
     };
   }
 
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const existingAssignment = await prisma.assignment.findUnique({
-      where: { id: data.id },
+      where: { id: data.id, schoolId: access.schoolId },
       select: {
         id: true,
         title: true,
@@ -143,6 +147,7 @@ export const updateAssignment = async (
         startDate: existingAssignment.startDate,
         endDate: existingAssignment.endDate,
         academicYearId,
+        schoolId: access.schoolId,
         subjectId: existingAssignment.subjectId,
         ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
@@ -183,6 +188,7 @@ export const updateAssignment = async (
               classId,
               subjectId: data.subjectId,
               academicYearId,
+              schoolId: access.schoolId,
             },
           });
         } else {
@@ -195,6 +201,7 @@ export const updateAssignment = async (
               classId,
               subjectId: data.subjectId,
               academicYearId,
+              schoolId: access.schoolId,
             },
           });
         }
@@ -216,13 +223,14 @@ export const deleteAssignment = async (
     return { success: false, error: true, message: "Invalid assignment id." };
   }
 
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
   try {
     if (role === "teacher") {
       const teacherAssignment = await prisma.assignment.findFirst({
-        where: { id, lesson: { teacherId: userId! } },
+        where: { id, schoolId: access.schoolId, lesson: { teacherId: userId } },
         select: { id: true },
       });
 
@@ -235,9 +243,12 @@ export const deleteAssignment = async (
       }
     }
 
-    await prisma.assignment.delete({
-      where: { id },
+    const deleted = await prisma.assignment.deleteMany({
+      where: { id, schoolId: access.schoolId },
     });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Assignment not found." };
+    }
 
     return successResult();
   } catch (err) {

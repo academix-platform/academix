@@ -5,7 +5,7 @@ import {
   type AcademicYearSchema,
 } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { ensureAdminAccess, errorResult, successResult } from "./helpers";
+import { errorResult, requireActionAccess, successResult } from "./helpers";
 import type { CurrentState } from "./helpers";
 
 const toUtcDate = (value: Date) =>
@@ -23,6 +23,7 @@ const getAcademicYearDelegate = () =>
             startDate: Date;
             endDate: Date;
             isCurrent: boolean;
+            schoolId: number;
           };
         }) => Promise<unknown>;
         update: (args: {
@@ -32,11 +33,12 @@ const getAcademicYearDelegate = () =>
             startDate: Date;
             endDate: Date;
             isCurrent: boolean;
+            schoolId?: number;
           };
         }) => Promise<unknown>;
         updateMany: (args: {
           data: { isCurrent: boolean };
-          where?: { id?: { not: number } };
+          where?: { id?: { not: number }; schoolId?: number };
         }) => Promise<unknown>;
       };
     }
@@ -46,8 +48,8 @@ export const createAcademicYear = async (
   currentState: CurrentState,
   data: AcademicYearSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
     const parsed = academicYearSchema.safeParse(data);
@@ -75,6 +77,7 @@ export const createAcademicYear = async (
 
     if (parsed.data.isCurrent) {
       await delegate.updateMany({
+        where: { schoolId: access.schoolId },
         data: { isCurrent: false },
       });
     }
@@ -82,6 +85,7 @@ export const createAcademicYear = async (
     await delegate.create({
       data: {
         name: parsed.data.name.trim(),
+        schoolId: access.schoolId,
         startDate: normalizedStartDate,
         endDate: normalizedEndDate,
         isCurrent: parsed.data.isCurrent,
@@ -98,8 +102,8 @@ export const updateAcademicYear = async (
   currentState: CurrentState,
   data: AcademicYearSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
     const parsed = academicYearSchema.safeParse(data);
@@ -135,7 +139,7 @@ export const updateAcademicYear = async (
 
     if (parsed.data.isCurrent) {
       await delegate.updateMany({
-        where: { id: { not: parsed.data.id } },
+        where: { id: { not: parsed.data.id }, schoolId: access.schoolId },
         data: { isCurrent: false },
       });
     }
@@ -144,6 +148,7 @@ export const updateAcademicYear = async (
       where: { id: parsed.data.id },
       data: {
         name: parsed.data.name.trim(),
+        schoolId: access.schoolId,
         startDate: normalizedStartDate,
         endDate: normalizedEndDate,
         isCurrent: parsed.data.isCurrent,

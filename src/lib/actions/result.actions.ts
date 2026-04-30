@@ -2,12 +2,12 @@
 
 import { ResultSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getAuthUser } from "../auth";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
+  getRequiredAcademicYearId,
   errorResult,
   parseNumericId,
+  requireActionAccess,
   successResult,
   canTeacherManageResultAssessment,
 } from "./helpers";
@@ -16,12 +16,13 @@ export const createResult = async (
   currentState: CurrentState,
   data: ResultSchema,
 ) => {
-  const user = await getAuthUser();
-  const role = user?.role ?? null;
-  const userId = user?.userId ?? null;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role ?? null;
+  const userId = access.userId ?? null;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const isAllowed = await canTeacherManageResultAssessment({
       role,
@@ -41,6 +42,7 @@ export const createResult = async (
     await prisma.result.create({
       data: {
         score: data.score,
+        schoolId: access.schoolId,
         studentId: data.studentId,
         examId: data.assessmentType === "exam" ? data.assessmentId : null,
         assignmentId:
@@ -63,22 +65,23 @@ export const updateResult = async (
     return { success: false, error: true, message: "Result id is required." };
   }
 
-  const user = await getAuthUser();
-  const role = user?.role ?? null;
-  const userId = user?.userId ?? null;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role ?? null;
+  const userId = access.userId ?? null;
 
   try {
     const assessmentYearId =
       data.assessmentType === "exam"
         ? (
             await prisma.exam.findUnique({
-              where: { id: data.assessmentId },
+              where: { id: data.assessmentId, schoolId: access.schoolId },
               select: { academicYearId: true },
             })
           )?.academicYearId
         : (
             await prisma.assignment.findUnique({
-              where: { id: data.assessmentId },
+              where: { id: data.assessmentId, schoolId: access.schoolId },
               select: { academicYearId: true },
             })
           )?.academicYearId;
@@ -92,7 +95,7 @@ export const updateResult = async (
     }
 
     const existingResult = await prisma.result.findUnique({
-      where: { id: data.id },
+      where: { id: data.id, schoolId: access.schoolId },
       include: {
         exam: { select: { lesson: { select: { teacherId: true } } } },
         assignment: { select: { lesson: { select: { teacherId: true } } } },
@@ -142,8 +145,8 @@ export const updateResult = async (
       };
     }
 
-    await prisma.result.update({
-      where: { id: data.id },
+    const updated = await prisma.result.updateMany({
+      where: { id: data.id, schoolId: access.schoolId },
       data: {
         score: data.score,
         studentId: data.studentId,
@@ -153,6 +156,9 @@ export const updateResult = async (
         academicYearId: assessmentYearId,
       },
     });
+    if (updated.count === 0) {
+      return { success: false, error: true, message: "Result not found." };
+    }
 
     return successResult(["/list/results"]);
   } catch (err) {
@@ -168,13 +174,14 @@ export const deleteResult = async (
   if (!id)
     return { success: false, error: true, message: "Invalid result id." };
 
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
 
   try {
     const existingResult = await prisma.result.findUnique({
-      where: { id },
+      where: { id, schoolId: access.schoolId },
       include: {
         exam: { select: { lesson: { select: { teacherId: true } } } },
         assignment: { select: { lesson: { select: { teacherId: true } } } },
@@ -209,9 +216,12 @@ export const deleteResult = async (
       };
     }
 
-    await prisma.result.delete({
-      where: { id },
+    const deleted = await prisma.result.deleteMany({
+      where: { id, schoolId: access.schoolId },
     });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Result not found." };
+    }
 
     return successResult();
   } catch (err) {

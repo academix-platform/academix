@@ -5,6 +5,7 @@ import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
 import {
   CurrentState,
+  requireActionAccess,
   errorResult,
   isClerkUserNotFoundError,
   successResult,
@@ -15,6 +16,9 @@ export const createTeacher = async (
   currentState: CurrentState,
   data: TeacherSchema,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   let createdUserId: string | null = null;
 
   const subjectClassPairs =
@@ -33,42 +37,23 @@ export const createTeacher = async (
     };
   }
 
-  const getGradeNumberFromSubjectName = (name: string) => {
-    const match = /-G(\d+)$/i.exec(name.trim());
-    return match ? Number(match[1]) : null;
-  };
-
-  const getGradeNumberFromClassName = (name: string) => {
-    const match = /^(\d+)/.exec(name.trim());
-    return match ? Number(match[1]) : null;
-  };
-
   const selectedSubjects = await prisma.subject.findMany({
-    where: { id: { in: subjectIds } },
-    select: { id: true, name: true },
+    where: { id: { in: subjectIds }, schoolId: access.schoolId },
+    select: { gradeId: true },
   });
 
   const selectedClasses = await prisma.class.findMany({
-    select: { id: true, name: true },
+    where: { schoolId: access.schoolId },
+    select: { id: true, gradeId: true },
   });
 
-  const subjectGradeMap = new Map<number, number | null>();
-  for (const subject of selectedSubjects) {
-    subjectGradeMap.set(
-      subject.id,
-      getGradeNumberFromSubjectName(subject.name),
-    );
-  }
-
   const selectedSubjectGrades = new Set<number>();
-  for (const grade of subjectGradeMap.values()) {
-    if (grade !== null) selectedSubjectGrades.add(grade);
+  for (const subject of selectedSubjects) {
+    selectedSubjectGrades.add(subject.gradeId);
   }
 
   const classIds = selectedClasses
-    .filter((cls) =>
-      selectedSubjectGrades.has(getGradeNumberFromClassName(cls.name) ?? -1),
-    )
+    .filter((cls) => selectedSubjectGrades.has(cls.gradeId))
     .map((cls) => cls.id);
 
   if (classIds.length === 0) {
@@ -93,6 +78,7 @@ export const createTeacher = async (
     await prisma.teacher.create({
       data: {
         id: createdUserId,
+        schoolId: access.schoolId,
         username: data.username,
         name: data.name,
         email: data.email || null,
@@ -128,11 +114,22 @@ export const updateTeacher = async (
   currentState: CurrentState,
   data: TeacherSchema,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   if (!data.id) {
     return { success: false, error: true, message: "Teacher id is required." };
   }
 
   try {
+    const existingTeacher = await prisma.teacher.findFirst({
+      where: { id: data.id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existingTeacher) {
+      return { success: false, error: true, message: "Teacher not found." };
+    }
+
     const subjectClassPairs =
       data.subjectClassPairs ??
       (data.subjects ?? []).map((subjectId) => ({ subjectId }));
@@ -149,42 +146,23 @@ export const updateTeacher = async (
       };
     }
 
-    const getGradeNumberFromSubjectName = (name: string) => {
-      const match = /-G(\d+)$/i.exec(name.trim());
-      return match ? Number(match[1]) : null;
-    };
-
-    const getGradeNumberFromClassName = (name: string) => {
-      const match = /^(\d+)/.exec(name.trim());
-      return match ? Number(match[1]) : null;
-    };
-
     const selectedSubjects = await prisma.subject.findMany({
-      where: { id: { in: subjectIds } },
-      select: { id: true, name: true },
+      where: { id: { in: subjectIds }, schoolId: access.schoolId },
+      select: { gradeId: true },
     });
 
     const selectedClasses = await prisma.class.findMany({
-      select: { id: true, name: true },
+      where: { schoolId: access.schoolId },
+      select: { id: true, gradeId: true },
     });
 
-    const subjectGradeMap = new Map<number, number | null>();
-    for (const subject of selectedSubjects) {
-      subjectGradeMap.set(
-        subject.id,
-        getGradeNumberFromSubjectName(subject.name),
-      );
-    }
-
     const selectedSubjectGrades = new Set<number>();
-    for (const grade of subjectGradeMap.values()) {
-      if (grade !== null) selectedSubjectGrades.add(grade);
+    for (const subject of selectedSubjects) {
+      selectedSubjectGrades.add(subject.gradeId);
     }
 
     const classIds = selectedClasses
-      .filter((cls) =>
-        selectedSubjectGrades.has(getGradeNumberFromClassName(cls.name) ?? -1),
-      )
+      .filter((cls) => selectedSubjectGrades.has(cls.gradeId))
       .map((cls) => cls.id);
 
     if (classIds.length === 0) {
@@ -236,6 +214,9 @@ export const deleteTeacher = async (
   currentState: CurrentState,
   data: FormData,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   const id = data.get("id") as string;
   if (!id)
     return { success: false, error: true, message: "Invalid teacher id." };
@@ -252,20 +233,20 @@ export const deleteTeacher = async (
     await prisma.$transaction(async (tx) => {
       const lessonIds = (
         await tx.lesson.findMany({
-          where: { teacherId: id },
+          where: { teacherId: id, schoolId: access.schoolId },
           select: { id: true },
         })
       ).map((lesson) => lesson.id);
 
       await tx.class.updateMany({
-        where: { supervisorId: id },
+        where: { supervisorId: id, schoolId: access.schoolId },
         data: { supervisorId: null },
       });
 
       await deleteLessonGraph(tx, lessonIds);
 
-      await tx.teacher.delete({
-        where: { id },
+      await tx.teacher.deleteMany({
+        where: { id, schoolId: access.schoolId },
       });
     });
 
