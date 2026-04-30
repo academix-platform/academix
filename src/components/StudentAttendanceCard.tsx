@@ -1,9 +1,13 @@
 import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import { getAuthUser } from "@/lib/auth";
 import Image from "next/image";
 
 const StudentAttendanceCard = async ({ id }: { id: string }) => {
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const user = await getAuthUser();
+  const academicYearId = user
+    ? await getCurrentAcademicYearIdOrNull(user.schoolId)
+    : null;
 
   if (!academicYearId) {
     return <h1 className="font-semibold text-xl">-</h1>;

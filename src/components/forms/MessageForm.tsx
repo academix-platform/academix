@@ -156,15 +156,6 @@ const MessageForm = ({
       )}
 
       <div className="flex flex-wrap justify-between gap-4">
-        <InputField
-          label="Message Title"
-          name="title"
-          defaultValue={data?.title}
-          register={register}
-          error={errors?.title}
-          inputProps={{ placeholder: "e.g. Reminder" }}
-        />
-
         {type === "create" && (
           <>
             <input type="hidden" {...register("classIds")} />
@@ -179,41 +170,43 @@ const MessageForm = ({
               }
             />
 
-            <RecipientPicker
-              label="Student recipients"
-              items={eligibleStudents}
-              selectedIds={selectedStudentIds}
-              onChange={(nextIds) =>
-                setValue("studentIds", nextIds, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+            <div className="flex flex-wrap justify-between items-center gap-2 w-full">
+              <RecipientPicker
+                label="Student recipients"
+                items={eligibleStudents}
+                selectedIds={selectedStudentIds}
+                onChange={(nextIds) =>
+                  setValue("studentIds", nextIds, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
 
-            <RecipientPicker
-              label="Parent recipients"
-              items={eligibleParents}
-              selectedIds={selectedParentIds}
-              onChange={(nextIds) =>
-                setValue("parentIds", nextIds, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+              <RecipientPicker
+                label="Parent recipients"
+                items={eligibleParents}
+                selectedIds={selectedParentIds}
+                onChange={(nextIds) =>
+                  setValue("parentIds", nextIds, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
 
-            <RecipientPicker
-              label="Teacher recipients"
-              items={eligibleTeachers}
-              selectedIds={selectedTeacherIds}
-              onChange={(nextIds) =>
-                setValue("teacherIds", nextIds, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+              <RecipientPicker
+                label="Teacher recipients"
+                items={eligibleTeachers}
+                selectedIds={selectedTeacherIds}
+                onChange={(nextIds) =>
+                  setValue("teacherIds", nextIds, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
+                }
+              />
+            </div>
           </>
         )}
 
@@ -225,6 +218,15 @@ const MessageForm = ({
             <input type="hidden" {...register("teacherIds")} />
           </>
         )}
+
+        <InputField
+          label="Message Title"
+          name="title"
+          defaultValue={data?.title}
+          register={register}
+          error={errors?.title}
+          inputProps={{ placeholder: "e.g. Reminder" }}
+        />
 
         <div className="flex flex-col gap-2 w-full">
           <label className="text-gray-500 text-xs">Description</label>

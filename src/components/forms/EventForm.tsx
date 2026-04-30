@@ -6,7 +6,7 @@ import { useForm, useWatch } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { createEvent, updateEvent } from "@/lib/actions";
-import { eventSchema, examSchema } from "@/lib/formValidationSchemas";
+import { eventSchema } from "@/lib/formValidationSchemas";
 import InputField from "../InputField";
 
 const toDatetimeLocalValue = (value: unknown) => {
