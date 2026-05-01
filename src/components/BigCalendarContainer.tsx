@@ -13,10 +13,12 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
-  const user = requireAuth(await getAuthUser());
+  const user = requireAuth();
 
-  const schoolSettings = await getSchoolScheduleSettings(user.schoolId);
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const schoolSettings = await getSchoolScheduleSettings((await user).schoolId);
+  const academicYearId = await getCurrentAcademicYearIdOrNull(
+    (await user).schoolId,
+  );
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -26,7 +28,7 @@ const BigCalendarContainer = async ({
     const teacher = await prisma.teacher.findFirst({
       where: {
         id: id as string,
-        schoolId: user.schoolId,
+        schoolId: (await user).schoolId,
       },
     });
 
@@ -37,7 +39,7 @@ const BigCalendarContainer = async ({
     const cls = await prisma.class.findFirst({
       where: {
         id: id as number,
-        schoolId: user.schoolId,
+        schoolId: (await user).schoolId,
       },
     });
 
@@ -46,7 +48,7 @@ const BigCalendarContainer = async ({
 
   const dataRes = await prisma.lesson.findMany({
     where: {
-      schoolId: user.schoolId,
+      schoolId: (await user).schoolId,
       academicYearId,
       ...(type === "teacherId"
         ? { teacherId: id as string }

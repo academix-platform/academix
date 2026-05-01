@@ -4,11 +4,13 @@ import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
-  const user = requireAuth(await getAuthUser());
+  const user = requireAuth();
 
   const baseDate = dateParam ? new Date(dateParam) : new Date();
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const academicYearId = await getCurrentAcademicYearIdOrNull(
+    (await user).schoolId,
+  );
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -24,7 +26,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
     take: 3,
     orderBy: { startDate: "desc" },
     where: {
-      schoolId: user.schoolId,
+      schoolId: (await user).schoolId,
       academicYearId,
       startDate: {
         gte: startOfDay,

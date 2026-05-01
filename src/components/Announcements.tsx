@@ -5,7 +5,7 @@ import { Prisma } from "@prisma/client";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 
 const Announcements = async () => {
-  const user = requireAuth(await getAuthUser());
+  const user = await requireAuth();
   const { role, userId, schoolId } = user;
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 

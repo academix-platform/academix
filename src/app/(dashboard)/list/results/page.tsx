@@ -4,13 +4,13 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { type UserRole } from "@/lib/auth";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import { Prisma } from "@prisma/client";
+import { UserRole } from "@/lib/utils";
 
 type ResultList = {
   id: number;

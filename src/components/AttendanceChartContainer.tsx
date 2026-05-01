@@ -6,9 +6,11 @@ import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 
 const AttendanceChartContainer = async () => {
-  const user = requireAuth(await getAuthUser());
+  const user = requireAuth();
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const academicYearId = await getCurrentAcademicYearIdOrNull(
+    (await user).schoolId,
+  );
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -27,7 +29,7 @@ const AttendanceChartContainer = async () => {
 
   const responseData = await prisma.attendance.findMany({
     where: {
-      schoolId: user.schoolId,
+      schoolId: (await user).schoolId,
       academicYearId,
       date: {
         gte: weekStart,

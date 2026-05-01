@@ -27,3 +27,5 @@ export async function enforceRouteAccess(pathname: string): Promise<AuthUser> {
 
   return user;
 }
+
+export default enforceRouteAccess;

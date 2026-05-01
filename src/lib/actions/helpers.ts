@@ -1,9 +1,9 @@
 import { revalidatePath } from "next/cache";
-import { clerkClient } from "@clerk/nextjs/server";
 import { Prisma } from "@prisma/client";
-import { getAuthUser, UserRole } from "../auth";
+import { getAuthUser } from "../auth";
 import prisma from "../prisma";
 import { getCurrentAcademicYearIdOrNull } from "../academicYears";
+import { UserRole } from "../utils";
 
 export type CurrentState = {
   success: boolean;

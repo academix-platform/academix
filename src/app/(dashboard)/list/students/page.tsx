@@ -4,7 +4,6 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import StudentsFilters from "@/components/StudentsFilters";
-import { type UserRole } from "@/lib/auth";
 import {
   getAcademicYears,
   getCurrentAcademicYearOrNull,
@@ -18,6 +17,7 @@ import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
+import { UserRole } from "@/lib/utils";
 
 type StudentList = Student & { class: Class };
 

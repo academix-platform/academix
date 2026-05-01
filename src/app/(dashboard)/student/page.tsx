@@ -9,14 +9,14 @@ const StudentPage = async ({
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
-  const user = requireAuth(await getAuthUser());
+  const user = requireAuth();
 
   const studentClass = await prisma.class.findFirst({
     where: {
-      schoolId: user.schoolId,
+      schoolId: (await user).schoolId,
       students: {
         some: {
-          id: user.userId,
+          id: (await user).userId,
         },
       },
     },
