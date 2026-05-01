@@ -64,7 +64,7 @@ const RecipientPicker = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full">
+    <div className="w-full md:w-[48%]">
       <div className="flex justify-between items-center">
         <label className="text-gray-500 text-xs">{label}</label>
         <button

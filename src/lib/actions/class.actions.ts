@@ -2,13 +2,13 @@
 
 import { ClassSchema, classSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getCurrentAcademicYearIdOrNull } from "../academicYears";
 import {
   CurrentState,
-  ensureAdminAccess,
   errorResult,
   deleteLessonGraph,
+  getRequiredAcademicYearId,
   parseNumericId,
+  requireActionAccess,
   successResult,
 } from "./helpers";
 
@@ -32,12 +32,12 @@ export const createClass = async (
   currentState: CurrentState,
   data: ClassSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
     await prisma.class.create({
-      data,
+      data: { ...data, schoolId: access.schoolId },
     });
 
     return successResult(["/list/classes"]);
@@ -50,18 +50,21 @@ export const updateClass = async (
   currentState: CurrentState,
   data: ClassSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   if (!data.id) {
     return { success: false, error: true, message: "Class id is required." };
   }
 
   try {
-    await prisma.class.update({
-      where: { id: data.id },
+    const updated = await prisma.class.updateMany({
+      where: { id: data.id, schoolId: access.schoolId },
       data,
     });
+    if (updated.count === 0) {
+      return { success: false, error: true, message: "Class not found." };
+    }
 
     return successResult(["/list/classes"]);
   } catch (err) {
@@ -73,10 +76,10 @@ export const deleteClass = async (
   currentState: CurrentState,
   data: ClassDeletePayload,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
-  const currentAcademicYearId = await getCurrentAcademicYearIdOrNull();
+  const currentAcademicYearId = await getRequiredAcademicYearId(access.schoolId);
 
   const isFormDataPayload = data instanceof FormData;
   const classId = isFormDataPayload
@@ -89,7 +92,7 @@ export const deleteClass = async (
 
   try {
     const sourceClass = await prisma.class.findUnique({
-      where: { id: classId },
+      where: { id: classId, schoolId: access.schoolId },
       select: { id: true, gradeId: true, name: true },
     });
 
@@ -207,7 +210,7 @@ export const deleteClass = async (
       }
 
       const createdClass = await prisma.class.create({
-        data: parsedClass.data,
+        data: { ...parsedClass.data, schoolId: access.schoolId },
       });
 
       targetClassId = createdClass.id;

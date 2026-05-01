@@ -5,27 +5,18 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { type UserRole } from "@/lib/auth";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import { Prisma } from "@prisma/client";
 import {
-  Class,
-  Message,
-  Parent,
-  Prisma,
-  Student,
-  Teacher,
-} from "@prisma/client";
-
-type MessageList = Message & {
-  classes: Pick<Class, "id" | "name">[];
-  students: Pick<Student, "id" | "name">[];
-  parents: Pick<Parent, "id" | "name">[];
-  teachers: Pick<Teacher, "id" | "name">[];
-};
+  getDescriptionPreview,
+  getRecipientsPreview,
+  MessageList,
+} from "@/lib/message";
+import { UserRole } from "@/lib/utils";
 
 const isLimitedMessageRole = (role: UserRole | null) =>
   role === "student" || role === "parent" || role === "teacher";
@@ -88,29 +79,6 @@ const getColumns = (role: UserRole | null) => {
       accessor: "action",
     },
   ];
-};
-
-const getRecipientsPreview = (item: MessageList) => {
-  const recipients = [
-    ...item.students.map((student) => student.name),
-    ...item.parents.map((parent) => parent.name),
-    ...item.teachers.map((teacher) => teacher.name),
-  ];
-
-  if (recipients.length === 0) return "-";
-  if (recipients.length === 1) return recipients[0];
-
-  return `${recipients[0]} +${recipients.length - 1} more`;
-};
-
-const getDescriptionPreview = (description: string) => {
-  const text = description.trim();
-
-  if (text.length <= 40) {
-    return text;
-  }
-
-  return `${text.slice(0, 40).trimEnd()}...`;
 };
 
 const renderRow = (
@@ -186,47 +154,52 @@ const MessageListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId } = await enforceRouteAccess("/list/messages");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/messages");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.MessageWhereInput = { academicYearId };
+  const query: Prisma.MessageWhereInput = { schoolId, academicYearId };
   const andConditions: Prisma.MessageWhereInput[] = [];
 
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "search": {
-            query.OR = [
-              { title: { contains: value, mode: "insensitive" } },
-              { description: { contains: value, mode: "insensitive" } },
-            ];
-            break;
-          }
-          default:
+          case "search":
+            andConditions.push({
+              OR: [
+                { title: { contains: value, mode: "insensitive" } },
+                { description: { contains: value, mode: "insensitive" } },
+              ],
+            });
             break;
         }
       }
     }
   }
 
-  if (role !== "admin" && userId) {
+  // Role visibility
+  if (role !== "admin") {
+    if (!userId) throw new Error("Unauthorized");
+
     const roleVisibility: Prisma.MessageWhereInput =
       role === "teacher"
         ? {
             OR: [
               { teachers: { some: { id: userId } } },
               {
-                classes: { some: { lessons: { some: { teacherId: userId } } } },
+                classes: {
+                  some: { lessons: { some: { teacherId: userId } } },
+                },
               },
             ],
           }
@@ -234,7 +207,11 @@ const MessageListPage = async ({
           ? {
               OR: [
                 { students: { some: { id: userId } } },
-                { classes: { some: { students: { some: { id: userId } } } } },
+                {
+                  classes: {
+                    some: { students: { some: { id: userId } } },
+                  },
+                },
               ],
             }
           : role === "parent"
@@ -243,7 +220,9 @@ const MessageListPage = async ({
                   { parents: { some: { id: userId } } },
                   {
                     classes: {
-                      some: { students: { some: { parentId: userId } } },
+                      some: {
+                        students: { some: { parentId: userId } },
+                      },
                     },
                   },
                 ],
@@ -253,8 +232,12 @@ const MessageListPage = async ({
     andConditions.push(roleVisibility);
   }
 
-  const where: Prisma.MessageWhereInput =
-    andConditions.length > 0 ? { AND: [query, ...andConditions] } : query;
+  // Attach conditions
+  if (andConditions.length > 0) {
+    query.AND = andConditions;
+  }
+
+  const where = query;
 
   const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.message.findMany({
@@ -270,7 +253,7 @@ const MessageListPage = async ({
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
     prisma.message.count({ where }),
-    prisma.class.count(),
+    prisma.class.count({ where: { schoolId } }),
   ]);
 
   return (

@@ -44,7 +44,7 @@ const StudentForm = ({
     resolver: zodResolver(studentSchema),
   });
 
-  const [img, setImg] = useState<any>();
+  const [img, setImg] = useState<string>(data?.img ?? "");
   const [showPassword, setShowPassword] = useState(false);
   const [searchInput, setSearchInput] = useState(data?.parent?.name ?? "");
   const [selectedParentId, setSelectedParentId] = useState<string>(
@@ -179,7 +179,7 @@ const StudentForm = ({
         <InputField
           label="Birthday"
           name="birthday"
-          defaultValue={data?.birthday.toISOString().split("T")[0]}
+          defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
           register={register}
           error={errors.birthday}
           type="date"

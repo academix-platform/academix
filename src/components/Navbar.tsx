@@ -3,66 +3,97 @@
 import { Search, MessageCircle, Bell } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import UserAvatarMenu from "./UserAvatarMenu";
+import { AuthUser } from "@/lib/auth";
 
-const Navbar = () => {
+type NavbarProps = {
+  authUser: AuthUser | null;
+  schoolName: string | null;
+};
+
+const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   const { user, isLoaded } = useUser();
 
+  const fallbackName = "User";
+  const fallbackRole = authUser?.role ?? null;
+
   const fullName =
-    user?.fullName ||
-    [user?.firstName, user?.lastName].filter(Boolean).join(" ") ||
-    user?.username ||
-    user?.primaryEmailAddress?.emailAddress ||
-    "User";
+    (isLoaded && user?.fullName) ||
+    (isLoaded && [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
+    fallbackName;
+
   const role =
-    isLoaded && user
-      ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
-      : null;
+    (isLoaded &&
+      ((user?.publicMetadata as { role?: string } | undefined)?.role ??
+        null)) ||
+    fallbackRole;
+
+  const formattedRole = role
+    ? role.charAt(0).toUpperCase() + role.slice(1)
+    : "";
 
   const initials =
     fullName
       .split(" ")
       .filter(Boolean)
       .slice(0, 2)
-      .map((namePart) => namePart[0]?.toUpperCase())
+      .map((part) => part.charAt(0).toUpperCase())
       .join("") || "U";
 
   return (
     <div className="flex justify-between items-center p-4">
-      <div className="hidden md:flex items-center gap-2 px-2 rounded-full ring-[1.5px] ring-gray-300 text-xs">
-        <Search className="w-4 h-4 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Search..."
-          className="bg-transparent p-2 outline-none w-[200px]"
-        />
+      {/* SEARCH */}
+      <div className="flex items-center gap-4 text-xs">
+        {schoolName && (
+          <span className="ml-2 font-bold text-academixPurpleDark text-lg whitespace-nowrap">
+            {schoolName}
+          </span>
+        )}
+
+        <div className="hidden md:flex items-center gap-4 px-3 py-1 rounded-full ring-[1.5px] ring-gray-300 text-xs">
+          <Search className="w-4 h-4 text-gray-500" />
+
+          <input
+            type="text"
+            placeholder="Search..."
+            className="bg-transparent outline-none w-[140px]"
+          />
+        </div>
       </div>
 
+      {/* RIGHT */}
       <div className="flex justify-end items-center gap-6 w-full">
-        <div className="flex justify-end items-center gap-2">
-          <div className="flex justify-center items-center bg-white rounded-full w-7 h-7 cursor-pointer">
+        <div className="flex items-center gap-2">
+          <button
+            aria-label="Messages"
+            className="flex justify-center items-center bg-white rounded-full w-7 h-7"
+          >
             <MessageCircle className="w-5 h-5 text-gray-600" />
-          </div>
+          </button>
 
-          <div className="relative flex justify-center items-center bg-white rounded-full w-7 h-7 cursor-pointer">
+          <button
+            aria-label="Notifications"
+            className="relative flex justify-center items-center bg-white rounded-full w-7 h-7"
+          >
             <Bell className="w-5 h-5 text-gray-600" />
             <div className="-top-3 -right-3 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
               1
             </div>
-          </div>
+          </button>
         </div>
 
+        {/* USER INFO */}
         <div className="flex flex-col">
           <span className="font-medium text-xs leading-3">{fullName}</span>
           <span className="text-[10px] text-gray-500 text-right">
-            {role ? role[0].toUpperCase() + role.slice(1) : ""}
+            {formattedRole}
           </span>
         </div>
 
         <UserAvatarMenu
           fullName={fullName}
-          role={role ? role[0].toUpperCase() + role.slice(1) : ""}
+          role={formattedRole}
           initials={initials}
-          imageUrl={user?.imageUrl}
+          imageUrl={isLoaded ? user?.imageUrl : undefined}
         />
       </div>
     </div>

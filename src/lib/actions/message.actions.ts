@@ -2,29 +2,30 @@
 
 import { MessageSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
   parseNumericId,
   successResult,
-  ensureAdminAccess,
+  getRequiredAcademicYearId,
+  requireActionAccess,
 } from "./helpers";
 
 export const createMessage = async (
   currentState: CurrentState,
   data: MessageSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     await prisma.message.create({
       data: {
         title: data.title,
         description: data.description,
+        schoolId: access.schoolId,
         date: new Date(),
         academicYearId,
         classes: {
@@ -66,12 +67,12 @@ export const updateMessage = async (
     };
   }
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    const existingMessage = await prisma.message.findUnique({
-      where: { id: data.id },
+    const existingMessage = await prisma.message.findFirst({
+      where: { id: data.id, schoolId: access.schoolId },
       select: { date: true },
     });
 
@@ -118,11 +119,16 @@ export const deleteMessage = async (
   if (!id)
     return { success: false, error: true, message: "Invalid message id." };
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    await prisma.message.delete({ where: { id } });
+    const deleted = await prisma.message.deleteMany({
+      where: { id, schoolId: access.schoolId },
+    });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Message not found." };
+    }
     return successResult();
   } catch (err) {
     return errorResult(err);

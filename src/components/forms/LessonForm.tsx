@@ -23,8 +23,8 @@ import { useRouter } from "next/navigation";
 type DayValue = (typeof lessonDays)[number];
 
 type RelatedData = {
-  classes?: Array<{ id: number; name: string }>;
-  subjects?: Array<{ id: number; name: string }>;
+  classes?: Array<{ id: number; name: string; gradeId?: number }>;
+  subjects?: Array<{ id: number; name: string; gradeId?: number }>;
   teachers?: Array<{
     id: string;
     name: string;
@@ -228,16 +228,19 @@ const LessonForm = ({
   );
 
   const selectedClassGrade = useMemo(
-    () => getGradeFromClassName(selectedClass?.name),
+    () => selectedClass?.gradeId ?? getGradeFromClassName(selectedClass?.name),
     [selectedClass],
   );
 
   const filteredSubjects = useMemo(() => {
-    if (!selectedClassGrade) return [];
+    if (!selectedClassId) return [];
+    if (!selectedClassGrade) return subjects;
     return subjects.filter(
-      (subject) => getGradeFromSubjectName(subject.name) === selectedClassGrade,
+      (subject) =>
+        (subject.gradeId ?? getGradeFromSubjectName(subject.name)) ===
+        selectedClassGrade,
     );
-  }, [selectedClassGrade, subjects]);
+  }, [selectedClassGrade, selectedClassId, subjects]);
 
   const teacherOptionsBySubject = useMemo(() => {
     const map = new Map<number, Array<{ id: string; name: string }>>();

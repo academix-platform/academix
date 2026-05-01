@@ -14,7 +14,10 @@ export const classSchema = z.object({
   name: z.string().min(1, { message: "Class name is required!" }),
   capacity: z.coerce.number().min(1, { message: "Capacity is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade ID is required!" }),
-  supervisorId: z.coerce.string().optional(),
+  supervisorId: z.preprocess(
+    (value) => (value === "" || value == null ? undefined : value),
+    z.string().optional(),
+  ),
 });
 
 export type ClassSchema = z.infer<typeof classSchema>;
@@ -298,29 +301,39 @@ export type AcademicYearSchema = z.infer<typeof academicYearSchema>;
 
 ////////////////////////////////////////////////////////////////////
 
-export const examSchema = z.object({
-  id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Exam title is required!" }),
-  startTime: z.coerce.date({ message: "Start time is required!" }),
-  endTime: z.coerce.date({ message: "End time is required!" }),
-  subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
-  classIds: z
-    .array(z.coerce.number())
-    .min(1, { message: "At least one class is required!" }),
-});
+export const examSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    title: z.string().min(1, { message: "Exam title is required!" }),
+    startTime: z.coerce.date({ message: "Start time is required!" }),
+    endTime: z.coerce.date({ message: "End time is required!" }),
+    subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    classIds: z
+      .array(z.coerce.number())
+      .min(1, { message: "At least one class is required!" }),
+  })
+  .refine((data) => data.endTime > data.startTime, {
+    message: "End time must be after start time!",
+    path: ["endTime"],
+  });
 
 export type ExamSchema = z.infer<typeof examSchema>;
 
-export const assignmentSchema = z.object({
-  id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Assignment title is required!" }),
-  startDate: z.coerce.date({ message: "Start date is required!" }),
-  endDate: z.coerce.date({ message: "End date is required!" }),
-  subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
-  classIds: z
-    .array(z.coerce.number())
-    .min(1, { message: "At least one class is required!" }),
-});
+export const assignmentSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    title: z.string().min(1, { message: "Assignment title is required!" }),
+    startDate: z.coerce.date({ message: "Start date is required!" }),
+    endDate: z.coerce.date({ message: "End date is required!" }),
+    subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    classIds: z
+      .array(z.coerce.number())
+      .min(1, { message: "At least one class is required!" }),
+  })
+  .refine((data) => data.endDate > data.startDate, {
+    message: "End date must be after start date!",
+    path: ["endDate"],
+  });
 
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
 
@@ -362,28 +375,38 @@ export const attendanceBulkSchema = z.object({
 
 export type AttendanceBulkSchema = z.infer<typeof attendanceBulkSchema>;
 ////////////////////////////////////////////////////////////////////////////////////
-export const eventSchema = z.object({
-  id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Event title is required!" }),
-  description: z.string().min(1, { message: "Description is required!" }),
-  startDate: z.coerce.date({ message: "Start date is required!" }),
-  endDate: z.coerce.date({ message: "End date is required!" }),
-  classIds: z
-    .array(z.coerce.number())
-    .min(1, { message: "At least one class is required!" }),
-});
+export const eventSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    title: z.string().min(1, { message: "Event title is required!" }),
+    description: z.string().min(1, { message: "Description is required!" }),
+    startDate: z.coerce.date({ message: "Start date is required!" }),
+    endDate: z.coerce.date({ message: "End date is required!" }),
+    classIds: z
+      .array(z.coerce.number())
+      .min(1, { message: "At least one class is required!" }),
+  })
+  .refine((data) => data.endDate > data.startDate, {
+    message: "End date must be after start date!",
+    path: ["endDate"],
+  });
 
 export type EventSchema = z.infer<typeof eventSchema>;
 
-export const announcementSchema = z.object({
-  id: z.coerce.number().optional(),
-  title: z.string().min(1, { message: "Announcement title is required!" }),
-  description: z.string().min(1, { message: "Description is required!" }),
-  date: z.coerce.date({ message: "Date is required!" }),
-  classIds: z
-    .array(z.coerce.number())
-    .min(1, { message: "At least one class is required!" }),
-});
+export const announcementSchema = z
+  .object({
+    id: z.coerce.number().optional(),
+    title: z.string().min(1, { message: "Announcement title is required!" }),
+    description: z.string().min(1, { message: "Description is required!" }),
+    date: z.coerce.date({ message: "Date is required!" }),
+    classIds: z
+      .array(z.coerce.number())
+      .min(1, { message: "At least one class is required!" }),
+  })
+  .refine((data) => data.date > new Date(0), {
+    message: "Date is required!",
+    path: ["date"],
+  });
 
 export type AnnouncementSchema = z.infer<typeof announcementSchema>;
 

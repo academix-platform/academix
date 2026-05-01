@@ -17,12 +17,11 @@ const SingleTeacherPage = async ({
 }) => {
   const { id } = await params;
 
-  const user = await enforceRouteAccess(`/list/teachers/${id}`);
-
-  const role = user.role;
+  const { role, schoolId } = await enforceRouteAccess(`/list/teachers`);
 
   const where: Prisma.TeacherWhereInput = {
     id,
+    schoolId,
   };
 
   const teacher = await prisma.teacher.findFirst({

@@ -15,10 +15,8 @@ const AttendancePage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const user = await enforceRouteAccess("/list/attendance");
-
-  const role = user.role;
-  const userId = user.userId;
+  const { role, userId, schoolId } =
+    await enforceRouteAccess("/list/attendance");
 
   const resolved = await searchParams;
 
@@ -35,16 +33,19 @@ const AttendancePage = async ({
   const scope: "students" | "teachers" =
     rawScope === "teachers" ? "teachers" : "students";
 
-  // =========================
   // CLASSES
   const classes =
     role === "admin"
       ? await prisma.class.findMany({
+          where: { schoolId: schoolId },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })
       : await prisma.class.findMany({
-          where: { supervisorId: userId },
+          where: {
+            schoolId: schoolId,
+            supervisorId: userId,
+          },
           select: { id: true, name: true },
         });
 
@@ -69,6 +70,7 @@ const AttendancePage = async ({
   const { data, hasAttendance, noCurrentYear } = await getAttendanceData({
     role,
     userId,
+    schoolId: schoolId,
     scope,
     classId: effectiveClassId,
     day,

@@ -1,8 +1,9 @@
 import { revalidatePath } from "next/cache";
-import { clerkClient } from "@clerk/nextjs/server";
 import { Prisma } from "@prisma/client";
-import { getAuthUser, UserRole } from "../auth";
+import { getAuthUser } from "../auth";
 import prisma from "../prisma";
+import { getCurrentAcademicYearIdOrNull } from "../academicYears";
+import { UserRole } from "../utils";
 
 export type CurrentState = {
   success: boolean;
@@ -48,9 +49,7 @@ export const parseNumericId = (
 
 export const ensureAdminAccess = async () => {
   const user = await getAuthUser();
-  const role = user?.role;
-
-  if (role !== "admin") {
+  if (user?.role !== "admin") {
     return {
       success: false,
       error: true,
@@ -59,6 +58,39 @@ export const ensureAdminAccess = async () => {
   }
 
   return null;
+};
+
+export const requireActionAccess = async (
+  roles: UserRole[],
+): Promise<
+  | { userId: string; role: UserRole; schoolId: number }
+  | { success: false; error: true; message: string }
+> => {
+  const user = await getAuthUser();
+  if (!user || !user.role || !roles.includes(user.role)) {
+    return {
+      success: false,
+      error: true,
+      message: "You are not allowed to perform this action.",
+    };
+  }
+
+  return {
+    userId: user.userId,
+    role: user.role,
+    schoolId: user.schoolId,
+  };
+};
+
+export const getRequiredAcademicYearId = async (schoolId: number) => {
+  const currentYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  if (!currentYearId) {
+    throw new Error(
+      "No current academic year found. Create one and mark it as current in settings.",
+    );
+  }
+
+  return currentYearId;
 };
 
 export const serializeActionError = (err: unknown) => {

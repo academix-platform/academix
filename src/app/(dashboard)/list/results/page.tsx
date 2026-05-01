@@ -4,13 +4,13 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { type UserRole } from "@/lib/auth";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import { Prisma } from "@prisma/client";
+import { UserRole } from "@/lib/utils";
 
 type ResultList = {
   id: number;
@@ -111,62 +111,83 @@ const ResultListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId } = await enforceRouteAccess("/list/results");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/results");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull();
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.ResultWhereInput = { academicYearId };
+  const query: Prisma.ResultWhereInput = { schoolId, academicYearId };
+  const conditions: Prisma.ResultWhereInput[] = [];
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "studentId": {
-            query.studentId = value;
+          case "studentId":
+            conditions.push({
+              studentId: value,
+            });
             break;
-          }
-          case "search": {
-            query.OR = [
-              { student: { name: { contains: value, mode: "insensitive" } } },
-              { exam: { title: { contains: value, mode: "insensitive" } } },
-            ];
-            break;
-          }
-          default:
+
+          case "search":
+            conditions.push({
+              OR: [
+                {
+                  student: {
+                    name: { contains: value, mode: "insensitive" },
+                  },
+                },
+                {
+                  exam: {
+                    title: { contains: value, mode: "insensitive" },
+                  },
+                },
+              ],
+            });
             break;
         }
       }
     }
   }
 
-  // ROLE CONDITIONS
   switch (role) {
     case "admin":
       break;
+
     case "teacher":
-      query.OR = [
-        { exam: { lesson: { teacherId: userId! } } },
-        { assignment: { lesson: { teacherId: userId! } } },
-      ];
-      break;
-    case "student":
-      query.studentId = userId!;
-      break;
-    case "parent":
-      query.student = { parentId: userId! };
+      conditions.push({
+        OR: [
+          { exam: { lesson: { teacherId: userId } } },
+          { assignment: { lesson: { teacherId: userId } } },
+        ],
+      });
       break;
 
-    default:
+    case "student":
+      conditions.push({
+        studentId: userId,
+      });
+      break;
+
+    case "parent":
+      conditions.push({
+        student: {
+          parentId: userId,
+        },
+      });
       break;
   }
 
+  if (conditions.length > 0) {
+    query.AND = conditions;
+  }
   const [dataRes, count] = await prisma.$transaction([
     prisma.result.findMany({
       where: query,
@@ -195,6 +216,7 @@ const ResultListPage = async ({
           },
         },
       },
+      orderBy: { id: "desc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),

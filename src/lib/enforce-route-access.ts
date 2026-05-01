@@ -1,28 +1,31 @@
 import { redirect } from "next/navigation";
-import { getAuthUser } from "./auth";
+import { AuthUser, getAuthUser } from "./auth";
 import { getAllowedRoles } from "./settings";
 
-// Enforces authentication + role-based access for a route
-
-export async function enforceRouteAccess(pathname: string) {
+export async function enforceRouteAccess(pathname: string): Promise<AuthUser> {
   const user = await getAuthUser();
 
-  // Not logged in → go to sign-in
   if (!user) {
     redirect("/sign-in");
   }
 
+  if (!user.schoolId) {
+    redirect("/unauthorized");
+  }
+
   const allowedRoles = getAllowedRoles(pathname);
 
-  // No rules → public route
+  // Public route
   if (!allowedRoles) {
     return user;
   }
 
-  // Role not allowed → block
+  // Role not allowed
   if (!user.role || !allowedRoles.includes(user.role)) {
     redirect("/unauthorized");
   }
 
   return user;
 }
+
+export default enforceRouteAccess;

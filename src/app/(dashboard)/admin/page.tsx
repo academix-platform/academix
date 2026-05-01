@@ -25,7 +25,7 @@ const AdminPage = ({
         <div className="flex lg:flex-row flex-col gap-4">
           {/* COUNT CHART */}
           <div className="w-full lg:w-1/3 h-[450px]">
-            <CountChartContainer />
+            {/* <CountChartContainer /> */}
           </div>
           {/* ATTENDANCE CHART */}
           <div className="w-full lg:w-2/3 h-[450px]">
@@ -33,9 +33,7 @@ const AdminPage = ({
           </div>
         </div>
         {/* BOTTOM CHART */}
-        <div className="w-full h-[500px]">
-          <FinanceChartLoader />
-        </div>
+        <div className="w-full h-[500px]">{/* <FinanceChartLoader /> */}</div>
       </div>
       {/* RIGHT */}
       <div className="flex flex-col gap-8 w-full lg:w-1/3">

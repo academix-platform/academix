@@ -6,7 +6,7 @@ import Performance from "@/components/Performance";
 import StudentAttendanceCard from "@/components/StudentAttendanceCard";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
-import { Class, Prisma, Student } from "@prisma/client";
+import { Prisma } from "@prisma/client";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -19,37 +19,40 @@ const SingleStudentPage = async ({
 }) => {
   const { id } = await params;
 
-  const user = await enforceRouteAccess(`/list/students/${id}`);
-
-  const role = user.role;
-  const userId = user.userId;
+  const { role, userId, schoolId } = await enforceRouteAccess(`/list/students`);
 
   const where: Prisma.StudentWhereInput = {
     id,
+    schoolId,
   };
 
   switch (role) {
+    case "admin":
+      break;
+
     case "teacher":
-      where.class = {
-        lessons: {
-          some: {
-            teacherId: userId,
+      where.AND = [
+        { id },
+        {
+          class: {
+            lessons: {
+              some: { teacherId: userId },
+            },
           },
         },
-      };
+      ];
       break;
 
     case "student":
-      where.id = userId;
+      where.AND = [{ id }, { id: userId }];
       break;
 
     case "parent":
-      where.parentId = userId;
+      where.AND = [{ id }, { parentId: userId }];
       break;
 
-    case "admin":
     default:
-      break;
+      where.id = "__forbidden__";
   }
 
   const student = await prisma.student.findFirst({

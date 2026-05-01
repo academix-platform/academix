@@ -2,30 +2,31 @@
 
 import { AnnouncementSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
   parseNumericId,
   successResult,
-  ensureAdminAccess,
+  getRequiredAcademicYearId,
+  requireActionAccess,
 } from "./helpers";
 
 export const createAnnouncement = async (
   currentState: CurrentState,
   data: AnnouncementSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     await prisma.announcement.create({
       data: {
         title: data.title,
         description: data.description,
         date: data.date,
+        schoolId: access.schoolId,
         academicYearId,
         classes: {
           connect: data.classIds.map((classId) => ({ id: classId })),
@@ -51,10 +52,18 @@ export const updateAnnouncement = async (
     };
   }
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
+    const existing = await prisma.announcement.findFirst({
+      where: { id: data.id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: true, message: "Announcement not found." };
+    }
+
     await prisma.announcement.update({
       where: { id: data.id },
       data: {
@@ -82,11 +91,16 @@ export const deleteAnnouncement = async (
     return { success: false, error: true, message: "Invalid announcement id." };
   }
 
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
-    await prisma.announcement.delete({ where: { id } });
+    const deleted = await prisma.announcement.deleteMany({
+      where: { id, schoolId: access.schoolId },
+    });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Announcement not found." };
+    }
     return successResult();
   } catch (err) {
     return errorResult(err);

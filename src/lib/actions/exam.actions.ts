@@ -2,12 +2,12 @@
 
 import { ExamSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
-import { getAuthUser } from "../auth";
-import { getCurrentAcademicYearId } from "../academicYears";
 import {
   CurrentState,
   errorResult,
+  getRequiredAcademicYearId,
   parseNumericId,
+  requireActionAccess,
   successResult,
 } from "./helpers";
 
@@ -15,16 +15,18 @@ export const createExam = async (
   currentState: CurrentState,
   data: ExamSchema,
 ) => {
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const lessons = await prisma.lesson.findMany({
       where: {
         academicYearId,
+        schoolId: access.schoolId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -61,6 +63,7 @@ export const createExam = async (
             classId: lesson.classId,
             subjectId: data.subjectId,
             academicYearId,
+            schoolId: access.schoolId,
           },
         }),
       ),
@@ -80,15 +83,16 @@ export const updateExam = async (
     return { success: false, error: true, message: "Exam id is required." };
   }
 
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
 
   try {
-    const academicYearId = await getCurrentAcademicYearId();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const existingExam = await prisma.exam.findUnique({
-      where: { id: data.id },
+      where: { id: data.id, schoolId: access.schoolId },
       select: {
         id: true,
         title: true,
@@ -140,6 +144,7 @@ export const updateExam = async (
         startTime: existingExam.startTime,
         endTime: existingExam.endTime,
         academicYearId,
+        schoolId: access.schoolId,
         subjectId: existingExam.subjectId,
         ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
@@ -177,6 +182,7 @@ export const updateExam = async (
               classId,
               subjectId: data.subjectId,
               academicYearId,
+              schoolId: access.schoolId,
             },
           });
         } else {
@@ -189,6 +195,7 @@ export const updateExam = async (
               classId,
               subjectId: data.subjectId,
               academicYearId,
+              schoolId: access.schoolId,
             },
           });
         }
@@ -208,13 +215,14 @@ export const deleteExam = async (
   const id = parseNumericId(data.get("id"));
   if (!id) return { success: false, error: true, message: "Invalid exam id." };
 
-  const user = await getAuthUser();
-  const role = user?.role;
-  const userId = user?.userId;
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+  const role = access.role;
+  const userId = access.userId;
   try {
     if (role === "teacher") {
       const teacherExam = await prisma.exam.findFirst({
-        where: { id, lesson: { teacherId: userId! } },
+        where: { id, schoolId: access.schoolId, lesson: { teacherId: userId } },
         select: { id: true },
       });
 
@@ -227,9 +235,12 @@ export const deleteExam = async (
       }
     }
 
-    await prisma.exam.delete({
-      where: { id },
+    const deleted = await prisma.exam.deleteMany({
+      where: { id, schoolId: access.schoolId },
     });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Exam not found." };
+    }
 
     return successResult();
   } catch (err) {

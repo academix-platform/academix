@@ -161,20 +161,31 @@ export const menuItems: MenuSection[] = [
   },
 ];
 
-const Menu = () => {
+type AuthUser = {
+  userId: string;
+  role: string | null;
+  schoolId: number;
+} | null;
+
+const Menu = ({ authUser }: { authUser: AuthUser }) => {
   const { signOut } = useClerk();
   const { user, isLoaded } = useUser();
   const pathname = usePathname();
   const router = useRouter();
   const [isSigningOut, setIsSigningOut] = useState(false);
+  const fallbackRole = authUser?.role ?? null;
+
   const role =
-    isLoaded && user
-      ? ((user.publicMetadata as { role?: string } | null)?.role ?? null)
-      : null;
+    (isLoaded &&
+      ((user?.publicMetadata as { role?: string } | undefined)?.role ??
+        null)) ||
+    fallbackRole;
 
   const handleSignOut = async () => {
     setIsSigningOut(true);
-    await signOut({ redirectUrl: "/sign-in" });
+    await signOut({ redirectUrl: "/sign-in" }).catch(() => {
+      setIsSigningOut(false);
+    });
   };
 
   const resolvedMenuItems = useMemo(
@@ -184,7 +195,11 @@ const Menu = () => {
         items: section.items.map((item) => ({
           ...item,
           href:
-            typeof item.href === "function" ? item.href(role ?? "") : item.href,
+            typeof item.href === "function"
+              ? role
+                ? item.href(role)
+                : "#"
+              : item.href,
         })),
       })),
     [role],
@@ -222,9 +237,8 @@ const Menu = () => {
   }, [pathname, router, visibleItems]);
 
   if (!role) {
-    return null;
+    return <div className="mt-4 text-sm" />;
   }
-
   return (
     <div className="mt-4 text-sm">
       {resolvedMenuItems.map((section) => (

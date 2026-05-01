@@ -1,54 +1,102 @@
 import { auth } from "@clerk/nextjs/server";
-
-export type UserRole = "admin" | "teacher" | "student" | "parent";
+import prisma from "./prisma";
+import { redirect } from "next/navigation";
+import { UserRole } from "./utils";
 
 export type AuthUser = {
   userId: string;
-  role: UserRole | null;
+  role: UserRole;
+  schoolId: number;
 };
 
-// Get the authenticated user + role
+class AuthError extends Error {
+  constructor(
+    message: string,
+    public readonly code: "UNAUTHENTICATED" | "UNAUTHORIZED" | "NOT_FOUND",
+  ) {
+    super(message);
+    this.name = "AuthError";
+  }
+}
+
+async function getSchoolId(userId: string, role: UserRole): Promise<number> {
+  const select = { schoolId: true } as const;
+
+  try {
+    switch (role) {
+      case "admin":
+        return (
+          await prisma.admin.findUniqueOrThrow({
+            where: { id: userId },
+            select,
+          })
+        ).schoolId;
+      case "teacher":
+        return (
+          await prisma.teacher.findUniqueOrThrow({
+            where: { id: userId },
+            select,
+          })
+        ).schoolId;
+      case "student":
+        return (
+          await prisma.student.findUniqueOrThrow({
+            where: { id: userId },
+            select,
+          })
+        ).schoolId;
+      case "parent":
+        return (
+          await prisma.parent.findUniqueOrThrow({
+            where: { id: userId },
+            select,
+          })
+        ).schoolId;
+    }
+  } catch (err: unknown) {
+    if (
+      typeof err === "object" &&
+      err !== null &&
+      "code" in err &&
+      (err as { code: string }).code === "P2025"
+    ) {
+      throw new AuthError(
+        `No ${role} record found for userId ${userId}. ` +
+          `The user exists in Clerk but not in the application database.`,
+        "NOT_FOUND",
+      );
+    }
+    throw err;
+  }
+}
 
 export const getAuthUser = async (): Promise<AuthUser | null> => {
   const { userId, sessionClaims } = await auth();
 
   if (!userId) return null;
 
-  const role =
-    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
+  const role = (sessionClaims?.metadata as { role?: UserRole } | undefined)
+    ?.role;
 
-  return { userId, role };
+  if (!role) return null;
+
+  const schoolId = await getSchoolId(userId, role);
+
+  return { userId, role, schoolId };
 };
 
-// Require authentication
+export async function requireAuth(): Promise<AuthUser> {
+  const user = await getAuthUser();
 
-export function requireAuth(user: AuthUser | null): AuthUser {
   if (!user) {
-    throw new Error("Unauthorized");
+    redirect("/sign-in");
   }
+
   return user;
 }
 
-// Require specific roles
-
-export function requireRole(user: AuthUser, roles: UserRole[]) {
-  if (!user.role || !roles.includes(user.role)) {
-    throw new Error("Forbidden");
-  }
-}
-
-// safe role redirect
-export function getRoleHome(role: UserRole | null): string {
-  switch (role) {
-    case "admin":
-      return "/admin";
-    case "teacher":
-      return "/teacher";
-    case "student":
-      return "/student";
-    case "parent":
-      return "/parent";
-    default:
-      return "/";
+export async function requireRole(user: AuthUser, roles: UserRole[]) {
+  if (!roles.includes(user.role)) {
+    redirect("/unauthorized");
   }
 }

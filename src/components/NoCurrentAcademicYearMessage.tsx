@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { getAuthUser, type UserRole } from "@/lib/auth";
+import { getAuthUser } from "@/lib/auth";
+import { UserRole } from "@/lib/utils";
 
 type Props = {
   compact?: boolean;

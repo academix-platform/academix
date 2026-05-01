@@ -4,8 +4,10 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import StudentsFilters from "@/components/StudentsFilters";
-import { type UserRole } from "@/lib/auth";
-import { getAcademicYears, getCurrentAcademicYear } from "@/lib/academicYears";
+import {
+  getAcademicYears,
+  getCurrentAcademicYearOrNull,
+} from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -15,6 +17,7 @@ import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
+import { UserRole } from "@/lib/utils";
 
 type StudentList = Student & { class: Class };
 
@@ -90,10 +93,11 @@ const StudentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role } = await enforceRouteAccess("/list/students");
-  const currentAcademicYear = await getCurrentAcademicYear();
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/students");
+  const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
   const academicYearId = currentAcademicYear?.id ?? null;
-  const academicYears = role === "admin" ? await getAcademicYears() : [];
+  const academicYears =
+    role === "admin" ? await getAcademicYears(schoolId) : [];
 
   if (!academicYearId || !currentAcademicYear) {
     return <NoCurrentAcademicYearMessage role={role} />;
@@ -127,6 +131,7 @@ const StudentListPage = async ({
       : 1;
 
   const query: Prisma.StudentWhereInput = {
+    schoolId,
     academicYears: {
       some: {
         academicYearId: selectedAcademicYearId,
@@ -134,6 +139,8 @@ const StudentListPage = async ({
     },
     status: selectedStatus,
   };
+
+  const conditions: Prisma.StudentWhereInput[] = [];
 
   if (selectedStatus === "REPEATED") {
     query.repeatCount = Number.isNaN(selectedRepeatCount)
@@ -144,27 +151,46 @@ const StudentListPage = async ({
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {
       const value = getQueryParam(rawValue);
+
       if (value !== undefined) {
         switch (key) {
-          case "teacherId": {
-            query.class = {
-              lessons: {
-                some: {
-                  teacherId: value,
+          case "teacherId":
+            conditions.push({
+              class: {
+                lessons: {
+                  some: { teacherId: value },
                 },
               },
-            };
+            });
             break;
-          }
-          case "search": {
-            query.name = { contains: value, mode: "insensitive" };
-            break;
-          }
-          default:
+
+          case "search":
+            conditions.push({
+              name: { contains: value, mode: "insensitive" },
+            });
             break;
         }
       }
     }
+  }
+
+  switch (role) {
+    case "admin":
+      break;
+
+    case "teacher":
+      conditions.push({
+        class: {
+          lessons: {
+            some: { teacherId: userId },
+          },
+        },
+      });
+      break;
+  }
+
+  if (conditions.length > 0) {
+    query.AND = conditions;
   }
 
   const [data, count] = await prisma.$transaction([
@@ -173,6 +199,7 @@ const StudentListPage = async ({
       include: {
         class: true,
       },
+      orderBy: { name: "asc" },
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),

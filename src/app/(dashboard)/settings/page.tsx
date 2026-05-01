@@ -1,23 +1,17 @@
 import AcademicYearForm from "@/components/AcademicYearForm";
 import SchoolSettingsForm from "@/components/SchoolSettingsForm";
 import { getAcademicYears } from "@/lib/academicYears";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth, requireRole } from "@/lib/auth";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
-import { redirect } from "next/navigation";
 
 const SettingsPage = async () => {
-  const user = await getAuthUser();
+  const user = await requireAuth();
+  requireRole(user, ["admin"]);
 
-  if (!user) {
-    redirect("/sign-in");
-  }
-
-  if (user.role !== "admin") {
-    redirect("/unauthorized");
-  }
-
-  const settings = await getSchoolScheduleSettings();
-  const academicYears = await getAcademicYears();
+  const [settings, academicYears] = await Promise.all([
+    getSchoolScheduleSettings(user.schoolId),
+    getAcademicYears(user.schoolId),
+  ]);
 
   return (
     <div className="bg-white m-4 mt-0 p-6 rounded-md">

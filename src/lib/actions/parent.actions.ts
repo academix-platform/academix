@@ -3,12 +3,20 @@
 import { ParentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
-import { CurrentState, errorResult, successResult } from "./helpers";
+import {
+  CurrentState,
+  errorResult,
+  requireActionAccess,
+  successResult,
+} from "./helpers";
 
 export const createParent = async (
   currentState: CurrentState,
   data: ParentSchema,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   let createdUserId: string | null = null;
 
   if (!data.students || data.students.length === 0) {
@@ -33,6 +41,7 @@ export const createParent = async (
     await prisma.parent.create({
       data: {
         id: createdUserId,
+        schoolId: access.schoolId,
         username: data.username,
         name: data.name,
         email: data.email || null,
@@ -63,11 +72,22 @@ export const updateParent = async (
   currentState: CurrentState,
   data: ParentSchema,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   if (!data.id) {
     return { success: false, error: true, message: "Parent id is required." };
   }
 
   try {
+    const existing = await prisma.parent.findFirst({
+      where: { id: data.id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: true, message: "Parent not found." };
+    }
+
     await (
       await clerkClient()
     ).users.updateUser(data.id, {
@@ -104,6 +124,9 @@ export const deleteParent = async (
   currentState: CurrentState,
   data: FormData,
 ) => {
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
+
   const id = data.get("id") as string;
   if (!id)
     return { success: false, error: true, message: "Invalid parent id." };
@@ -111,9 +134,12 @@ export const deleteParent = async (
   try {
     await (await clerkClient()).users.deleteUser(id);
 
-    await prisma.parent.delete({
-      where: { id: id },
+    const deleted = await prisma.parent.deleteMany({
+      where: { id, schoolId: access.schoolId },
     });
+    if (deleted.count === 0) {
+      return { success: false, error: true, message: "Parent not found." };
+    }
 
     return successResult();
   } catch (err) {

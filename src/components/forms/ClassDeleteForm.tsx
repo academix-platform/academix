@@ -65,7 +65,14 @@ const ClassDeleteForm = ({
     },
   );
   const [isSubmitting, startTransition] = useTransition();
-  const [mode, setMode] = useState<"existing" | "new">("existing");
+  const [mode, setMode] = useState<"existing" | "new">(
+    (relatedData?.classes ?? []).some(
+      (classItem) =>
+        classItem.id !== data.id && classItem.gradeId === data.gradeId,
+    )
+      ? "existing"
+      : "new",
+  );
   const [selectedClassId, setSelectedClassId] = useState("");
   const [newClassName, setNewClassName] = useState("");
   const [newClassCapacity, setNewClassCapacity] = useState(
@@ -89,14 +96,8 @@ const ClassDeleteForm = ({
   const grades = relatedData?.grades ?? [];
   const teachers = relatedData?.teachers ?? [];
 
-  useEffect(() => {
-    if (availableClasses.length > 0) {
-      setSelectedClassId(String(availableClasses[0].id));
-      setMode("existing");
-    } else {
-      setMode("new");
-    }
-  }, [availableClasses]);
+  const effectiveSelectedClassId =
+    selectedClassId || String(availableClasses[0]?.id ?? "");
 
   useEffect(() => {
     if (state.success) {
@@ -119,7 +120,7 @@ const ClassDeleteForm = ({
     if (studentCount === 0) {
       payload = { classId: data.id };
     } else if (mode === "existing") {
-      const parsedTargetClassId = Number(selectedClassId);
+      const parsedTargetClassId = Number(effectiveSelectedClassId);
       if (!parsedTargetClassId || Number.isNaN(parsedTargetClassId)) {
         setError("Please select a class to move the students to.");
         return;
@@ -207,7 +208,7 @@ const ClassDeleteForm = ({
               <label className="text-gray-500 text-xs">Target class</label>
               <select
                 className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-                value={selectedClassId}
+                value={effectiveSelectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
               >
                 <option value="">Select an existing class</option>

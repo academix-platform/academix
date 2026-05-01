@@ -1,4 +1,4 @@
-import { UserRole } from "./auth";
+import { UserRole } from "./utils";
 
 export const ITEM_PER_PAGE = 10;
 

@@ -2,7 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 
-import { ensureAdminAccess, errorResult, successResult } from "./helpers";
+import {
+  errorResult,
+  getRequiredAcademicYearId,
+  requireActionAccess,
+  successResult,
+} from "./helpers";
 import prisma from "../prisma";
 import { LessonScheduleSchema } from "../formValidationSchemas";
 import type { CurrentState } from "./helpers";
@@ -11,7 +16,6 @@ import {
   getSchoolScheduleSettings,
   type SchoolScheduleSettings,
 } from "../schoolSettings";
-import { getCurrentAcademicYearId } from "../academicYears";
 
 type SelectedScheduleEntry = {
   day: LessonScheduleSchema["entries"][number]["day"];
@@ -86,11 +90,13 @@ const detectTeacherConflicts = async ({
   selectedEntries,
   settings,
   academicYearId,
+  schoolId,
 }: {
   classId: number;
   selectedEntries: SelectedScheduleEntry[];
   settings: SchoolScheduleSettings;
   academicYearId: number;
+  schoolId: number;
 }) => {
   if (selectedEntries.length === 0) return null;
 
@@ -113,6 +119,7 @@ const detectTeacherConflicts = async ({
   const existingLessons = await prisma.lesson.findMany({
     where: {
       classId: { not: classId },
+      schoolId,
       academicYearId,
       teacherId: { in: teacherIds },
       day: { in: days },
@@ -157,13 +164,14 @@ export const saveLessonSchedule = async (
   currentState: CurrentState,
   data: LessonScheduleSchema,
 ) => {
-  const adminError = await ensureAdminAccess();
-  if (adminError) return adminError;
+  const access = await requireActionAccess(["admin"]);
+  if ("error" in access) return access;
 
   try {
     const settings =
-      (await getSchoolScheduleSettings()) ?? getDefaultSchoolScheduleSettings();
-    const academicYearId = await getCurrentAcademicYearId();
+      (await getSchoolScheduleSettings(access.schoolId)) ??
+      getDefaultSchoolScheduleSettings();
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
     const selectedEntries = toSelectedEntries(data.entries);
 
     const hasInvalidSlot = selectedEntries.some(
@@ -191,6 +199,7 @@ export const saveLessonSchedule = async (
       selectedEntries,
       settings,
       academicYearId,
+      schoolId: access.schoolId,
     });
 
     if (conflict) {
@@ -203,7 +212,7 @@ export const saveLessonSchedule = async (
 
     await prisma.$transaction(async (tx) => {
       const existingLessons = await tx.lesson.findMany({
-        where: { classId: data.classId, academicYearId },
+        where: { classId: data.classId, academicYearId, schoolId: access.schoolId },
         select: {
           id: true,
           day: true,
@@ -252,13 +261,13 @@ export const saveLessonSchedule = async (
 
       if (lessonIdsToDelete.length > 0) {
         await tx.exam.deleteMany({
-          where: { lessonId: { in: lessonIdsToDelete } },
+          where: { lessonId: { in: lessonIdsToDelete }, schoolId: access.schoolId },
         });
         await tx.assignment.deleteMany({
-          where: { lessonId: { in: lessonIdsToDelete } },
+          where: { lessonId: { in: lessonIdsToDelete }, schoolId: access.schoolId },
         });
         await tx.lesson.deleteMany({
-          where: { id: { in: lessonIdsToDelete } },
+          where: { id: { in: lessonIdsToDelete }, schoolId: access.schoolId },
         });
       }
 
@@ -278,6 +287,7 @@ export const saveLessonSchedule = async (
               classId: data.classId,
               subjectId: entry.subjectId,
               teacherId: entry.teacherId,
+              schoolId: access.schoolId,
               academicYearId,
             },
           });
