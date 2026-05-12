@@ -68,6 +68,8 @@ const getColumns = (role: UserRole | null) => {
   return columns;
 };
 
+import Link from "next/link";
+
 const renderRow = (item: ExamList, role: UserRole | null) => (
   <tr
     key={item.id}
@@ -98,6 +100,21 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
             <FormContainer table="exam" type="update" data={item} />
             <FormContainer table="exam" type="delete" id={item.id} />
           </>
+        )}
+        {(role === "admin" || role === "teacher") && (
+          <Link
+            href={`/list/exams/${item.id}/submissions`}
+            className="px-3 py-1 bg-academixYellow text-xs rounded-md hover:opacity-90"
+          >
+            Submissions
+          </Link>
+        )}
+        {role === "student" && (
+          <Link href={`/list/exams/${item.id}/take`}>
+            <button className="bg-academixPurpleDark text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-academixPurple transition-colors">
+              Take Exam
+            </button>
+          </Link>
         )}
       </div>
     </td>
@@ -223,43 +240,43 @@ const ExamListPage = async ({
   const dataWithClassDisplay: ExamList[] =
     role === "admin" || role === "teacher"
       ? (() => {
-          const classGroups = new Map<string, Set<string>>();
+        const classGroups = new Map<string, Set<string>>();
 
-          for (const exam of data) {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+        for (const exam of data) {
+          const groupKey = [
+            exam.title,
+            exam.startTime.toISOString(),
+            exam.endTime.toISOString(),
+            exam.subject?.name,
+          ].join("|");
 
-            if (!classGroups.has(groupKey)) {
-              classGroups.set(groupKey, new Set<string>());
-            }
-
-            if (exam.class?.name) {
-              classGroups.get(groupKey)!.add(exam.class.name);
-            }
+          if (!classGroups.has(groupKey)) {
+            classGroups.set(groupKey, new Set<string>());
           }
 
-          return data.map((exam) => {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+          if (exam.class?.name) {
+            classGroups.get(groupKey)!.add(exam.class.name);
+          }
+        }
 
-            const groupedClasses = classGroups.get(groupKey);
-            return {
-              ...exam,
-              displayClasses:
-                groupedClasses && groupedClasses.size > 1
-                  ? Array.from(groupedClasses).sort().join(", ")
-                  : exam.class?.name,
-            };
-          });
-        })()
+        return data.map((exam) => {
+          const groupKey = [
+            exam.title,
+            exam.startTime.toISOString(),
+            exam.endTime.toISOString(),
+            exam.subject?.name,
+          ].join("|");
+
+          const groupedClasses = classGroups.get(groupKey);
+          return {
+            ...exam,
+            displayClasses:
+              groupedClasses && groupedClasses.size > 1
+                ? Array.from(groupedClasses).sort().join(", ")
+                : exam.class?.name,
+          };
+        });
+      })()
       : data;
 
   return (
