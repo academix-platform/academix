@@ -1,21 +1,69 @@
-import { Filter, ArrowUpDown } from "lucide-react";
+"use client";
+
+import { ArrowUpDown, Filter } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
-  onFilterClick?: () => void;
-  onSortClick?: () => void;
+  filterKey?: string;
+  filterValue?: string;
+  sortKey?: string;
 };
 
 export default function FilterSortActions({
-  onFilterClick,
-  onSortClick,
+  filterKey,
+  filterValue,
+  sortKey = "sort",
 }: Props) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+
+  const updateParams = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+
+    if (params.get(key) === value) {
+      params.delete(key);
+    } else {
+      params.set(key, value);
+    }
+
+    params.set("page", "1");
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
+  const handleFilterClick = () => {
+    if (!filterKey || !filterValue) return;
+    updateParams(filterKey, filterValue);
+  };
+
+  const handleSortClick = () => {
+    const currentSort = searchParams.get(sortKey);
+    const nextSort = currentSort === "asc" ? "desc" : "asc";
+
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(sortKey, nextSort);
+    params.set("page", "1");
+
+    router.push(`${pathname}?${params.toString()}`);
+  };
+
   return (
     <div className="flex items-center gap-2">
-      <button className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8">
+      <button
+        type="button"
+        onClick={handleFilterClick}
+        className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+        title="Filter"
+      >
         <Filter className="w-[14px] h-[14px]" />
       </button>
 
-      <button className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8">
+      <button
+        type="button"
+        onClick={handleSortClick}
+        className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+        title="Sort"
+      >
         <ArrowUpDown className="w-[14px] h-[14px]" />
       </button>
     </div>

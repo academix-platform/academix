@@ -1,4 +1,5 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
+import ExportButton from "@/components/ExportButton";
 import FormContainer from "@/components/FormContainer";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { computeClassSelection } from "@/lib/lessons/classSelection";
@@ -33,7 +34,6 @@ const LessonListPage = async ({
       selectedGrade: grade,
     });
 
-  //  preserve params
   const baseParams: Record<string, string> = {};
 
   for (const [key, value] of Object.entries(resolvedSearchParams)) {
@@ -58,10 +58,12 @@ const LessonListPage = async ({
     params.set("classId", classId.toString());
     return `/list/lessons?${params.toString()}`;
   };
+
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex md:flex-row flex-col justify-between md:items-center gap-4">
         <h1 className="font-semibold text-xl">Lessons Calendar</h1>
+
         {role === "admin" && selectedClass && (
           <div className="self-end md:self-auto">
             <FormContainer
@@ -83,6 +85,7 @@ const LessonListPage = async ({
             <span className="mr-1 font-medium text-gray-600 text-xs">
               Grade:
             </span>
+
             {availableGrades.map((gradeLevel) => (
               <Link
                 key={gradeLevel}
@@ -102,8 +105,10 @@ const LessonListPage = async ({
             <span className="mr-1 font-medium text-gray-600 text-xs">
               Classes:
             </span>
+
             {filteredClasses.map((item) => {
               const isActive = selectedClass?.id === item.id;
+
               return (
                 <Link
                   key={item.id}
@@ -122,9 +127,18 @@ const LessonListPage = async ({
 
           {selectedClass ? (
             <div className="mt-4">
-              <h2 className="mb-3 font-medium text-gray-700 text-sm">
-                {`Schedule for Grade ${selectedClass.grade.level} - ${selectedClass.name}`}
-              </h2>
+              <div className="flex justify-between items-center mb-3">
+                <h2 className="font-medium text-gray-700 text-sm">
+                  {`Schedule for Grade ${selectedClass.grade.level} - ${selectedClass.name}`}
+                </h2>
+
+                {role === "admin" && (
+                  <ExportButton
+                    href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
+                  />
+                )}
+              </div>
+
               <BigCalendarContainer type="classId" id={selectedClass.id} />
             </div>
           ) : (

@@ -1,3 +1,4 @@
+import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
@@ -5,12 +6,12 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { buildExamQuery } from "@/lib/query-builders/exam-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
-import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
+import { Class, Exam, Subject, Teacher } from "@prisma/client";
 import { UserRole } from "@/lib/utils";
+import type { PageSearchParams } from "@/lib/pageParams";
 
 type ExamList = Exam & {
   displayClasses?: string;
@@ -21,15 +22,25 @@ type ExamList = Exam & {
   };
 };
 
+const formatDateTime = (date: Date) =>
+  new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+
 const getColumns = (role: UserRole | null) => {
-  const columns: { header: string; accessor: string; className?: string }[] = [
+  const columns: {
+    header: string;
+    accessor: string;
+    className?: string;
+  }[] = [
     {
       header: "Title",
       accessor: "title",
     },
     {
       header: "Subject",
-      accessor: "name",
+      accessor: "subject",
     },
   ];
 
@@ -48,17 +59,18 @@ const getColumns = (role: UserRole | null) => {
     });
   }
 
-  columns.push({
-    header: "Start Time",
-    accessor: "startTime",
-    className: "hidden md:table-cell",
-  });
-
-  columns.push({
-    header: "End Time",
-    accessor: "endTime",
-    className: "hidden md:table-cell",
-  });
+  columns.push(
+    {
+      header: "Start Time",
+      accessor: "startTime",
+      className: "hidden md:table-cell min-w-[180px] w-[180px]",
+    },
+    {
+      header: "End Time",
+      accessor: "endTime",
+      className: "hidden md:table-cell min-w-[180px] w-[180px]",
+    }
+  );
 
   columns.push({
     header: role === "admin" || role === "teacher" ? "Actions" : "",
@@ -74,23 +86,29 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="p-4">{item.title}</td>
-    <td className="flex items-center gap-4 p-4">{item.subject?.name}</td>
-    {role !== "student" && <td>{item.displayClasses ?? item.class?.name}</td>}
-    {role !== "teacher" && (
-      <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+
+    <td className="flex items-center gap-4 p-4">
+      {item.subject?.name ?? "-"}
+    </td>
+
+    {role !== "student" && (
+      <td>{item.displayClasses ?? item.class?.name ?? "-"}</td>
     )}
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US", {
-        dateStyle: "short",
-        timeStyle: "short",
-      }).format(item.startTime)}
+
+    {role !== "teacher" && (
+      <td className="hidden md:table-cell">
+        {item.lesson.teacher.name}
+      </td>
+    )}
+
+    <td className="hidden md:table-cell min-w-[180px] w-[180px]">
+      {formatDateTime(item.startTime)}
     </td>
-    <td className="hidden md:table-cell">
-      {new Intl.DateTimeFormat("en-US", {
-        dateStyle: "short",
-        timeStyle: "short",
-      }).format(item.endTime)}
+
+    <td className="hidden md:table-cell min-w-[180px] w-[180px]">
+      {formatDateTime(item.endTime)}
     </td>
+
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
@@ -103,115 +121,68 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     </td>
   </tr>
 );
+
 const ExamListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
-  const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const { role, userId, schoolId } =
+    await enforceRouteAccess("/list/exams");
 
-  if (!academicYearId) {
+  const resolvedSearchParams = await searchParams;
+
+  const {
+    academicYearId,
+    query,
+    orderBy,
+    page: p,
+  } = await buildExamQuery({
+    searchParams,
+    schoolId,
+    role,
+    userId,
+  });
+
+  if (!academicYearId || !query) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.ExamWhereInput = { schoolId, academicYearId };
-  const conditions: Prisma.ExamWhereInput[] = [];
-
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-
-      if (value !== undefined) {
-        switch (key) {
-          case "classId":
-            conditions.push({
-              lesson: {
-                classId: parseInt(value),
-              },
-            });
-            break;
-
-          case "teacherId":
-            conditions.push({
-              lesson: {
-                teacherId: value,
-              },
-            });
-            break;
-
-          case "search":
-            conditions.push({
-              lesson: {
-                subject: {
-                  name: { contains: value, mode: "insensitive" },
-                },
-              },
-            });
-            break;
-        }
+  const exportQuery = new URLSearchParams(
+    Object.entries(resolvedSearchParams).flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => [key, item]);
       }
-    }
-  }
-  // ROLE CONDITIONS
-  switch (role) {
-    case "admin":
-      break;
 
-    case "teacher":
-      conditions.push({
-        lesson: {
-          teacherId: userId,
-        },
-      });
-      break;
-
-    case "student":
-      conditions.push({
-        lesson: {
-          class: {
-            students: {
-              some: { id: userId },
-            },
-          },
-        },
-      });
-      break;
-
-    case "parent":
-      conditions.push({
-        lesson: {
-          class: {
-            students: {
-              some: { parentId: userId },
-            },
-          },
-        },
-      });
-      break;
-  }
-
-  if (conditions.length > 0) {
-    query.AND = conditions;
-  }
+      return value ? [[key, value]] : [];
+    })
+  );
 
   const [data, count] = await prisma.$transaction([
     prisma.exam.findMany({
       where: query,
       include: {
-        subject: { select: { name: true } },
-        class: { select: { name: true } },
+        subject: {
+          select: {
+            name: true,
+          },
+        },
+        class: {
+          select: {
+            name: true,
+          },
+        },
         lesson: {
           select: {
-            teacher: { select: { name: true } },
+            teacher: {
+              select: {
+                name: true,
+              },
+            },
           },
         },
       },
-      orderBy: { startTime: "desc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -251,6 +222,7 @@ const ExamListPage = async ({
             ].join("|");
 
             const groupedClasses = classGroups.get(groupKey);
+
             return {
               ...exam,
               displayClasses:
@@ -264,26 +236,38 @@ const ExamListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
       <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Exams</h1>
+        <h1 className="hidden md:block font-semibold text-lg">
+          All Exams
+        </h1>
+
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
+
           <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+            <FilterSortActions sortKey="sort" />
+
             {(role === "admin" || role === "teacher") && (
-              <FormContainer table="exam" type="create" />
+              <>
+                {role === "admin" && (
+                  <ExportButton
+                    href={`/api/admin/exams/export?${exportQuery.toString()}`}
+                  />
+                )}
+
+                <FormContainer table="exam" type="create" />
+              </>
             )}
           </div>
         </div>
       </div>
-      {/* LIST */}
+
       <Table
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );

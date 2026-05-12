@@ -1,3 +1,5 @@
+import ExportButton from "@/components/ExportButton";
+import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import PromoteStudentsButton from "@/components/PromoteStudentsButton";
 import Pagination from "@/components/Pagination";
@@ -9,23 +11,21 @@ import {
   getCurrentAcademicYearOrNull,
 } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { buildStudentQuery } from "@/lib/query-builders/student-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { Class, Prisma, Student, StudentStatus } from "@prisma/client";
+import { Class, Student } from "@prisma/client";
 import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { UserRole } from "@/lib/utils";
+import type { PageSearchParams } from "@/lib/pageParams";
 
 type StudentList = Student & { class: Class };
 
 const getColumns = (role: UserRole | null) => [
-  {
-    header: "Info",
-    accessor: "info",
-  },
+  { header: "Info", accessor: "info" },
   {
     header: "Student ID",
     accessor: "studentId",
@@ -70,10 +70,12 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
         <p className="text-gray-500 text-xs">{item.class.name}</p>
       </div>
     </td>
+
     <td className="hidden md:table-cell">{item.username}</td>
     <td className="hidden md:table-cell">{item.class.name[0]}</td>
     <td className="hidden md:table-cell">{item.phone}</td>
     <td className="hidden md:table-cell">{item.address}</td>
+
     <td>
       <div className="flex items-center gap-2">
         <Link href={`/list/students/${item.id}`}>
@@ -81,6 +83,7 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
             <Eye className="w-4 h-4" />
           </button>
         </Link>
+
         {role === "admin" && (
           <FormContainer table="student" type="delete" id={item.id} />
         )}
@@ -88,14 +91,17 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
     </td>
   </tr>
 );
+
 const StudentListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
   const { role, userId, schoolId } = await enforceRouteAccess("/list/students");
+
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
   const academicYearId = currentAcademicYear?.id ?? null;
+
   const academicYears =
     role === "admin" ? await getAcademicYears(schoolId) : [];
 
@@ -103,94 +109,28 @@ const StudentListPage = async ({
     return <NoCurrentAcademicYearMessage role={role} />;
   }
 
-  const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
-
-  const academicYearParam = getQueryParam(queryParams.academicYearId);
-  const statusParam = getQueryParam(queryParams.status);
-  const repeatCountParam = getQueryParam(queryParams.repeatCount);
-  const selectedAcademicYearId = academicYearParam
-    ? Number.parseInt(academicYearParam, 10)
-    : academicYearId;
-
-  const validStatuses: StudentStatus[] = [
-    "ACTIVE",
-    "REPEATED",
-    "GRADUATED",
-    "LEFT",
-  ];
-  const selectedStatus = validStatuses.includes(statusParam as StudentStatus)
-    ? (statusParam as StudentStatus)
-    : "ACTIVE";
-
-  const selectedRepeatCount =
-    repeatCountParam && selectedStatus === "REPEATED"
-      ? Number.parseInt(repeatCountParam, 10)
-      : 1;
-
-  const query: Prisma.StudentWhereInput = {
+  const { query, orderBy, page: p } = await buildStudentQuery({
+    searchParams,
     schoolId,
-    academicYears: {
-      some: {
-        academicYearId: selectedAcademicYearId,
-      },
-    },
-    status: selectedStatus,
-  };
+    currentAcademicYearId: academicYearId,
+    role,
+    userId,
+  });
 
-  const conditions: Prisma.StudentWhereInput[] = [];
+  const resolvedSearchParams = await searchParams;
 
-  if (selectedStatus === "REPEATED") {
-    query.repeatCount = Number.isNaN(selectedRepeatCount)
-      ? 1
-      : selectedRepeatCount;
-  }
-
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-
-      if (value !== undefined) {
-        switch (key) {
-          case "teacherId":
-            conditions.push({
-              class: {
-                lessons: {
-                  some: { teacherId: value },
-                },
-              },
-            });
-            break;
-
-          case "search":
-            conditions.push({
-              name: { contains: value, mode: "insensitive" },
-            });
-            break;
-        }
+  const exportQuery = new URLSearchParams(
+    Object.entries(resolvedSearchParams).flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => [key, item]);
       }
-    }
-  }
 
-  switch (role) {
-    case "admin":
-      break;
+      return value ? [[key, value]] : [];
+    })
+  );
 
-    case "teacher":
-      conditions.push({
-        class: {
-          lessons: {
-            some: { teacherId: userId },
-          },
-        },
-      });
-      break;
-  }
-
-  if (conditions.length > 0) {
-    query.AND = conditions;
+  if (!exportQuery.get("academicYearId")) {
+    exportQuery.set("academicYearId", String(academicYearId));
   }
 
   const [data, count] = await prisma.$transaction([
@@ -199,7 +139,7 @@ const StudentListPage = async ({
       include: {
         class: true,
       },
-      orderBy: { name: "asc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -210,37 +150,46 @@ const StudentListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
       <div className="flex justify-between items-center">
         <h1 className="hidden md:block font-semibold text-lg">All Students</h1>
+
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
+
           {role === "admin" && (
             <StudentsFilters
               academicYears={academicYears}
               currentAcademicYearId={academicYearId}
             />
           )}
+
           <div className="flex items-center self-end gap-4">
+            <FilterSortActions />
+
             {role === "admin" && (
               <>
+                <ExportButton
+                  href={`/api/admin/students/export?${exportQuery.toString()}`}
+                />
+
                 <PromoteStudentsButton
                   academicYearName={currentAcademicYear.name}
                   academicYearEndDate={currentAcademicYear.endDate}
                 />
+
                 <FormContainer table="student" type="create" />
               </>
             )}
           </div>
         </div>
       </div>
-      {/* LIST */}
+
       <Table
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );
