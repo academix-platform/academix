@@ -11,6 +11,8 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import { Class, Exam, Prisma, Subject, Teacher } from "@prisma/client";
 import { UserRole } from "@/lib/utils";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 type ExamList = Exam & {
   displayClasses?: string;
@@ -68,8 +70,6 @@ const getColumns = (role: UserRole | null) => {
   return columns;
 };
 
-import Link from "next/link";
-
 const renderRow = (item: ExamList, role: UserRole | null) => (
   <tr
     key={item.id}
@@ -96,10 +96,16 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
-          <>
-            <FormContainer table="exam" type="update" data={item} />
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/list/exams/create-workflow?examId=${item.id}`}
+              className="p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixSky"
+              aria-label="Edit exam workflow"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
             <FormContainer table="exam" type="delete" id={item.id} />
-          </>
+          </div>
         )}
         {(role === "admin" || role === "teacher") && (
           <Link
@@ -289,7 +295,12 @@ const ExamListPage = async ({
           <div className="flex items-center self-end gap-4">
             <FilterSortActions />
             {(role === "admin" || role === "teacher") && (
-              <FormContainer table="exam" type="create" />
+              <Link
+                href="/list/exams/create-workflow"
+                className="px-4 py-2 bg-academixPurpleDark text-white rounded-md text-sm font-medium hover:opacity-90 transition-colors"
+              >
+                Add Exam
+              </Link>
             )}
           </div>
         </div>

@@ -2,6 +2,10 @@
 import { validateFileUrl } from "../storage";
 import prisma from "../prisma";
 import {
+  getAutoGradeScore,
+  normalizeStoredAnswer,
+} from "../examAnswerUtils";
+import {
   requireActionAccess,
   getRequiredAcademicYearId,
   successResult,
@@ -44,6 +48,43 @@ const validateSubmissionOwnership = async (
   return submission;
 };
 
+const applyAutoGrades = async (submissionId: number) => {
+  const answers = await prisma.answer.findMany({
+    where: { submissionId },
+    include: { question: true },
+  });
+
+  for (const answer of answers) {
+    if (
+      answer.question.type === "TRUE_FALSE" ||
+      answer.question.type === "MCQ"
+    ) {
+      const score = getAutoGradeScore(
+        answer.textAnswer,
+        answer.question.correctAnswer,
+        answer.question.allowMultiple,
+        answer.question.points
+      );
+
+      await prisma.answer.update({
+        where: { id: answer.id },
+        data: { score },
+      });
+    }
+  }
+
+  const updatedAnswers = await prisma.answer.findMany({
+    where: { submissionId },
+  });
+
+  const totalScore = updatedAnswers.reduce(
+    (sum, answer) => sum + (answer.score ?? 0),
+    0
+  );
+
+  return { updatedAnswers, totalScore };
+};
+
 // ============================================================
 // 1. createExamWorkflow
 // ============================================================
@@ -58,7 +99,7 @@ export const createExamWorkflow = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
-    // تحقق من الـ lessons
+    // Verify the lessons
     const lessons = await prisma.lesson.findMany({
       where: {
         academicYearId,
@@ -87,7 +128,7 @@ export const createExamWorkflow = async (
       };
     }
 
-    // أنشئ الامتحان لكل كلاس مع الأسئلة
+    // Create an exam for each class with its questions
     await prisma.$transaction(
       lessons.map((lesson) =>
         prisma.exam.create({
@@ -135,6 +176,185 @@ export const createExamWorkflow = async (
 };
 
 // ============================================================
+// 1b. updateExamWorkflow
+// ============================================================
+
+export const updateExamWorkflow = async (
+  currentState: CurrentState,
+  examId: number,
+  data: CreateExamWorkflowSchema
+) => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  try {
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+
+    const existingExam = await prisma.exam.findFirst({
+      where: {
+        id: examId,
+        schoolId: access.schoolId,
+        academicYearId,
+        ...(access.role === "teacher" ? { lesson: { teacherId: access.userId } } : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        subjectId: true,
+      },
+    });
+
+    if (!existingExam) {
+      return {
+        success: false,
+        error: true,
+        message: "The exam you are trying to update was not found.",
+      };
+    }
+
+    const lessons = await prisma.lesson.findMany({
+      where: {
+        academicYearId,
+        schoolId: access.schoolId,
+        subjectId: data.subjectId,
+        classId: { in: data.classIds },
+        ...(access.role === "teacher" ? { teacherId: access.userId } : {}),
+      },
+      select: { id: true, classId: true },
+    });
+
+    if (lessons.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No lessons found for the selected subject and classes.",
+      };
+    }
+
+    const matchedClassIds = new Set(lessons.map((l) => l.classId));
+    if (matchedClassIds.size !== data.classIds.length) {
+      return {
+        success: false,
+        error: true,
+        message: "One or more classes don't have a lesson for this subject.",
+      };
+    }
+
+    const groupExams = await prisma.exam.findMany({
+      where: {
+        title: existingExam.title,
+        startTime: existingExam.startTime,
+        endTime: existingExam.endTime,
+        academicYearId,
+        schoolId: access.schoolId,
+        subjectId: existingExam.subjectId,
+        ...(access.role === "teacher" ? { lesson: { teacherId: access.userId } } : {}),
+      },
+      select: { id: true, classId: true },
+    });
+
+    const selectedLessonsByClass = new Map<number, { id: number; classId: number }>();
+    for (const lesson of lessons) {
+      selectedLessonsByClass.set(lesson.classId, lesson);
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const exam of groupExams) {
+        if (exam.classId && !selectedLessonsByClass.has(exam.classId)) {
+          await tx.question.deleteMany({ where: { examId: exam.id } });
+          await tx.exam.delete({ where: { id: exam.id } });
+        }
+      }
+
+      for (const [classId, lesson] of selectedLessonsByClass) {
+        const existingClassExam = groupExams.find((exam) => exam.classId === classId);
+
+        if (existingClassExam) {
+          await tx.exam.update({
+            where: { id: existingClassExam.id },
+            data: {
+              title: data.title,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              lessonId: lesson.id,
+              classId,
+              subjectId: data.subjectId,
+              academicYearId,
+              schoolId: access.schoolId,
+              enableTimer: data.enableTimer,
+              duration: data.duration,
+              enableNavigation: data.enableNavigation,
+              enableAutoSave: data.enableAutoSave,
+              autoSaveInterval: data.autoSaveInterval,
+              enableAutoSubmit: data.enableAutoSubmit,
+              questionsPerPage: data.questionsPerPage,
+            },
+          });
+
+          await tx.question.deleteMany({
+            where: { examId: existingClassExam.id },
+          });
+
+          await tx.question.createMany({
+            data: data.questions.map((q) => ({
+              examId: existingClassExam.id,
+              text: q.text,
+              type: q.type,
+              points: q.points,
+              order: q.order,
+              options: q.options ?? [],
+              correctAnswer: q.correctAnswer ?? [],
+              allowMultiple: q.allowMultiple,
+              schoolId: access.schoolId,
+            })),
+          });
+        } else {
+          await tx.exam.create({
+            data: {
+              title: data.title,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              lessonId: lesson.id,
+              classId,
+              subjectId: data.subjectId,
+              academicYearId,
+              schoolId: access.schoolId,
+              enableTimer: data.enableTimer,
+              duration: data.duration,
+              enableNavigation: data.enableNavigation,
+              enableAutoSave: data.enableAutoSave,
+              autoSaveInterval: data.autoSaveInterval,
+              enableAutoSubmit: data.enableAutoSubmit,
+              questionsPerPage: data.questionsPerPage,
+              questions: {
+                createMany: {
+                  data: data.questions.map((q) => ({
+                    text: q.text,
+                    type: q.type,
+                    points: q.points,
+                    order: q.order,
+                    options: q.options ?? [],
+                    correctAnswer: q.correctAnswer ?? [],
+                    allowMultiple: q.allowMultiple,
+                    schoolId: access.schoolId,
+                  })),
+                },
+              },
+            },
+          });
+        }
+      }
+    });
+
+    return successResult(["/list/exams"]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+// ============================================================
 // 2. startExam
 // ============================================================
 
@@ -159,7 +379,7 @@ export const startExam = async (examId: number) => {
     if (now < exam.startTime) return { error: "Exam has not started yet." };
     if (now > exam.endTime) return { error: "Exam has already ended." };
 
-    // ابحث عن submission موجودة أو أنشئ واحدة
+    // Find an existing submission or create a new one
     let submission = await prisma.submission.findUnique({
       where: {
         examId_studentId: { examId, studentId: access.userId },
@@ -183,14 +403,14 @@ export const startExam = async (examId: number) => {
       });
     }
 
-    // احسب الوقت المتبقي
+    // Calculate the remaining time
     const examEndsAt = getExamEndsAt({
       startedAt: submission.startedAt,
       extraTime: submission.extraTime,
       exam: { duration: exam.duration },
     });
 
-    // أول صفحة من الأسئلة
+    // Load the first page of questions
     const questions = await prisma.question.findMany({
       where: { examId },
       orderBy: { order: "asc" },
@@ -237,11 +457,11 @@ export const getExamPage = async (submissionId: number, page: number) => {
     if (submission.status !== "IN_PROGRESS")
       return { error: "Exam already submitted." };
 
-    // تحقق من الوقت
+    // Check the exam time
     const examEndsAt = getExamEndsAt(submission);
     if (new Date() > examEndsAt) return { error: "Exam time has expired." };
 
-    // تحقق من الـ navigation
+    // Check navigation rules
     if (!submission.exam.enableNavigation) {
       if (page < submission.currentPage)
         return { error: "Navigation to previous pages is not allowed." };
@@ -259,7 +479,7 @@ export const getExamPage = async (submissionId: number, page: number) => {
     if (page < 1 || page > totalPages)
       return { error: "Invalid page number." };
 
-    // جيب الأسئلة
+    // Fetch the questions
     const questions = await prisma.question.findMany({
       where: { examId: submission.examId },
       orderBy: { order: "asc" },
@@ -267,13 +487,13 @@ export const getExamPage = async (submissionId: number, page: number) => {
       take: submission.exam.questionsPerPage,
     });
 
-    // جيب الإجابات المحفوظة لهذي الأسئلة
+    // Fetch saved answers for these questions
     const questionIds = questions.map((q) => q.id);
     const savedAnswers = await prisma.answer.findMany({
       where: { submissionId, questionId: { in: questionIds } },
     });
 
-    // حدّث currentPage
+    // Update currentPage
     if (page > submission.currentPage) {
       await prisma.submission.update({
         where: { id: submissionId },
@@ -319,13 +539,13 @@ export const saveAnswer = async (
       return { success: false, error: true, message: "Exam already submitted." };
     }
 
-    // تحقق من الوقت
+    // Check the exam time
     const examEndsAt = getExamEndsAt(submission);
     if (new Date() > examEndsAt) {
       return { success: false, error: true, message: "Exam time has expired." };
     }
 
-    // تحقق من lastSyncedAt — أمان ضد الغش
+    // Check lastSyncedAt - anti-cheat protection
     if (submission.lastSyncedAt) {
       const gapSeconds =
         (new Date().getTime() - submission.lastSyncedAt.getTime()) / 1000;
@@ -338,7 +558,7 @@ export const saveAnswer = async (
       }
     }
 
-    // تحقق من أن السؤال ينتمي لهذا الامتحان
+    // Check that the question belongs to this exam
     const question = await prisma.question.findFirst({
       where: { id: data.questionId, examId: submission.examId },
     });
@@ -351,7 +571,12 @@ export const saveAnswer = async (
       return { success: false, error: true, message: "Invalid file URL." };
     }
 
-    // upsert الإجابة
+    // Upsert the answer
+    const normalizedTextAnswer = normalizeStoredAnswer(
+      data.textAnswer ?? null,
+      question.allowMultiple
+    );
+
     await prisma.answer.upsert({
       where: {
         submissionId_questionId: {
@@ -360,22 +585,22 @@ export const saveAnswer = async (
         },
       },
       update: {
-        textAnswer: data.textAnswer,
+        textAnswer: normalizedTextAnswer,
         fileUrl: data.fileUrl,
-        savedAt: new Date(), // السيرفر يحدد الوقت دائماً
+        savedAt: new Date(), // The server always sets the time
       },
       create: {
         submissionId: data.submissionId,
         questionId: data.questionId,
         schoolId: access.schoolId,
-        textAnswer: data.textAnswer,
+        textAnswer: normalizedTextAnswer,
         fileUrl: data.fileUrl,
         isDraft: true,
         savedAt: new Date(),
       },
     });
 
-    // حدّث lastSyncedAt
+    // Update lastSyncedAt
     await prisma.submission.update({
       where: { id: data.submissionId },
       data: { lastSyncedAt: new Date() },
@@ -406,14 +631,14 @@ export const submitExam = async (submissionId: number) => {
     if (submission.status !== "IN_PROGRESS")
       return { error: "Exam already submitted." };
 
-    // تحقق من الوقت مع grace period 30 ثانية
+    // Check the time with a 30-second grace period
     const examEndsAt = getExamEndsAt(submission);
     const graceEndsAt = new Date(examEndsAt.getTime() + 30000);
     if (new Date() > graceEndsAt) {
       return { error: "Submission window has closed." };
     }
 
-    // سلّم
+    // Submit
     await prisma.$transaction(async (tx) => {
       await tx.answer.updateMany({
         where: { submissionId, isDraft: true },
@@ -429,7 +654,7 @@ export const submitExam = async (submissionId: number) => {
       });
     });
 
-    // تصحيح تلقائي
+    // Run final grading
     await autoGrade(submissionId);
 
     return { success: true };
@@ -443,42 +668,8 @@ export const submitExam = async (submissionId: number) => {
 // ============================================================
 
 export const autoGrade = async (submissionId: number) => {
-  const answers = await prisma.answer.findMany({
-    where: { submissionId },
-    include: { question: true },
-  });
-
-  for (const answer of answers) {
-    if (
-      answer.question.type === "TRUE_FALSE" ||
-      answer.question.type === "MCQ"
-    ) {
-      const studentAnswers = (answer.textAnswer ?? "")
-        .split(",")
-        .map((a) => a.trim())
-        .sort();
-      const correctAnswers = [...answer.question.correctAnswer].sort();
-      const isCorrect =
-        JSON.stringify(studentAnswers) === JSON.stringify(correctAnswers);
-
-      await prisma.answer.update({
-        where: { id: answer.id },
-        data: { score: isCorrect ? answer.question.points : 0 },
-      });
-    }
-    // TEXT و FILE → score يبقى null ينتظر المعلم
-  }
-
-  // احسب totalScore من اللي اتصحح
-  const updatedAnswers = await prisma.answer.findMany({
-    where: { submissionId },
-  });
-
+  const { updatedAnswers, totalScore } = await applyAutoGrades(submissionId);
   const allGraded = updatedAnswers.every((a) => a.score !== null);
-  const totalScore = updatedAnswers.reduce(
-    (sum, a) => sum + (a.score ?? 0),
-    0
-  );
 
   await prisma.submission.update({
     where: { id: submissionId },
@@ -486,6 +677,15 @@ export const autoGrade = async (submissionId: number) => {
       totalScore,
       status: allGraded ? "GRADED" : "SUBMITTED",
     },
+  });
+};
+
+export const syncAutoGrades = async (submissionId: number) => {
+  const { totalScore } = await applyAutoGrades(submissionId);
+
+  await prisma.submission.update({
+    where: { id: submissionId },
+    data: { totalScore },
   });
 };
 
@@ -519,7 +719,7 @@ export const gradeAnswer = async (
       return { success: false, error: true, message: "Answer not found." };
     }
 
-    // تحقق أن المعلم صاحب الامتحان
+    // Check that the teacher owns the exam
     if (
       access.role === "teacher" &&
       answer.submission.exam.lesson.teacherId !== access.userId
@@ -527,7 +727,7 @@ export const gradeAnswer = async (
       return { success: false, error: true, message: "Not authorized." };
     }
 
-    // تحقق أن الدرجة ما تتجاوز الـ points
+    // Ensure the score does not exceed the points value
     if (data.score > answer.question.points) {
       return {
         success: false,
@@ -541,7 +741,7 @@ export const gradeAnswer = async (
       data: { score: data.score },
     });
 
-    // حاول تُنهي التصحيح لو كل الإجابات اتصححت
+    // Try to finalize grading if all answers are graded
     await finalizeGrade(answer.submissionId);
 
     return successResult();
@@ -560,7 +760,7 @@ export const finalizeGrade = async (submissionId: number) => {
   });
 
   const allGraded = answers.every((a) => a.score !== null);
-  if (!allGraded) return; // ينتظر حتى كل الإجابات تتصحح
+  if (!allGraded) return; // Wait until all answers are graded
 
   const totalScore = answers.reduce((sum, a) => sum + (a.score ?? 0), 0);
 
@@ -596,7 +796,7 @@ export const extendTime = async (
       return { success: false, error: true, message: "Submission not found." };
     }
 
-    // تحقق أن المعلم صاحب الامتحان
+    // Check that the teacher owns the exam
     if (
       access.role === "teacher" &&
       submission.exam.lesson.teacherId !== access.userId
@@ -652,6 +852,7 @@ export const recordDisconnection = async (
       },
     });
   } catch {
-    // نتجاهل الأخطاء — مش critical
+    // Ignore errors - not critical
   }
 };
+

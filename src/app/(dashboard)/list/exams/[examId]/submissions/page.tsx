@@ -103,7 +103,7 @@ const ExamSubmissionsPage = async ({
   const examId = parseInt(examIdStr);
   if (isNaN(examId)) redirect("/list/exams");
 
-  // تحقق إن المعلم صاحب الامتحان
+  // Check that the teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
       id: examId,

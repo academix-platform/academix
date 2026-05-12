@@ -1,4 +1,5 @@
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { syncAutoGrades } from "@/lib/actions/examWorkflow.actions";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import GradeClient from "./GradeClient";
@@ -18,7 +19,7 @@ const GradeSubmissionPage = async ({
 
   if (isNaN(examId) || isNaN(submissionId)) redirect("/list/exams");
 
-  // تحقق إن المعلم صاحب الامتحان
+  // Check that the teacher owns the exam
   const exam = await prisma.exam.findFirst({
     where: {
       id: examId,
@@ -32,7 +33,9 @@ const GradeSubmissionPage = async ({
 
   if (!exam) redirect("/list/exams");
 
-  // جيب الـ submission مع الإجابات
+  await syncAutoGrades(submissionId);
+
+  // Load the submission with its answers
   const submission = await prisma.submission.findFirst({
     where: { id: submissionId, examId, schoolId },
     include: {

@@ -54,6 +54,7 @@ export { createAcademicYear, updateAcademicYear } from "./academicYear.actions";
 // Exam Workflow actions
 export {
   createExamWorkflow,
+  updateExamWorkflow,
   startExam,
   getExamPage,
   saveAnswer,

@@ -2,6 +2,11 @@
 
 import { Question } from "@prisma/client";
 import { useState } from "react";
+import {
+  parseAnswerList,
+  parseStoredAnswer,
+  serializeAnswerList,
+} from "@/lib/examAnswerUtils";
 
 interface QuestionRendererProps {
   question: Question;
@@ -19,11 +24,13 @@ export default function QuestionRenderer({
   const [isUploading, setIsUploading] = useState(false);
 
   const handleMultipleChoice = (option: string, checked: boolean) => {
-    let currentAns = savedAnswer && savedAnswer.trim() !== "" ? savedAnswer.split(",") : [];
+    let currentAns = parseAnswerList(savedAnswer);
     
     if (question.allowMultiple) {
       if (checked) {
-        currentAns.push(option);
+        if (!currentAns.includes(option)) {
+          currentAns.push(option);
+        }
       } else {
         currentAns = currentAns.filter((o) => o !== option);
       }
@@ -31,7 +38,12 @@ export default function QuestionRenderer({
       currentAns = [option];
     }
     
-    onChange(question.id, currentAns.join(","));
+    onChange(
+      question.id,
+      question.allowMultiple
+        ? JSON.stringify(currentAns)
+        : serializeAnswerList(currentAns)
+    );
   };
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -81,23 +93,31 @@ export default function QuestionRenderer({
       {/* MCQ */}
       {question.type === "MCQ" && (
         <div className="flex flex-col gap-3">
-          {question.options.map((option, idx) => {
-            const isChecked = savedAnswer ? savedAnswer.split(",").includes(option) : false;
-            return (
-              <label key={idx} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors border border-transparent hover:border-gray-200">
-                <input
-                  type={question.allowMultiple ? "checkbox" : "radio"}
-                  name={`q_${question.id}`}
-                  value={option}
-                  checked={isChecked}
-                  onChange={(e) => handleMultipleChoice(option, e.target.checked)}
-                  disabled={disabled}
-                  className="w-4 h-4 text-academixPurpleDark"
-                />
-                <span className="text-sm text-gray-700">{option}</span>
-              </label>
+          {(() => {
+            const selectedAnswers = parseStoredAnswer(
+              savedAnswer,
+              question.allowMultiple
             );
-          })}
+            return question.options.map((option, idx) => {
+              const isChecked = question.allowMultiple
+                ? selectedAnswers.includes(option)
+                : selectedAnswers[0] === option;
+              return (
+                <label key={idx} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors border border-transparent hover:border-gray-200">
+                  <input
+                    type={question.allowMultiple ? "checkbox" : "radio"}
+                    name={`q_${question.id}`}
+                    value={option}
+                    checked={isChecked}
+                    onChange={(e) => handleMultipleChoice(option, e.target.checked)}
+                    disabled={disabled}
+                    className="w-4 h-4 text-academixPurpleDark"
+                  />
+                  <span className="text-sm text-gray-700">{option}</span>
+                </label>
+              );
+            });
+          })()}
           {question.allowMultiple && (
             <p className="text-xs text-gray-400 mt-1">
               * You may select more than one answer.

@@ -8,13 +8,30 @@ import {
   createExamWorkflowSchema,
   CreateExamWorkflowSchema,
 } from "@/lib/formValidationSchemas";
-import { createExamWorkflow } from "@/lib/actions/examWorkflow.actions";
-import { useEffect, useState } from "react";
+import {
+  createExamWorkflow,
+  updateExamWorkflow,
+} from "@/lib/actions/examWorkflow.actions";
+import { useEffect, useMemo, useState } from "react";
 import InputField from "../InputField";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
   classes: { id: number; name: string }[];
+  mode?: "create" | "update";
+  examId?: number;
+  initialData?: Omit<Partial<CreateExamWorkflowSchema>, "startTime" | "endTime"> & {
+    startTime?: string | Date;
+    endTime?: string | Date;
+  };
+};
+
+const toDateTimeLocalValue = (value?: string | Date) => {
+  if (!value) return "";
+  if (typeof value === "string") return value;
+
+  const offsetMs = value.getTimezoneOffset() * 60000;
+  return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
 };
 
 function QuestionEditor({
@@ -51,13 +68,20 @@ function QuestionEditor({
     name: optionsPath,
     defaultValue: [],
   });
-  const [selectedOptionIndexes, setSelectedOptionIndexes] = useState<number[]>(
-    [],
+  const selectedOptionIndexes = useMemo(
+    () =>
+      (currentOptions ?? [])
+        .map((option: string, indexValue: number) =>
+          (correctAnswers ?? []).includes(option) ? indexValue : -1,
+        )
+        .filter((indexValue: number) => indexValue >= 0),
+    [currentOptions, correctAnswers],
   );
-  const [selectedTrueFalse, setSelectedTrueFalse] = useState<
-    "TRUE" | "FALSE" | null
-  >(null);
-
+  const selectedTrueFalse = useMemo<"TRUE" | "FALSE" | null>(() => {
+    if ((correctAnswers ?? [])[0] === "FALSE") return "FALSE";
+    if ((correctAnswers ?? [])[0] === "TRUE") return "TRUE";
+    return null;
+  }, [correctAnswers]);
   const {
     fields: optionFields,
     append: appendOption,
@@ -71,8 +95,6 @@ function QuestionEditor({
   const handleQuestionTypeChange = (nextType: string) => {
     if (nextType === "MCQ") {
       replaceOptions(["", "", "", ""]);
-      setSelectedOptionIndexes([]);
-      setSelectedTrueFalse(null);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
@@ -83,8 +105,6 @@ function QuestionEditor({
 
     if (nextType === "TRUE_FALSE") {
       replaceOptions(["True", "False"]);
-      setSelectedOptionIndexes([]);
-      setSelectedTrueFalse("TRUE");
       setValue(correctPath, ["TRUE"], {
         shouldDirty: true,
         shouldValidate: true,
@@ -97,8 +117,6 @@ function QuestionEditor({
     }
 
     replaceOptions([]);
-    setSelectedOptionIndexes([]);
-    setSelectedTrueFalse(null);
     setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
     setValue(allowMultiplePath, false, {
       shouldDirty: true,
@@ -128,43 +146,47 @@ function QuestionEditor({
     setValue,
   ]);
 
-  useEffect(() => {
-    if (qType !== "TRUE_FALSE") return;
-    if (!selectedTrueFalse) return;
-
-    if (correctAnswers[0] !== selectedTrueFalse) {
-      setValue(correctPath, [selectedTrueFalse], {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-  }, [correctAnswers, correctPath, qType, selectedTrueFalse, setValue]);
-
   const syncSelectionAfterRemoval = (removedIndex: number) => {
-    setSelectedOptionIndexes((prev) =>
-      prev
-        .filter((indexValue) => indexValue !== removedIndex)
-        .map((indexValue) =>
-          indexValue > removedIndex ? indexValue - 1 : indexValue,
-        ),
-    );
+    const removedOption = currentOptions[removedIndex];
+    const nextCorrectAnswers = correctAnswers
+      .filter((answer) => answer !== removedOption)
+      .map((value) => value.trim())
+      .filter(Boolean);
+
+    setValue(correctPath, nextCorrectAnswers, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
 
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
     if (allowMultiple) {
-      setSelectedOptionIndexes((prev) =>
-        checked
-          ? Array.from(new Set([...prev, optionIndex])).sort((a, b) => a - b)
-          : prev.filter((indexValue) => indexValue !== optionIndex),
+      const nextSelectedIndexes = checked
+        ? Array.from(new Set([...selectedOptionIndexes, optionIndex])).sort(
+            (a, b) => a - b,
+          )
+        : selectedOptionIndexes.filter(
+            (indexValue) => indexValue !== optionIndex,
+          );
+
+      setValue(
+        correctPath,
+        nextSelectedIndexes
+          .map((indexValue) => currentOptions[indexValue])
+          .filter((value): value is string => Boolean(value?.trim())),
+        { shouldDirty: true, shouldValidate: true },
       );
       return;
     }
 
-    setSelectedOptionIndexes(checked ? [optionIndex] : []);
+    setValue(
+      correctPath,
+      checked && currentOptions[optionIndex] ? [currentOptions[optionIndex]] : [],
+      { shouldDirty: true, shouldValidate: true },
+    );
   };
 
   const toggleTrueFalse = (value: "TRUE" | "FALSE") => {
-    setSelectedTrueFalse(value);
     setValue(correctPath, [value], { shouldDirty: true, shouldValidate: true });
   };
 
@@ -310,7 +332,13 @@ function QuestionEditor({
   );
 }
 
-export default function ExamWorkflowForm({ subjects, classes }: ExamWorkflowFormProps) {
+export default function ExamWorkflowForm({
+  subjects,
+  classes,
+  mode = "create",
+  examId,
+  initialData,
+}: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -324,16 +352,30 @@ export default function ExamWorkflowForm({ subjects, classes }: ExamWorkflowForm
   } = useForm<CreateExamWorkflowSchema>({
     resolver: zodResolver(createExamWorkflowSchema),
     defaultValues: {
-      classIds: [],
-      enableTimer: true,
-      enableNavigation: true,
-      enableAutoSave: true,
-      autoSaveInterval: 30,
-      enableAutoSubmit: true,
-      questionsPerPage: 1,
-      questions: [
-        { type: "TEXT", text: "", points: 1, order: 1, allowMultiple: false, options: [], correctAnswer: [] },
-      ],
+      title: initialData?.title ?? "",
+      startTime: toDateTimeLocalValue(initialData?.startTime) as any,
+      endTime: toDateTimeLocalValue(initialData?.endTime) as any,
+      subjectId: initialData?.subjectId,
+      classIds: (initialData?.classIds ?? []).map(String) as any,
+      enableTimer: initialData?.enableTimer ?? true,
+      duration: initialData?.duration,
+      enableNavigation: initialData?.enableNavigation ?? true,
+      enableAutoSave: initialData?.enableAutoSave ?? true,
+      autoSaveInterval: initialData?.autoSaveInterval ?? 30,
+      enableAutoSubmit: initialData?.enableAutoSubmit ?? true,
+      questionsPerPage: initialData?.questionsPerPage ?? 1,
+      questions:
+        initialData?.questions ?? [
+          {
+            type: "TEXT",
+            text: "",
+            points: 1,
+            order: 1,
+            allowMultiple: false,
+            options: [],
+            correctAnswer: [],
+          },
+        ],
     },
   });
 
@@ -347,11 +389,16 @@ export default function ExamWorkflowForm({ subjects, classes }: ExamWorkflowForm
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
     setIsSubmitting(true);
     try {
-      const res = await createExamWorkflow({ success: true, error: false }, data);
+      const res =
+        mode === "update" && examId
+          ? await updateExamWorkflow({ success: true, error: false }, examId, data)
+          : await createExamWorkflow({ success: true, error: false }, data);
       if (res.error) {
         toast.error(res.message);
       } else {
-        toast.success("Exam created successfully!");
+        toast.success(
+          mode === "update" ? "Exam updated successfully!" : "Exam created successfully!",
+        );
         router.push("/list/exams");
       }
     } catch (err) {
@@ -410,7 +457,7 @@ export default function ExamWorkflowForm({ subjects, classes }: ExamWorkflowForm
                 <label key={c.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
-                    value={c.id}
+                    value={String(c.id)}
                     {...register("classIds")}
                   />
                   <span>{c.name}</span>
@@ -502,7 +549,13 @@ export default function ExamWorkflowForm({ subjects, classes }: ExamWorkflowForm
         disabled={isSubmitting}
         className="bg-academixPurpleDark text-white p-3 rounded-md font-bold hover:bg-academixPurple"
       >
-        {isSubmitting ? "Creating..." : "Create Exam Workflow"}
+        {isSubmitting
+          ? mode === "update"
+            ? "Updating..."
+            : "Creating..."
+          : mode === "update"
+            ? "Update Exam Workflow"
+            : "Create Exam Workflow"}
       </button>
     </form>
   );

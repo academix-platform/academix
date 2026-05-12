@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { CheckCircle, ExternalLink } from "lucide-react";
 import type { Answer, Question, Submission, Student } from "@prisma/client";
+import { parseAnswerList } from "@/lib/examAnswerUtils";
 
 type AnswerWithQuestion = Answer & { question: Question };
 
@@ -27,6 +28,56 @@ const QuestionTypeBadge = ({ type }: { type: string }) => {
     <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors[type] ?? "bg-gray-100"}`}>
       {type.replace("_", " ")}
     </span>
+  );
+};
+
+const AnswerDisplay = ({
+  value,
+  multi = false,
+}: {
+  value: string | string[] | null | undefined;
+  multi?: boolean;
+}) => {
+  if (!multi) {
+    if (Array.isArray(value)) {
+      const text = value
+        .map((item) => String(item).trim())
+        .filter((item) => item.length > 0)
+        .join(", ");
+
+      return text ? <span>{text}</span> : <span className="text-gray-400 italic">No answer provided</span>;
+    }
+
+    if (!value || !value.trim()) {
+      return <span className="text-gray-400 italic">No answer provided</span>;
+    }
+
+    return <span>{value}</span>;
+  }
+
+  const items = Array.isArray(value)
+    ? value.map((item) => String(item).trim()).filter((item) => item.length > 0)
+    : parseAnswerList(value);
+
+  if (items.length === 0) {
+    return <span className="text-gray-400 italic">No answer provided</span>;
+  }
+
+  if (items.length === 1) {
+    return <span>{items[0]}</span>;
+  }
+
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item) => (
+        <span
+          key={item}
+          className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700"
+        >
+          {item}
+        </span>
+      ))}
+    </div>
   );
 };
 
@@ -133,6 +184,8 @@ const GradeClient = ({
             const isAutoGraded =
               answer.question.type === "TRUE_FALSE" ||
               answer.question.type === "MCQ";
+            const usesMultiAnswer =
+              answer.question.type === "MCQ" && answer.question.allowMultiple;
             const isGraded =
               answer.score !== null && answer.score !== undefined;
 
@@ -181,23 +234,25 @@ const GradeClient = ({
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   ) : (
-                    <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                      {answer.textAnswer || (
-                        <span className="text-gray-400 italic">
-                          No answer provided
-                        </span>
-                      )}
-                    </p>
+                    <div className="text-sm text-gray-700 whitespace-pre-wrap">
+                      <AnswerDisplay
+                        value={answer.textAnswer}
+                        multi={usesMultiAnswer}
+                      />
+                    </div>
                   )}
                 </div>
 
-                {/* Correct Answer — للـ T/F و MCQ */}
+                {/* Correct Answer - for T/F and MCQ */}
                 {isAutoGraded && (
                   <div className="bg-green-50 border border-green-100 rounded-md p-3">
                     <p className="text-xs text-gray-400 mb-1">Correct Answer:</p>
-                    <p className="text-sm text-green-700 font-medium">
-                      {answer.question.correctAnswer.join(", ")}
-                    </p>
+                    <div className="text-sm text-green-700 font-medium">
+                      <AnswerDisplay
+                        value={answer.question.correctAnswer}
+                        multi={usesMultiAnswer}
+                      />
+                    </div>
                   </div>
                 )}
 
@@ -227,7 +282,7 @@ const GradeClient = ({
                     </span>
                   </div>
 
-                  {/* Save button — للـ TEXT و FILE فقط */}
+                  {/* Save button - for TEXT and FILE only */}
                   {!isAutoGraded && (
                     <button
                       onClick={() => handleGrade(answer.id)}
