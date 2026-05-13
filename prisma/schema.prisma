@@ -4,8 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // Connection URL configured in prisma.config.ts (Prisma 7 pattern)
-  // Docker PostgreSQL — no directUrl needed
 }
 
 
@@ -33,11 +31,6 @@ model School {
   assignments Assignment[]
   schoolSettings SchoolSettings[]
   results Result[]
-
-  // Exam workflow relations
-  questions   Question[]
-  submissions Submission[]
-  answers     Answer[]
 }
 
 
@@ -121,7 +114,6 @@ model Student{
   messages Message[]
   academicYears StudentAcademicYear[]
   birthday DateTime
-  submissions Submission[]
 
   @@index([schoolId])
 }
@@ -292,19 +284,6 @@ model Exam{
 
   results Result[]
 
-  // Feature toggles — all per-exam configurable
-  enableTimer      Boolean @default(true)
-  duration         Int?                    // minutes — required if enableTimer = true
-  enableNavigation Boolean @default(true)  // allow prev page navigation
-  enableAutoSave   Boolean @default(true)  // auto-save answers
-  autoSaveInterval Int     @default(30)    // seconds between auto-saves
-  enableAutoSubmit Boolean @default(true)  // cron auto-submit backstop
-  questionsPerPage Int     @default(1)     // server-side pagination size
-
-  // Exam workflow relations
-  questions   Question[]
-  submissions Submission[]
-
   @@index([schoolId])
 }
 model Assignment{
@@ -418,92 +397,6 @@ model Message {
   @@index([schoolId])
 }
 
-
-// ===== EXAM WORKFLOW MODELS =====
-
-model Question {
-  id            Int          @id @default(autoincrement())
-  schoolId      Int
-  school        School       @relation(fields: [schoolId], references: [id])
-  examId        Int
-  exam          Exam         @relation(fields: [examId], references: [id], onDelete: Cascade)
-  text          String
-  type          QuestionType
-  points        Int          @default(1)
-  order         Int
-  options       Json?        // MCQ only: string[]
-  correctAnswer String[]     // T/F and MCQ — array supports multiple correct answers
-  allowMultiple Boolean      @default(false)
-  answers       Answer[]
-
-  @@index([schoolId])
-  @@index([examId])
-}
-
-model Submission {
-  id               Int              @id @default(autoincrement())
-  schoolId         Int
-  school           School           @relation(fields: [schoolId], references: [id])
-  examId           Int
-  exam             Exam             @relation(fields: [examId], references: [id])
-  studentId        String
-  student          Student          @relation(fields: [studentId], references: [id])
-  status           SubmissionStatus @default(IN_PROGRESS)
-  currentPage      Int              @default(1)
-  startedAt        DateTime         @default(now())
-  submittedAt      DateTime?
-  autoSubmitted    Boolean          @default(false)
-  lastSyncedAt     DateTime?        // Anti-cheat: updated on every saveAnswer
-  totalScore       Float?
-  extraTime        Int?             // Additional minutes granted by teacher
-  extendedBy       String?          // Teacher Clerk ID who granted extension
-  extendedAt       DateTime?
-  disconnectedAt   DateTime?        // Logged on reconnection for audit
-  reconnectedAt    DateTime?
-  totalOfflineTime Int?             // Seconds offline — computed server-side
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
-  answers          Answer[]
-
-  @@unique([examId, studentId])   // One submission per student per exam
-  @@index([schoolId])
-  @@index([examId])
-  @@index([studentId])
-}
-
-model Answer {
-  id           Int        @id @default(autoincrement())
-  schoolId     Int
-  school       School     @relation(fields: [schoolId], references: [id])
-  submissionId Int
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  questionId   Int
-  question     Question   @relation(fields: [questionId], references: [id])
-  textAnswer   String?    // T/F, MCQ (comma-separated for multi-select), TEXT
-  fileUrl      String?    // FILE — relative path or URL
-  isDraft      Boolean    @default(true)   // false after submitExam finalizes it
-  savedAt      DateTime   @default(now())  // ALWAYS set by server — never accepted from client
-  score        Float?     // null until graded
-
-  @@unique([submissionId, questionId])
-  @@index([schoolId])
-  @@index([submissionId])
-}
-
-// ===== EXAM WORKFLOW ENUMS =====
-
-enum QuestionType {
-  TRUE_FALSE
-  MCQ
-  TEXT
-  FILE
-}
-
-enum SubmissionStatus {
-  IN_PROGRESS
-  SUBMITTED
-  GRADED
-}
 
 enum UserSex {
   MALE
