@@ -4,7 +4,9 @@ export type CsvColumn<T> = {
 };
 
 function csvEscape(value: unknown) {
-  const text = String(value ?? "");
+  const rawText = String(value ?? "");
+  const text =
+    /^[=+\-@]/.test(rawText) ? `'${rawText}` : rawText;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
