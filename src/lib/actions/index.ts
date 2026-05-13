@@ -50,3 +50,16 @@ export { updateSchoolSettings } from "./schoolSettings.actions";
 
 // Academic year actions
 export { createAcademicYear, updateAcademicYear } from "./academicYear.actions";
+
+// Exam Workflow actions
+export {
+  createExamWorkflow,
+  updateExamWorkflow,
+  startExam,
+  getExamPage,
+  saveAnswer,
+  submitExam,
+  gradeAnswer,
+  extendTime,
+  recordDisconnection,
+} from "./examWorkflow.actions";
