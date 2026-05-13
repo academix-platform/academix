@@ -4,7 +4,7 @@ import { adjustScheduleToCurrentWeek } from "@/lib/utils";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
-import { getAuthUser, requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 
 const BigCalendarContainer = async ({
   type,
@@ -13,12 +13,10 @@ const BigCalendarContainer = async ({
   type: "teacherId" | "classId";
   id: string | number;
 }) => {
-  const user = requireAuth();
+  const user = await requireAuth();
 
-  const schoolSettings = await getSchoolScheduleSettings((await user).schoolId);
-  const academicYearId = await getCurrentAcademicYearIdOrNull(
-    (await user).schoolId,
-  );
+  const schoolSettings = await getSchoolScheduleSettings(user.schoolId);
+  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -28,7 +26,7 @@ const BigCalendarContainer = async ({
     const teacher = await prisma.teacher.findFirst({
       where: {
         id: id as string,
-        schoolId: (await user).schoolId,
+        schoolId: user.schoolId,
       },
     });
 
@@ -39,7 +37,7 @@ const BigCalendarContainer = async ({
     const cls = await prisma.class.findFirst({
       where: {
         id: id as number,
-        schoolId: (await user).schoolId,
+        schoolId: user.schoolId,
       },
     });
 
@@ -48,7 +46,7 @@ const BigCalendarContainer = async ({
 
   const dataRes = await prisma.lesson.findMany({
     where: {
-      schoolId: (await user).schoolId,
+      schoolId: user.schoolId,
       academicYearId,
       ...(type === "teacherId"
         ? { teacherId: id as string }
@@ -59,6 +57,9 @@ const BigCalendarContainer = async ({
         select: { name: true },
       },
       teacher: {
+        select: { name: true },
+      },
+      class: {
         select: { name: true },
       },
     },
@@ -72,7 +73,12 @@ const BigCalendarContainer = async ({
   const data = dataRes
     .filter((lesson) => !isPlaceholderSubject(lesson.subject?.name))
     .map((lesson) => ({
-      title: `${lesson.subject.name}/${lesson.teacher.name}`,
+      title:
+        user.role === "teacher"
+          ? (lesson.class?.name ?? lesson.subject.name)
+          : user.role === "student"
+            ? lesson.subject.name
+            : `${lesson.subject.name}/${lesson.teacher.name}`,
       lessonName: lesson.name,
       day: lesson.day,
       start: lesson.startTime,

@@ -3,7 +3,7 @@
 import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
 
 moment.updateLocale(moment.locale(), {
@@ -14,6 +14,25 @@ moment.updateLocale(moment.locale(), {
 });
 
 const localizer = momentLocalizer(moment);
+
+const useMediaQuery = (query: string) =>
+  useSyncExternalStore(
+    (onStoreChange) => {
+      const mediaQueryList = window.matchMedia(query);
+
+      // `change` is supported in modern browsers; fallback kept for older Safari.
+      const listener = (_event: MediaQueryListEvent) => onStoreChange();
+      if (mediaQueryList.addEventListener) {
+        mediaQueryList.addEventListener("change", listener);
+        return () => mediaQueryList.removeEventListener("change", listener);
+      }
+
+      mediaQueryList.addListener(listener);
+      return () => mediaQueryList.removeListener(listener);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
 
 const toTimeOfDayDate = (hour: number, minute: number) =>
   new Date(2025, 0, 1, hour, minute, 0, 0);
@@ -68,7 +87,13 @@ const BigCalendar = ({
   }[];
   settings: SchoolScheduleSettings;
 }) => {
-  const [view, setView] = useState<View>(Views.WEEK);
+  // Tailwind breakpoints: `lg` starts at 1024px, so "md and below" ~= <1024px.
+  const isLgDown = useMediaQuery("(max-width: 1023px)");
+  const defaultView = isLgDown ? Views.DAY : Views.WEEK;
+
+  // Keep a user override so toggling views still works.
+  const [userView, setUserView] = useState<View | null>(null);
+  const view = userView ?? defaultView;
 
   const calendarMinTime = useMemo(
     () =>
@@ -164,7 +189,7 @@ const BigCalendar = ({
   };
 
   const handleOnChangeView = (selectedView: View) => {
-    setView(selectedView);
+    setUserView(selectedView);
   };
 
   return (
