@@ -33,11 +33,15 @@ export async function buildSubjectQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
-      case "gradeId":
-        conditions.push({
-          gradeId: Number.parseInt(value, 10),
-        });
+      case "gradeId": {
+        const gradeId = Number.parseInt(value, 10);
+        if (!Number.isNaN(gradeId)) {
+          conditions.push({
+            gradeId,
+          });
+        }
         break;
+      }
 
       case "search":
         conditions.push({

@@ -54,13 +54,17 @@ export async function buildExamQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
-      case "classId":
-        conditions.push({
-          lesson: {
-            classId: Number.parseInt(value, 10),
-          },
-        });
+      case "classId": {
+        const classId = Number.parseInt(value, 10);
+        if (!Number.isNaN(classId)) {
+          conditions.push({
+            lesson: {
+              classId,
+            },
+          });
+        }
         break;
+      }
 
       case "teacherId":
         conditions.push({
