@@ -43,6 +43,7 @@ export const createStudent = async (
       firstName: data.name,
       publicMetadata: { role: "student" },
     });
+
     createdUserId = user.id;
 
     await prisma.student.create({
@@ -60,9 +61,7 @@ export const createStudent = async (
         birthday: data.birthday,
         gradeId: data.gradeId,
         classId: data.classId,
-        ...(data.parentId
-          ? { parent: { connect: { id: data.parentId } } }
-          : {}),
+        parentId: data.parentId || null,
         status: data.status || "ACTIVE",
       } as any,
     });
@@ -71,6 +70,7 @@ export const createStudent = async (
     const currentAcademicYearId = await getRequiredAcademicYearId(
       access.schoolId,
     );
+
     if (currentAcademicYearId) {
       await prisma.studentAcademicYear.create({
         data: {
@@ -93,6 +93,7 @@ export const createStudent = async (
         // Best-effort rollback for partial user creation.
       }
     }
+
     return errorResult(err);
   }
 };
@@ -105,7 +106,11 @@ export const updateStudent = async (
   if ("error" in access) return access;
 
   if (!data.id) {
-    return { success: false, error: true, message: "Student id is required." };
+    return {
+      success: false,
+      error: true,
+      message: "Student id is required.",
+    };
   }
 
   try {
@@ -137,8 +142,13 @@ export const updateStudent = async (
         ...(data.status && { status: data.status }),
       },
     });
+
     if (updated.count === 0) {
-      return { success: false, error: true, message: "Student not found." };
+      return {
+        success: false,
+        error: true,
+        message: "Student not found.",
+      };
     }
 
     return successResult(["/list/students"]);
@@ -156,8 +166,14 @@ export const deleteStudent = async (
 
   const id = data.get("id") as string;
   const deleteParent = data.get("deleteParent") === "true";
-  if (!id)
-    return { success: false, error: true, message: "Invalid student id." };
+
+  if (!id) {
+    return {
+      success: false,
+      error: true,
+      message: "Invalid student id.",
+    };
+  }
 
   try {
     const student = await prisma.student.findUnique({
@@ -186,13 +202,18 @@ export const deleteStudent = async (
       await tx.studentAcademicYear.deleteMany({
         where: { studentId: id, schoolId: access.schoolId },
       });
+
       await tx.attendance.deleteMany({
         where: { studentId: id, schoolId: access.schoolId },
       });
+
       await tx.result.deleteMany({
         where: { studentId: id, schoolId: access.schoolId },
       });
-      await tx.student.deleteMany({ where: { id, schoolId: access.schoolId } });
+
+      await tx.student.deleteMany({
+        where: { id, schoolId: access.schoolId },
+      });
 
       if (deleteParent && parentId) {
         await tx.parent.deleteMany({

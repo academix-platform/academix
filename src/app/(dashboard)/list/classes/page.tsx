@@ -1,27 +1,26 @@
+import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { buildClassQuery } from "@/lib/query-builders/class-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
-import { Class, Prisma, Teacher } from "@prisma/client";
+import { Class, Teacher } from "@prisma/client";
+import type { PageSearchParams } from "@/lib/pageParams";
 
 type ClassList = Class & {
   supervisor: Teacher | null;
   grade: {
     level: number;
-  };
+  } | null;
 };
 
 const getColumns = (role: UserRole | null) => [
-  {
-    header: "Class Name",
-    accessor: "name",
-  },
+  { header: "Class Name", accessor: "name" },
   {
     header: "Capacity",
     accessor: "capacity",
@@ -49,11 +48,15 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="flex items-center gap-4 p-4">{item.name}</td>
+
     <td className="hidden md:table-cell">{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.grade?.level}</td>
+
+    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
+
     <td className="hidden md:table-cell">
       {item.supervisor?.name ?? "No supervisor"}
     </td>
+
     <td>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -66,6 +69,7 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
     </td>
   </tr>
 );
+
 const ClassListPage = async ({
   searchParams,
 }: {
@@ -74,40 +78,25 @@ const ClassListPage = async ({
   const { role, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.ClassWhereInput = {
+  const {
+    query,
+    orderBy,
+    page: p,
+  } = await buildClassQuery({
+    searchParams,
     schoolId,
-  };
-  const conditions: Prisma.ClassWhereInput[] = [];
+  });
 
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-
-      if (value !== undefined) {
-        switch (key) {
-          case "supervisorId":
-            conditions.push({
-              supervisorId: value,
-            });
-            break;
-
-          case "search":
-            conditions.push({
-              name: { contains: value, mode: "insensitive" },
-            });
-            break;
-        }
+  const exportQuery = new URLSearchParams(
+    Object.entries(resolvedSearchParams).flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => [key, item]);
       }
-    }
-  }
 
-  if (conditions.length > 0) {
-    query.AND = conditions;
-  }
+      return value ? [[key, value]] : [];
+    }),
+  );
 
   const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
@@ -120,7 +109,7 @@ const ClassListPage = async ({
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -128,26 +117,37 @@ const ClassListPage = async ({
       where: query,
     }),
   ]);
+
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Classes</h1>
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">All Classes</h1>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
-            {role === "admin" && <FormContainer table="class" type="create" />}
+
+          <div className="flex items-center self-end gap-2">
+            <FilterSortActions sortKey="sort" />
+
+            {role === "admin" && (
+              <>
+                <ExportButton
+                  href={`/api/admin/classes/export?${exportQuery.toString()}`}
+                />
+
+                <FormContainer table="class" type="create" />
+              </>
+            )}
           </div>
         </div>
       </div>
-      {/* LIST */}
+
       <Table
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );

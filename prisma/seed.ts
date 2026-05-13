@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { Day, PrismaClient } from "@prisma/client";
+import { Day, PrismaClient, StudentStatus, UserSex } from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
@@ -175,24 +175,27 @@ const seedSchool = async ({
     },
   });
 
-  const student = await prisma.student.create({
-    data: {
-      id: studentId,
-      username: studentUsername,
-      name: studentName,
-      email: `${studentUsername}@example.com`,
-      phone: `${school.id}33333333`,
-      address: `${schoolName} City`,
-      bloodType: "A+",
-      sex: "MALE",
-      birthday: new Date("2010-01-01"),
-      schoolId: school.id,
-      parentId: parent.id,
-      classId: classA.id,
-      gradeId: grade1.id,
-      status: "ACTIVE",
-    },
-  });
+const student = await prisma.student.create({
+  data: {
+    id: studentId,
+    username: studentUsername,
+    name: studentName,
+    email: `${studentUsername}@example.com`,
+    phone: `${school.id}33333333`,
+    address: `${schoolName} City`,
+    bloodType: "A+",
+
+    sex: UserSex.MALE,
+    birthday: new Date("2010-01-01"),
+
+    schoolId: school.id,
+    parentId: parent.id,
+    classId: classA.id,
+    gradeId: grade1.id,
+
+    status: StudentStatus.ACTIVE,
+  },
+});
 
   await prisma.studentAcademicYear.create({
     data: {

@@ -74,7 +74,7 @@ const AttendanceChartContainer = async () => {
   }));
 
   return (
-    <div className="bg-white p-4 rounded-lg h-full">
+    <div className="bg-white p-4 rounded-lg w-full h-full">
       <div className="flex justify-between items-center">
         <h1 className="font-semibold text-lg">Attendance</h1>
         <MoreHorizontal className="w-5 h-5 text-gray-500" />

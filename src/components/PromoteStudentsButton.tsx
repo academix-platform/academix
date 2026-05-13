@@ -116,13 +116,14 @@ const PromoteStudentsButton = ({
   const body =
     modalView === "info" ? (
       <p className="text-gray-600 text-sm leading-6">
-        The academic year {academicYearName} ends on {formatDate(academicYearEndDate)}.
-        You can update the students once the last day has passed.
+        The academic year {academicYearName} ends on{" "}
+        {formatDate(academicYearEndDate)}. You can update the students once the
+        last day has passed.
       </p>
     ) : modalView === "confirm" ? (
       <p className="text-gray-600 text-sm leading-6">
-        The academic year {academicYearName} has finished. Confirm this action to update
-        students based on their final performance results.
+        The academic year {academicYearName} has finished. Confirm this action
+        to update students based on their final performance results.
       </p>
     ) : result?.success ? (
       <div className="flex flex-col gap-4">
@@ -164,7 +165,7 @@ const PromoteStudentsButton = ({
     <>
       <button
         type="button"
-        className="bg-academixPurpleDark p-3 rounded-md text-white text-sm"
+        className="hidden md:block bg-academixPurpleDark p-2 rounded-md text-white text-sm"
         onClick={openModal}
       >
         Update Students Grades

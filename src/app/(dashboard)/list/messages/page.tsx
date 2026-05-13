@@ -238,6 +238,9 @@ const MessageListPage = async ({
   }
 
   const where = query;
+  const sortParam = getQueryParam(queryParams.sort);
+  const orderBy: Prisma.MessageOrderByWithRelationInput =
+    sortParam === "asc" ? { date: "asc" } : { date: "desc" };
 
   const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.message.findMany({
@@ -248,7 +251,7 @@ const MessageListPage = async ({
         parents: { select: { id: true, name: true } },
         teachers: { select: { id: true, name: true } },
       },
-      orderBy: { date: "desc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -259,12 +262,12 @@ const MessageListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Messages</h1>
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">All Messages</h1>
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+          <div className="flex items-center self-end gap-2">
+            <FilterSortActions sortKey="sort" />
             {role === "admin" && (
               <FormContainer table="message" type="create" />
             )}

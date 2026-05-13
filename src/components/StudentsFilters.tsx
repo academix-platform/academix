@@ -46,7 +46,7 @@ const StudentsFilters = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="hidden sm:flex flex-wrap items-center gap-3">
       <label className="flex flex-col gap-1 text-gray-500 text-xs">
         Academic Year
         <select
