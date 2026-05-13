@@ -12,6 +12,8 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Exam, Subject, Teacher } from "@prisma/client";
 import { UserRole } from "@/lib/utils";
 import type { PageSearchParams } from "@/lib/pageParams";
+import Link from "next/link";
+import { Pencil } from "lucide-react";
 
 type ExamList = Exam & {
   displayClasses?: string;
@@ -108,10 +110,31 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
-          <>
-            <FormContainer table="exam" type="update" data={item} />
+          <div className="flex items-center gap-2">
+            <Link
+              href={`/list/exams/create-workflow?examId=${item.id}`}
+              className="p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixSky"
+              aria-label="Edit exam workflow"
+            >
+              <Pencil className="w-4 h-4" />
+            </Link>
             <FormContainer table="exam" type="delete" id={item.id} />
-          </>
+          </div>
+        )}
+        {(role === "admin" || role === "teacher") && (
+          <Link
+            href={`/list/exams/${item.id}/submissions`}
+            className="px-3 py-1 bg-academixYellow text-xs rounded-md hover:opacity-90"
+          >
+            Submissions
+          </Link>
+        )}
+        {role === "student" && (
+          <Link href={`/list/exams/${item.id}/take`}>
+            <button className="bg-academixPurpleDark text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-academixPurple transition-colors">
+              Take Exam
+            </button>
+          </Link>
         )}
       </div>
     </td>
@@ -189,44 +212,43 @@ const ExamListPage = async ({
   const dataWithClassDisplay: ExamList[] =
     role === "admin" || role === "teacher"
       ? (() => {
-          const classGroups = new Map<string, Set<string>>();
+        const classGroups = new Map<string, Set<string>>();
 
-          for (const exam of data) {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+        for (const exam of data) {
+          const groupKey = [
+            exam.title,
+            exam.startTime.toISOString(),
+            exam.endTime.toISOString(),
+            exam.subject?.name,
+          ].join("|");
 
-            if (!classGroups.has(groupKey)) {
-              classGroups.set(groupKey, new Set<string>());
-            }
-
-            if (exam.class?.name) {
-              classGroups.get(groupKey)!.add(exam.class.name);
-            }
+          if (!classGroups.has(groupKey)) {
+            classGroups.set(groupKey, new Set<string>());
           }
 
-          return data.map((exam) => {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+          if (exam.class?.name) {
+            classGroups.get(groupKey)!.add(exam.class.name);
+          }
+        }
 
-            const groupedClasses = classGroups.get(groupKey);
+        return data.map((exam) => {
+          const groupKey = [
+            exam.title,
+            exam.startTime.toISOString(),
+            exam.endTime.toISOString(),
+            exam.subject?.name,
+          ].join("|");
 
-            return {
-              ...exam,
-              displayClasses:
+          const groupedClasses = classGroups.get(groupKey);
+          return {
+            ...exam,
+            displayClasses:
                 groupedClasses && groupedClasses.size > 1
                   ? Array.from(groupedClasses).sort().join(", ")
                   : exam.class?.name,
-            };
-          });
-        })()
+          };
+        });
+      })()
       : data;
 
   return (
@@ -247,8 +269,12 @@ const ExamListPage = async ({
                     href={`/api/admin/exams/export?${exportQuery.toString()}`}
                   />
                 )}
-
-                <FormContainer table="exam" type="create" />
+                <Link
+                  href="/list/exams/create-workflow"
+                  className="px-4 py-2 bg-academixPurpleDark text-white rounded-md text-sm font-medium hover:opacity-90 transition-colors"
+                >
+                  Add Exam
+                </Link>
               </>
             )}
           </div>
