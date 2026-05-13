@@ -15,6 +15,10 @@ import ExamTimer from "./ExamTimer";
 import FreezeOverlay from "./FreezeOverlay";
 import QuestionRenderer from "./QuestionRenderer";
 
+type DebouncedSaveFn = ((questionId: number, answer: string) => void) & {
+  flush: () => void;
+};
+
 interface ExamClientProps {
   exam: Exam;
   submission: any;
@@ -33,22 +37,27 @@ export default function ExamClient({
   totalPages,
 }: ExamClientProps) {
   const router = useRouter();
-  
+
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<number, string>>(
-    initialAnswers.reduce((acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || "" }), {})
+    initialAnswers.reduce(
+      (acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || "" }),
+      {},
+    ),
   );
-  
+
   const [currentPage, setCurrentPage] = useState(submission.currentPage);
   const [isFrozen, setIsFrozen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "error"
+  >("idle");
 
   const pendingAnswersRef = useRef<Record<number, string>>({});
   const disconnectedAtRef = useRef<number | null>(null);
   const freezeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedSaveRef = useRef<ReturnType<typeof debounce> | null>(null);
+  const debouncedSaveRef = useRef<DebouncedSaveFn | null>(null);
 
   useEffect(() => {
     const debounced = debounce(async (questionId: number, answer: string) => {
@@ -59,7 +68,7 @@ export default function ExamClient({
           submissionId: submission.id,
           questionId,
           textAnswer: answer,
-        }
+        },
       );
 
       if (res.error) {
@@ -100,7 +109,11 @@ export default function ExamClient({
     for (const [qId, ans] of Object.entries(pendingAnswersRef.current)) {
       await saveAnswer(
         { success: true, error: false },
-        { submissionId: submission.id, questionId: parseInt(qId), textAnswer: ans }
+        {
+          submissionId: submission.id,
+          questionId: parseInt(qId),
+          textAnswer: ans,
+        },
       );
     }
     pendingAnswersRef.current = {};
@@ -124,17 +137,21 @@ export default function ExamClient({
       setCurrentPage(newPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    
+
     setIsLoadingPage(false);
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    
-    if (confirm("Are you sure you want to submit your exam? You cannot change your answers after submitting.")) {
+
+    if (
+      confirm(
+        "Are you sure you want to submit your exam? You cannot change your answers after submitting.",
+      )
+    ) {
       setIsSubmitting(true);
       debouncedSaveRef.current?.flush();
-      
+
       const res = await submitExam(submission.id);
       if (res.error) {
         toast.error(res.error as string);
@@ -165,14 +182,16 @@ export default function ExamClient({
 
     const handleOnline = async () => {
       if (freezeTimerRef.current) clearTimeout(freezeTimerRef.current);
-      
+
       if (isFrozen && disconnectedAtRef.current) {
         setIsFrozen(false);
-        const offlineSeconds = Math.floor((Date.now() - disconnectedAtRef.current) / 1000);
+        const offlineSeconds = Math.floor(
+          (Date.now() - disconnectedAtRef.current) / 1000,
+        );
         await recordDisconnection(
           submission.id,
           offlineSeconds,
-          new Date(disconnectedAtRef.current)
+          new Date(disconnectedAtRef.current),
         );
         disconnectedAtRef.current = null;
       }
@@ -197,7 +216,7 @@ export default function ExamClient({
             submissionId: submission.id,
             questionId: parseInt(qId),
             textAnswer: answer,
-          })
+          }),
         );
       }
     };
@@ -207,23 +226,29 @@ export default function ExamClient({
   }, [submission.id]);
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 relative">
+    <div className="relative mx-auto px-4 py-8 max-w-4xl">
       <FreezeOverlay isFrozen={isFrozen} />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 sticky top-4 z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="top-4 z-10 sticky bg-white shadow-sm mb-6 p-6 border border-gray-200 rounded-lg">
+        <div className="flex md:flex-row flex-col justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <h1 className="font-bold text-gray-900 text-xl">{exam.title}</h1>
+            <div className="flex items-center gap-4 mt-2 text-gray-600 text-sm">
               <span className="font-medium">
                 Page {currentPage} of {totalPages}
               </span>
               {exam.enableAutoSave && (
-                <span className={`flex items-center gap-1 ${
-                  saveStatus === "saving" ? "text-blue-500" :
-                  saveStatus === "saved" ? "text-green-500" :
-                  saveStatus === "error" ? "text-red-500" : "text-gray-400"
-                }`}>
+                <span
+                  className={`flex items-center gap-1 ${
+                    saveStatus === "saving"
+                      ? "text-blue-500"
+                      : saveStatus === "saved"
+                        ? "text-green-500"
+                        : saveStatus === "error"
+                          ? "text-red-500"
+                          : "text-gray-400"
+                  }`}
+                >
                   {saveStatus === "saving" && "Saving..."}
                   {saveStatus === "saved" && "✓ Saved"}
                   {saveStatus === "error" && "⚠ Save failed"}
@@ -231,7 +256,7 @@ export default function ExamClient({
               )}
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {exam.enableTimer && (
               <ExamTimer
@@ -241,11 +266,11 @@ export default function ExamClient({
                 onSubmit={handleAutoSubmit}
               />
             )}
-            
+
             <button
               onClick={handleSubmit}
               disabled={isSubmitting || isLoadingPage}
-              className="bg-academixPurpleDark text-white px-6 py-2 rounded-md font-semibold hover:bg-academixPurple transition-colors disabled:opacity-50"
+              className="bg-academixPurpleDark hover:bg-academixPurple disabled:opacity-50 px-6 py-2 rounded-md font-semibold text-white transition-colors"
             >
               {isSubmitting ? "Submitting..." : "Submit Exam"}
             </button>
@@ -255,17 +280,20 @@ export default function ExamClient({
 
       <div className="space-y-6 mb-8">
         {questions.map((q) => (
-          <div key={q.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <div
+            key={q.id}
+            className="bg-white shadow-sm p-6 border border-gray-200 rounded-lg"
+          >
             <div className="flex justify-between items-start mb-4">
               <div className="font-medium text-gray-900">
                 <span className="mr-2">{q.order}.</span>
                 {q.text}
               </div>
-              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
+              <span className="bg-gray-100 px-2 py-1 rounded font-medium text-gray-500 text-sm">
                 {q.points} {q.points === 1 ? "point" : "points"}
               </span>
             </div>
-            
+
             <div className="mt-4">
               <QuestionRenderer
                 question={q}
@@ -278,29 +306,34 @@ export default function ExamClient({
         ))}
       </div>
 
-      <div className="flex justify-between items-center bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="flex justify-between items-center bg-white shadow-sm p-4 border border-gray-200 rounded-lg">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1 || !exam.enableNavigation || isLoadingPage || isSubmitting}
-          className="px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={
+            currentPage === 1 ||
+            !exam.enableNavigation ||
+            isLoadingPage ||
+            isSubmitting
+          }
+          className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 disabled:cursor-not-allowed"
         >
           Previous
         </button>
-        
-        <span className="text-sm text-gray-500">
+
+        <span className="text-gray-500 text-sm">
           {currentPage} / {totalPages}
         </span>
-        
+
         {currentPage < totalPages ? (
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={isLoadingPage || isSubmitting}
-            className="px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700"
           >
             Next
           </button>
         ) : (
-          <div className="px-4 py-2 opacity-0">Next</div> // Spacer
+          <div className="opacity-0 px-4 py-2">Next</div> // Spacer
         )}
       </div>
     </div>

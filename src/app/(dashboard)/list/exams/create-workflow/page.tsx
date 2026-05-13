@@ -10,7 +10,7 @@ export default async function CreateExamWorkflowPage({
 }: {
   searchParams: PageSearchParams;
 }) {
-  const { role, userId, schoolId } = await enforceRouteAccess("/list/exams", ["admin", "teacher"]);
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
   const resolvedSearchParams = await searchParams;
   const examIdParam = getQueryParam(resolvedSearchParams.examId);
   const examId = examIdParam ? Number.parseInt(examIdParam, 10) : NaN;
@@ -87,7 +87,9 @@ export default async function CreateExamWorkflowPage({
           points: question.points,
           order: question.order,
           allowMultiple: question.allowMultiple,
-          options: Array.isArray(question.options) ? (question.options as string[]) : [],
+          options: Array.isArray(question.options)
+            ? (question.options as string[])
+            : [],
           correctAnswer: question.correctAnswer ?? [],
         })),
       }
@@ -103,7 +105,7 @@ export default async function CreateExamWorkflowPage({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">
+      <h1 className="mb-6 font-bold text-gray-900 text-2xl">
         {exam ? "Update Exam Workflow" : "Create New Exam Workflow"}
       </h1>
       <ExamWorkflowForm

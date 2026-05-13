@@ -25,7 +25,7 @@ export default function QuestionRenderer({
 
   const handleMultipleChoice = (option: string, checked: boolean) => {
     let currentAns = parseAnswerList(savedAnswer);
-    
+
     if (question.allowMultiple) {
       if (checked) {
         if (!currentAns.includes(option)) {
@@ -37,12 +37,12 @@ export default function QuestionRenderer({
     } else {
       currentAns = [option];
     }
-    
+
     onChange(
       question.id,
       question.allowMultiple
         ? JSON.stringify(currentAns)
-        : serializeAnswerList(currentAns)
+        : serializeAnswerList(currentAns),
     );
   };
 
@@ -96,30 +96,42 @@ export default function QuestionRenderer({
           {(() => {
             const selectedAnswers = parseStoredAnswer(
               savedAnswer,
-              question.allowMultiple
+              question.allowMultiple,
             );
-            return question.options.map((option, idx) => {
+            const rawOptions = Array.isArray(question.options)
+              ? question.options
+              : [];
+            const options = rawOptions.filter(
+              (o): o is string => typeof o === "string",
+            );
+
+            return options.map((option, idx) => {
               const isChecked = question.allowMultiple
                 ? selectedAnswers.includes(option)
                 : selectedAnswers[0] === option;
               return (
-                <label key={idx} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-2 rounded-md transition-colors border border-transparent hover:border-gray-200">
+                <label
+                  key={idx}
+                  className="flex items-center gap-2 hover:bg-gray-50 p-2 border border-transparent hover:border-gray-200 rounded-md transition-colors cursor-pointer"
+                >
                   <input
                     type={question.allowMultiple ? "checkbox" : "radio"}
                     name={`q_${question.id}`}
                     value={option}
                     checked={isChecked}
-                    onChange={(e) => handleMultipleChoice(option, e.target.checked)}
+                    onChange={(e) =>
+                      handleMultipleChoice(option, e.target.checked)
+                    }
                     disabled={disabled}
                     className="w-4 h-4 text-academixPurpleDark"
                   />
-                  <span className="text-sm text-gray-700">{option}</span>
+                  <span className="text-gray-700 text-sm">{option}</span>
                 </label>
               );
             });
           })()}
           {question.allowMultiple && (
-            <p className="text-xs text-gray-400 mt-1">
+            <p className="mt-1 text-gray-400 text-xs">
               * You may select more than one answer.
             </p>
           )}
@@ -134,7 +146,7 @@ export default function QuestionRenderer({
           value={savedAnswer ?? ""}
           onChange={(e) => onChange(question.id, e.target.value)}
           disabled={disabled}
-          className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-academixPurpleDark/50 resize-y"
+          className="p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-academixPurpleDark/50 w-full resize-y"
         />
       )}
 
@@ -142,20 +154,24 @@ export default function QuestionRenderer({
       {question.type === "FILE" && (
         <div className="flex flex-col gap-2">
           {savedAnswer && savedAnswer.trim() !== "" ? (
-            <div className="flex items-center gap-4 p-3 bg-green-50 border border-green-200 rounded-md">
-              <span className="text-sm text-green-700">File uploaded successfully.</span>
+            <div className="flex items-center gap-4 bg-green-50 p-3 border border-green-200 rounded-md">
+              <span className="text-green-700 text-sm">
+                File uploaded successfully.
+              </span>
               <button
                 type="button"
                 onClick={() => onChange(question.id, "")}
                 disabled={disabled}
-                className="text-sm text-red-500 hover:underline"
+                className="text-red-500 text-sm hover:underline"
               >
                 Remove
               </button>
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <label className={`flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer ${disabled || isUploading ? "opacity-50 cursor-not-allowed" : ""}`}>
+              <label
+                className={`flex items-center justify-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 cursor-pointer ${disabled || isUploading ? "opacity-50 cursor-not-allowed" : ""}`}
+              >
                 {isUploading ? "Uploading..." : "Choose File"}
                 <input
                   type="file"
@@ -165,7 +181,7 @@ export default function QuestionRenderer({
                   accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
                 />
               </label>
-              <span className="text-xs text-gray-500">Max size: 10MB</span>
+              <span className="text-gray-500 text-xs">Max size: 10MB</span>
             </div>
           )}
         </div>
