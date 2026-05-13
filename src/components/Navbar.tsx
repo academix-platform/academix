@@ -48,16 +48,6 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
             {schoolName}
           </span>
         )}
-
-        <div className="hidden md:flex items-center gap-4 px-3 py-1 rounded-full ring-[1.5px] ring-gray-300 text-xs">
-          <Search className="w-4 h-4 text-gray-500" />
-
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent outline-none w-[140px]"
-          />
-        </div>
       </div>
 
       {/* RIGHT */}
@@ -82,7 +72,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
         </div>
 
         {/* USER INFO */}
-        <div className="flex flex-col">
+        <div className="hidden sm:flex flex-col">
           <span className="font-medium text-xs leading-3">{fullName}</span>
           <span className="text-[10px] text-gray-500 text-right">
             {formattedRole}

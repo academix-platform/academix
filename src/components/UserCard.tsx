@@ -1,7 +1,7 @@
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { UserRole } from "@/lib/utils";
-import { MoreHorizontal } from "lucide-react";
 
 const UserCard = async ({ type }: { type: UserRole }) => {
   const user = requireAuth();
@@ -29,17 +29,22 @@ const UserCard = async ({ type }: { type: UserRole }) => {
   };
 
   const data = await countByRole[type]();
+  const schoolId = (await user).schoolId;
+  const currentYear = await getCurrentAcademicYearOrNull(schoolId as number);
 
   return (
-    <div className="flex-1 even:bg-academixYellow odd:bg-academixPurple p-4 rounded-2xl min-w-[130px]">
+    <div className="even:bg-academixYellow odd:bg-academixPurple p-4 rounded-2xl">
       <div className="flex justify-between items-center">
-        <span className="bg-white px-2 py-1 rounded-full text-[10px] text-green-600">
-          2024/25
-        </span>
-        <MoreHorizontal className="w-5 h-5 text-gray-500" />
+        {currentYear && (
+          <span className="bg-white px-2 py-1 rounded-full text-[10px] text-green-600">
+            {currentYear.name}
+          </span>
+        )}
       </div>
-      <h1 className="my-4 font-semibold text-2xl">{data}</h1>
-      <h2 className="font-medium text-gray-500 text-sm capitalize">{type}s</h2>
+      <div className="flex md:flex-col items-center md:items-start gap-4 mt-4">
+        <p className="font-semibold text-2xl">{data}</p>
+        <p className="font-medium text-gray-500 text-sm capitalize">{type}s</p>
+      </div>
     </div>
   );
 };

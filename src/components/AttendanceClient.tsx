@@ -93,7 +93,7 @@ const AttendanceClient = ({
         </tbody>
       </table>
       {isToday && (
-        <button className="bg-academixPurpleDark px-4 py-2 rounded-md w-max text-white">
+        <button className="bg-academixPurpleDark px-2 py-2 rounded-md w-max text-white">
           Save Attendance
         </button>
       )}
