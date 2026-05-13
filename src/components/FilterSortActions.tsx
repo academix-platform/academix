@@ -49,14 +49,16 @@ export default function FilterSortActions({
 
   return (
     <div className="flex items-center gap-2">
-      <button
-        type="button"
-        onClick={handleFilterClick}
-        className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
-        title="Filter"
-      >
-        <Filter className="w-[14px] h-[14px]" />
-      </button>
+      {filterKey && filterValue && (
+        <button
+          type="button"
+          onClick={handleFilterClick}
+          className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+          title="Filter"
+        >
+          <Filter className="w-[14px] h-[14px]" />
+        </button>
+      )}
 
       <button
         type="button"
