@@ -1,5 +1,6 @@
 import { buildAssignmentQuery } from "@/lib/query-builders/assignment-query";
 import { createCsvResponse, generateCsv } from "@/lib/csv";
+import { searchParamsToRecord } from "@/lib/pageParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
@@ -19,8 +20,8 @@ export async function GET(request: NextRequest) {
   }
 
   const searchParams = Promise.resolve(
-  Object.fromEntries(request.nextUrl.searchParams.entries())
-);
+    searchParamsToRecord(request.nextUrl.searchParams),
+  );
 
 const { academicYearId, query, orderBy } =
   await buildAssignmentQuery({

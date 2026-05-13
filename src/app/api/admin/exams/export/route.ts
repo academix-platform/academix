@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { createCsvResponse, generateCsv } from "@/lib/csv";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
+import { searchParamsToRecord } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
@@ -11,9 +12,9 @@ export async function GET(req: NextRequest) {
     return new Response("Forbidden", { status: 403 });
   }
 
-  const { query } = await buildExamQuery({
+  const { query, orderBy } = await buildExamQuery({
     searchParams: Promise.resolve(
-      Object.fromEntries(req.nextUrl.searchParams.entries())
+      searchParamsToRecord(req.nextUrl.searchParams),
     ),
     schoolId,
     role,
@@ -47,9 +48,7 @@ export async function GET(req: NextRequest) {
         },
       },
     },
-    orderBy: {
-      startTime: "desc",
-    },
+    orderBy,
   });
 
   const csv = generateCsv(

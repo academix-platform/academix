@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildParentQuery } from "@/lib/query-builders/parent-query";
 import { createCsvResponse, generateCsv } from "@/lib/csv";
+import { searchParamsToRecord } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   }
 
   const searchParams = Promise.resolve(
-    Object.fromEntries(req.nextUrl.searchParams.entries())
+    searchParamsToRecord(req.nextUrl.searchParams),
   );
 
   const { query } = await buildParentQuery({

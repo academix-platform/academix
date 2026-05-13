@@ -1,6 +1,7 @@
 import { buildResultQuery } from "@/lib/query-builders/result-query";
 import { createCsvResponse, generateCsv } from "@/lib/csv";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { searchParamsToRecord } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -12,9 +13,9 @@ export async function GET(request: NextRequest) {
     return new NextResponse("Forbidden", { status: 403 });
   }
 
-const searchParams = Promise.resolve(
-  Object.fromEntries(request.nextUrl.searchParams.entries())
-);
+  const searchParams = Promise.resolve(
+    searchParamsToRecord(request.nextUrl.searchParams),
+  );
 
   const { academicYearId, query, orderBy } = await buildResultQuery({
     searchParams,
