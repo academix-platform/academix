@@ -66,9 +66,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => (
   >
     <td className="p-4">{item.title}</td>
 
-    <td className="flex items-center gap-4 p-4">
-      {item.subject?.name ?? "-"}
-    </td>
+    <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
 
     {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
 
@@ -76,7 +74,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => (
       <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
     )}
 
-    <td className="hidden md:table-cell min-w-[180px] w-[180px]">
+    <td className="hidden md:table-cell w-[180px] min-w-[180px]">
       {formatDateTime(item.endDate)}
     </td>
 
@@ -103,8 +101,12 @@ const AssignmentListPage = async ({
 
   const resolvedSearchParams = await searchParams;
 
- const { academicYearId, query, orderBy, page: p } =
-  await buildAssignmentQuery({
+  const {
+    academicYearId,
+    query,
+    orderBy,
+    page: p,
+  } = await buildAssignmentQuery({
     searchParams,
     schoolId,
     role,
@@ -122,7 +124,7 @@ const AssignmentListPage = async ({
       }
 
       return value ? [[key, value]] : [];
-    })
+    }),
   );
 
   const [data, count] = await prisma.$transaction([
@@ -148,15 +150,13 @@ const AssignmentListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">
-          All Assignments
-        </h1>
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">All Assignments</h1>
 
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
 
-          <div className="flex items-center self-end gap-4">
+          <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
 
             {(role === "admin" || role === "teacher") && (

@@ -58,7 +58,7 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
         alt=""
         width={40}
         height={40}
-        className="hidden md:block object-cover rounded-full w-10 h-10"
+        className="hidden md:block rounded-full w-10 h-10 object-cover"
       />
       {item.student.name}
     </td>
@@ -83,8 +83,7 @@ const ResultListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId, schoolId } =
-    await enforceRouteAccess("/list/results");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/results");
 
   const resolvedSearchParams = await searchParams;
 
@@ -111,7 +110,7 @@ const ResultListPage = async ({
       }
 
       return value ? [[key, value]] : [];
-    })
+    }),
   );
 
   const [data, count] = await prisma.$transaction([
@@ -145,13 +144,13 @@ const ResultListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Results</h1>
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">All Results</h1>
 
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
 
-          <div className="flex items-center self-end gap-4">
+          <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
 
             {(role === "admin" || role === "teacher") && (

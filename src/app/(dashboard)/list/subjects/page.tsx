@@ -71,7 +71,11 @@ const SubjectListPage = async ({
 }) => {
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
 
-  const { query, orderBy, page: p } = await buildSubjectQuery({
+  const {
+    query,
+    orderBy,
+    page: p,
+  } = await buildSubjectQuery({
     searchParams,
     schoolId,
     role,
@@ -87,7 +91,7 @@ const SubjectListPage = async ({
       }
 
       return value ? [[key, value]] : [];
-    })
+    }),
   );
 
   const [data, count] = await prisma.$transaction([
@@ -108,13 +112,13 @@ const SubjectListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Subjects</h1>
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">All Subjects</h1>
 
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
 
-          <div className="flex items-center self-end gap-4">
+          <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
 
             {role === "admin" && (

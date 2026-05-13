@@ -201,14 +201,6 @@ const FormModal = ({
   id,
   relatedData,
 }: FormContainerProps & { relatedData?: any }) => {
-  const size = type === "create" ? "w-8 h-8" : "w-7 h-7";
-  const bgColor =
-    type === "create"
-      ? "bg-academixYellow"
-      : type === "update"
-        ? "bg-academixSky"
-        : "bg-academixPurple";
-
   const [open, setOpen] = useState(false);
 
   const Form = () => {
@@ -276,7 +268,7 @@ const FormModal = ({
   return (
     <>
       <button
-        className={`p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixPurple`}
+        className={`p-2.5 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixPurple`}
         onClick={() => setOpen(true)}
       >
         {(() => {

@@ -87,10 +87,10 @@ const AttendancePage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">Attendance</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="font-semibold text-lg">Attendance</h1>
 
-        <form className="flex items-center gap-2">
+        <form className="hidden sm:flex items-center gap-2">
           <input
             type="date"
             name="date"
@@ -103,45 +103,52 @@ const AttendancePage = async ({
             <input type="hidden" name="classId" value={effectiveClassId} />
           )}
 
-          <button className="bg-gray-100 px-3 py-2 rounded-md text-sm">
+          <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">
             Filter
           </button>
         </form>
       </div>
 
-      {/* ADMIN TABS */}
-      {role === "admin" && (
-        <div className="flex gap-4 mb-4">
-          <a
-            href={`/list/attendance?scope=students&classId=${effectiveClassId}`}
-            className={`px-3 py-1 rounded ${
-              scope === "students" ? "bg-blue-500 text-white" : "bg-gray-100"
-            }`}
-          >
-            Students
-          </a>
+      <div className="flex flex-wrap justify-between items-center">
+        {/* ADMIN TABS */}
+        {role === "admin" && (
+          <div className="flex gap-2 mb-2">
+            <a
+              href={`/list/attendance?scope=students&classId=${effectiveClassId}`}
+              className={`px-3 py-1 rounded-md ${
+                scope === "students"
+                  ? "bg-academixPurpleDark text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Students
+            </a>
 
-          <a
-            href={`/list/attendance?scope=teachers`}
-            className={`px-3 py-1 rounded ${
-              scope === "teachers" ? "bg-blue-500 text-white" : "bg-gray-100"
-            }`}
-          >
-            Teachers
-          </a>
-        </div>
-      )}
+            <a
+              href={`/list/attendance?scope=teachers`}
+              className={`px-3 py-1 rounded-md ${
+                scope === "teachers"
+                  ? "bg-academixPurpleDark text-white"
+                  : "bg-gray-100"
+              }`}
+            >
+              Teachers
+            </a>
+          </div>
+        )}
 
-      {/* CLASS SELECT (ADMIN) */}
-      {role === "admin" && scope === "students" && (
-        <div className="mb-4">
-          <AttendanceClassSelect
-            classes={classes}
-            value={effectiveClassId}
-            selectedDate={selectedDate}
-          />
-        </div>
-      )}
+        {/* CLASS SELECT (ADMIN) */}
+        {role === "admin" && scope === "students" && (
+          <div className="mb-4">
+            <span className="mr-2">Class:</span>
+            <AttendanceClassSelect
+              classes={classes}
+              value={effectiveClassId}
+              selectedDate={selectedDate}
+            />
+          </div>
+        )}
+      </div>
 
       {/* TEACHER CLASS TABS */}
       {role === "teacher" && (
@@ -152,7 +159,7 @@ const AttendancePage = async ({
               href={`/list/attendance?classId=${cls.id}`}
               className={`px-3 py-1 rounded ${
                 effectiveClassId === cls.id
-                  ? "bg-blue-500 text-white"
+                  ? "bg-academixPurpleDark text-white"
                   : "bg-gray-100"
               }`}
             >

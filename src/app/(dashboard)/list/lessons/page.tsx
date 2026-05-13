@@ -61,18 +61,26 @@ const LessonListPage = async ({
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex md:flex-row flex-col justify-between md:items-center gap-4">
+      <div className="flex justify-between md:items-center gap-4">
         <h1 className="font-semibold text-xl">Lessons Calendar</h1>
 
-        {role === "admin" && selectedClass && (
-          <div className="self-end md:self-auto">
-            <FormContainer
-              table="lesson"
-              type="update"
-              data={{ classId: selectedClass.id }}
+        <div className="flex items-center gap-2">
+          {role === "admin" && (
+            <ExportButton
+              href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
             />
-          </div>
-        )}
+          )}
+
+          {role === "admin" && selectedClass && (
+            <div className="self-end md:self-auto">
+              <FormContainer
+                table="lesson"
+                type="update"
+                data={{ classId: selectedClass.id }}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {classes.length === 0 ? (
@@ -131,12 +139,6 @@ const LessonListPage = async ({
                 <h2 className="font-medium text-gray-700 text-sm">
                   {`Schedule for Grade ${selectedClass.grade.level} - ${selectedClass.name}`}
                 </h2>
-
-                {role === "admin" && (
-                  <ExportButton
-                    href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
-                  />
-                )}
               </div>
 
               <BigCalendarContainer type="classId" id={selectedClass.id} />
