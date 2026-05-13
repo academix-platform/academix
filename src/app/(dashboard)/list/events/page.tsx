@@ -150,13 +150,17 @@ const EventListPage = async ({
     query.AND = conditions;
   }
 
+  const sortParam = getQueryParam(queryParams.sort);
+  const orderBy: Prisma.EventOrderByWithRelationInput =
+    sortParam === "asc" ? { startDate: "asc" } : { startDate: "desc" };
+
   const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.event.findMany({
       where: query,
       include: {
         classes: { select: { id: true, name: true } },
       },
-      orderBy: { startDate: "desc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -174,7 +178,7 @@ const EventListPage = async ({
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+            <FilterSortActions sortKey="sort" />
             {role === "admin" && <FormContainer table="event" type="create" />}
           </div>
         </div>

@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
     Object.fromEntries(req.nextUrl.searchParams.entries())
   );
 
-  const { query } = await buildStudentQuery({
+  const { query, orderBy } = await buildStudentQuery({
     searchParams,
     schoolId,
     currentAcademicYearId: currentAcademicYear.id,
@@ -37,9 +37,7 @@ export async function GET(req: NextRequest) {
     include: {
       class: true,
     },
-    orderBy: {
-      name: "asc",
-    },
+    orderBy,
   });
 
   const csv = generateCsv(

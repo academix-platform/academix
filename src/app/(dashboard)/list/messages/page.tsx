@@ -238,6 +238,9 @@ const MessageListPage = async ({
   }
 
   const where = query;
+  const sortParam = getQueryParam(queryParams.sort);
+  const orderBy: Prisma.MessageOrderByWithRelationInput =
+    sortParam === "asc" ? { date: "asc" } : { date: "desc" };
 
   const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.message.findMany({
@@ -248,7 +251,7 @@ const MessageListPage = async ({
         parents: { select: { id: true, name: true } },
         teachers: { select: { id: true, name: true } },
       },
-      orderBy: { date: "desc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -264,7 +267,7 @@ const MessageListPage = async ({
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+            <FilterSortActions sortKey="sort" />
             {role === "admin" && (
               <FormContainer table="message" type="create" />
             )}

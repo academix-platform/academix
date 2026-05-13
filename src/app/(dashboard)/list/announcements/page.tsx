@@ -127,13 +127,17 @@ const AnnouncementListPage = async ({
     query.AND = conditions;
   }
 
+  const sortParam = getQueryParam(queryParams.sort);
+  const orderBy: Prisma.AnnouncementOrderByWithRelationInput =
+    sortParam === "asc" ? { date: "asc" } : { date: "desc" };
+
   const [data, count, totalClassesCount] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
       include: {
         classes: { select: { id: true, name: true } },
       },
-      orderBy: { date: "desc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -151,7 +155,7 @@ const AnnouncementListPage = async ({
         <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+            <FilterSortActions sortKey="sort" />
             {role === "admin" && (
               <FormContainer table="announcement" type="create" />
             )}

@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     Object.fromEntries(req.nextUrl.searchParams.entries())
   );
 
-  const { query } = await buildClassQuery({
+  const { query, orderBy } = await buildClassQuery({
     searchParams,
     schoolId,
   });
@@ -30,9 +30,7 @@ export async function GET(req: NextRequest) {
         },
       },
     },
-    orderBy: {
-      name: "asc",
-    },
+    orderBy,
   });
 
   const csv = generateCsv(
