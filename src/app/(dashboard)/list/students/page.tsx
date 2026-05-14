@@ -79,7 +79,8 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
     <td>
       <div className="flex items-center gap-2">
         <Link href={`/list/students/${item.id}`}>
-          <button className="flex justify-center items-center bg-academixSky rounded-full w-7 h-7">
+          <button className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
+            {" "}
             <Eye className="w-4 h-4" />
           </button>
         </Link>
@@ -177,11 +178,6 @@ const StudentListPage = async ({
                   href={`/api/admin/students/export?${exportQuery.toString()}`}
                 />
 
-                <PromoteStudentsButton
-                  academicYearName={currentAcademicYear.name}
-                  academicYearEndDate={currentAcademicYear.endDate}
-                />
-
                 <FormContainer table="student" type="create" />
               </>
             )}
@@ -194,8 +190,15 @@ const StudentListPage = async ({
         renderRow={(item) => renderRow(item, role)}
         data={data}
       />
-
-      <Pagination page={p} count={count} />
+      <div className="flex justify-between items-center">
+        {role === "admin" && (
+          <PromoteStudentsButton
+            academicYearName={currentAcademicYear.name}
+            academicYearEndDate={currentAcademicYear.endDate}
+          />
+        )}
+        <Pagination page={p} count={count} />
+      </div>
     </div>
   );
 };

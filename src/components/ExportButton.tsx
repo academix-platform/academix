@@ -6,14 +6,11 @@ type ExportButtonProps = {
   title?: string;
 };
 
-const ExportButton = ({
-  href,
-  title = "Export CSV",
-}: ExportButtonProps) => {
+const ExportButton = ({ href, title = "Export CSV" }: ExportButtonProps) => {
   return (
     <Link
       href={href}
-      className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+      className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
       title={title}
     >
       <Download className="w-4 h-4" />

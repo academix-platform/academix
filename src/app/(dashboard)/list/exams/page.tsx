@@ -113,7 +113,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
           <div className="flex items-center gap-2">
             <Link
               href={`/list/exams/create-workflow?examId=${item.id}`}
-              className="p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixSky"
+              className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
               aria-label="Edit exam workflow"
             >
               <Pencil className="w-4 h-4" />
@@ -124,14 +124,14 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
         {(role === "admin" || role === "teacher") && (
           <Link
             href={`/list/exams/${item.id}/submissions`}
-            className="px-3 py-1 bg-academixYellow text-xs rounded-md hover:opacity-90"
+            className="bg-academixYellow hover:opacity-90 px-3 py-2 rounded-md text-xs hover:scale-[1.05] transition"
           >
             Submissions
           </Link>
         )}
         {role === "student" && (
           <Link href={`/list/exams/${item.id}/take`}>
-            <button className="bg-academixPurpleDark text-white px-3 py-1 rounded-md text-xs font-semibold hover:bg-academixPurple transition-colors">
+            <button className="bg-academixPurpleDark hover:bg-academixPurple px-3 py-1 rounded-md font-semibold text-white text-xs transition-colors">
               Take Exam
             </button>
           </Link>
@@ -212,43 +212,43 @@ const ExamListPage = async ({
   const dataWithClassDisplay: ExamList[] =
     role === "admin" || role === "teacher"
       ? (() => {
-        const classGroups = new Map<string, Set<string>>();
+          const classGroups = new Map<string, Set<string>>();
 
-        for (const exam of data) {
-          const groupKey = [
-            exam.title,
-            exam.startTime.toISOString(),
-            exam.endTime.toISOString(),
-            exam.subject?.name,
-          ].join("|");
+          for (const exam of data) {
+            const groupKey = [
+              exam.title,
+              exam.startTime.toISOString(),
+              exam.endTime.toISOString(),
+              exam.subject?.name,
+            ].join("|");
 
-          if (!classGroups.has(groupKey)) {
-            classGroups.set(groupKey, new Set<string>());
+            if (!classGroups.has(groupKey)) {
+              classGroups.set(groupKey, new Set<string>());
+            }
+
+            if (exam.class?.name) {
+              classGroups.get(groupKey)!.add(exam.class.name);
+            }
           }
 
-          if (exam.class?.name) {
-            classGroups.get(groupKey)!.add(exam.class.name);
-          }
-        }
+          return data.map((exam) => {
+            const groupKey = [
+              exam.title,
+              exam.startTime.toISOString(),
+              exam.endTime.toISOString(),
+              exam.subject?.name,
+            ].join("|");
 
-        return data.map((exam) => {
-          const groupKey = [
-            exam.title,
-            exam.startTime.toISOString(),
-            exam.endTime.toISOString(),
-            exam.subject?.name,
-          ].join("|");
-
-          const groupedClasses = classGroups.get(groupKey);
-          return {
-            ...exam,
-            displayClasses:
+            const groupedClasses = classGroups.get(groupKey);
+            return {
+              ...exam,
+              displayClasses:
                 groupedClasses && groupedClasses.size > 1
                   ? Array.from(groupedClasses).sort().join(", ")
                   : exam.class?.name,
-          };
-        });
-      })()
+            };
+          });
+        })()
       : data;
 
   return (
@@ -271,7 +271,7 @@ const ExamListPage = async ({
                 )}
                 <Link
                   href="/list/exams/create-workflow"
-                  className="px-4 py-2 bg-academixPurpleDark text-white rounded-md text-sm font-medium hover:opacity-90 transition-colors"
+                  className="bg-academixPurpleDark hover:opacity-90 px-4 py-2 rounded-md font-medium text-white text-sm transition-colors"
                 >
                   Add Exam
                 </Link>
