@@ -53,7 +53,7 @@ export default function FilterSortActions({
         <button
           type="button"
           onClick={handleFilterClick}
-          className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+          className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
           title="Filter"
         >
           <Filter className="w-[14px] h-[14px]" />
@@ -63,7 +63,7 @@ export default function FilterSortActions({
       <button
         type="button"
         onClick={handleSortClick}
-        className="flex justify-center items-center bg-academixYellow rounded-full w-8 h-8"
+        className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
         title="Sort"
       >
         <ArrowUpDown className="w-[14px] h-[14px]" />

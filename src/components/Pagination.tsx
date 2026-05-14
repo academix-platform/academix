@@ -1,6 +1,7 @@
 "use client";
 
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const Pagination = ({ page, count }: { page: number; count: number }) => {
@@ -16,13 +17,13 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
   };
 
   return (
-    <div className="flex justify-between items-center p-4 text-gray-500">
+    <div className="flex justify-end items-center gap-2 p-4 text-gray-500">
       <button
-        className="bg-slate-200 disabled:opacity-50 px-4 py-2 rounded-md font-semibold text-xs disabled:cursor-not-allowed"
+        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}
         disabled={!hasPrev}
       >
-        Prev
+        <ArrowLeftIcon className="w-5 h-5" />
       </button>
       <div className="flex items-center gap-2 text-sm">
         {Array.from({ length: Math.ceil(count / ITEM_PER_PAGE) }, (_, i) => {
@@ -30,10 +31,10 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
           return (
             <button
               key={pageIndex}
-              className={`px-3 py-1 rounded-md ${
+              className={`py-1.5 px-4 rounded-md ${
                 page === pageIndex
-                  ? "bg-academixSky"
-                  : "bg-slate-200 hover:bg-slate-300"
+                  ? "bg-academixPurpleDark text-white"
+                  : "bg-academixPurple hover:bg-academixPurpleDark text-academixPurpleDark hover:text-academixPurple"
               }`}
               onClick={() => changePage(pageIndex)}
             >
@@ -43,11 +44,11 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
         })}
       </div>
       <button
-        className="bg-slate-200 disabled:opacity-50 px-4 py-2 rounded-md font-semibold text-xs disabled:cursor-not-allowed"
+        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page + 1)}
         disabled={!hasNext}
       >
-        Next
+        <ArrowRightIcon className="w-5 h-5" />
       </button>
     </div>
   );

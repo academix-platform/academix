@@ -22,7 +22,7 @@ export function LoadingProvider({ children }: { children: ReactNode }) {
     >
       {children}
       {isPending && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center backdrop-blur-[2px] pointer-events-none">
+        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/20 backdrop-blur-[2px]">
           <div className="flex flex-col items-center gap-5">
             <div className="flex justify-center items-center bg-white shadow-lg rounded-3xl w-16 sm:w-24 h-16 sm:h-24">
               <img
