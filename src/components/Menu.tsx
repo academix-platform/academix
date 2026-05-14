@@ -20,9 +20,9 @@ import {
   UsersRound,
   type LucideIcon,
 } from "lucide-react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { NavigationLink } from "./NavigationLink";
 
 type MenuItem = {
   icon: LucideIcon;
@@ -277,7 +277,7 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                 : pathname.startsWith(item.href);
 
             return (
-              <Link
+              <NavigationLink
                 href={item.href}
                 key={item.label}
                 prefetch={item.shouldPrefetch ?? true}
@@ -319,7 +319,7 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                 >
                   {item.label}
                 </span>
-              </Link>
+              </NavigationLink>
             );
           })}
         </div>
