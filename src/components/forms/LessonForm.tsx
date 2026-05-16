@@ -461,7 +461,7 @@ const LessonForm = ({
               <p className="font-medium text-sm">
                 Lesson {slot}
                 {teacherName ? (
-                  <span className="ml-2 font-normal font-medium text-gray-700 text-sm">
+                  <span className="ml-2 font-medium text-gray-700 text-sm">
                     - {teacherName}
                   </span>
                 ) : null}
@@ -553,5 +553,3 @@ const LessonForm = ({
 };
 
 export default LessonForm;
-
-

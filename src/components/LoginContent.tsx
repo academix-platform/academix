@@ -48,7 +48,13 @@ const LoginContent = () => {
       <div className="flex justify-center items-center bg-lamaSkyLight h-screen">
         <div className="bg-white shadow-2xl px-10 py-9 rounded-2xl w-[360px] text-gray-600">
           <h1 className="flex items-center gap-2 mb-4 font-bold text-xl">
-            <Image src="/icon.png" alt="Academix logo" width={24} height={24} />
+            <Image
+              src="/icon.png"
+              alt="Academix logo"
+              width={24}
+              height={24}
+              style={{ height: "auto" }}
+            />
             Academix
           </h1>
           <div className="flex items-center gap-3 bg-academixPurpleLight/40 px-4 py-3 rounded-xl">
@@ -73,7 +79,13 @@ const LoginContent = () => {
       <div className="flex flex-col gap-6 bg-white shadow-2xl p-12 rounded-md">
         <div className="flex flex-col gap-2">
           <h1 className="flex items-center gap-2 font-bold text-xl">
-            <Image src="/icon.png" alt="Academix logo" width={24} height={24} />
+            <Image
+              src="/icon.png"
+              alt="Academix logo"
+              width={24}
+              height={24}
+              style={{ height: "auto" }}
+            />
             Academix
           </h1>
           <h2 className="text-gray-400">Sign in to your account</h2>

@@ -21,7 +21,7 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
   };
 
   return (
-    <div className="flex justify-end items-center gap-2 p-4 text-gray-500">
+    <div className="flex justify-end items-center gap-2 ml-auto p-4 text-gray-500">
       <button
         className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}

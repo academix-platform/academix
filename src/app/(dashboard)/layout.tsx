@@ -32,6 +32,7 @@ export default async function DashboardLayout({
               className="w-[32px] h-[32px]"
               width={32}
               height={32}
+              style={{ height: "auto" }}
             />
             <span className="hidden lg:block font-bold">ACADEMIX</span>
           </Link>
