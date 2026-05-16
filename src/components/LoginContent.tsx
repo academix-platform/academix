@@ -21,8 +21,7 @@ const LoginContent = () => {
 
     const redirectUrl = searchParams.get("redirect_url");
     const role = user.publicMetadata.role as UserRole | undefined;
-
-    const destination = redirectUrl || (role ? getRoleHome(role) : "/");
+    const destination = redirectUrl || (role ? getRoleHome(role) : "/post-login");
 
     if (window.location.pathname === destination) return;
 
