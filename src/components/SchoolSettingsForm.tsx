@@ -126,15 +126,15 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
         </label>
       </div>
 
-      <div className="bg-blue-50 p-3 rounded-md text-blue-900 text-sm">
+      <div className="bg-academixPurpleLight p-3 rounded-md text-academixPurpleDark text-sm">
         Daily teaching time: {totalMinutes} minutes
       </div>
 
       <button
-        className="bg-blue-500 disabled:opacity-60 px-4 py-2 rounded-md w-fit text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
         disabled={isSubmitting}
       >
-        Save Settings
+        {isSubmitting ? "Saving..." : "Save Settings"}
       </button>
     </form>
   );

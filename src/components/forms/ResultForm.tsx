@@ -28,7 +28,11 @@ const ResultForm = ({
   relatedData?: any;
 }) => {
   const initialAssessmentType =
-    data?.examId != null ? "exam" : data?.assignmentId != null ? "assignment" : "exam";
+    data?.examId != null
+      ? "exam"
+      : data?.assignmentId != null
+        ? "assignment"
+        : "exam";
 
   const {
     register,
@@ -69,7 +73,9 @@ const ResultForm = ({
         );
 
         if (result.success) {
-          toast(`Result has been ${type === "create" ? "created" : "updated"}!`);
+          toast(
+            `Result has been ${type === "create" ? "created" : "updated"}!`,
+          );
           setOpen(false);
           router.refresh();
           return;
@@ -191,20 +197,22 @@ const ResultForm = ({
             {showDropdown && (
               <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student: { id: string; name: string }) => (
-                    <div
-                      key={student.id}
-                      onClick={() => {
-                        setSelectedStudentId(student.id);
-                        setSearchInput(student.name);
-                        setShowDropdown(false);
-                        setFilteredStudents([]);
-                      }}
-                      className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
-                    >
-                      {student.name}
-                    </div>
-                  ))
+                  filteredStudents.map(
+                    (student: { id: string; name: string }) => (
+                      <div
+                        key={student.id}
+                        onClick={() => {
+                          setSelectedStudentId(student.id);
+                          setSearchInput(student.name);
+                          setShowDropdown(false);
+                          setFilteredStudents([]);
+                        }}
+                        className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                      >
+                        {student.name}
+                      </div>
+                    ),
+                  )
                 ) : (
                   <div className="px-3 py-2 text-gray-500 text-sm">
                     No students found
@@ -214,7 +222,9 @@ const ResultForm = ({
             )}
           </div>
           {errors.studentId?.message && (
-            <p className="text-red-400 text-xs">{errors.studentId.message.toString()}</p>
+            <p className="text-red-400 text-xs">
+              {errors.studentId.message.toString()}
+            </p>
           )}
         </div>
 
@@ -251,7 +261,8 @@ const ResultForm = ({
                 className: string;
               }) => (
                 <option key={assessment.id} value={assessment.id}>
-                  {assessment.title} ({assessment.subjectName} - {assessment.className})
+                  {assessment.title} ({assessment.subjectName} -{" "}
+                  {assessment.className})
                 </option>
               ),
             )}
@@ -274,18 +285,26 @@ const ResultForm = ({
             defaultValue={data?.score}
           />
           {errors.score?.message && (
-            <p className="text-red-400 text-xs">{errors.score.message.toString()}</p>
+            <p className="text-red-400 text-xs">
+              {errors.score.message.toString()}
+            </p>
           )}
         </div>
       </div>
 
-      {type === "update" && <input type="hidden" {...register("id")} defaultValue={data?.id} />}
+      {type === "update" && (
+        <input type="hidden" {...register("id")} defaultValue={data?.id} />
+      )}
 
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
         disabled={isSubmitting}
       >
-        {type === "create" ? "Create" : "Update"}
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create"
+            : "Update"}
       </button>
     </form>
   );

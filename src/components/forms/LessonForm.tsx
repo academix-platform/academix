@@ -543,10 +543,10 @@ const LessonForm = ({
       )}
 
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
         disabled={isSubmitting}
       >
-        Save Weekly Schedule
+        {isSubmitting ? "Saving..." : "Save Weekly Schedule"}
       </button>
     </form>
   );

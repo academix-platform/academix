@@ -151,7 +151,7 @@ export default function DirectMessageModal({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 px-4 py-2 rounded-md text-white"
+              className="bg-academixPurpleDark disabled:opacity-50 hover:brightness-90 px-4 py-2 rounded-md text-white transition-all"
             >
               {isSubmitting ? "Sending..." : "Send"}
             </button>

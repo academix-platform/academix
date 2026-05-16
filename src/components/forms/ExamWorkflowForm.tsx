@@ -542,7 +542,7 @@ export default function ExamWorkflowForm({
                 correctAnswer: [],
               })
             }
-            className="bg-blue-500 px-4 py-2 rounded-md text-white text-sm"
+            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
           >
             + Add Question
           </button>
@@ -569,15 +569,15 @@ export default function ExamWorkflowForm({
       <button
         type="submit"
         disabled={isSubmitting}
-        className="bg-academixPurpleDark hover:bg-academixPurple p-3 rounded-md font-bold text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
       >
         {isSubmitting
           ? mode === "update"
             ? "Updating..."
             : "Creating..."
           : mode === "update"
-            ? "Update Exam Workflow"
-            : "Create Exam Workflow"}
+            ? "Update Exam"
+            : "Create Exam"}
       </button>
     </form>
   );

@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import {
   Dispatch,
   SetStateAction,
-  startTransition,
+  useTransition,
   useEffect,
   useState,
 } from "react";
@@ -53,6 +53,7 @@ const ParentForm = ({
     { id: string; name: string }[]
   >([]);
   const [studentsError, setStudentsError] = useState("");
+  const [isSubmitting, startTransition] = useTransition();
 
   const onSubmit = handleSubmit((data) => {
     if (type === "create" && selectedStudentIds.length === 0) {
@@ -271,8 +272,16 @@ const ParentForm = ({
           <p className="text-red-400 text-xs">{studentsError}</p>
         )}
       </div>
-      <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
+      >
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create"
+            : "Update"}
       </button>
     </form>
   );

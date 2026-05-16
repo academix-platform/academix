@@ -8,8 +8,8 @@ import { createClass, updateClass } from "@/lib/actions";
 import {
   Dispatch,
   SetStateAction,
-  startTransition,
   useEffect,
+  useTransition,
   useState,
 } from "react";
 import { toast } from "react-toastify";
@@ -47,6 +47,7 @@ const ClassForm = ({
     },
   });
 
+  const [isSubmitting, startTransition] = useTransition();
   const action = type === "create" ? createClass : updateClass;
   const [searchInput, setSearchInput] = useState(
     teacherOptions.find(
@@ -217,8 +218,15 @@ const ClassForm = ({
           )}
         </div>
       </div>
-      <button className="bg-blue-400 p-2 rounded-md text-white">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        disabled={isSubmitting}
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
+      >
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create"
+            : "Update"}
       </button>
     </form>
   );

@@ -302,7 +302,7 @@ const ClassDeleteForm = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-red-700 disabled:opacity-60 px-4 py-2 rounded-md text-white text-sm"
+          className="bg-red-700 disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md text-white text-sm transition-all"
         >
           {isSubmitting ? "Deleting..." : "Delete class"}
         </button>

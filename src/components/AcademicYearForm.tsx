@@ -137,11 +137,17 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
         <div className="flex gap-3">
           <button
-            className="bg-blue-500 disabled:opacity-60 px-4 py-2 rounded-md w-fit text-white"
+            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
             disabled={isSubmitting}
             type="submit"
           >
-            {form.id ? "Update Academic Year" : "Create Academic Year"}
+            {form.id
+              ? isSubmitting
+                ? "Updating..."
+                : "Update Academic Year"
+              : isSubmitting
+                ? "Creating..."
+                : "Create Academic Year"}
           </button>
 
           {form.id ? (
@@ -183,7 +189,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                   <td className="px-2 py-3">{year.isCurrent ? "Yes" : "No"}</td>
                   <td className="px-2 py-3">
                     <button
-                      className="text-blue-600 hover:underline"
+                      className="text-academixPurpleDark hover:underline"
                       type="button"
                       onClick={() => onEdit(year)}
                     >

@@ -7,7 +7,7 @@ import Image from "next/image";
 import {
   Dispatch,
   SetStateAction,
-  startTransition,
+  useTransition,
   useEffect,
   useState,
 } from "react";
@@ -54,6 +54,7 @@ const StudentForm = ({
   const [filteredParents, setFilteredParents] = useState<
     { id: string; name: string }[]
   >([]);
+  const [isSubmitting, startTransition] = useTransition();
 
   const onSubmit = handleSubmit((data) => {
     startTransition(() => {
@@ -383,8 +384,16 @@ const StudentForm = ({
           );
         }}
       </CldUploadWidget>
-      <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
-        {type === "create" ? "Create" : "Update"}
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
+      >
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create"
+            : "Update"}
       </button>
     </form>
   );
