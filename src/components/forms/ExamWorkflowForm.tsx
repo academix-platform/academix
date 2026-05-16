@@ -213,14 +213,14 @@ function QuestionEditor({
         />
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="text-gray-500 text-xs">Type</label>
+          <label className="font-medium text-gray-700 text-sm">Type</label>
           <select
             {...typeField}
             onChange={(e) => {
               typeField.onChange(e);
               handleQuestionTypeChange(e.target.value);
             }}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
           >
             <option value="TEXT">Text Answer</option>
             <option value="MCQ">Multiple Choice</option>
@@ -295,13 +295,13 @@ function QuestionEditor({
             })}
 
             {errors?.questions?.[index]?.options?.message && (
-              <p className="text-red-400 text-xs">
+              <p className="font-medium text-red-500 text-xs">
                 {errors.questions[index]?.options?.message?.toString()}
               </p>
             )}
           </div>
 
-          <div className="text-gray-500 text-xs">
+          <div className="font-medium text-gray-700 text-sm">
             Select one correct answer, or more if multiple answers are allowed.
           </div>
         </div>
@@ -329,7 +329,7 @@ function QuestionEditor({
             ))}
           </div>
           {errors?.questions?.[index]?.correctAnswer?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.questions[index]?.correctAnswer?.message?.toString()}
             </p>
           )}
@@ -421,9 +421,9 @@ export default function ExamWorkflowForm({
   };
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={handleSubmit(onSubmit)}>
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-semibold text-xl">1. Basic Information</h2>
+        <h2 className="font-bold text-gray-900 text-2xl">1. Basic Information</h2>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
           <InputField
             label="Exam Title"
@@ -447,10 +447,10 @@ export default function ExamWorkflowForm({
           />
 
           <div className="flex flex-col gap-2 w-full">
-            <label className="text-gray-500 text-xs">Subject</label>
+            <label className="font-medium text-gray-700 text-sm">Subject</label>
             <select
               {...register("subjectId")}
-              className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             >
               <option value="">Select a subject...</option>
               {subjects.map((s) => (
@@ -460,12 +460,12 @@ export default function ExamWorkflowForm({
               ))}
             </select>
             {errors.subjectId?.message && (
-              <p className="text-red-400 text-xs">{errors.subjectId.message}</p>
+              <p className="font-medium text-red-500 text-xs">{errors.subjectId.message}</p>
             )}
           </div>
 
           <div className="flex flex-col gap-2 md:col-span-2 w-full">
-            <label className="text-gray-500 text-xs">Classes</label>
+            <label className="font-medium text-gray-700 text-sm">Classes</label>
             <div className="flex flex-wrap gap-4">
               {classes.map((c) => (
                 <label key={c.id} className="flex items-center gap-2">
@@ -479,14 +479,14 @@ export default function ExamWorkflowForm({
               ))}
             </div>
             {errors.classIds?.message && (
-              <p className="text-red-400 text-xs">{errors.classIds.message}</p>
+              <p className="font-medium text-red-500 text-xs">{errors.classIds.message}</p>
             )}
           </div>
         </div>
       </section>
 
       <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-semibold text-xl">2. Settings</h2>
+        <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
           <label className="flex items-center gap-2">
             <input type="checkbox" {...register("enableTimer")} />
@@ -528,7 +528,7 @@ export default function ExamWorkflowForm({
 
       <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
         <div className="flex justify-between items-center">
-          <h2 className="font-semibold text-xl">3. Questions</h2>
+          <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
           <button
             type="button"
             onClick={() =>
@@ -582,3 +582,5 @@ export default function ExamWorkflowForm({
     </form>
   );
 }
+
+

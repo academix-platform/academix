@@ -150,8 +150,8 @@ const EventForm = ({
   };
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create" ? "Create a new event" : "Update the event"}
       </h1>
 
@@ -159,7 +159,7 @@ const EventForm = ({
         <input type="hidden" {...register("id")} defaultValue={data?.id} />
       )}
 
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
           label="Event Title"
           name="title"
@@ -187,8 +187,8 @@ const EventForm = ({
           error={errors?.endDate}
         />
 
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-gray-500 text-xs">Classes</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">Classes</label>
           <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[220px] overflow-y-auto">
             <label className="flex items-center gap-2 mb-4 text-gray-700 text-sm">
               <input
@@ -225,23 +225,23 @@ const EventForm = ({
             </p>
           )}
           {errors.classIds?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.classIds.message.toString()}
             </p>
           )}
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="text-gray-500 text-xs">Description</label>
+          <label className="font-medium text-gray-700 text-sm">Description</label>
           <textarea
             {...register("description")}
             defaultValue={data?.description}
             rows={4}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             placeholder="Event description"
           />
           {errors.description?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.description.message.toString()}
             </p>
           )}
@@ -249,7 +249,7 @@ const EventForm = ({
       </div>
 
       <button
-        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
         {isSubmitting
@@ -263,3 +263,5 @@ const EventForm = ({
 };
 
 export default EventForm;
+
+

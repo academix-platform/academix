@@ -100,14 +100,14 @@ const ClassForm = ({
   }, []);
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create" ? "Create a new class" : "Update the class"}
       </h1>
       {type === "update" && (
         <input type="hidden" {...register("id")} defaultValue={data?.id} />
       )}
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
           label="Class Name"
           name="name"
@@ -122,14 +122,14 @@ const ClassForm = ({
           register={register}
           error={errors?.capacity}
         />
-        <div className="flex flex-col gap-2 w-full md:w-3/5">
-          <label className="text-gray-500 text-xs" htmlFor="gradeId">
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm" htmlFor="gradeId">
             Grade
           </label>
           <select
             id="gradeId"
             {...register("gradeId")}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             defaultValue={defaultGradeId}
           >
             <option value="">Select a grade</option>
@@ -144,16 +144,16 @@ const ClassForm = ({
             ))}
           </select>
           {errors.gradeId?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.gradeId.message.toString()}
             </p>
           )}
         </div>
-        <div className="flex flex-col gap-2 w-full md:w-3/5 supervisor-search">
-          <label className="text-gray-500 text-xs">Supervisor</label>
+        <div className="flex flex-col gap-2 w-full supervisor-search">
+          <label className="font-medium text-gray-700 text-sm">Supervisor</label>
           <input type="hidden" {...register("supervisorId")} />
           <div className="relative">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
+            <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg focus-within:ring-0 transition-all">
               <input
                 type="text"
                 placeholder="Search teachers..."
@@ -185,7 +185,7 @@ const ClassForm = ({
               </button>
             </div>
             {showSupervisorDropdown && (
-              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
+              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
                 {filteredTeachers.length > 0 ? (
                   filteredTeachers.map(
                     (teacher: { id: string; name: string }) => (
@@ -197,7 +197,7 @@ const ClassForm = ({
                           setShowSupervisorDropdown(false);
                           setFilteredTeachers([]);
                         }}
-                        className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                        className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-left transition-colors cursor-pointer"
                       >
                         {teacher.name}
                       </div>
@@ -212,7 +212,7 @@ const ClassForm = ({
             )}
           </div>
           {errors.supervisorId?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.supervisorId.message.toString()}
             </p>
           )}
@@ -220,7 +220,7 @@ const ClassForm = ({
       </div>
       <button
         disabled={isSubmitting}
-        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
       >
         {isSubmitting
           ? "Submitting..."
@@ -233,3 +233,5 @@ const ClassForm = ({
 };
 
 export default ClassForm;
+
+

@@ -67,14 +67,18 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
 
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <span className="block font-semibold text-gray-700 text-sm">
+          Schedule Defaults
+        </span>
+        <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
         <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-600 text-sm">
+          <span className="font-medium text-gray-700 text-sm">
             Work Day Start
           </span>
           <input
             type="time"
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
             value={workDayStart}
             onChange={(e) => setWorkDayStart(e.target.value)}
             required
@@ -82,12 +86,12 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-600 text-sm">
+          <span className="font-medium text-gray-700 text-sm">
             Work Day End
           </span>
           <input
             type="time"
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
             value={workDayEnd}
             onChange={(e) => setWorkDayEnd(e.target.value)}
             required
@@ -95,7 +99,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-600 text-sm">
+          <span className="font-medium text-gray-700 text-sm">
             Lesson Duration (minutes)
           </span>
           <input
@@ -103,7 +107,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
             min={15}
             max={180}
             step={5}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
             value={lessonDurationMinutes}
             onChange={(e) => setLessonDurationMinutes(Number(e.target.value))}
             required
@@ -111,27 +115,28 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
         </label>
 
         <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-600 text-sm">
+          <span className="font-medium text-gray-700 text-sm">
             Lessons Per Day
           </span>
           <input
             type="number"
             min={1}
             max={12}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
             value={lessonsPerDay}
             onChange={(e) => setLessonsPerDay(Number(e.target.value))}
             required
           />
         </label>
+        </div>
       </div>
 
-      <div className="bg-academixPurpleLight p-3 rounded-md text-academixPurpleDark text-sm">
+      <div className="bg-academixPurpleLight p-4 rounded-lg font-medium text-academixPurpleDark text-sm">
         Daily teaching time: {totalMinutes} minutes
       </div>
 
       <button
-        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
         {isSubmitting ? "Saving..." : "Save Settings"}

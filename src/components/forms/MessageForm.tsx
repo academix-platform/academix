@@ -146,8 +146,8 @@ const MessageForm = ({
   }, [selectedClassIdsAsNumbers, teachers]);
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create" ? "Create a new message" : "Update the message"}
       </h1>
 
@@ -155,22 +155,28 @@ const MessageForm = ({
         <input type="hidden" {...register("id")} defaultValue={data?.id} />
       )}
 
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         {type === "create" && (
           <>
             <input type="hidden" {...register("classIds")} />
-            <MessageClassSelector
-              classes={classes}
-              selectedClassIds={selectedClassIdsAsNumbers}
-              onChange={(nextClassIds) =>
-                setValue("classIds", nextClassIds, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+            <span className="block font-semibold text-gray-700 text-sm">
+              Recipients
+            </span>
 
-            <div className="flex flex-wrap justify-between items-center gap-2 w-full">
+            <div className="gap-4 grid grid-cols-1 lg:grid-cols-3">
+              <div className="lg:col-span-3">
+                <MessageClassSelector
+                  classes={classes}
+                  selectedClassIds={selectedClassIdsAsNumbers}
+                  onChange={(nextClassIds) =>
+                    setValue("classIds", nextClassIds, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              </div>
+
               <RecipientPicker
                 label="Student recipients"
                 items={eligibleStudents}
@@ -219,47 +225,58 @@ const MessageForm = ({
           </>
         )}
 
-        <InputField
-          label="Message Title"
-          name="title"
-          defaultValue={data?.title}
-          register={register}
-          error={errors?.title}
-          inputProps={{ placeholder: "e.g. Reminder" }}
-        />
+        <span className="block font-semibold text-gray-700 text-sm">
+          Message Content
+        </span>
+        <div className="flex items-center gap-4">
+          <div className="lg:col-span-1">
+            <InputField
+              label="Message Title"
+              name="title"
+              defaultValue={data?.title}
+              register={register}
+              error={errors?.title}
+              inputProps={{ placeholder: "e.g. Reminder" }}
+            />
+          </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <label className="text-gray-500 text-xs">Description</label>
-          <textarea
-            {...register("description")}
-            defaultValue={data?.description}
-            rows={4}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            placeholder="Message details"
-          />
-          {errors.description?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.description.message.toString()}
-            </p>
-          )}
-          {errors.studentIds?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.studentIds.message.toString()}
-            </p>
-          )}
+          <div className="flex flex-col gap-2 lg:col-span-2 w-full">
+            <label className="font-medium text-gray-700 text-sm">
+              Description
+            </label>
+            <textarea
+              {...register("description")}
+              defaultValue={data?.description}
+              rows={4}
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+              placeholder="Message details"
+            />
+            {errors.description?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.description.message.toString()}
+              </p>
+            )}
+            {errors.studentIds?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.studentIds.message.toString()}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      <button
-        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 p-2 rounded-md text-white transition-all"
-        disabled={isSubmitting}
-      >
-        {isSubmitting
-          ? "Submitting..."
-          : type === "create"
-            ? "Create"
-            : "Update"}
-      </button>
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <button
+          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? "Submitting..."
+            : type === "create"
+              ? "Create"
+              : "Update"}
+        </button>
+      </div>
     </form>
   );
 };

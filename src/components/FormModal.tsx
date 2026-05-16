@@ -203,6 +203,19 @@ const FormModal = ({
 }: FormContainerProps & { relatedData?: any }) => {
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const Form = () => {
     const [state, formAction] = useActionState(deleteActionMap[table], {
       success: false,
@@ -277,8 +290,20 @@ const FormModal = ({
         })()}
       </button>
       {open && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4">
-          <div className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setOpen(false);
+            }
+          }}
+        >
+          <div
+            className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <Form />
             <div
               className="top-4 right-4 absolute cursor-pointer"
