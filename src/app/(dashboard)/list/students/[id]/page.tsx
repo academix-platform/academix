@@ -101,9 +101,6 @@ const SingleStudentPage = async ({
             <div className="flex flex-col gap-8">
               <div>
                 <h1 className="font-semibold text-xl">{student.name}</h1>
-                <p className="text-gray-500 text-sm">
-                  Lorem ipsum, dolor sit amet consectetur adipisicing elit.
-                </p>
               </div>
 
               <div className="flex flex-wrap justify-between items-center gap-2 font-medium text-xs">
@@ -206,33 +203,33 @@ const SingleStudentPage = async ({
       <div className="flex flex-col gap-4 w-full xl:w-1/4">
         <div className="bg-white p-4 rounded-md">
           <h1 className="font-semibold text-xl">Shortcuts</h1>
-          <div className="flex flex-wrap gap-4 mt-4 text-gray-500 text-xs">
+          <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/lessons?classId=${student.class.id}`}
             >
               Student&apos;s Lessons
             </Link>
             <Link
-              className="bg-academixPurpleLight p-3 rounded-md"
+              className="bg-academixPurpleLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/teachers?classId=${student.class.id}`}
             >
               Student&apos;s Teachers
             </Link>
             <Link
-              className="bg-pink-50 p-3 rounded-md"
+              className="bg-pink-50 p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/exams?classId=${student.class.id}`}
             >
               Student&apos;s Exams
             </Link>
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/assignments?classId=${student.class.id}`}
             >
               Student&apos;s Assignments
             </Link>
             <Link
-              className="bg-academixYellowLight p-3 rounded-md"
+              className="bg-academixYellowLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/results?studentId=${id}`}
             >
               Student&apos;s Results
