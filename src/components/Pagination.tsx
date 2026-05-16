@@ -7,6 +7,10 @@ import { useRouter } from "next/navigation";
 const Pagination = ({ page, count }: { page: number; count: number }) => {
   const router = useRouter();
 
+  if (count === 0) {
+    return null;
+  }
+
   const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
   const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
 

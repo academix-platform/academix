@@ -285,6 +285,8 @@ const ExamListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
+        emptyTitle="No exams found"
+        emptyDescription="Try changing your filters or search terms."
       />
 
       <Pagination page={p} count={count} />

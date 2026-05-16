@@ -189,6 +189,8 @@ const StudentListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
+        emptyTitle="No students found"
+        emptyDescription="Try changing your filters or search terms."
       />
       <div className="flex justify-between items-center">
         {role === "admin" && (

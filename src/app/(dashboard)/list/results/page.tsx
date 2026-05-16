@@ -172,6 +172,8 @@ const ResultListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
+        emptyTitle="No results found"
+        emptyDescription="Try changing your filters or search terms."
       />
 
       <Pagination page={p} count={count} />
