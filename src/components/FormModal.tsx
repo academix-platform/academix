@@ -11,6 +11,7 @@ import {
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
+import { useFormStatus } from "react-dom";
 import {
   deleteAnnouncement,
   deleteClass,
@@ -234,6 +235,19 @@ const FormModal = ({
     }, [state, router]);
 
     if (type === "delete" && id) {
+      const DeleteSubmitButton = () => {
+        const { pending } = useFormStatus();
+        return (
+          <button
+            type="submit"
+            disabled={pending}
+            className="self-center bg-red-700 disabled:opacity-60 px-4 py-2 rounded-md w-max text-white"
+          >
+            {pending ? "Deleting..." : "Delete"}
+          </button>
+        );
+      };
+
       if (table === "class") {
         return (
           <ClassDeleteForm
@@ -260,9 +274,7 @@ const FormModal = ({
           <span className="font-medium text-center">
             All data will be lost. Are you sure you want to delete this {table}?
           </span>
-          <button className="self-center bg-red-700 px-4 py-2 rounded-md w-max text-white">
-            Delete
-          </button>
+          <DeleteSubmitButton />
         </form>
       );
     }
