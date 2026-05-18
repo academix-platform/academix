@@ -1,5 +1,58 @@
 const pulse = "animate-pulse rounded-md bg-slate-200";
 
+const CalendarGridSkeleton = () => (
+  <div className="p-3 border border-slate-100 rounded-md">
+    <div className="flex justify-between items-center mb-3">
+      <div className={`${pulse} w-28 h-5`} />
+      <div className="flex gap-2">
+        <div className={`${pulse} rounded-full w-8 h-8`} />
+        <div className={`${pulse} rounded-full w-8 h-8`} />
+      </div>
+    </div>
+    <div className="gap-2 grid grid-cols-7 mb-2">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className={`${pulse} h-6`} />
+      ))}
+    </div>
+    <div className="gap-2 grid grid-cols-7">
+      {Array.from({ length: 35 }).map((_, i) => (
+        <div key={i} className="p-1 border border-slate-100 rounded-md h-20">
+          <div className={`${pulse} mb-1 w-5 h-4`} />
+          <div className={`${pulse} mb-1 w-full h-3`} />
+          <div className={`${pulse} w-2/3 h-3`} />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
+const MiniDatePickerSkeleton = () => (
+  <div className="border border-slate-100 rounded-md p-3">
+    <div className="flex justify-between items-center mb-3">
+      <div className={`${pulse} w-24 h-5`} />
+      <div className="flex gap-2">
+        <div className={`${pulse} rounded-full w-7 h-7`} />
+        <div className={`${pulse} rounded-full w-7 h-7`} />
+      </div>
+    </div>
+    <div className="grid grid-cols-7 gap-1.5 mb-2">
+      {Array.from({ length: 7 }).map((_, i) => (
+        <div key={i} className={`${pulse} h-4`} />
+      ))}
+    </div>
+    <div className="grid grid-cols-7 gap-1.5">
+      {Array.from({ length: 35 }).map((_, i) => (
+        <div
+          key={i}
+          className="flex justify-center items-center border border-slate-100 rounded-md h-8"
+        >
+          <div className={`${pulse} w-4 h-4 rounded-full`} />
+        </div>
+      ))}
+    </div>
+  </div>
+);
+
 export function AdminPageSkeleton() {
   return (
     <div className="flex lg:flex-row flex-col gap-4 p-4">
@@ -31,7 +84,8 @@ export function AdminPageSkeleton() {
       </div>
       <div className="flex flex-col gap-4 w-full lg:w-1/3">
         <div className="bg-white p-4 border border-slate-100 rounded-lg">
-          <div className={`${pulse} mb-4 w-28 h-6`} />
+          <MiniDatePickerSkeleton />
+          <div className={`${pulse} mt-4 mb-3 w-28 h-6`} />
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`${pulse} mb-3 w-full h-16`} />
           ))}
@@ -118,16 +172,9 @@ export function LessonsListSkeleton() {
           <div key={i} className={`${pulse} h-12`} />
         ))}
       </div>
-      <div className="space-y-3">
-        {Array.from({ length: 8 }).map((_, i) => (
-          <div key={i} className="gap-3 grid grid-cols-12">
-            <div className={`${pulse} col-span-3 h-10`} />
-            <div className={`${pulse} col-span-2 h-10`} />
-            <div className={`${pulse} col-span-2 h-10`} />
-            <div className={`${pulse} col-span-2 h-10`} />
-            <div className={`${pulse} col-span-3 h-10`} />
-          </div>
-        ))}
+      <div className="mt-6">
+        <div className={`${pulse} mb-3 w-44 h-6`} />
+        <CalendarGridSkeleton />
       </div>
     </div>
   );
@@ -161,14 +208,13 @@ export function ScheduleDashboardSkeleton() {
       <div className="w-full xl:w-2/3">
         <div className="bg-white p-4 border border-slate-100 rounded-md">
           <div className={`${pulse} mb-4 w-36 h-7`} />
-          <div className={`${pulse} w-full h-[620px]`} />
+          <CalendarGridSkeleton />
         </div>
       </div>
       <div className="flex flex-col gap-8 w-full xl:w-1/3">
         <div className="bg-white p-4 border border-slate-100 rounded-md">
-          <div className={`${pulse} mb-4 w-24 h-6`} />
-          <div className={`${pulse} mb-4 w-full h-64`} />
-          <div className={`${pulse} mb-2 w-40 h-6`} />
+          <MiniDatePickerSkeleton />
+          <div className={`${pulse} mt-4 mb-2 w-40 h-6`} />
           {Array.from({ length: 3 }).map((_, i) => (
             <div key={i} className={`${pulse} mb-3 w-full h-16`} />
           ))}
@@ -226,7 +272,7 @@ export function ProfileDetailSkeleton() {
         </div>
         <div className="bg-white p-4 border border-slate-100 rounded-md h-[700px]">
           <div className={`${pulse} w-48 h-6 mb-4`} />
-          <div className={`${pulse} w-full h-[620px]`} />
+          <CalendarGridSkeleton />
         </div>
       </div>
       <div className="space-y-4 w-full xl:w-1/4">
