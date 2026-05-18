@@ -327,6 +327,8 @@ const student = await prisma.student.create({
 
 async function main() {
   await clearDatabase();
+  
+  
 
   await seedSchool({
     schoolName: "Alpha School",

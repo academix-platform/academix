@@ -8,60 +8,57 @@ datasource db {
   // Docker PostgreSQL — no directUrl needed
 }
 
-
 model School {
-  id Int @id @default(autoincrement())
-  name String @unique
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  academicYears AcademicYear[]
-  admins  Admin[] 
-  students Student[]
-  studentAcademicYears StudentAcademicYear[]
-  teachers Teacher[]
-  parents Parent[]
-  grades Grade[]
-  classes Class[]
-  subjects Subject[]
-  lessons Lesson[]
-  events Event[]
-  announcements Announcement[]
-  messages Message[]
-  attendances Attendance[]
-  exams Exam[]
-  assignments Assignment[]
-  schoolSettings SchoolSettings[]
-  results Result[]
-
-  // Exam workflow relations
-  questions   Question[]
-  submissions Submission[]
-  answers     Answer[]
+  academicYears         AcademicYear[]
+  admins                Admin[]
+  students              Student[]
+  studentAcademicYears  StudentAcademicYear[]
+  teachers              Teacher[]
+  parents               Parent[]
+  grades                Grade[]
+  classes               Class[]
+  subjects              Subject[]
+  lessons               Lesson[]
+  events                Event[]
+  announcements         Announcement[]
+  messages              Message[]
+  attendances           Attendance[]
+  exams                 Exam[]
+  assignments           Assignment[]
+  studyMaterials        StudyMaterial[]
+  schoolSettings        SchoolSettings[]
+  results               Result[]
+  questions             Question[]
+  submissions           Submission[] // exam submissions
+  answers               Answer[]
+  assignmentSubmissions AssignmentSubmission[] // assignment submissions
 }
 
-
-model Admin{
-  id String @id
+model Admin {
+  id       String @id
   username String
   schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  @@unique([schoolId, username])
+  school   School @relation(fields: [schoolId], references: [id])
 
+  @@unique([schoolId, username])
   @@index([schoolId])
 }
 
-
 model SchoolSettings {
-  id Int @id @default(autoincrement())
-  schoolId Int @unique
-  school School @relation(fields: [schoolId], references: [id])
+  id       Int    @id @default(autoincrement())
+  schoolId Int    @unique
+  school   School @relation(fields: [schoolId], references: [id])
 
   workDayStart DateTime @db.Time
-  workDayEnd DateTime @db.Time
+  workDayEnd   DateTime @db.Time
 
   lessonDuration Int
-  lessonsPerDay Int
+  lessonsPerDay  Int
 
   updatedAt DateTime @updatedAt
 
@@ -69,140 +66,149 @@ model SchoolSettings {
 }
 
 model AcademicYear {
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  name String 
+  id        Int      @id @default(autoincrement())
+  schoolId  Int
+  school    School   @relation(fields: [schoolId], references: [id])
+  name      String
   startDate DateTime @db.Date
-  endDate DateTime @db.Date
-  isCurrent Boolean @default(false)
+  endDate   DateTime @db.Date
+  isCurrent Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lessons Lesson[]
-  exams Exam[]
-  assignments Assignment[]
-  results Result[]
-  attendances Attendance[]
-  events Event[]
-  announcements Announcement[]
-  messages Message[]
-  studentAcademicYears StudentAcademicYear[]
+  lessons               Lesson[]
+  exams                 Exam[]
+  assignments           Assignment[]
+  studyMaterials        StudyMaterial[]
+  results               Result[]
+  attendances           Attendance[]
+  events                Event[]
+  announcements         Announcement[]
+  messages              Message[]
+  studentAcademicYears  StudentAcademicYear[]
+  submissions           Submission[] // exam submissions
+  assignmentSubmissions AssignmentSubmission[] // assignment submissions
 
- @@unique([schoolId, name])
-}
-
-model Student{  
-  id String @id
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  username String
-  @@unique([schoolId, username])
-  name String
-  email String?
-  @@unique([schoolId, email])
-  phone String?
-  @@unique([schoolId, phone])
-  address String
-  img String?
-  bloodType String
-  sex UserSex
-  status StudentStatus @default(ACTIVE)
-  repeatCount Int @default(0)
-  createdAt DateTime @default(now())
-  parentId String?
-  parent Parent? @relation(fields:[parentId], references: [id])
-  classId Int
-  class Class @relation(fields:[classId], references: [id])
-  gradeId Int
-  grade Grade @relation(fields:[gradeId], references: [id])
-  attendances Attendance[]
-  results Result[]
-  messages Message[]
-  academicYears StudentAcademicYear[]
-  birthday DateTime
-  submissions Submission[]
-
-  @@index([schoolId])
-}
-model Teacher{  
-  id String @id
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  username String
-  @@unique([schoolId, username])
-  name String
-  email String?
-  @@unique([schoolId, email])
-  phone String?
-  @@unique([schoolId, phone])
-  address String
-  img String?
-  bloodType String
-  sex UserSex
-  createdAt DateTime @default(now())
-  subjects Subject[]
-  lessons Lesson[]
-  classes Class[] @relation("TeacherClasses")
-  supervisedClasses Class[] @relation("ClassSupervisor")
-  attendances Attendance[]
-  messages Message[]
-  birthday DateTime
-
-  @@index([schoolId])
-}
-model Parent{  
-  id String @id
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  username String
-  @@unique([schoolId, username])
-  name String
-  email String?
-  @@unique([schoolId, email])
-  phone String
-  @@unique([schoolId, phone])
-  address String
-  createdAt DateTime @default(now())
-  students Student[]
-  messages Message[]
-
-  @@index([schoolId])
-}
-model Grade{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  level Int
-  @@unique([schoolId, level])
-  students Student[]
-  classes Class[]
-  subjects Subject[]
-  studentAcademicYears StudentAcademicYear[]
-
-  @@index([schoolId])
-}
-model Class{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  name String
   @@unique([schoolId, name])
-  capacity Int
-  supervisorId String?
-  supervisor Teacher? @relation("ClassSupervisor", fields: [supervisorId], references: [id])
-  teachers Teacher[] @relation("TeacherClasses")
-  lessons Lesson[]
-  students Student[]
-  gradeId Int
-  grade Grade @relation(fields: [gradeId], references: [id])
-  events Event[]
-  announcements Announcement[]
-  messages Message[]
-  exams Exam[]
-  assignments Assignment[]
+}
+
+model Student {
+  id                    String                 @id
+  schoolId              Int
+  school                School                 @relation(fields: [schoolId], references: [id])
+  username              String
+  name                  String
+  email                 String?
+  phone                 String?
+  address               String
+  img                   String?
+  bloodType             String
+  sex                   UserSex
+  status                StudentStatus          @default(ACTIVE)
+  repeatCount           Int                    @default(0)
+  createdAt             DateTime               @default(now())
+  parentId              String?
+  parent                Parent?                @relation(fields: [parentId], references: [id])
+  classId               Int
+  class                 Class                  @relation(fields: [classId], references: [id])
+  gradeId               Int
+  grade                 Grade                  @relation(fields: [gradeId], references: [id])
+  attendances           Attendance[]
+  results               Result[]
+  messages              Message[]
+  academicYears         StudentAcademicYear[]
+  birthday              DateTime
+  submissions           Submission[] // exam submissions
+  assignmentSubmissions AssignmentSubmission[] // assignment submissions
+
+  @@unique([schoolId, username])
+  @@unique([schoolId, email])
+  @@unique([schoolId, phone])
+  @@index([schoolId])
+}
+
+model Teacher {
+  id                String          @id
+  schoolId          Int
+  school            School          @relation(fields: [schoolId], references: [id])
+  username          String
+  name              String
+  email             String?
+  phone             String?
+  address           String
+  img               String?
+  bloodType         String
+  sex               UserSex
+  createdAt         DateTime        @default(now())
+  subjects          Subject[]
+  lessons           Lesson[]
+  classes           Class[]         @relation("TeacherClasses")
+  supervisedClasses Class[]         @relation("ClassSupervisor")
+  attendances       Attendance[]
+  messages          Message[]
+  studyMaterials    StudyMaterial[]
+  birthday          DateTime
+
+  @@unique([schoolId, username])
+  @@unique([schoolId, email])
+  @@unique([schoolId, phone])
+  @@index([schoolId])
+}
+
+model Parent {
+  id        String    @id
+  schoolId  Int
+  school    School    @relation(fields: [schoolId], references: [id])
+  username  String
+  name      String
+  email     String?
+  phone     String
+  address   String
+  createdAt DateTime  @default(now())
+  students  Student[]
+  messages  Message[]
+
+  @@unique([schoolId, username])
+  @@unique([schoolId, email])
+  @@unique([schoolId, phone])
+  @@index([schoolId])
+}
+
+model Grade {
+  id                   Int                   @id @default(autoincrement())
+  schoolId             Int
+  school               School                @relation(fields: [schoolId], references: [id])
+  level                Int
+  students             Student[]
+  classes              Class[]
+  subjects             Subject[]
   studentAcademicYears StudentAcademicYear[]
 
+  @@unique([schoolId, level])
+  @@index([schoolId])
+}
+
+model Class {
+  id                   Int                   @id @default(autoincrement())
+  schoolId             Int
+  school               School                @relation(fields: [schoolId], references: [id])
+  name                 String
+  capacity             Int
+  supervisorId         String?
+  supervisor           Teacher?              @relation("ClassSupervisor", fields: [supervisorId], references: [id])
+  teachers             Teacher[]             @relation("TeacherClasses")
+  lessons              Lesson[]
+  students             Student[]
+  gradeId              Int
+  grade                Grade                 @relation(fields: [gradeId], references: [id])
+  events               Event[]
+  announcements        Announcement[]
+  messages             Message[]
+  exams                Exam[]
+  assignments          Assignment[]
+  studentAcademicYears StudentAcademicYear[]
+
+  @@unique([schoolId, name])
   @@index([schoolId])
 }
 
@@ -210,19 +216,19 @@ model StudentAcademicYear {
   id Int @id @default(autoincrement())
 
   studentId String
-  student Student @relation(fields: [studentId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id])
 
   schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
+  school   School @relation(fields: [schoolId], references: [id])
 
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
   gradeId Int
-  grade Grade @relation(fields: [gradeId], references: [id])
+  grade   Grade @relation(fields: [gradeId], references: [id])
 
   classId Int?
-  class Class? @relation(fields: [classId], references: [id])
+  class   Class? @relation(fields: [classId], references: [id])
 
   performanceStatus PassFailStatus?
 
@@ -235,71 +241,75 @@ model StudentAcademicYear {
   @@index([classId])
   @@index([schoolId])
 }
-model Subject{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  name String
+
+model Subject {
+  id             Int             @id @default(autoincrement())
+  schoolId       Int
+  school         School          @relation(fields: [schoolId], references: [id])
+  name           String
+  gradeId        Int
+  grade          Grade           @relation(fields: [gradeId], references: [id])
+  teachers       Teacher[]
+  lessons        Lesson[]
+  exams          Exam[]
+  assignments    Assignment[]
+  studyMaterials StudyMaterial[]
+
   @@unique([schoolId, name])
-  gradeId Int
-  grade Grade @relation(fields: [gradeId], references: [id])
-  teachers Teacher[]
-  lessons Lesson[]
-  exams Exam[]
-  assignments Assignment[]
-
   @@index([schoolId])
 }
-model Lesson{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  name String
-  day Day
-  startTime DateTime
-  endTime DateTime
-  subjectId Int
-  subject Subject @relation(fields: [subjectId], references: [id])
-  classId Int
-  class Class @relation(fields: [classId], references: [id])
-  teacherId String
-  teacher Teacher @relation(fields: [teacherId], references: [id])
+
+model Lesson {
+  id             Int          @id @default(autoincrement())
+  schoolId       Int
+  school         School       @relation(fields: [schoolId], references: [id])
+  name           String
+  day            Day
+  startTime      DateTime
+  endTime        DateTime
+  subjectId      Int
+  subject        Subject      @relation(fields: [subjectId], references: [id])
+  classId        Int
+  class          Class        @relation(fields: [classId], references: [id])
+  teacherId      String
+  teacher        Teacher      @relation(fields: [teacherId], references: [id])
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  exams Exam[]
-  assignments Assignment[]
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  exams          Exam[]
+  assignments    Assignment[]
 
   @@index([schoolId])
 }
-model Exam{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  title String
-  startTime DateTime
-  endTime DateTime
 
-  classId Int?
-  class Class? @relation(fields: [classId], references: [id])
+model Exam {
+  id        Int      @id @default(autoincrement())
+  schoolId  Int
+  school    School   @relation(fields: [schoolId], references: [id])
+  title     String
+  startTime DateTime
+  endTime   DateTime
+
+  classId   Int?
+  class     Class?   @relation(fields: [classId], references: [id])
   subjectId Int?
-  subject Subject? @relation(fields: [subjectId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id])
 
   lessonId Int
-  lesson Lesson @relation(fields: [lessonId], references: [id])
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
 
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
   results Result[]
 
-  // Feature toggles — all per-exam configurable
+  // Feature toggles
   enableTimer      Boolean @default(true)
-  duration         Int?                    // minutes — required if enableTimer = true
-  enableNavigation Boolean @default(true)  // allow prev page navigation
-  enableAutoSave   Boolean @default(true)  // auto-save answers
-  autoSaveInterval Int     @default(30)    // seconds between auto-saves
-  enableAutoSubmit Boolean @default(true)  // cron auto-submit backstop
-  questionsPerPage Int     @default(1)     // server-side pagination size
+  duration         Int?
+  enableNavigation Boolean @default(true)
+  enableAutoSave   Boolean @default(true)
+  autoSaveInterval Int     @default(30)
+  enableAutoSubmit Boolean @default(true)
+  questionsPerPage Int     @default(1)
 
   // Exam workflow relations
   questions   Question[]
@@ -307,63 +317,125 @@ model Exam{
 
   @@index([schoolId])
 }
-model Assignment{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  title String
-  startDate DateTime
-  endDate DateTime
 
-  classId Int?
-  class Class? @relation(fields: [classId], references: [id])
+model Assignment {
+  id          Int      @id @default(autoincrement())
+  schoolId    Int
+  school      School   @relation(fields: [schoolId], references: [id])
+  title       String
+  description String?
+  startDate   DateTime
+  endDate     DateTime
+  fileUrl     String?
+  fileName    String?
+
+  classId   Int?
+  class     Class?   @relation(fields: [classId], references: [id])
   subjectId Int?
-  subject Subject? @relation(fields: [subjectId], references: [id])
+  subject   Subject? @relation(fields: [subjectId], references: [id])
 
   lessonId Int
-  lesson Lesson @relation(fields: [lessonId], references: [id])
+  lesson   Lesson @relation(fields: [lessonId], references: [id])
 
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
-  results Result[]
+  results               Result[]
+  assignmentSubmissions AssignmentSubmission[]
 
   @@index([schoolId])
 }
-model Result{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  score Int
 
-  examId Int?
-  exam Exam? @relation(fields: [examId], references: [id])
-  assignmentId Int?
-  assignment Assignment? @relation(fields: [assignmentId], references: [id])
+// Assignment file submission (from stash)
+model AssignmentSubmission {
+  id        Int      @id @default(autoincrement())
+  fileUrl   String
+  fileName  String
+  fileType  String
+  note      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  assignmentId Int
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
 
   studentId String
-  student Student @relation(fields: [studentId], references: [id])
+  student   Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
 
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  @@unique([assignmentId, studentId])
+  @@index([schoolId])
+  @@index([assignmentId])
+  @@index([studentId])
+}
+
+model StudyMaterial {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
+
+  title       String
+  description String?
+  fileUrl     String
+  fileName    String
+  fileType    String
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id])
+
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  academicYearId Int
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([subjectId])
+  @@index([teacherId])
+}
+
+model Result {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
+  score    Int
+
+  examId       Int?
+  exam         Exam?       @relation(fields: [examId], references: [id])
+  assignmentId Int?
+  assignment   Assignment? @relation(fields: [assignmentId], references: [id])
+
+  studentId String
+  student   Student @relation(fields: [studentId], references: [id])
+
+  academicYearId Int
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
   @@index([schoolId])
 }
-model Attendance{
-  id Int @id @default(autoincrement())
+
+model Attendance {
+  id       Int      @id @default(autoincrement())
   schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  date DateTime
-  present Boolean
+  school   School   @relation(fields: [schoolId], references: [id])
+  date     DateTime
+  present  Boolean
 
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
 
   studentId String?
-  student Student? @relation(fields: [studentId], references: [id])
+  student   Student? @relation(fields: [studentId], references: [id])
 
   teacherId String?
-  teacher Teacher? @relation(fields: [teacherId], references: [id])
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
 
   @@unique([studentId, academicYearId, date])
   @@unique([teacherId, academicYearId, date])
@@ -373,51 +445,52 @@ model Attendance{
   @@index([teacherId])
   @@index([schoolId])
 }
-model Event{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  title String
-  description String
-  startDate DateTime
-  endDate DateTime
+
+model Event {
+  id             Int          @id @default(autoincrement())
+  schoolId       Int
+  school         School       @relation(fields: [schoolId], references: [id])
+  title          String
+  description    String
+  startDate      DateTime
+  endDate        DateTime
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  classes Class[]
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  classes        Class[]
 
   @@index([schoolId])
 }
-model Announcement{
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  title String
-  description String
-  date DateTime
+
+model Announcement {
+  id             Int          @id @default(autoincrement())
+  schoolId       Int
+  school         School       @relation(fields: [schoolId], references: [id])
+  title          String
+  description    String
+  date           DateTime
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  classes Class[]
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  classes        Class[]
 
   @@index([schoolId])
 }
 
 model Message {
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id])
-  title String
-  description String
-  date DateTime @default(now())
+  id             Int          @id @default(autoincrement())
+  schoolId       Int
+  school         School       @relation(fields: [schoolId], references: [id])
+  title          String
+  description    String
+  date           DateTime     @default(now())
   academicYearId Int
-  academicYear AcademicYear @relation(fields: [academicYearId], references: [id])
-  students Student[]
-  parents Parent[]
-  teachers Teacher[]
-  classes Class[]
+  academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
+  students       Student[]
+  parents        Parent[]
+  teachers       Teacher[]
+  classes        Class[]
 
   @@index([schoolId])
 }
-
 
 // ===== EXAM WORKFLOW MODELS =====
 
@@ -431,8 +504,8 @@ model Question {
   type          QuestionType
   points        Int          @default(1)
   order         Int
-  options       Json?        // MCQ only: string[]
-  correctAnswer String[]     // T/F and MCQ — array supports multiple correct answers
+  options       Json?
+  correctAnswer String[]
   allowMultiple Boolean      @default(false)
   answers       Answer[]
 
@@ -453,19 +526,21 @@ model Submission {
   startedAt        DateTime         @default(now())
   submittedAt      DateTime?
   autoSubmitted    Boolean          @default(false)
-  lastSyncedAt     DateTime?        // Anti-cheat: updated on every saveAnswer
+  lastSyncedAt     DateTime?
   totalScore       Float?
-  extraTime        Int?             // Additional minutes granted by teacher
-  extendedBy       String?          // Teacher Clerk ID who granted extension
+  extraTime        Int?
+  extendedBy       String?
   extendedAt       DateTime?
-  disconnectedAt   DateTime?        // Logged on reconnection for audit
+  disconnectedAt   DateTime?
   reconnectedAt    DateTime?
-  totalOfflineTime Int?             // Seconds offline — computed server-side
+  totalOfflineTime Int?
   createdAt        DateTime         @default(now())
   updatedAt        DateTime         @updatedAt
   answers          Answer[]
+  academicYear     AcademicYear?    @relation(fields: [academicYearId], references: [id])
+  academicYearId   Int?
 
-  @@unique([examId, studentId])   // One submission per student per exam
+  @@unique([examId, studentId])
   @@index([schoolId])
   @@index([examId])
   @@index([studentId])
@@ -479,18 +554,18 @@ model Answer {
   submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
   questionId   Int
   question     Question   @relation(fields: [questionId], references: [id])
-  textAnswer   String?    // T/F, MCQ (comma-separated for multi-select), TEXT
-  fileUrl      String?    // FILE — relative path or URL
-  isDraft      Boolean    @default(true)   // false after submitExam finalizes it
-  savedAt      DateTime   @default(now())  // ALWAYS set by server — never accepted from client
-  score        Float?     // null until graded
+  textAnswer   String?
+  fileUrl      String?
+  isDraft      Boolean    @default(true)
+  savedAt      DateTime   @default(now())
+  score        Float?
 
   @@unique([submissionId, questionId])
   @@index([schoolId])
   @@index([submissionId])
 }
 
-// ===== EXAM WORKFLOW ENUMS =====
+// ===== ENUMS =====
 
 enum QuestionType {
   TRUE_FALSE
@@ -510,7 +585,7 @@ enum UserSex {
   FEMALE
 }
 
-enum Day{
+enum Day {
   SATURDAY
   SUNDAY
   MONDAY

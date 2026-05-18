@@ -11,6 +11,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
+import Link from "next/link";
 
 type SubjectList = Subject & {
   teachers: Teacher[];
@@ -18,24 +19,10 @@ type SubjectList = Subject & {
 };
 
 const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teachers",
-    accessor: "teachers",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: role === "admin" ? "Actions" : "",
-    accessor: "action",
-  },
+  { header: "Subject Name", accessor: "name" },
+  { header: "Grade",        accessor: "grade",    className: "hidden md:table-cell" },
+  { header: "Teachers",     accessor: "teachers", className: "hidden md:table-cell" },
+  { header: role === "admin" ? "Actions" : "", accessor: "action" },
 ];
 
 const renderRow = (item: SubjectList, role: UserRole | null) => (
@@ -43,7 +30,14 @@ const renderRow = (item: SubjectList, role: UserRole | null) => (
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
-    <td className="flex items-center gap-4 p-4">{item.name}</td>
+    <td className="flex items-center gap-4 p-4">
+      <Link
+        href={`/list/subjects/${item.id}`}
+        className="font-medium hover:text-purple-600 hover:underline transition-colors"
+      >
+        {item.name}
+      </Link>
+    </td>
 
     <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
 
@@ -89,7 +83,6 @@ const SubjectListPage = async ({
       if (Array.isArray(value)) {
         return value.map((item) => [key, item]);
       }
-
       return value ? [[key, value]] : [];
     }),
   );
@@ -105,9 +98,7 @@ const SubjectListPage = async ({
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.subject.count({
-      where: query,
-    }),
+    prisma.subject.count({ where: query }),
   ]);
 
   return (
@@ -126,7 +117,6 @@ const SubjectListPage = async ({
                 <ExportButton
                   href={`/api/admin/subjects/export?${exportQuery.toString()}`}
                 />
-
                 <FormContainer table="subject" type="create" />
               </>
             )}

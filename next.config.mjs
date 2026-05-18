@@ -7,6 +7,11 @@ const nextConfig = {
       { hostname: "img.clerk.com" },
     ],
   },
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "25mb",
+    },
+  },
 };
 
 export default nextConfig;
