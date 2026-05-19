@@ -293,58 +293,6 @@ export function SettingsPageSkeleton() {
   );
 }
 
-export function ProfileDetailSkeleton() {
-  return (
-    <div className="flex xl:flex-row flex-col gap-3 sm:gap-4 p-3 sm:p-4">
-      <div className="space-y-3 sm:space-y-4 w-full xl:w-3/4">
-        <div className="flex flex-col sm:flex-wrap md:flex-nowrap gap-3 sm:gap-4">
-          <div className="bg-white p-3 sm:p-4 border border-slate-100 rounded-md w-full md:w-2/3">
-            <div
-              className={`${pulse} w-24 sm:w-32 h-24 sm:h-32 rounded-full mb-3 sm:mb-4`}
-            />
-            <div className={`${pulse} w-40 sm:w-52 h-6 sm:h-7 mb-3 sm:mb-4`} />
-            <div className="gap-2 sm:gap-3 grid grid-cols-2">
-              {Array.from({ length: 4 }).map((_, i) => (
-                <div key={i} className={`${pulse} h-4 sm:h-5`} />
-              ))}
-            </div>
-          </div>
-          <div className="gap-2 sm:gap-4 grid grid-cols-2 w-full md:w-1/3">
-            {Array.from({ length: 4 }).map((_, i) => (
-              <div
-                key={i}
-                className="bg-white p-3 sm:p-4 border border-slate-100 rounded-md"
-              >
-                <div
-                  className={`${pulse} w-6 sm:w-8 h-6 sm:h-8 mb-2 sm:mb-3`}
-                />
-                <div
-                  className={`${pulse} w-12 sm:w-14 h-5 sm:h-6 mb-1 sm:mb-2`}
-                />
-                <div className={`${pulse} w-16 sm:w-20 h-3 sm:h-4`} />
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="bg-white p-3 sm:p-4 border border-slate-100 rounded-md min-h-[400px] sm:min-h-[700px]">
-          <div className={`${pulse} w-40 sm:w-48 h-5 sm:h-6 mb-3 sm:mb-4`} />
-          <CalendarGridSkeleton />
-        </div>
-      </div>
-      <div className="space-y-3 sm:space-y-4 w-full xl:w-1/4">
-        <div className="bg-white p-3 sm:p-4 border border-slate-100 rounded-md">
-          <div className={`${pulse} w-28 h-5 sm:h-6 mb-3 sm:mb-4`} />
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className={`${pulse} h-8 sm:h-10 mb-2`} />
-          ))}
-        </div>
-        <div className={`${pulse} h-40 sm:h-44`} />
-        <div className={`${pulse} h-56 sm:h-64`} />
-      </div>
-    </div>
-  );
-}
-
 export function ExamSubmissionsSkeleton() {
   return (
     <div className="bg-white m-2 sm:m-4 p-3 sm:p-4 border border-slate-100 rounded-md">
