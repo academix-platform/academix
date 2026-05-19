@@ -20,7 +20,7 @@ type ExamWorkflowFormProps = {
   classes: { id: number; name: string }[];
   mode?: "create" | "update";
   examId?: number;
-  teacherLessons?: { subjectId: number; classId: number }[] | null;
+  teacherLessons: { subjectId: number; classId: number }[];
   initialData?: Omit<
     Partial<CreateExamWorkflowSchema>,
     "startTime" | "endTime"
@@ -387,7 +387,12 @@ export default function ExamWorkflowForm({
   const watchSubjectId = watch("subjectId");
 
   const filteredClasses = useMemo(() => {
-    if (!watchSubjectId || !teacherLessons) return classes;
+    if (!watchSubjectId) {
+      // No subject selected yet – hide all classes
+      return [];
+    }
+
+    // Subject selected – show only classes with lessons for that subject
     const subjectId = Number(watchSubjectId);
     const validClassIds = new Set(
       teacherLessons

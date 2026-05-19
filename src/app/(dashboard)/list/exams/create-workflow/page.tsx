@@ -117,14 +117,14 @@ export default async function CreateExamWorkflowPage({
     select: { id: true, name: true },
   });
 
-  const teacherLessons = (role === "teacher") ? await prisma.lesson.findMany({
+  const teacherLessons = await prisma.lesson.findMany({
     where: {
-      teacherId: userId,
-      academicYearId,
       schoolId,
+      academicYearId,
+      ...(role === "teacher" ? { teacherId: userId } : {}),
     },
     select: { subjectId: true, classId: true },
-  }) : null;
+  });
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
