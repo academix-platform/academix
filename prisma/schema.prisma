@@ -12,6 +12,8 @@ datasource db {
 model School {
   id Int @id @default(autoincrement())
   name String @unique
+  status SchoolStatus @default(PENDING)
+  pauseReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -529,4 +531,10 @@ enum StudentStatus {
 enum PassFailStatus {
   PASS
   FAIL
+}
+
+enum SchoolStatus {
+  PENDING
+  ACTIVE
+  PAUSED
 }
