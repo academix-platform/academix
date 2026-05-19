@@ -1,9 +1,7 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { routePermissions } from "./lib/settings";
-import { getRoleHome } from "./lib/utils";
-
-type AllowedRole = string;
+import { getRoleHome, type UserRole } from "./lib/utils";
 
 const isSignInRoute = createRouteMatcher(["/sign-in(.*)"]);
 const isPublicRoute = createRouteMatcher([
@@ -13,7 +11,7 @@ const isPublicRoute = createRouteMatcher([
 ]);
 
 const matchers = (
-  Object.entries(routePermissions) as [string, AllowedRole[]][]
+  Object.entries(routePermissions) as [string, UserRole[]][]
 ).map(([route, allowedRoles]) => ({
   matcher: createRouteMatcher([route]),
   allowedRoles,
@@ -23,7 +21,7 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
   const role =
-    (sessionClaims?.metadata as { role?: AllowedRole } | undefined)?.role ??
+    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ??
     null;
 
   const isSignIn = isSignInRoute(req);
@@ -35,6 +33,14 @@ export default clerkMiddleware(async (auth, req) => {
     role === "teacher" ||
     role === "student" ||
     role === "parent";
+
+  if (
+    role === "superAdmin" &&
+    (req.nextUrl.pathname.startsWith("/list/") ||
+      req.nextUrl.pathname.startsWith("/settings"))
+  ) {
+    return NextResponse.redirect(new URL("/super-admin", req.url));
+  }
 
   if (isSignIn && userId) {
     const redirectUrl = req.nextUrl.searchParams.get("redirect_url");

@@ -1,8 +1,8 @@
 import Pagination from "@/components/Pagination";
+import SchoolStatusActions from "@/components/SchoolStatusActions";
 import SchoolStatusFilter from "@/components/SchoolStatusFilter";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { updateSchoolStatus } from "@/lib/actions/school.actions";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import type { PageSearchParams } from "@/lib/pageParams";
 import { getQueryParam } from "@/lib/pageParams";
@@ -35,7 +35,7 @@ const SuperAdminPage = async ({ searchParams }: { searchParams: PageSearchParams
     ...(status && ["PENDING", "ACTIVE", "PAUSED"].includes(status) ? { status } : {}),
   };
 
-  const [schools, count] = await prisma.$transaction([
+  const [schools, count] = await Promise.all([
     prisma.school.findMany({
       where,
       include: { admins: true },
@@ -78,36 +78,11 @@ const SuperAdminPage = async ({ searchParams }: { searchParams: PageSearchParams
             </td>
             <td className="hidden lg:table-cell">{school.pauseReason ?? "-"}</td>
             <td>
-              <div className="flex flex-wrap gap-2 py-2">
-                <form action={updateSchoolStatus}>
-                  <input type="hidden" name="schoolId" value={school.id} />
-                  <input type="hidden" name="status" value="ACTIVE" />
-                  <button className="bg-green-600 px-2 py-1 rounded text-white text-xs" type="submit">
-                    Activate
-                  </button>
-                </form>
-                <form action={updateSchoolStatus}>
-                  <input type="hidden" name="schoolId" value={school.id} />
-                  <input type="hidden" name="status" value="PENDING" />
-                  <button className="bg-yellow-500 px-2 py-1 rounded text-white text-xs" type="submit">
-                    Set Pending
-                  </button>
-                </form>
-                <form action={updateSchoolStatus} className="flex items-center gap-1">
-                  <input type="hidden" name="schoolId" value={school.id} />
-                  <input type="hidden" name="status" value="PAUSED" />
-                  <input
-                    type="text"
-                    name="pauseReason"
-                    placeholder="Pause reason"
-                    className="px-2 py-1 border rounded text-xs"
-                    required
-                  />
-                  <button className="bg-red-600 px-2 py-1 rounded text-white text-xs" type="submit">
-                    Pause
-                  </button>
-                </form>
-              </div>
+              <SchoolStatusActions
+                schoolId={school.id}
+                schoolName={school.name}
+                schoolStatus={school.status}
+              />
             </td>
           </tr>
         )}

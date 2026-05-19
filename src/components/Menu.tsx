@@ -53,7 +53,7 @@ export const menuItems: MenuSection[] = [
         icon: School,
         label: "Schools",
         href: "/super-admin",
-        visible: ["superAdmin"],
+        visible: [],
       },
       {
         icon: GraduationCap,
@@ -150,7 +150,7 @@ export const menuItems: MenuSection[] = [
         icon: User,
         label: "Profile",
         href: "/profile",
-        visible: ["admin", "teacher", "student", "parent", "superAdmin"],
+        visible: ["admin", "teacher", "student", "parent"],
       },
       {
         icon: Settings,
