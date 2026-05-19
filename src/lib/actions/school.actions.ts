@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { SchoolStatus } from "@prisma/client";
+import { getReadableActionErrorMessage } from "./helpers";
 
 const normalize = (value: FormDataEntryValue | null) =>
   typeof value === "string" ? value.trim() : "";
@@ -25,6 +26,30 @@ export async function createSchoolSignup(formData: FormData) {
   let createdClerkUserId: string | null = null;
 
   try {
+    const existingSchool = await prisma.school.findUnique({
+      where: { name: schoolName },
+      select: { id: true },
+    });
+
+    if (existingSchool) {
+      return {
+        success: false,
+        message: "A school with this name already exists.",
+      };
+    }
+
+    const existingAdminUsername = await prisma.admin.findFirst({
+      where: { username: adminUsername },
+      select: { id: true },
+    });
+
+    if (existingAdminUsername) {
+      return {
+        success: false,
+        message: "This admin username is already in use.",
+      };
+    }
+
     const user = await (await clerkClient()).users.createUser({
       username: adminUsername,
       password: adminPassword,
@@ -66,7 +91,9 @@ export async function createSchoolSignup(formData: FormData) {
 
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Unable to submit school request.",
+      message:
+        getReadableActionErrorMessage(error) ||
+        "Unable to submit school request. Please check your details and try again.",
     };
   }
 }

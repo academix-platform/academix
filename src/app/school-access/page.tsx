@@ -13,7 +13,10 @@ export default async function SchoolAccessPage() {
       <div className="bg-white shadow-md p-8 rounded-xl w-full max-w-lg">
         <h1 className="mb-4 font-semibold text-2xl">School Access Status</h1>
         {isPending && (
-          <p className="text-gray-700">Your school is pending approval.</p>
+          <p className="text-gray-700">
+            Your school is pending approval. You will recieve a respond in 2
+            days.
+          </p>
         )}
         {isPaused && (
           <div className="space-y-2">

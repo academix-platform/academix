@@ -66,7 +66,7 @@ const LessonListPage = async ({
         <h1 className="font-semibold text-xl">Lessons Calendar</h1>
 
         <div className="flex items-center gap-2">
-          {role === "admin" && (
+          {role === "admin" && selectedClass && (
             <ExportButton
               href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
             />
