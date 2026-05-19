@@ -12,14 +12,33 @@ const normalize = (value: FormDataEntryValue | null) =>
 
 export async function createSchoolSignup(formData: FormData) {
   const schoolName = normalize(formData.get("schoolName"));
+  const contactEmail = normalize(formData.get("contactEmail"));
+  const contactPhone = normalize(formData.get("contactPhone"));
+  const website = normalize(formData.get("website"));
+  const country = normalize(formData.get("country"));
+  const city = normalize(formData.get("city"));
+  const address = normalize(formData.get("address"));
+  const registrationNumber = normalize(formData.get("registrationNumber"));
   const adminName = normalize(formData.get("adminName"));
   const adminUsername = normalize(formData.get("adminUsername"));
+  const adminEmail = normalize(formData.get("adminEmail"));
   const adminPassword = normalize(formData.get("adminPassword"));
 
-  if (!schoolName || !adminName || !adminUsername || !adminPassword) {
+  const missingFields: string[] = [];
+  if (!schoolName) missingFields.push("School Name");
+  if (!contactEmail) missingFields.push("School Email");
+  if (!contactPhone) missingFields.push("School Phone");
+  if (!country) missingFields.push("Country");
+  if (!city) missingFields.push("City");
+  if (!address) missingFields.push("School Address");
+  if (!adminName) missingFields.push("Admin Full Name");
+  if (!adminUsername) missingFields.push("Admin Username");
+  if (!adminPassword) missingFields.push("Admin Password");
+
+  if (missingFields.length > 0) {
     return {
       success: false,
-      message: "All fields are required.",
+      message: `Missing required fields: ${missingFields.join(", ")}.`,
     };
   }
 
@@ -54,6 +73,7 @@ export async function createSchoolSignup(formData: FormData) {
       username: adminUsername,
       password: adminPassword,
       firstName: adminName,
+      ...(adminEmail ? { emailAddress: [adminEmail] } : {}),
       publicMetadata: { role: "admin" },
     });
     createdClerkUserId = user.id;
@@ -62,6 +82,13 @@ export async function createSchoolSignup(formData: FormData) {
       const school = await tx.school.create({
         data: {
           name: schoolName,
+          contactEmail,
+          contactPhone,
+          website: website || null,
+          country,
+          city,
+          address,
+          registrationNumber: registrationNumber || null,
           status: "PENDING",
         },
       });
