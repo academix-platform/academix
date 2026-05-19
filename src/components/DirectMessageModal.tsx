@@ -91,67 +91,71 @@ export default function DirectMessageModal({
 
   return (
     <div className="z-50 fixed inset-0 flex justify-center items-center bg-black bg-opacity-50">
-      <div className="relative bg-white shadow-xl p-6 rounded-lg w-full max-w-md">
+      <div className="relative bg-white shadow-xl p-6 rounded-xl w-full max-w-xl">
         <button
           onClick={() => setOpen(false)}
-          className="top-4 right-4 absolute text-gray-400 hover:text-gray-600"
+          className="top-4 right-4 absolute text-gray-400 hover:text-academixPurpleDark transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="mb-4 font-semibold text-lg">
+        <h2 className="mb-4 pr-8 font-bold text-gray-900 text-2xl">
           Send Message to {userName}
         </h2>
 
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div>
-            <label className="block mb-1 font-medium text-gray-600 text-sm">
-              Title
-            </label>
-            <input
-              type="text"
-              name="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-sm"
-              placeholder="Enter message title"
-              required
-            />
-          </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6">
+          <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+            <div className="grid grid-cols-1 gap-4">
+              <div className="flex flex-col gap-2 w-full">
+                <label className="font-medium text-gray-700 text-sm">
+                  Title
+                </label>
+                <input
+                  type="text"
+                  name="title"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                  placeholder="Enter message title"
+                  required
+                />
+              </div>
 
-          <div>
-            <label className="block mb-1 font-medium text-gray-600 text-sm">
-              Message
-            </label>
-            <textarea
-              name="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-sm resize-none"
-              placeholder="Enter message body"
-              rows={4}
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-50 p-2 rounded text-red-600 text-sm">
-              {error}
+              <div className="flex flex-col gap-2 w-full">
+                <label className="font-medium text-gray-700 text-sm">
+                  Message
+                </label>
+                <textarea
+                  name="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all resize-none"
+                  placeholder="Enter message body"
+                  rows={5}
+                  required
+                />
+              </div>
             </div>
-          )}
 
-          <div className="flex justify-end gap-2 pt-2">
+            {error && (
+              <div className="bg-red-50 px-4 py-3 border border-red-200 rounded-lg font-medium text-red-600 text-sm">
+                {error}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end gap-3">
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-md text-gray-600"
+              className="hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="bg-blue-500 hover:bg-blue-600 disabled:opacity-50 px-4 py-2 rounded-md text-white"
+              className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-2 rounded-lg font-semibold text-white text-sm transition-all"
             >
               {isSubmitting ? "Sending..." : "Send"}
             </button>

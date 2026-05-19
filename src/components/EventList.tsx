@@ -34,6 +34,13 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
       },
     },
   });
+  if (data.length === 0) {
+    return (
+      <div className="bg-gray-50 p-4 rounded-md text-center">
+        <p className="text-gray-500 text-sm">No events for this day.</p>
+      </div>
+    );
+  }
 
   return (
     <div>

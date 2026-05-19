@@ -19,7 +19,10 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-        <ClerkProvider>
+        <ClerkProvider
+          signInFallbackRedirectUrl="/post-login"
+          signInForceRedirectUrl="/post-login"
+        >
           {children}
           <ToastContainer position="bottom-right" theme="dark" />
         </ClerkProvider>

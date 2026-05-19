@@ -6,7 +6,7 @@ import InputField from "../InputField";
 import {
   Dispatch,
   SetStateAction,
-  startTransition,
+  useTransition,
   useEffect,
   useState,
 } from "react";
@@ -14,7 +14,15 @@ import { parentSchema, ParentSchema } from "@/lib/formValidationSchemas";
 import { createParent, updateParent } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { Eye, EyeOff, X, Search } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Search,
+  ShieldCheck,
+  UserRound,
+  Users,
+  X,
+} from "lucide-react";
 
 type ParentFormState = {
   success: boolean;
@@ -53,6 +61,7 @@ const ParentForm = ({
     { id: string; name: string }[]
   >([]);
   const [studentsError, setStudentsError] = useState("");
+  const [isSubmitting, startTransition] = useTransition();
 
   const onSubmit = handleSubmit((data) => {
     if (type === "create" && selectedStudentIds.length === 0) {
@@ -99,14 +108,16 @@ const ParentForm = ({
   const { students } = relatedData;
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create" ? "Create a new Parent" : "Update the Parent"}
       </h1>
-      <span className="font-medium text-gray-400 text-xs">
-        Authentication Information
-      </span>
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
+          <ShieldCheck size={16} />
+          Authentication Information
+        </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
           label="Username"
           name="username"
@@ -121,13 +132,13 @@ const ParentForm = ({
           register={register}
           error={errors?.email}
         />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Password</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">Password</label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               {...register("password")}
-              className="p-2 pr-10 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+              className="focus:bg-academixPurpleLight px-4 py-3 pr-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
             />
             <button
               type="button"
@@ -139,16 +150,20 @@ const ParentForm = ({
             </button>
           </div>
           {errors?.password?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.password.message.toString()}
             </p>
           )}
         </div>
       </div>
-      <span className="font-medium text-gray-400 text-xs">
-        Personal Information
-      </span>
-      <div className="flex flex-wrap justify-between gap-4">
+      </div>
+
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
+          <UserRound size={16} />
+          Personal Information
+        </span>
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
           label="Full Name"
           name="name"
@@ -174,10 +189,16 @@ const ParentForm = ({
           <input type="hidden" {...register("id")} defaultValue={data?.id} />
         )}
       </div>
-      <div className="flex flex-col gap-2 w-full student-search">
-        <label className="text-gray-500 text-xs">Students</label>
+      </div>
+
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <div className="flex flex-col gap-2 w-full student-search">
+        <label className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
+          <Users size={16} />
+          Students
+        </label>
         <div className="relative">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
+          <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg focus-within:ring-0 transition-all">
             <input
               type="text"
               placeholder="Search students..."
@@ -204,7 +225,7 @@ const ParentForm = ({
             </button>
           </div>
           {showDropdown && (
-            <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
+            <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
               {filteredStudents.length > 0 ? (
                 filteredStudents.map(
                   (student: { id: string; name: string }) => (
@@ -220,7 +241,7 @@ const ParentForm = ({
                         setShowDropdown(false);
                         setFilteredStudents([]);
                       }}
-                      className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
+                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-left transition-colors cursor-pointer"
                     >
                       {student.name}
                     </div>
@@ -243,7 +264,7 @@ const ParentForm = ({
               return (
                 <div
                   key={studentId}
-                  className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full text-blue-800 text-sm"
+                  className="flex items-center gap-2 bg-academixPurpleLight px-4 py-2 rounded-full font-medium text-academixPurpleDark text-sm"
                 >
                   <span>{student?.name}</span>
                   <button
@@ -253,7 +274,7 @@ const ParentForm = ({
                         selectedStudentIds.filter((id) => id !== studentId),
                       )
                     }
-                    className="text-blue-600 hover:text-blue-900"
+                    className="text-academixPurpleDark hover:text-red-500 transition-colors"
                   >
                     <X size={16} />
                   </button>
@@ -263,19 +284,30 @@ const ParentForm = ({
           </div>
         )}
         {errors.students?.message && (
-          <p className="text-red-400 text-xs">
+          <p className="font-medium text-red-500 text-xs">
             {errors.students.message.toString()}
           </p>
         )}
         {studentsError && (
-          <p className="text-red-400 text-xs">{studentsError}</p>
+          <p className="font-medium text-red-500 text-xs">{studentsError}</p>
         )}
       </div>
-      <button type="submit" className="bg-blue-400 p-2 rounded-md text-white">
-        {type === "create" ? "Create" : "Update"}
+      </div>
+      <button
+        type="submit"
+        disabled={isSubmitting}
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
+      >
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create Parent"
+            : "Update Parent"}
       </button>
     </form>
   );
 };
 
 export default ParentForm;
+
+

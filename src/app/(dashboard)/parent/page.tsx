@@ -1,5 +1,6 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
+import EmptyState from "@/components/states/EmptyState";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import StudentSelector from "@/components/StudentSelector";
 import { getAuthUser, requireAuth } from "@/lib/auth";
@@ -26,7 +27,14 @@ const ParentPage = async ({
   });
 
   if (!students.length) {
-    return <div>No students found</div>;
+    return (
+      <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
+        <EmptyState
+          title="No students found"
+          description="There are no linked students on this parent account yet."
+        />
+      </div>
+    );
   }
 
   const selectedStudentId = params?.studentId || students[0].id;
@@ -45,7 +53,11 @@ const ParentPage = async ({
           {classId ? (
             <BigCalendarContainer type="classId" id={classId} />
           ) : (
-            <div>No class found</div>
+            <EmptyState
+              title="No class assigned"
+              description="The selected student is not assigned to a class yet."
+              className="py-8"
+            />
           )}
         </div>
       </div>

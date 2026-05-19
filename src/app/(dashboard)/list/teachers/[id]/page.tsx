@@ -73,9 +73,6 @@ const SingleTeacherPage = async ({
             <div className="flex flex-col gap-8">
               <div>
                 <h1 className="font-semibold text-xl">{teacher.name}</h1>
-                <p className="text-gray-500 text-sm">
-                  Lorem ipsum, dolor sit amet consectetur adipisicing elit.
-                </p>
               </div>
 
               <div className="flex flex-wrap justify-between items-center gap-2 font-medium text-xs">
@@ -179,27 +176,27 @@ const SingleTeacherPage = async ({
       <div className="flex flex-col gap-4 w-full xl:w-1/4">
         <div className="bg-white p-4 rounded-md">
           <h1 className="font-semibold text-xl">Shortcuts</h1>
-          <div className="flex flex-wrap gap-4 mt-4 text-gray-500 text-xs">
+          <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/classes?teacherId=${id}`}
             >
               Teacher&apos;s Classes
             </Link>
             <Link
-              className="bg-academixPurpleLight p-3 rounded-md"
+              className="bg-academixPurpleLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/students?teacherId=${id}`}
             >
               Teacher&apos;s Students
             </Link>
             <Link
-              className="bg-pink-50 p-3 rounded-md"
+              className="bg-pink-50 p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/exams?teacherId=${id}`}
             >
               Teacher&apos;s Exams
             </Link>
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/assignments?teacherId=${id}`}
             >
               Teacher&apos;s Assignments

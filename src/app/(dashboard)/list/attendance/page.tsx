@@ -6,6 +6,7 @@ import AttendanceClient from "@/components/AttendanceClient";
 import AttendanceClassSelect from "@/components/AttendanceClassSelect";
 import Pagination from "@/components/Pagination";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
+import EmptyState from "@/components/states/EmptyState";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
@@ -54,9 +55,11 @@ const AttendancePage = async ({
     return (
       <div className="flex-1 bg-white m-4 p-6 rounded-md">
         <h1 className="mb-2 font-semibold text-lg">Attendance</h1>
-        <div className="text-gray-500 text-sm">
-          You are not assigned to supervise any class yet.
-        </div>
+        <EmptyState
+          title="No classes assigned"
+          description="You are not assigned to supervise any class yet."
+          className="py-6"
+        />
       </div>
     );
   }

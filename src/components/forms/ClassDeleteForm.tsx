@@ -176,7 +176,7 @@ const ClassDeleteForm = ({
   return (
     <form className="flex flex-col gap-6 p-4" onSubmit={onSubmit}>
       <div className="flex flex-col gap-2">
-        <h1 className="font-semibold text-xl">Delete class</h1>
+        <h1 className="font-bold text-gray-900 text-2xl">Delete class</h1>
         <p className="text-gray-500 text-sm">
           {studentCount > 0
             ? `This class has ${studentCount} student${studentCount === 1 ? "" : "s"}. Move them to another class or create a new class before deleting this one.`
@@ -205,9 +205,9 @@ const ClassDeleteForm = ({
 
           {mode === "existing" ? (
             <div className="flex flex-col gap-2">
-              <label className="text-gray-500 text-xs">Target class</label>
+              <label className="font-medium text-gray-700 text-sm">Target class</label>
               <select
-                className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                 value={effectiveSelectedClassId}
                 onChange={(e) => setSelectedClassId(e.target.value)}
               >
@@ -224,33 +224,33 @@ const ClassDeleteForm = ({
           ) : (
             <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
               <label className="flex flex-col gap-2">
-                <span className="text-gray-500 text-xs">New class name</span>
+                <span className="font-medium text-gray-700 text-sm">New class name</span>
                 <input
                   type="text"
                   value={newClassName}
                   onChange={(e) => setNewClassName(e.target.value)}
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                   placeholder="e.g. 3B"
                 />
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-gray-500 text-xs">Capacity</span>
+                <span className="font-medium text-gray-700 text-sm">Capacity</span>
                 <input
                   type="number"
                   min={1}
                   value={newClassCapacity}
                   onChange={(e) => setNewClassCapacity(e.target.value)}
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                 />
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-gray-500 text-xs">Grade</span>
+                <span className="font-medium text-gray-700 text-sm">Grade</span>
                 <select
                   value={newClassGradeId}
                   onChange={(e) => setNewClassGradeId(e.target.value)}
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                 >
                   {grades.map((grade) => (
                     <option key={grade.id} value={grade.id}>
@@ -261,11 +261,11 @@ const ClassDeleteForm = ({
               </label>
 
               <label className="flex flex-col gap-2">
-                <span className="text-gray-500 text-xs">Supervisor</span>
+                <span className="font-medium text-gray-700 text-sm">Supervisor</span>
                 <select
                   value={newClassSupervisorId}
                   onChange={(e) => setNewClassSupervisorId(e.target.value)}
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                 >
                   <option value="">No supervisor</option>
                   {teachers.map((teacher) => (
@@ -302,7 +302,7 @@ const ClassDeleteForm = ({
         <button
           type="submit"
           disabled={isSubmitting}
-          className="bg-red-700 disabled:opacity-60 px-4 py-2 rounded-md text-white text-sm"
+          className="bg-red-700 disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md text-white text-sm transition-all"
         >
           {isSubmitting ? "Deleting..." : "Delete class"}
         </button>
@@ -312,3 +312,5 @@ const ClassDeleteForm = ({
 };
 
 export default ClassDeleteForm;
+
+

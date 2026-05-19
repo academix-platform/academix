@@ -78,7 +78,8 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
     <td>
       <div className="flex items-center gap-2">
         <Link href={`/list/teachers/${item.id}`}>
-          <button className="flex justify-center items-center bg-academixSky rounded-full w-7 h-7">
+          <button className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
+            {" "}
             <Eye className="w-4 h-4" />
           </button>
         </Link>
@@ -162,6 +163,8 @@ const TeacherListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
+        emptyTitle="No teachers found"
+        emptyDescription="Try changing your filters or search terms."
       />
 
       <Pagination page={p} count={count} />
