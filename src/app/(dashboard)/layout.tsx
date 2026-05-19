@@ -17,7 +17,7 @@ export default async function DashboardLayout({
     : null;
 
   return (
-    <div className="flex">
+    <div className="flex h-screen overflow-auto">
       {/* LEFT */}
       <div className="p-4 w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] overflow-auto">
         <Link

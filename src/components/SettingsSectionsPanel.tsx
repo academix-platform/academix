@@ -24,7 +24,11 @@ const sections: { key: SectionKey; label: string }[] = [
   { key: "academicYears", label: "Academic Years" },
 ];
 
-const SettingsSectionsPanel = ({ settings, academicYears, dayExceptions }: Props) => {
+const SettingsSectionsPanel = ({
+  settings,
+  academicYears,
+  dayExceptions,
+}: Props) => {
   const [activeSection, setActiveSection] = useState<SectionKey>("schedule");
 
   return (
@@ -70,7 +74,8 @@ const SettingsSectionsPanel = ({ settings, academicYears, dayExceptions }: Props
         <section className="pt-6 max-w-4xl">
           <h2 className="font-semibold text-lg">Working Days and Holidays</h2>
           <p className="mt-2 text-gray-500 text-sm">
-            Define school working days and add date-specific holidays or off-day overrides.
+            Define school working days and add date-specific holidays or off-day
+            overrides.
           </p>
 
           <div className="mt-4">
@@ -82,11 +87,6 @@ const SettingsSectionsPanel = ({ settings, academicYears, dayExceptions }: Props
         </section>
       ) : (
         <section className="pt-6 max-w-4xl">
-          <h2 className="font-semibold text-lg">Academic Years</h2>
-          <p className="mt-2 text-gray-500 text-sm">
-            Create and maintain academic year ranges.
-          </p>
-
           <div className="mt-4">
             <AcademicYearForm academicYears={academicYears} />
           </div>
