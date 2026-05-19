@@ -3,6 +3,7 @@ export { createSubject, updateSubject, deleteSubject } from "./subject.actions";
 
 // Class actions
 export { createClass, updateClass, deleteClass } from "./class.actions";
+export { createGrade, deleteGrade } from "./grade.actions";
 
 // Teacher actions
 export { createTeacher, updateTeacher, deleteTeacher } from "./teacher.actions";
