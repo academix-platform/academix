@@ -287,6 +287,39 @@ export const schoolSettingsSchema = z
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+export const schoolDayValues = [
+  "SATURDAY",
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+] as const;
+
+export const schoolDayExceptionTypes = [
+  "HOLIDAY",
+  "OFF_DAY",
+  "WORKING_OVERRIDE",
+] as const;
+
+export const schoolWorkingDaysSchema = z.object({
+  workingDays: z
+    .array(z.enum(schoolDayValues))
+    .min(1, { message: "Select at least one working day." }),
+});
+
+export type SchoolWorkingDaysSchema = z.infer<typeof schoolWorkingDaysSchema>;
+
+export const schoolDayExceptionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date is required." }),
+  type: z.enum(schoolDayExceptionTypes),
+  name: z.string().max(120).optional().or(z.literal("")),
+  notes: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type SchoolDayExceptionSchema = z.infer<typeof schoolDayExceptionSchema>;
+
 export const academicYearSchema = z
   .object({
     id: z.coerce.number().optional(),

@@ -2,23 +2,29 @@
 
 import AcademicYearForm from "@/components/AcademicYearForm";
 import SchoolSettingsForm from "@/components/SchoolSettingsForm";
+import WorkingDaysHolidaysForm from "@/components/WorkingDaysHolidaysForm";
 import type { AcademicYearItem } from "@/lib/academicYears";
-import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
+import type {
+  SchoolDayExceptionItem,
+  SchoolScheduleSettings,
+} from "@/lib/schoolSettings";
 import { useState } from "react";
 
-type SectionKey = "schedule" | "academicYears";
+type SectionKey = "schedule" | "workingDays" | "academicYears";
 
 type Props = {
   settings: SchoolScheduleSettings;
   academicYears: AcademicYearItem[];
+  dayExceptions: SchoolDayExceptionItem[];
 };
 
 const sections: { key: SectionKey; label: string }[] = [
   { key: "schedule", label: "Schedule Defaults" },
+  { key: "workingDays", label: "Working Days & Holidays" },
   { key: "academicYears", label: "Academic Years" },
 ];
 
-const SettingsSectionsPanel = ({ settings, academicYears }: Props) => {
+const SettingsSectionsPanel = ({ settings, academicYears, dayExceptions }: Props) => {
   const [activeSection, setActiveSection] = useState<SectionKey>("schedule");
 
   return (
@@ -58,6 +64,20 @@ const SettingsSectionsPanel = ({ settings, academicYears }: Props) => {
 
           <div className="mt-4">
             <SchoolSettingsForm initialSettings={settings} />
+          </div>
+        </section>
+      ) : activeSection === "workingDays" ? (
+        <section className="pt-6 max-w-4xl">
+          <h2 className="font-semibold text-lg">Working Days and Holidays</h2>
+          <p className="mt-2 text-gray-500 text-sm">
+            Define school working days and add date-specific holidays or off-day overrides.
+          </p>
+
+          <div className="mt-4">
+            <WorkingDaysHolidaysForm
+              initialWorkingDays={settings.workingDays}
+              exceptions={dayExceptions}
+            />
           </div>
         </section>
       ) : (
