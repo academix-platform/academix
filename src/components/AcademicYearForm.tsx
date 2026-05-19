@@ -79,13 +79,17 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <label className="flex flex-col gap-2 md:col-span-2">
-            <span className="font-medium text-gray-600 text-sm">Name</span>
+      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+        <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+          <span className="block font-semibold text-gray-700 text-sm">
+            Academic Year Information
+          </span>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <label className="flex flex-col gap-2 md:col-span-2 xl:col-span-3">
+            <span className="font-medium text-gray-700 text-sm">Name</span>
             <input
               type="text"
-              className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
               value={form.name}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, name: e.target.value }))
@@ -101,7 +105,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
             </span>
             <input
               type="date"
-              className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
               value={form.startDate}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, startDate: e.target.value }))
@@ -111,10 +115,10 @@ const AcademicYearForm = ({ academicYears }: Props) => {
           </label>
 
           <label className="flex flex-col gap-2">
-            <span className="font-medium text-gray-600 text-sm">End Date</span>
+            <span className="font-medium text-gray-700 text-sm">End Date</span>
             <input
               type="date"
-              className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
               value={form.endDate}
               onChange={(e) =>
                 setForm((prev) => ({ ...prev, endDate: e.target.value }))
@@ -122,31 +126,39 @@ const AcademicYearForm = ({ academicYears }: Props) => {
               required
             />
           </label>
-        </div>
+          </div>
 
-        <label className="flex items-center gap-2 text-sm">
-          <input
-            type="checkbox"
-            checked={form.isCurrent}
-            onChange={(e) =>
-              setForm((prev) => ({ ...prev, isCurrent: e.target.checked }))
-            }
-          />
-          Mark as current academic year
-        </label>
+          <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
+            <input
+              type="checkbox"
+              checked={form.isCurrent}
+              onChange={(e) =>
+                setForm((prev) => ({ ...prev, isCurrent: e.target.checked }))
+              }
+              className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
+            />
+            Mark as current academic year
+          </label>
+        </div>
 
         <div className="flex gap-3">
           <button
-            className="bg-blue-500 disabled:opacity-60 px-4 py-2 rounded-md w-fit text-white"
+            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
             disabled={isSubmitting}
             type="submit"
           >
-            {form.id ? "Update Academic Year" : "Create Academic Year"}
+            {form.id
+              ? isSubmitting
+                ? "Updating..."
+                : "Update Academic Year"
+              : isSubmitting
+                ? "Creating..."
+                : "Create Academic Year"}
           </button>
 
           {form.id ? (
             <button
-              className="px-4 py-2 border border-gray-300 rounded-md w-fit text-gray-700"
+              className="hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 text-sm transition-colors"
               type="button"
               onClick={onReset}
             >
@@ -183,7 +195,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                   <td className="px-2 py-3">{year.isCurrent ? "Yes" : "No"}</td>
                   <td className="px-2 py-3">
                     <button
-                      className="text-blue-600 hover:underline"
+                      className="text-academixPurpleDark hover:underline"
                       type="button"
                       onClick={() => onEdit(year)}
                     >

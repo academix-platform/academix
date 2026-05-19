@@ -54,7 +54,7 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
   >
     <td className="flex items-center gap-4 p-4">
       <Image
-        src="/noAvatar.png"
+        src="/avatar.png"
         alt=""
         width={40}
         height={40}
@@ -172,6 +172,8 @@ const ResultListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
+        emptyTitle="No results found"
+        emptyDescription="Try changing your filters or search terms."
       />
 
       <Pagination page={p} count={count} />

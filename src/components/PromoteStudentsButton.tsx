@@ -165,7 +165,7 @@ const PromoteStudentsButton = ({
     <>
       <button
         type="button"
-        className="hidden md:block bg-academixPurpleDark p-2 rounded-md text-white text-sm"
+        className="hidden md:block bg-academixPurpleDark p-2 rounded-md text-white text-sm transition hover:scale[1.05]"
         onClick={openModal}
       >
         Update Students Grades

@@ -4,6 +4,7 @@ import { useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { saveDailyAttendance } from "@/lib/actions";
+import EmptyState from "@/components/states/EmptyState";
 
 const AttendanceClient = ({
   data,
@@ -38,6 +39,23 @@ const AttendanceClient = ({
       toast.error(state.message || "Something went wrong");
     }
   }, [state, router]);
+
+  if (data.length === 0) {
+    return (
+      <EmptyState
+        title={
+          hasAttendance
+            ? "No records on this page"
+            : `No ${scope} found`
+        }
+        description={
+          hasAttendance
+            ? "Try moving to another page."
+            : "There are no attendance records for the selected date."
+        }
+      />
+    );
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-4 mt-4">
