@@ -2,6 +2,7 @@
 
 import { useSignIn, useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getRoleHome, type UserRole } from "@/lib/utils";
@@ -21,7 +22,18 @@ const LoginContent = () => {
 
     const redirectUrl = searchParams.get("redirect_url");
     const role = user.publicMetadata.role as UserRole | undefined;
-    const destination = redirectUrl || (role ? getRoleHome(role) : "/post-login");
+    const shouldUsePostLogin =
+      role === "admin" ||
+      role === "teacher" ||
+      role === "student" ||
+      role === "parent";
+    const destination =
+      redirectUrl ||
+      (shouldUsePostLogin
+        ? "/post-login"
+        : role
+          ? getRoleHome(role)
+          : "/post-login");
 
     if (window.location.pathname === destination) return;
 
@@ -32,7 +44,6 @@ const LoginContent = () => {
     e.preventDefault();
 
     const { error } = await signIn.password({ identifier, password });
-
     if (error) return;
 
     if (signIn.status === "complete") {
@@ -161,6 +172,12 @@ const LoginContent = () => {
             )}
           </button>
         </form>
+        <p className="text-gray-500 text-xs">
+          New school?{" "}
+          <Link href="/school-signup" className="text-academixPurpleDark hover:underline">
+            Submit signup request
+          </Link>
+        </p>
       </div>
     </div>
   );
