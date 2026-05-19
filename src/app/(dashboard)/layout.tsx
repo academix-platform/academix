@@ -40,7 +40,7 @@ export default async function DashboardLayout({
       {/* RIGHT */}
       <div className="flex flex-col bg-[#F7F8FA] w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]">
         <Navbar authUser={authUser} schoolName={schoolName} />
-        <div className="flex-1 overflow-hidden">{children}</div>
+        <div className="flex-1 overflow-auto">{children}</div>
       </div>
     </div>
   );

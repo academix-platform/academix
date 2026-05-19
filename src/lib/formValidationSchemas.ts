@@ -140,7 +140,15 @@ export const lessonSchema = z
     id: z.coerce.number().optional(),
     name: z.string().min(1, { message: "Lesson name is required!" }),
     day: z.enum(
-      ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"],
+      [
+        "SATURDAY",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+      ],
       {
         message: "Day is required!",
       },
@@ -165,6 +173,7 @@ export const lessonDays = [
   "TUESDAY",
   "WEDNESDAY",
   "THURSDAY",
+  "FRIDAY",
 ] as const;
 
 const MAX_LESSON_SLOTS_PER_DAY = 12;
@@ -195,7 +204,7 @@ export const lessonScheduleSchema = z
           ),
         }),
       )
-      .min(lessonDays.length, { message: "Schedule entries are required." }),
+      .min(1, { message: "Schedule entries are required." }),
   })
   .superRefine((data, ctx) => {
     const seen = new Set<string>();
