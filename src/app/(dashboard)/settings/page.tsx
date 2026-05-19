@@ -1,12 +1,13 @@
 import AcademicYearForm from "@/components/AcademicYearForm";
 import SchoolSettingsForm from "@/components/SchoolSettingsForm";
 import { getAcademicYears } from "@/lib/academicYears";
-import { requireAuth, requireRole } from "@/lib/auth";
+import { enforceAdminSchoolAccess, requireAuth, requireRole } from "@/lib/auth";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 
 const SettingsPage = async () => {
   const user = await requireAuth();
   requireRole(user, ["admin"]);
+  await enforceAdminSchoolAccess(user);
 
   const [settings, academicYears] = await Promise.all([
     getSchoolScheduleSettings(user.schoolId),

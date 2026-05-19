@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAuthUser } from "@/lib/auth";
+import { enforceAdminSchoolAccess, getAuthUser } from "@/lib/auth";
 
 export default async function ListLayout({
   children,
@@ -11,6 +11,8 @@ export default async function ListLayout({
   if (!user) {
     redirect("/sign-in");
   }
+
+  await enforceAdminSchoolAccess(user);
 
   return <div className="h-full overflow-auto">{children}</div>;
 }

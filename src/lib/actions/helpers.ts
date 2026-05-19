@@ -57,6 +57,15 @@ export const ensureAdminAccess = async () => {
     } as ActionResult;
   }
 
+  if (user.schoolStatus !== "ACTIVE") {
+    return {
+      success: false,
+      error: true,
+      message:
+        "Your school is not active yet. Please wait for super admin approval.",
+    } as ActionResult;
+  }
+
   return null;
 };
 
@@ -72,6 +81,17 @@ export const requireActionAccess = async (
       success: false,
       error: true,
       message: "You are not allowed to perform this action.",
+    };
+  }
+
+  if (user.role === "admin" && user.schoolStatus !== "ACTIVE") {
+    return {
+      success: false,
+      error: true,
+      message:
+        user.schoolStatus === "PAUSED"
+          ? `Your school account is paused. ${user.schoolPauseReason ? `Reason: ${user.schoolPauseReason}` : ""}`
+          : "Your school is pending approval by a super admin.",
     };
   }
 
