@@ -9,6 +9,10 @@ import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
+// Import notification utilities
+import { useAuth } from "@clerk/nextjs";
+import { createNotification } from "@/src/lib/actions/notification";
+
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";
 
@@ -52,6 +56,9 @@ const ExamForm = ({
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
 
+  // Get current authenticated user's ID from Clerk
+  const { userId } = useAuth();
+
   const onSubmit = handleSubmit((formValues) => {
     const action = type === "create" ? createExam : updateExam;
 
@@ -64,6 +71,16 @@ const ExamForm = ({
 
         if (result.success) {
           toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+
+          // Trigger a notification if an exam was successfully created
+          if (type === "create" && userId) {
+            await createNotification(
+              userId,
+              "New Exam Created",
+              `A new exam has been scheduled: ${formValues.title || "Untitled Exam"}`
+            );
+          }
+
           setOpen(false);
           router.refresh();
           return;
