@@ -20,6 +20,7 @@ type ExamWorkflowFormProps = {
   classes: { id: number; name: string }[];
   mode?: "create" | "update";
   examId?: number;
+  teacherLessons?: { subjectId: number; classId: number }[] | null;
   initialData?: Omit<
     Partial<CreateExamWorkflowSchema>,
     "startTime" | "endTime"
@@ -60,43 +61,59 @@ function QuestionEditor({
   const typeField = register(typePath);
   const allowMultiple =
     useWatch({ control, name: `questions.${index}.allowMultiple` }) ?? false;
-  const correctAnswers = useWatch({
+  const correctAnswers: string[] = useWatch({
     control,
     name: correctPath,
     defaultValue: [],
-  });
-  const currentOptions = useWatch({
+  }) ?? [];
+  const currentOptions: string[] = useWatch({
     control,
     name: optionsPath,
     defaultValue: [],
+  }) ?? [];
+
+  // --- Track which option indexes are marked correct (by index, not value) ---
+  const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
+    if (!currentOptions.length || !correctAnswers.length) return [];
+    return currentOptions
+      .map((opt: string, i: number) => (correctAnswers.includes(opt) ? i : -1))
+      .filter((i: number) => i >= 0);
   });
-  const selectedOptionIndexes = useMemo<number[]>(
-    () =>
-      (currentOptions ?? [])
-        .map((option: string, indexValue: number) =>
-          (correctAnswers ?? []).includes(option) ? indexValue : -1,
-        )
-        .filter((indexValue: number) => indexValue >= 0),
-    [currentOptions, correctAnswers],
-  );
+
   const selectedTrueFalse = useMemo<"TRUE" | "FALSE" | null>(() => {
     if ((correctAnswers ?? [])[0] === "FALSE") return "FALSE";
     if ((correctAnswers ?? [])[0] === "TRUE") return "TRUE";
     return null;
   }, [correctAnswers]);
-  const {
-    fields: optionFields,
-    append: appendOption,
-    remove: removeOption,
-    replace: replaceOptions,
-  } = useFieldArray({
-    control,
-    name: optionsPath,
-  });
+
+  // --- Manual option array helpers (replaces useFieldArray) ---
+  const setOptions = (next: string[]) => {
+    setValue(optionsPath, next, { shouldDirty: true });
+  };
+
+  const appendOption = () => setOptions([...currentOptions, ""]);
+
+  const removeOptionAt = (idx: number) => {
+    // Shrink selectedIndexes when an option is removed
+    const nextSelected = selectedIndexes
+      .filter((si) => si !== idx)
+      .map((si) => (si > idx ? si - 1 : si));
+    setSelectedIndexes(nextSelected);
+
+    const next = currentOptions.filter((_: string, i: number) => i !== idx);
+    setOptions(next);
+
+    // Rebuild correctAnswer from remaining selected indexes
+    const nextCorrect = nextSelected
+      .map((si) => next[si])
+      .filter((v): v is string => Boolean(v?.trim()));
+    setValue(correctPath, nextCorrect, { shouldDirty: true, shouldValidate: true });
+  };
 
   const handleQuestionTypeChange = (nextType: string) => {
     if (nextType === "MCQ") {
-      replaceOptions(["", "", "", ""]);
+      setOptions(["", "", "", ""]);
+      setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
@@ -106,7 +123,8 @@ function QuestionEditor({
     }
 
     if (nextType === "TRUE_FALSE") {
-      replaceOptions(["True", "False"]);
+      setOptions(["True", "False"]);
+      setSelectedIndexes([]);
       setValue(correctPath, ["TRUE"], {
         shouldDirty: true,
         shouldValidate: true,
@@ -118,7 +136,8 @@ function QuestionEditor({
       return;
     }
 
-    replaceOptions([]);
+    setOptions([]);
+    setSelectedIndexes([]);
     setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
     setValue(allowMultiplePath, false, {
       shouldDirty: true,
@@ -126,68 +145,44 @@ function QuestionEditor({
     });
   };
 
+  // Sync correctAnswer values when user edits option text after marking it correct
   useEffect(() => {
-    if (qType !== "MCQ") return;
+    if (qType !== "MCQ" || selectedIndexes.length === 0) return;
 
-    const nextCorrectAnswers = selectedOptionIndexes
-      .map((optionIndex) => currentOptions[optionIndex])
-      .filter((value): value is string => Boolean(value?.trim()));
+    const nextCorrect = selectedIndexes
+      .map((si) => currentOptions[si])
+      .filter((v): v is string => Boolean(v?.trim()));
 
-    if (JSON.stringify(nextCorrectAnswers) !== JSON.stringify(correctAnswers)) {
-      setValue(correctPath, nextCorrectAnswers, {
+    if (JSON.stringify(nextCorrect) !== JSON.stringify(correctAnswers)) {
+      setValue(correctPath, nextCorrect, {
         shouldDirty: true,
         shouldValidate: true,
       });
     }
-  }, [
-    correctAnswers,
-    correctPath,
-    currentOptions,
-    qType,
-    selectedOptionIndexes,
-    setValue,
-  ]);
+  }, [correctAnswers, correctPath, currentOptions, qType, selectedIndexes, setValue]);
 
-  const syncSelectionAfterRemoval = (removedIndex: number) => {
-    const removedOption = currentOptions[removedIndex];
-    const nextCorrectAnswers = correctAnswers
-      .filter((answer: string) => answer !== removedOption)
-      .map((value: string) => value.trim())
-      .filter(Boolean);
+  const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
+    let nextSelected: number[];
 
-    setValue(correctPath, nextCorrectAnswers, {
+    if (allowMultiple) {
+      nextSelected = checked
+        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
+            (a, b) => a - b,
+          )
+        : selectedIndexes.filter((i) => i !== optionIndex);
+    } else {
+      nextSelected = checked ? [optionIndex] : [];
+    }
+
+    setSelectedIndexes(nextSelected);
+
+    const nextCorrect = nextSelected
+      .map((si) => currentOptions[si])
+      .filter((v): v is string => Boolean(v?.trim()));
+    setValue(correctPath, nextCorrect, {
       shouldDirty: true,
       shouldValidate: true,
     });
-  };
-
-  const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
-    if (allowMultiple) {
-      const nextSelectedIndexes = checked
-        ? Array.from(new Set([...selectedOptionIndexes, optionIndex])).sort(
-            (a, b) => a - b,
-          )
-        : selectedOptionIndexes.filter(
-            (indexValue) => indexValue !== optionIndex,
-          );
-
-      setValue(
-        correctPath,
-        nextSelectedIndexes
-          .map((indexValue) => currentOptions[indexValue])
-          .filter((value): value is string => Boolean(value?.trim())),
-        { shouldDirty: true, shouldValidate: true },
-      );
-      return;
-    }
-
-    setValue(
-      correctPath,
-      checked && currentOptions[optionIndex]
-        ? [currentOptions[optionIndex]]
-        : [],
-      { shouldDirty: true, shouldValidate: true },
-    );
   };
 
   const toggleTrueFalse = (value: "TRUE" | "FALSE") => {
@@ -252,18 +247,18 @@ function QuestionEditor({
               <h3 className="font-medium text-gray-700 text-sm">Options</h3>
               <button
                 type="button"
-                onClick={() => appendOption("")}
+                onClick={() => appendOption()}
                 className="text-blue-600 text-sm hover:underline"
               >
                 + Add Option
               </button>
             </div>
 
-            {optionFields.map((field, optionIndex) => {
-              const isSelected = selectedOptionIndexes.includes(optionIndex);
+            {currentOptions.map((_optValue: string, optionIndex: number) => {
+              const isSelected = selectedIndexes.includes(optionIndex);
 
               return (
-                <div key={field.id} className="flex items-center gap-3">
+                <div key={optionIndex} className="flex items-center gap-3">
                   <input
                     {...register(`questions.${index}.options.${optionIndex}`)}
                     className="flex-1 p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
@@ -282,10 +277,7 @@ function QuestionEditor({
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      syncSelectionAfterRemoval(optionIndex);
-                      removeOption(optionIndex);
-                    }}
+                    onClick={() => removeOptionAt(optionIndex)}
                     className="text-red-500 text-sm hover:underline"
                   >
                     Remove
@@ -345,6 +337,7 @@ export default function ExamWorkflowForm({
   mode = "create",
   examId,
   initialData,
+  teacherLessons,
 }: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -391,6 +384,20 @@ export default function ExamWorkflowForm({
   });
 
   const watchEnableTimer = watch("enableTimer");
+  const watchSubjectId = watch("subjectId");
+
+  const filteredClasses = useMemo(() => {
+    if (!watchSubjectId || !teacherLessons) return classes;
+    const subjectId = Number(watchSubjectId);
+    const validClassIds = new Set(
+      teacherLessons
+        .filter((l) => l.subjectId === subjectId)
+        .map((l) => l.classId),
+    );
+    return classes.filter((c) => validClassIds.has(c.id));
+  }, [classes, teacherLessons, watchSubjectId]);
+
+  const watchEnableTimerResult = watchEnableTimer; // Just for reference
 
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
     setIsSubmitting(true);
@@ -467,16 +474,24 @@ export default function ExamWorkflowForm({
           <div className="flex flex-col gap-2 md:col-span-2 w-full">
             <label className="text-gray-500 text-xs">Classes</label>
             <div className="flex flex-wrap gap-4">
-              {classes.map((c) => (
-                <label key={c.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    value={String(c.id)}
-                    {...register("classIds")}
-                  />
-                  <span>{c.name}</span>
-                </label>
-              ))}
+              {filteredClasses.length > 0 ? (
+                filteredClasses.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      value={String(c.id)}
+                      {...register("classIds")}
+                    />
+                    <span>{c.name}</span>
+                  </label>
+                ))
+              ) : (
+                <p className="italic text-gray-400 text-sm">
+                  {watchSubjectId
+                    ? "No classes found for this subject."
+                    : "Select a subject first to see available classes."}
+                </p>
+              )}
             </div>
             {errors.classIds?.message && (
               <p className="text-red-400 text-xs">{errors.classIds.message}</p>

@@ -14,6 +14,9 @@ const normalizeDay = (date: Date) => {
 };
 
 const clearDatabase = async () => {
+  await prisma.answer.deleteMany();
+  await prisma.submission.deleteMany();
+  await prisma.question.deleteMany();
   await prisma.result.deleteMany();
   await prisma.attendance.deleteMany();
   await prisma.message.deleteMany();

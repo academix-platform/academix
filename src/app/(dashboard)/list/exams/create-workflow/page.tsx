@@ -23,7 +23,14 @@ export default async function CreateExamWorkflowPage({
   const subjects = await prisma.subject.findMany({
     where: {
       schoolId,
-      ...(role === "teacher" ? { teachers: { some: { id: userId } } } : {}),
+      ...(role === "teacher"
+        ? {
+            OR: [
+              { teachers: { some: { id: userId } } },
+              { lessons: { some: { teacherId: userId, academicYearId } } },
+            ],
+          }
+        : {}),
     },
     select: { id: true, name: true },
   });
@@ -98,10 +105,26 @@ export default async function CreateExamWorkflowPage({
   const classes = await prisma.class.findMany({
     where: {
       schoolId,
-      ...(role === "teacher" ? { teachers: { some: { id: userId } } } : {}),
+      ...(role === "teacher"
+        ? {
+            OR: [
+              { teachers: { some: { id: userId } } },
+              { lessons: { some: { teacherId: userId, academicYearId } } },
+            ],
+          }
+        : {}),
     },
     select: { id: true, name: true },
   });
+
+  const teacherLessons = (role === "teacher") ? await prisma.lesson.findMany({
+    where: {
+      teacherId: userId,
+      academicYearId,
+      schoolId,
+    },
+    select: { subjectId: true, classId: true },
+  }) : null;
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
@@ -111,6 +134,7 @@ export default async function CreateExamWorkflowPage({
       <ExamWorkflowForm
         subjects={subjects}
         classes={classes}
+        teacherLessons={teacherLessons}
         mode={exam ? "update" : "create"}
         examId={exam?.id}
         initialData={initialData}
