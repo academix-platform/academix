@@ -188,6 +188,8 @@ const EventListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role, totalClassesCount)}
         data={data}
+        emptyTitle="No events found"
+        emptyDescription="Try changing your filters or search terms."
       />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />

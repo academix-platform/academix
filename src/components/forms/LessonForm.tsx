@@ -399,16 +399,16 @@ const LessonForm = ({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create"
           ? "Create weekly lesson schedule"
           : "Update weekly lesson schedule"}
       </h1>
 
-      <div className="flex flex-col gap-2 w-full md:w-1/3">
-        <label className="text-gray-500 text-xs">Class</label>
+      <div className="flex flex-col gap-2 w-full">
+        <label className="font-medium text-gray-700 text-sm">Class</label>
         <select
-          className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+          className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
           value={selectedClassId ?? ""}
           onChange={(e) => onClassChange(e.target.value)}
         >
@@ -420,7 +420,7 @@ const LessonForm = ({
           ))}
         </select>
         {errors.classId?.message && (
-          <p className="text-red-400 text-xs">
+          <p className="font-medium text-red-500 text-xs">
             {errors.classId.message.toString()}
           </p>
         )}
@@ -461,14 +461,14 @@ const LessonForm = ({
               <p className="font-medium text-sm">
                 Lesson {slot}
                 {teacherName ? (
-                  <span className="ml-2 font-normal text-gray-500 text-xs">
+                  <span className="ml-2 font-medium text-gray-700 text-sm">
                     - {teacherName}
                   </span>
                 ) : null}
               </p>
               <div className="gap-2 grid md:grid-cols-2">
                 <select
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                   value={currentSubjectId ?? ""}
                   onChange={(e) => setSlotSubject(index, e.target.value)}
                   disabled={!selectedClassId}
@@ -482,7 +482,7 @@ const LessonForm = ({
                 </select>
 
                 <select
-                  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
                   value={currentTeacherId ?? ""}
                   onChange={(e) => setSlotTeacher(index, e.target.value)}
                   disabled={!currentSubjectId}
@@ -537,16 +537,16 @@ const LessonForm = ({
       })}
 
       {errors.entries?.message && (
-        <p className="text-red-400 text-xs">
+        <p className="font-medium text-red-500 text-xs">
           {errors.entries.message.toString()}
         </p>
       )}
 
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        Save Weekly Schedule
+        {isSubmitting ? "Saving..." : "Save Weekly Schedule"}
       </button>
     </form>
   );

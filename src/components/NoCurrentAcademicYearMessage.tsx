@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
 import { UserRole } from "@/lib/utils";
+import EmptyState from "@/components/states/EmptyState";
 
 type Props = {
   compact?: boolean;
@@ -18,17 +18,24 @@ const NoCurrentAcademicYearMessage = async ({
     if (!isAdmin) {
       return (
         <div className="bg-white p-4 rounded-md text-sm">
-          <p className="text-gray-600">No data yet.</p>
+          <EmptyState
+            title="No data yet"
+            description="Academic year did not begin yet."
+            className="py-2"
+          />
         </div>
       );
     }
 
     return (
       <div className="bg-white p-4 rounded-md text-sm">
-        <p className="text-gray-600">No current year selected.</p>
-        <Link href="/settings" className="text-blue-600 hover:underline">
-          Go to settings
-        </Link>
+        <EmptyState
+          title="No current year selected"
+          description="Select a current academic year to view data."
+          actionLabel="Go to settings"
+          actionHref="/settings"
+          className="py-2"
+        />
       </div>
     );
   }
@@ -36,26 +43,22 @@ const NoCurrentAcademicYearMessage = async ({
   if (!isAdmin) {
     return (
       <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-        <h1 className="font-semibold text-lg">No data yet</h1>
-        <p className="mt-2 text-gray-500 text-sm">
-          Academic year did not begin yet.
-        </p>
+        <EmptyState
+          title="No data yet"
+          description="Academic year did not begin yet."
+        />
       </div>
     );
   }
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-      <h1 className="font-semibold text-lg">No current year selected</h1>
-      <p className="mt-2 text-gray-500 text-sm">
-        Select a current academic year to view data.
-      </p>
-      <Link
-        href="/settings"
-        className="inline-block bg-blue-500 mt-4 px-4 py-2 rounded-md text-white text-sm"
-      >
-        Go to settings
-      </Link>
+      <EmptyState
+        title="No current year selected"
+        description="Select a current academic year to view data."
+        actionLabel="Go to settings"
+        actionHref="/settings"
+      />
     </div>
   );
 };

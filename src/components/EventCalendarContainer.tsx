@@ -11,11 +11,10 @@ const EventCalendarContainer = async ({
   const dateParam = params?.date;
 
   return (
-    <div className="bg-white p-4 rounded-md">
+    <div className="bg-white p-4 pb-8 rounded-md">
       <EventCalendar />
       <div className="flex justify-between items-center">
         <h1 className="my-4 font-semibold text-xl">Events</h1>
-        <MoreHorizontal className="w-5 h-5 text-gray-500" />
       </div>
       <div className="flex flex-col gap-4">
         <EventList dateParam={dateParam} />

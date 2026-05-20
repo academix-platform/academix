@@ -170,18 +170,13 @@ const ExamSubmissionsPage = async ({
       </div>
 
       {/* Table */}
-      {submissions.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-gray-400">
-          <p className="text-lg font-medium">No submissions yet</p>
-          <p className="text-sm">Students haven&apos;t submitted this exam yet.</p>
-        </div>
-      ) : (
-        <Table
-          columns={columns}
-          renderRow={(item) => renderRow(item as SubmissionRow, examId)}
-          data={submissions}
-        />
-      )}
+      <Table
+        columns={columns}
+        renderRow={(item) => renderRow(item as SubmissionRow, examId)}
+        data={submissions}
+        emptyTitle="No submissions yet"
+        emptyDescription="Students have not submitted this exam yet."
+      />
     </div>
   );
 };

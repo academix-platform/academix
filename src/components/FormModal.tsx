@@ -11,6 +11,7 @@ import {
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
+import { useFormStatus } from "react-dom";
 import {
   deleteAnnouncement,
   deleteClass,
@@ -203,6 +204,19 @@ const FormModal = ({
 }: FormContainerProps & { relatedData?: any }) => {
   const [open, setOpen] = useState(false);
 
+  useEffect(() => {
+    if (!open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [open]);
+
   const Form = () => {
     const [state, formAction] = useActionState(deleteActionMap[table], {
       success: false,
@@ -221,6 +235,19 @@ const FormModal = ({
     }, [state, router]);
 
     if (type === "delete" && id) {
+      const DeleteSubmitButton = () => {
+        const { pending } = useFormStatus();
+        return (
+          <button
+            type="submit"
+            disabled={pending}
+            className="self-center bg-red-700 disabled:opacity-60 px-4 py-2 rounded-md w-max text-white"
+          >
+            {pending ? "Deleting..." : "Delete"}
+          </button>
+        );
+      };
+
       if (table === "class") {
         return (
           <ClassDeleteForm
@@ -247,9 +274,7 @@ const FormModal = ({
           <span className="font-medium text-center">
             All data will be lost. Are you sure you want to delete this {table}?
           </span>
-          <button className="self-center bg-red-700 px-4 py-2 rounded-md w-max text-white">
-            Delete
-          </button>
+          <DeleteSubmitButton />
         </form>
       );
     }
@@ -277,8 +302,20 @@ const FormModal = ({
         })()}
       </button>
       {open && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4">
-          <div className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+        <div
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              setOpen(false);
+            }
+          }}
+        >
+          <div
+            className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
             <Form />
             <div
               className="top-4 right-4 absolute cursor-pointer"

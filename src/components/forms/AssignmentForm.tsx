@@ -189,14 +189,14 @@ const AssignmentForm = ({
     type === "create" ? nowDefault : toDatetimeLocalValue(data?.endDate);
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
         {type === "create"
           ? "Create a new assignment"
           : "Update the assignment"}
       </h1>
 
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
           label="Assignment Title"
           name="title"
@@ -225,11 +225,13 @@ const AssignmentForm = ({
           <input type="hidden" {...register("id")} defaultValue={data?.id} />
         )}
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Subject</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">Subject</label>
           <select
             className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
             ...register("subjectId")}
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+            {...register("subjectId")}
             defaultValue={data?.subjectId}
           >
             <option value="">Select subject</option>
@@ -240,14 +242,14 @@ const AssignmentForm = ({
             ))}
           </select>
           {errors.subjectId?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.subjectId.message.toString()}
             </p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-gray-500 text-xs">Classes</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">Classes</label>
           <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[220px] overflow-y-auto">
             <label className="flex items-center gap-2 mb-4 text-gray-700 text-sm">
               <input
@@ -286,20 +288,26 @@ const AssignmentForm = ({
             </p>
           )}
           {errors.classIds?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.classIds.message.toString()}
             </p>
           )}
         </div>
       </div>
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {type === "create" ? "Create" : "Update"}
+        {isSubmitting
+          ? "Submitting..."
+          : type === "create"
+            ? "Create"
+            : "Update"}
       </button>
     </form>
   );
 };
 
 export default AssignmentForm;
+
+
