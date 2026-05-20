@@ -127,7 +127,7 @@ const SchoolSignupForm = () => {
           </p>
           <Link
             href="/sign-in"
-            className="inline-flex bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm"
+            className="inline-flex bg-academixPurpleDark px-4 py-2 rounded-md w-fit text-white text-sm"
           >
             Go to sign-in
           </Link>
@@ -385,7 +385,9 @@ const SchoolSignupForm = () => {
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminName && (
-                    <p className="text-red-600 text-xs">{adminFieldErrors.adminName}</p>
+                    <p className="text-red-600 text-xs">
+                      {adminFieldErrors.adminName}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-1">
@@ -403,7 +405,9 @@ const SchoolSignupForm = () => {
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminUsername && (
-                    <p className="text-red-600 text-xs">{adminFieldErrors.adminUsername}</p>
+                    <p className="text-red-600 text-xs">
+                      {adminFieldErrors.adminUsername}
+                    </p>
                   )}
                 </div>
                 <div className="space-y-1">
@@ -414,7 +418,9 @@ const SchoolSignupForm = () => {
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminPassword && (
-                    <p className="text-red-600 text-xs">{adminFieldErrors.adminPassword}</p>
+                    <p className="text-red-600 text-xs">
+                      {adminFieldErrors.adminPassword}
+                    </p>
                   )}
                 </div>
               </div>

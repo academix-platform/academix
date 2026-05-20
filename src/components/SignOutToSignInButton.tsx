@@ -17,7 +17,7 @@ const SignOutToSignInButton = () => {
         });
       }}
       disabled={isSigningOut}
-      className="inline-flex bg-academixPurpleDark disabled:opacity-70 px-4 py-2 rounded-md text-white text-sm"
+      className="inline-flex bg-gradient-to-br from-fuchsia-600 to-violet-600 disabled:opacity-80 shadow-md px-4 py-2 rounded-md text-white text-sm"
     >
       {isSigningOut ? "Signing out..." : "Back to sign-in"}
     </button>
