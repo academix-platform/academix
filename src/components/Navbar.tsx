@@ -1,9 +1,12 @@
 "use client";
 
-import { Search, MessageCircle, Bell } from "lucide-react";
+import { Search, MessageCircle } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
+
+// Import your custom real-time notifications dropdown component
+import NotificationsDropdown from "./NotificationsDropdown";
 
 type NavbarProps = {
   authUser: AuthUser | null;
@@ -60,15 +63,10 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
             <MessageCircle className="w-5 h-5 text-gray-600" />
           </button>
 
-          <button
-            aria-label="Notifications"
-            className="relative flex justify-center items-center bg-white rounded-full w-7 h-7"
-          >
-            <Bell className="w-5 h-5 text-gray-600" />
-            <div className="-top-3 -right-3 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
-              1
-            </div>
-          </button>
+          {/* Replaced the static button placeholder with the real-time dropdown.
+            We safely pass the dynamic clerk user id if it is loaded.
+          */}
+          <NotificationsDropdown userId={isLoaded && user?.id ? user.id : ""} />
         </div>
 
         {/* USER INFO */}

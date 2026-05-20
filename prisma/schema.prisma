@@ -530,3 +530,12 @@ enum PassFailStatus {
   PASS
   FAIL
 }
+////
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+}

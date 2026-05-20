@@ -12,6 +12,10 @@ import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 
+// Import notification utilities
+import { useAuth } from "@clerk/nextjs";
+import { createNotification } from "@/lib/actions/notification";
+
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";
 
@@ -55,6 +59,9 @@ const AssignmentForm = ({
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
 
+  // Get current authenticated user's ID from Clerk
+  const { userId } = useAuth();
+
   const onSubmit = handleSubmit((formValues) => {
     const action = type === "create" ? createAssignment : updateAssignment;
 
@@ -69,6 +76,16 @@ const AssignmentForm = ({
           toast(
             `Assignment has been ${type === "create" ? "created" : "updated"}!`,
           );
+
+          // Trigger a notification if an assignment was successfully created
+          if (type === "create" && userId) {
+            await createNotification(
+              userId,
+              "New Assignment Created",
+              `A new assignment has been posted: ${formValues.title || "Untitled Assignment"}`
+            );
+          }
+
           setOpen(false);
           router.refresh();
           return;
@@ -210,11 +227,11 @@ const AssignmentForm = ({
 
         <div className="flex flex-col gap-2 w-full">
           <label className="font-medium text-gray-700 text-sm">Subject</label>
-          <select
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-            {...register("subjectId")}
-            defaultValue={data?.subjectId}
-          >
+      <select
+  className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+  {...register("subjectId")}
+  defaultValue={data?.subjectId}
+>
             <option value="">Select subject</option>
             {subjects.map((subject: { id: number; name: string }) => (
               <option value={subject.id} key={subject.id}>
