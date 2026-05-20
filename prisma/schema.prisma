@@ -32,12 +32,15 @@ model School {
   exams Exam[]
   assignments Assignment[]
   schoolSettings SchoolSettings[]
+  dayExceptions SchoolDayException[]
   results Result[]
 
   // Exam workflow relations
   questions   Question[]
   submissions Submission[]
   answers     Answer[]
+
+notifications Notification[]
 }
 
 
@@ -62,10 +65,27 @@ model SchoolSettings {
 
   lessonDuration Int
   lessonsPerDay Int
+  workingDays Json @default("[\"SATURDAY\",\"SUNDAY\",\"MONDAY\",\"TUESDAY\",\"WEDNESDAY\",\"THURSDAY\"]")
 
   updatedAt DateTime @updatedAt
 
   @@index([schoolId])
+}
+
+model SchoolDayException {
+  id Int @id @default(autoincrement())
+  schoolId Int
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  date DateTime @db.Date
+  type SchoolDayExceptionType
+  name String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, date])
+  @@index([schoolId])
+  @@index([date])
 }
 
 model AcademicYear {
@@ -517,6 +537,7 @@ enum Day{
   TUESDAY
   WEDNESDAY
   THURSDAY
+  FRIDAY
 }
 
 enum StudentStatus {
@@ -530,12 +551,51 @@ enum PassFailStatus {
   PASS
   FAIL
 }
-////
+
+enum SchoolDayExceptionType {
+  HOLIDAY
+  OFF_DAY
+  WORKING_OVERRIDE
+}
+// ===============================
+// 🔔 NOTIFICATIONS SYSTEM
+// ===============================
+
+enum NotificationType {
+  ASSIGNMENT
+  EXAM
+  GRADE
+  MESSAGE
+  ANNOUNCEMENT
+  EVENT
+  SCHEDULE_CHANGE
+  TEACHER_ASSIGNMENT
+  ATTENDANCE
+}
+
 model Notification {
-  id        String   @id @default(cuid())
-  userId    String
+  id        Int      @id @default(autoincrement())
+
+  schoolId  Int
+  school    School   @relation(fields: [schoolId], references: [id])
+
+  type      NotificationType
   title     String
-  message   String
+  message   String?
+
   isRead    Boolean  @default(false)
+
+  
+  recipientType String   // STUDENT | TEACHER | PARENT | ADMIN
+  recipientId   String?
+
+  // (exam / assignment / etc)
+  relatedId Int?
+
   createdAt DateTime @default(now())
+
+  @@index([schoolId])
+  @@index([recipientType])
+  @@index([recipientId])
+  @@index([isRead])
 }
