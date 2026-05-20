@@ -7,7 +7,7 @@ export default function SchoolSignupPage() {
       <div className="-top-24 -left-20 absolute bg-academixSky/40 blur-3xl rounded-full w-72 h-72" />
       <div className="-right-24 -bottom-16 absolute bg-academixPurple/40 blur-3xl rounded-full w-80 h-80" />
 
-      <div className="z-10 relative gap-0 grid grid-cols-1 lg:grid-cols-2 bg-white/90 shadow-xl backdrop-blur-sm mx-auto border border-white/50 rounded-3xl w-full max-w-5xl lg:h-[90dvh] overflow-hidden">
+      <div className="z-10 relative gap-0 grid grid-cols-1 lg:grid-cols-2 bg-white shadow-xl mx-auto rounded-3xl w-full max-w-5xl lg:h-[90dvh] overflow-hidden">
         <div className="relative flex flex-col bg-gradient-to-br from-academixPurpleDark via-violet-600 to-fuchsia-600 p-7 md:p-8 text-white">
           <div>
             <div className="flex items-center gap-2">

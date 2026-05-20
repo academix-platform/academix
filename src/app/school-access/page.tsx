@@ -29,7 +29,7 @@ export default async function SchoolAccessPage() {
         <h2 className="mb-4 font-semibold text-2xl">School Access Status</h2>
         {isPending && (
           <p className="text-sm leading-6">
-            Your school is pending approval. A super admin will review your
+            Your school is pending approval. Academix team will review your
             request and activate your account once verification is complete.
           </p>
         )}
