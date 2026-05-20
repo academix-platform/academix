@@ -33,14 +33,14 @@ const getStatusBadge = (status: SubmissionStatus) => {
 };
 
 const columns = [
-  { header: "Student", accessor: "student" },
-  { header: "Status", accessor: "status" },
-  { header: "Score", accessor: "score", className: "hidden md:table-cell" },
-  { header: "Submitted At", accessor: "submittedAt", className: "hidden md:table-cell" },
-  { header: "Actions", accessor: "action" },
+  { header: "Student", accessor: "student", className: "p-4" },
+  { header: "Status", accessor: "status", className: "p-4" },
+  { header: "Score", accessor: "score", className: "hidden md:table-cell p-4" },
+  { header: "Submitted At", accessor: "submittedAt", className: "hidden md:table-cell p-4" },
+  { header: "Actions", accessor: "action", className: "p-4" },
 ];
 
-const renderRow = (item: SubmissionRow, examId: number) => (
+const renderRow = (item: SubmissionRow, examId: number, maxScore: number) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
@@ -57,14 +57,14 @@ const renderRow = (item: SubmissionRow, examId: number) => (
     <td className="p-4">{getStatusBadge(item.status)}</td>
 
     {/* Score */}
-    <td className="hidden md:table-cell p-4">
+    <td className="hidden md:table-cell p-4 text-left">
       {item.totalScore !== null && item.totalScore !== undefined
-        ? item.totalScore
+        ? `${item.totalScore}/${maxScore}`
         : "—"}
     </td>
 
     {/* Submitted At */}
-    <td className="hidden md:table-cell p-4">
+    <td className="hidden md:table-cell p-4 text-left">
       {item.submittedAt
         ? new Intl.DateTimeFormat("en-US", {
             dateStyle: "short",
@@ -115,10 +115,12 @@ const ExamSubmissionsPage = async ({
     include: {
       subject: { select: { name: true } },
       class: { select: { name: true } },
+      questions: { select: { points: true } },
     },
   });
 
   if (!exam) redirect("/list/exams");
+  const maxScore = exam.questions.reduce((sum, q) => sum + q.points, 0);
 
   // Find all exams in the same group (same title, times, subject, school, academic year)
   const groupExams = await prisma.exam.findMany({
@@ -186,7 +188,7 @@ const ExamSubmissionsPage = async ({
       {/* Table */}
       <Table
         columns={columns}
-        renderRow={(item) => renderRow(item as SubmissionRow, examId)}
+        renderRow={(item) => renderRow(item as SubmissionRow, examId, maxScore)}
         data={submissions}
         emptyTitle="No submissions yet"
         emptyDescription="Students have not submitted this exam yet."
