@@ -1,5 +1,6 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
+import EmptyState from "@/components/states/EmptyState";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
@@ -35,7 +36,11 @@ const StudentPage = async ({
           {classId ? (
             <BigCalendarContainer type="classId" id={classId} />
           ) : (
-            <div>No class found</div>
+            <EmptyState
+              title="No class assigned"
+              description="You are not assigned to a class yet."
+              className="py-8"
+            />
           )}
         </div>
       </div>

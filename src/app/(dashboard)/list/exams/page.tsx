@@ -131,7 +131,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
         )}
         {role === "student" && (
           <Link href={`/list/exams/${item.id}/take`}>
-            <button className="bg-academixPurpleDark hover:bg-academixPurple px-3 py-1 rounded-md font-semibold text-white text-xs transition-colors">
+            <button className="bg-academixPurpleDark hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs hover:scale-[1.05] transition">
               Take Exam
             </button>
           </Link>
@@ -285,6 +285,8 @@ const ExamListPage = async ({
         columns={getColumns(role)}
         renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
+        emptyTitle="No exams found"
+        emptyDescription="Try changing your filters or search terms."
       />
 
       <Pagination page={p} count={count} />

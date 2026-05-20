@@ -28,7 +28,7 @@ const MessageViewModal = ({ message }: MessageViewModalProps) => {
     <>
       <button
         type="button"
-        className="flex justify-center items-center bg-academixSky rounded-full w-7 h-7"
+        className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
         onClick={() => setOpen(true)}
         aria-label="View message"
       >

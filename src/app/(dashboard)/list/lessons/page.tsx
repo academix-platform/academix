@@ -1,4 +1,5 @@
 import BigCalendarContainer from "@/components/BigCalendarContainer";
+import EmptyState from "@/components/states/EmptyState";
 import ExportButton from "@/components/ExportButton";
 import FormContainer from "@/components/FormContainer";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
@@ -84,9 +85,11 @@ const LessonListPage = async ({
       </div>
 
       {classes.length === 0 ? (
-        <div className="mt-6 text-gray-500 text-sm">
-          No classes with lessons are available for this view.
-        </div>
+        <EmptyState
+          title="No classes found"
+          description="No classes with lessons are available for this view."
+          className="mt-6"
+        />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 mt-6">
@@ -144,9 +147,11 @@ const LessonListPage = async ({
               <BigCalendarContainer type="classId" id={selectedClass.id} />
             </div>
           ) : (
-            <div className="mt-4 text-gray-500 text-sm">
-              No classes found for the selected grade.
-            </div>
+            <EmptyState
+              title="No classes found"
+              description="No classes were found for the selected grade."
+              className="mt-4"
+            />
           )}
         </>
       )}
