@@ -22,12 +22,12 @@ export default async function DashboardLayout({
       <div className="p-4 w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] overflow-auto">
         <Link
           href="/"
-          className="flex justify-center lg:justify-start items-center gap-2"
+          className="flex justify-center lg:justify-start items-center gap-1"
         >
           <Image
             src="/icon.png"
             alt="logo"
-            className="w-[32px] h-[32px]"
+            className="w-[32px] h-[32px] rotate-[-15deg]"
             width={32}
             height={32}
             style={{ height: "auto" }}
