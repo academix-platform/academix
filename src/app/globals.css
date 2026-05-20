@@ -122,7 +122,3 @@
   margin-bottom: 5px;
 }
 
-.calendar-week-mode .rbc-time-header-content .rbc-header:last-child,
-.calendar-week-mode .rbc-time-content > .rbc-day-slot:last-child {
-  display: none !important;
-}

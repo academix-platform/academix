@@ -8,6 +8,7 @@ import {
   CheckCircle,
   ClipboardCheck,
   ClipboardList,
+  Layers,
   FileText,
   GraduationCap,
   LayoutDashboard,
@@ -86,6 +87,12 @@ export const menuItems: MenuSection[] = [
         label: "Classes",
         href: "/list/classes",
         visible: ["admin", "teacher"],
+      },
+      {
+        icon: Layers,
+        label: "Grades",
+        href: "/list/grades",
+        visible: ["admin"],
       },
       {
         icon: ClipboardList,

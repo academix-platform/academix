@@ -1,9 +1,11 @@
 "use client";
 
-import { Search, Bell } from "lucide-react";
+import { Search, Bell, MessageCircle } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
+import Link from "next/link";
 
 type NavbarProps = {
   authUser: AuthUser | null;
@@ -12,6 +14,28 @@ type NavbarProps = {
 
 const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   const { user, isLoaded } = useUser();
+  const [messageCount, setMessageCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMessageCount = async () => {
+      try {
+        const response = await fetch("/api/messages/count");
+        if (response.ok) {
+          const data = await response.json();
+          setMessageCount(data.count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch message count:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (authUser) {
+      fetchMessageCount();
+    }
+  }, [authUser]);
 
   const fallbackName = "User";
   const fallbackRole = authUser?.role ?? null;
@@ -44,7 +68,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
       {/* SEARCH */}
       <div className="flex items-center gap-4 text-xs">
         {schoolName && (
-          <span className="ml-2 font-bold text-academixPurpleDark text-lg whitespace-nowrap">
+          <span className="ml-2 font-bold text-academixPurpleDark text-lg uppercase whitespace-nowrap">
             {schoolName}
           </span>
         )}
@@ -52,16 +76,32 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
 
       {/* RIGHT */}
       <div className="flex justify-end items-center gap-6 w-full">
-        <div className="flex items-center gap-2">
-          <button
+        <div className="flex items-center gap-3">
+          {role !== "admin" && (
+            <Link
+              href="/list/messages"
+              aria-label="Messages"
+              className="relative w-7 h-7"
+            >
+              <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
+              {messageCount > 0 && (
+                <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+                  {messageCount > 99 ? "99+" : messageCount}
+                </div>
+              )}
+            </Link>
+          )}
+
+          <Link
+            href="#"
             aria-label="Notifications"
-            className="relative flex justify-center items-center bg-white rounded-full w-7 h-7"
+            className="relative w-7 h-7"
           >
-            <Bell className="w-5 h-5 text-gray-600" />
-            <div className="-top-3 -right-3 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+            <Bell className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
+            <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
               1
             </div>
-          </button>
+          </Link>
         </div>
 
         {/* USER INFO */}
