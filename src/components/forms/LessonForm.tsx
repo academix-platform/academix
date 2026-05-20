@@ -7,6 +7,7 @@ import {
   type LessonScheduleSchema,
 } from "@/lib/formValidationSchemas";
 import { saveLessonSchedule } from "@/lib/actions";
+import type { SchoolWeekDay } from "@/lib/schoolCalendar";
 import {
   Dispatch,
   SetStateAction,
@@ -47,6 +48,7 @@ type RelatedData = {
     workDayStartMinute: number;
     workDayEndHour: number;
     workDayEndMinute: number;
+    workingDays?: SchoolWeekDay[];
   };
 };
 
@@ -57,6 +59,7 @@ const dayLabels: Record<DayValue, string> = {
   TUESDAY: "TUE",
   WEDNESDAY: "WED",
   THURSDAY: "THU",
+  FRIDAY: "FRI",
 };
 
 const buildSlotNumbers = (lessonsPerDay: number) =>
@@ -96,6 +99,7 @@ const mapLessonsToSlots = (
     teacherId?: string;
   }>,
   slotNumbers: number[],
+  activeDays: readonly DayValue[],
 ) => {
   const byDay = new Map<DayValue, typeof classLessons>();
 
@@ -112,7 +116,7 @@ const mapLessonsToSlots = (
     teacherId?: string;
   }> = [];
 
-  for (const day of lessonDays) {
+  for (const day of activeDays) {
     const dayLessons = (byDay.get(day) ?? []).sort((a, b) => {
       const minutesA =
         getMinutesFromDate(a.startTime) ?? Number.MAX_SAFE_INTEGER;
@@ -187,7 +191,6 @@ const LessonForm = ({
 }) => {
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
-  const [activeDay, setActiveDay] = useState<DayValue>(data?.day ?? "SATURDAY");
 
   const {
     classes = [],
@@ -198,6 +201,21 @@ const LessonForm = ({
   } = relatedData ?? {};
 
   const lessonsPerDay = schoolSettings?.lessonsPerDay ?? 6;
+  const activeDays = useMemo(() => {
+    const configured = schoolSettings?.workingDays ?? [];
+    const supported = lessonDays.filter((day): day is DayValue =>
+      configured.includes(day),
+    );
+
+    return supported.length > 0 ? supported : lessonDays;
+  }, [schoolSettings?.workingDays]);
+  const [activeDay, setActiveDay] = useState<DayValue>(
+    data?.day && activeDays.includes(data.day) ? data.day : activeDays[0],
+  );
+  const selectedDay = activeDays.includes(activeDay)
+    ? activeDay
+    : activeDays[0];
+
   const slotNumbers = useMemo(
     () => buildSlotNumbers(lessonsPerDay),
     [lessonsPerDay],
@@ -267,11 +285,11 @@ const LessonForm = ({
   const activeRows = useMemo(() => {
     return slotNumbers.map((slot) => {
       const index =
-        lessonDays.findIndex((day) => day === activeDay) * slotsPerDay +
+        lessonDays.findIndex((day) => day === selectedDay) * slotsPerDay +
         (slot - 1);
       return { slot, index };
     });
-  }, [activeDay, slotNumbers, slotsPerDay]);
+  }, [selectedDay, slotNumbers, slotsPerDay]);
 
   const applyClassSchedule = useCallback(
     (classIdValue?: number) => {
@@ -289,9 +307,16 @@ const LessonForm = ({
       const classLessons = lessons.filter(
         (lesson) => lesson.classId === classId,
       );
-      const slottedLessons = mapLessonsToSlots(classLessons, slotNumbers);
+      const slottedLessons = mapLessonsToSlots(
+        classLessons,
+        slotNumbers,
+        activeDays,
+      );
+      const filteredByWorkingDays = slottedLessons.filter((lesson) =>
+        activeDays.includes(lesson.day),
+      );
 
-      for (const lesson of slottedLessons) {
+      for (const lesson of filteredByWorkingDays) {
         const dayIndex = lessonDays.findIndex((day) => day === lesson.day);
         if (dayIndex < 0) continue;
 
@@ -311,7 +336,7 @@ const LessonForm = ({
         shouldValidate: true,
       });
     },
-    [lessons, setValue, slotNumbers, slotsPerDay],
+    [activeDays, lessons, setValue, slotNumbers, slotsPerDay],
   );
 
   useEffect(() => {
@@ -404,43 +429,44 @@ const LessonForm = ({
           ? "Create weekly lesson schedule"
           : "Update weekly lesson schedule"}
       </h1>
-
-      <div className="flex flex-col gap-2 w-full">
-        <label className="font-medium text-gray-700 text-sm">Class</label>
-        <select
-          className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-          value={selectedClassId ?? ""}
-          onChange={(e) => onClassChange(e.target.value)}
-        >
-          <option value="">Select class</option>
-          {classes.map((classItem) => (
-            <option key={classItem.id} value={classItem.id}>
-              {classItem.name}
-            </option>
-          ))}
-        </select>
-        {errors.classId?.message && (
-          <p className="font-medium text-red-500 text-xs">
-            {errors.classId.message.toString()}
-          </p>
-        )}
-      </div>
-
-      <div className="flex flex-wrap gap-2">
-        {lessonDays.map((day) => (
-          <button
-            key={day}
-            type="button"
-            onClick={() => setActiveDay(day)}
-            className={`px-3 py-2 rounded-md text-sm font-medium border ${
-              activeDay === day
-                ? "bg-blue-500 text-white border-blue-500"
-                : "bg-white text-gray-700 border-gray-300"
-            }`}
+      <div className="flex flex-wrap justify-between items-start gap-4">
+        <div className="flex gap-2">
+          <label className="font-medium text-gray-700 text-sm">Class:</label>
+          <select
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+            value={selectedClassId ?? ""}
+            onChange={(e) => onClassChange(e.target.value)}
           >
-            {dayLabels[day]}
-          </button>
-        ))}
+            <option value="">Select class</option>
+            {classes.map((classItem) => (
+              <option key={classItem.id} value={classItem.id}>
+                {classItem.name}
+              </option>
+            ))}
+          </select>
+          {errors.classId?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.classId.message.toString()}
+            </p>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {activeDays.map((day) => (
+            <button
+              key={day}
+              type="button"
+              onClick={() => setActiveDay(day)}
+              className={`px-3 py-2 rounded-md text-sm font-medium border ${
+                selectedDay === day
+                  ? "bg-academixPurpleDark text-white border-academixPurpleDark"
+                  : "bg-white text-gray-700 border-gray-300"
+              }`}
+            >
+              {dayLabels[day]}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
@@ -455,7 +481,7 @@ const LessonForm = ({
 
           return (
             <div
-              key={`${activeDay}-${slot}`}
+              key={`${selectedDay}-${slot}`}
               className="flex flex-col gap-2 p-3 rounded-md ring-1 ring-gray-200"
             >
               <p className="font-medium text-sm">

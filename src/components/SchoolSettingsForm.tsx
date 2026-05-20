@@ -36,11 +36,6 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
     initialSettings.lessonsPerDay,
   );
 
-  const totalMinutes = useMemo(
-    () => lessonDurationMinutes * lessonsPerDay,
-    [lessonDurationMinutes, lessonsPerDay],
-  );
-
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
@@ -72,67 +67,63 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
           Schedule Defaults
         </span>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-        <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-700 text-sm">
-            Work Day Start
-          </span>
-          <input
-            type="time"
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-            value={workDayStart}
-            onChange={(e) => setWorkDayStart(e.target.value)}
-            required
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="font-medium text-gray-700 text-sm">
+              Work Day Start
+            </span>
+            <input
+              type="time"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+              value={workDayStart}
+              onChange={(e) => setWorkDayStart(e.target.value)}
+              required
+            />
+          </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-700 text-sm">
-            Work Day End
-          </span>
-          <input
-            type="time"
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-            value={workDayEnd}
-            onChange={(e) => setWorkDayEnd(e.target.value)}
-            required
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="font-medium text-gray-700 text-sm">
+              Work Day End
+            </span>
+            <input
+              type="time"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+              value={workDayEnd}
+              onChange={(e) => setWorkDayEnd(e.target.value)}
+              required
+            />
+          </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-700 text-sm">
-            Lesson Duration (minutes)
-          </span>
-          <input
-            type="number"
-            min={15}
-            max={180}
-            step={5}
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-            value={lessonDurationMinutes}
-            onChange={(e) => setLessonDurationMinutes(Number(e.target.value))}
-            required
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="font-medium text-gray-700 text-sm">
+              Lesson Duration (minutes)
+            </span>
+            <input
+              type="number"
+              min={15}
+              max={180}
+              step={5}
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+              value={lessonDurationMinutes}
+              onChange={(e) => setLessonDurationMinutes(Number(e.target.value))}
+              required
+            />
+          </label>
 
-        <label className="flex flex-col gap-2">
-          <span className="font-medium text-gray-700 text-sm">
-            Lessons Per Day
-          </span>
-          <input
-            type="number"
-            min={1}
-            max={12}
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-            value={lessonsPerDay}
-            onChange={(e) => setLessonsPerDay(Number(e.target.value))}
-            required
-          />
-        </label>
+          <label className="flex flex-col gap-2">
+            <span className="font-medium text-gray-700 text-sm">
+              Lessons Per Day
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={12}
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+              value={lessonsPerDay}
+              onChange={(e) => setLessonsPerDay(Number(e.target.value))}
+              required
+            />
+          </label>
         </div>
-      </div>
-
-      <div className="bg-academixPurpleLight p-4 rounded-lg font-medium text-academixPurpleDark text-sm">
-        Daily teaching time: {totalMinutes} minutes
       </div>
 
       <button

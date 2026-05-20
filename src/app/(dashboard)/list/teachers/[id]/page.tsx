@@ -3,12 +3,15 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import UserActionButtons from "@/components/UserActionButtons";
 import Performance from "@/components/Performance";
+import AttendanceCard from "@/components/AttendanceCard";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { BookOpen, CalendarCheck2, GraduationCap, School } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 const SingleTeacherPage = async ({
   params,
@@ -102,45 +105,27 @@ const SingleTeacherPage = async ({
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                <Image
-                  src="/singleAttendance.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
-                <h1 className="font-semibold text-xl">90%</h1>
+                <CalendarCheck2 className="w-6 h-6 text-academixPurpleDark" />
+                <Suspense fallback="Loading...">
+                  <AttendanceCard id={id} scope="teacher" />
+                </Suspense>
               </div>
               <span className="text-gray-400 text-sm">Attendance</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                {" "}
-                <Image
-                  src="/singleBranch.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
+                <GraduationCap className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">
                   {teacher._count.subjects}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Branches</span>
+              <span className="text-gray-400 text-sm">Subjects</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                {" "}
-                <Image
-                  src="/singleLesson.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
+                <BookOpen className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">
                   {teacher._count.lessons}
                 </h1>
@@ -150,14 +135,7 @@ const SingleTeacherPage = async ({
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                {" "}
-                <Image
-                  src="/singleClass.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />{" "}
+                <School className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">
                   {teacher._count.classes}
                 </h1>
