@@ -485,6 +485,7 @@ model Answer {
   isDraft      Boolean    @default(true)   // false after submitExam finalizes it
   savedAt      DateTime   @default(now())  // ALWAYS set by server — never accepted from client
   score        Float?     // null until graded
+  isOverridden Boolean    @default(false)
 
   @@unique([submissionId, questionId])
   @@index([schoolId])

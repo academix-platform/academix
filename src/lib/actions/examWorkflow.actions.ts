@@ -55,6 +55,7 @@ const applyAutoGrades = async (submissionId: number) => {
   });
 
   for (const answer of answers) {
+    if (answer.isOverridden) continue;
     if (
       answer.question.type === "TRUE_FALSE" ||
       answer.question.type === "MCQ"
@@ -505,13 +506,14 @@ export const getExamPage = async (submissionId: number, page: number) => {
       where: { submissionId, questionId: { in: questionIds } },
     });
 
-    // Update currentPage
-    if (page > submission.currentPage) {
-      await prisma.submission.update({
-        where: { id: submissionId },
-        data: { currentPage: page },
-      });
-    }
+    // Update currentPage and lastSyncedAt
+    await prisma.submission.update({
+      where: { id: submissionId },
+      data: {
+        ...(page > submission.currentPage ? { currentPage: page } : {}),
+        lastSyncedAt: new Date(),
+      },
+    });
 
     return {
       questions,
@@ -731,12 +733,27 @@ export const gradeAnswer = async (
       return { success: false, error: true, message: "Answer not found." };
     }
 
-    // Check that the teacher owns the exam
-    if (
-      access.role === "teacher" &&
-      answer.submission.exam.lesson.teacherId !== access.userId
-    ) {
-      return { success: false, error: true, message: "Not authorized." };
+    // Check that the teacher owns the exam or any exam in the group
+    if (access.role === "teacher") {
+      const exam = answer.submission.exam;
+      const isAuthorized = await prisma.exam.findFirst({
+        where: {
+          title: exam.title,
+          startTime: exam.startTime,
+          endTime: exam.endTime,
+          subjectId: exam.subjectId,
+          schoolId: access.schoolId,
+          academicYearId: exam.academicYearId,
+          lesson: {
+            teacherId: access.userId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!isAuthorized) {
+        return { success: false, error: true, message: "Not authorized." };
+      }
     }
 
     // Ensure the score does not exceed the points value
@@ -748,9 +765,16 @@ export const gradeAnswer = async (
       };
     }
 
+    const isAutoGradedType =
+      answer.question.type === "MCQ" ||
+      answer.question.type === "TRUE_FALSE";
+
     await prisma.answer.update({
       where: { id: data.answerId },
-      data: { score: data.score },
+      data: {
+        score: data.score,
+        ...(isAutoGradedType ? { isOverridden: true } : {}),
+      },
     });
 
     // Try to finalize grading if all answers are graded
@@ -865,6 +889,88 @@ export const recordDisconnection = async (
     });
   } catch {
     // Ignore errors - not critical
+  }
+};
+
+// ============================================================
+// 11. approveAndFinalizeGrading
+// ============================================================
+
+export const approveAndFinalizeGrading = async (submissionId: number) => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  try {
+    const submission = await prisma.submission.findFirst({
+      where: { id: submissionId, schoolId: access.schoolId },
+      include: {
+        exam: {
+          include: { lesson: true },
+        },
+        answers: {
+          include: { question: true },
+        },
+      },
+    });
+
+    if (!submission) {
+      return { success: false, error: true, message: "Submission not found." };
+    }
+
+    // Check that the teacher owns the exam or any exam in the group
+    if (access.role === "teacher") {
+      const exam = submission.exam;
+      const isAuthorized = await prisma.exam.findFirst({
+        where: {
+          title: exam.title,
+          startTime: exam.startTime,
+          endTime: exam.endTime,
+          subjectId: exam.subjectId,
+          schoolId: access.schoolId,
+          academicYearId: exam.academicYearId,
+          lesson: {
+            teacherId: access.userId,
+          },
+        },
+        select: { id: true },
+      });
+
+      if (!isAuthorized) {
+        return { success: false, error: true, message: "Not authorized." };
+      }
+    }
+
+    // Checks for any TEXT or FILE answers where score is null
+    const ungradedOpenEnded = submission.answers.filter(
+      (a) =>
+        (a.question.type === "TEXT" || a.question.type === "FILE") &&
+        a.score === null
+    );
+
+    if (ungradedOpenEnded.length > 0) {
+      return {
+        success: false,
+        warning: `There are ${ungradedOpenEnded.length} question(s) that haven't been graded yet.`,
+      };
+    }
+
+    // Sums up all answer scores and updates Submission.totalScore and Submission.status to GRADED
+    const totalScore = submission.answers.reduce(
+      (sum, a) => sum + (a.score ?? 0),
+      0
+    );
+
+    await prisma.submission.update({
+      where: { id: submissionId },
+      data: {
+        totalScore,
+        status: "GRADED",
+      },
+    });
+
+    return successResult([`/list/exams/${submission.examId}/submissions`]);
+  } catch (err) {
+    return errorResult(err);
   }
 };
 

@@ -62,4 +62,5 @@ export {
   gradeAnswer,
   extendTime,
   recordDisconnection,
+  approveAndFinalizeGrading,
 } from "./examWorkflow.actions";

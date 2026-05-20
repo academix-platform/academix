@@ -1,10 +1,10 @@
 "use client";
 
-import { gradeAnswer } from "@/lib/actions";
+import { gradeAnswer, approveAndFinalizeGrading } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
-import { CheckCircle, ExternalLink } from "lucide-react";
+import { CheckCircle, ExternalLink, Loader2, AlertCircle } from "lucide-react";
 import type { Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
 
@@ -99,6 +99,55 @@ const GradeClient = ({
     return map;
   });
 
+  const [savingStatus, setSavingStatus] = useState<
+    Record<number, "idle" | "saving" | "saved" | "error">
+  >({});
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  const handleAutoSave = async (answerId: number, maxPoints: number) => {
+    const scoreStr = scores[answerId];
+    if (scoreStr === undefined || scoreStr === "") {
+      return;
+    }
+
+    const score = parseFloat(scoreStr);
+    if (isNaN(score) || score < 0) {
+      toast.error("Score must be a positive number.");
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      return;
+    }
+
+    if (score > maxPoints) {
+      toast.error(`Score cannot exceed ${maxPoints} points.`);
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      return;
+    }
+
+    const originalAnswer = answers.find((a) => a.id === answerId);
+    if (originalAnswer && originalAnswer.score === score) {
+      return; // No change, skip calling server action
+    }
+
+    setSavingStatus((prev) => ({ ...prev, [answerId]: "saving" }));
+
+    try {
+      const result = await gradeAnswer(
+        { success: false, error: false },
+        { answerId, score }
+      );
+      if (result.success) {
+        setSavingStatus((prev) => ({ ...prev, [answerId]: "saved" }));
+        router.refresh();
+      } else {
+        toast.error(result.message ?? "Something went wrong.");
+        setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      }
+    } catch (err) {
+      toast.error("Failed to auto-save score.");
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+    }
+  };
+
   const handleGrade = (answerId: number) => {
     const scoreStr = scores[answerId];
     if (scoreStr === undefined || scoreStr === "") {
@@ -109,6 +158,12 @@ const GradeClient = ({
     const score = parseFloat(scoreStr);
     if (isNaN(score) || score < 0) {
       toast.error("Score must be a positive number.");
+      return;
+    }
+
+    const answer = answers.find((a) => a.id === answerId);
+    if (answer && score > answer.question.points) {
+      toast.error(`Score cannot exceed ${answer.question.points} points.`);
       return;
     }
 
@@ -124,6 +179,25 @@ const GradeClient = ({
         toast.error(result.message ?? "Something went wrong.");
       }
     });
+  };
+
+  const handleFinalize = async () => {
+    setIsFinalizing(true);
+    try {
+      const result = await approveAndFinalizeGrading(submission.id);
+      if (result.success) {
+        toast.success("Grading approved and finalized successfully!");
+        router.push(`/list/exams/${examId}/submissions`);
+      } else if ("warning" in result && result.warning) {
+        toast.warning(result.warning, { autoClose: 6000 });
+      } else {
+        toast.error("message" in result ? result.message : "Something went wrong.");
+      }
+    } catch (err) {
+      toast.error("An error occurred while finalizing grading.");
+    } finally {
+      setIsFinalizing(false);
+    }
   };
 
   const totalMax = answers.reduce((sum, a) => sum + a.question.points, 0);
@@ -282,30 +356,45 @@ const GradeClient = ({
                           [answer.id]: e.target.value,
                         }))
                       }
-                      disabled={isAutoGraded || isPending}
-                      className={`w-20 p-1.5 rounded-md ring-[1.5px] ring-gray-300 text-sm text-center
-                        focus:outline-none focus:ring-academixPurpleDark
-                        ${isAutoGraded ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+                      onBlur={() => handleAutoSave(answer.id, answer.question.points)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      disabled={isPending || savingStatus[answer.id] === "saving"}
+                      className="w-20 p-1.5 rounded-md ring-[1.5px] ring-gray-300 text-sm text-center
+                        focus:outline-none focus:ring-academixPurpleDark"
                     />
                     <span className="text-sm text-gray-400">
                       / {answer.question.points}
                     </span>
                   </div>
 
-                  {/* Save button - for TEXT and FILE only */}
-                  {!isAutoGraded && (
-                    <button
-                      onClick={() => handleGrade(answer.id)}
-                      disabled={isPending}
-                      className="px-3 py-1.5 bg-academixPurpleDark text-white text-xs
-                        rounded-md hover:opacity-90 disabled:opacity-50 transition"
-                    >
-                      {isPending ? "Saving..." : "Save"}
-                    </button>
+                  {/* Localized Status Indicator */}
+                  {savingStatus[answer.id] === "saving" && (
+                    <span className="flex items-center gap-1 text-xs text-blue-500 animate-pulse font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                  {savingStatus[answer.id] === "saved" && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Saved
+                    </span>
+                  )}
+                  {savingStatus[answer.id] === "error" && (
+                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Error
+                    </span>
                   )}
 
+
+
                   {/* Graded indicator */}
-                  {isGraded && (
+                  {isGraded && !savingStatus[answer.id] && (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
                 </div>
@@ -314,16 +403,43 @@ const GradeClient = ({
           })}
       </div>
 
-      {/* Back button */}
-      <div className="mt-6">
+      {/* Action buttons */}
+      <div className="mt-6 flex items-center gap-3 justify-between border-t pt-6">
         <button
           onClick={() =>
             router.push(`/list/exams/${examId}/submissions`)
           }
-          className="px-4 py-2 border border-gray-200 rounded-md text-sm
-            hover:bg-gray-50 transition"
+          className="px-4 py-2 border border-gray-200 rounded-md text-sm text-gray-700
+            hover:bg-gray-50 transition font-medium"
         >
           ← Back to Submissions
+        </button>
+
+        <button
+          onClick={handleFinalize}
+          disabled={isFinalizing}
+          className={`px-5 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 text-white
+            ${submission.status === "GRADED"
+              ? "bg-green-600 hover:bg-green-700"
+              : "bg-academixPurpleDark hover:opacity-90"}
+            disabled:opacity-50`}
+        >
+          {isFinalizing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Finalizing...
+            </>
+          ) : submission.status === "GRADED" ? (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              Grading Finalized (Re-Approve)
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              Approve & Finalize Grading
+            </>
+          )}
         </button>
       </div>
     </div>

@@ -50,9 +50,10 @@ export default function ExamClient({
   const [isFrozen, setIsFrozen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<
-    "idle" | "saving" | "saved" | "error"
-  >("idle");
+  const [questionSaveStatus, setQuestionSaveStatus] = useState<
+    Record<number, "idle" | "saving" | "saved" | "error">
+  >({});
+  const saveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
   const pendingAnswersRef = useRef<Record<number, string>>({});
   const disconnectedAtRef = useRef<number | null>(null);
@@ -61,7 +62,7 @@ export default function ExamClient({
 
   useEffect(() => {
     const debounced = debounce(async (questionId: number, answer: string) => {
-      setSaveStatus("saving");
+      setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saving" }));
       const res = await saveAnswer(
         { success: true, error: false },
         {
@@ -72,12 +73,17 @@ export default function ExamClient({
       );
 
       if (res.error) {
-        setSaveStatus("error");
+        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "error" }));
         toast.error(res.message || "Failed to save answer.");
       } else {
-        setSaveStatus("saved");
+        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saved" }));
         // Clear from pending once saved successfully
         delete pendingAnswersRef.current[questionId];
+        // Auto-hide "saved" after 2 seconds
+        if (saveTimersRef.current[questionId]) clearTimeout(saveTimersRef.current[questionId]);
+        saveTimersRef.current[questionId] = setTimeout(() => {
+          setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "idle" }));
+        }, 2000);
       }
     }, 1000);
 
@@ -100,6 +106,34 @@ export default function ExamClient({
     if (!exam.enableNavigation && newPage < currentPage) {
       toast.error("Navigation to previous pages is disabled.");
       return;
+    }
+
+    // Check for unanswered questions on the current page when moving forward
+    if (newPage > currentPage) {
+      const unanswered = questions.filter((q) => {
+        const ans = pendingAnswersRef.current[q.id] !== undefined
+          ? pendingAnswersRef.current[q.id]
+          : answers[q.id];
+
+        if (ans === undefined || ans === null) return true;
+        const trimmed = ans.trim();
+        if (trimmed === "") return true;
+
+        if (q.type === "MCQ" && q.allowMultiple) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              return parsed.filter(Boolean).length === 0;
+            }
+          } catch {}
+        }
+        return false;
+      });
+
+      if (unanswered.length > 0) {
+        toast.error("Please answer all questions on this page before proceeding.");
+        return;
+      }
     }
 
     setIsLoadingPage(true);
@@ -143,6 +177,32 @@ export default function ExamClient({
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
+
+    // Check for unanswered questions on the current page before submit
+    const unanswered = questions.filter((q) => {
+      const ans = pendingAnswersRef.current[q.id] !== undefined
+        ? pendingAnswersRef.current[q.id]
+        : answers[q.id];
+
+      if (ans === undefined || ans === null) return true;
+      const trimmed = ans.trim();
+      if (trimmed === "") return true;
+
+      if (q.type === "MCQ" && q.allowMultiple) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(Boolean).length === 0;
+          }
+        } catch {}
+      }
+      return false;
+    });
+
+    if (unanswered.length > 0) {
+      toast.error("Please answer all questions on this page before submitting.");
+      return;
+    }
 
     if (
       confirm(
@@ -237,23 +297,7 @@ export default function ExamClient({
               <span className="font-medium">
                 Page {currentPage} of {totalPages}
               </span>
-              {exam.enableAutoSave && (
-                <span
-                  className={`flex items-center gap-1 ${
-                    saveStatus === "saving"
-                      ? "text-blue-500"
-                      : saveStatus === "saved"
-                        ? "text-green-500"
-                        : saveStatus === "error"
-                          ? "text-red-500"
-                          : "text-gray-400"
-                  }`}
-                >
-                  {saveStatus === "saving" && "Saving..."}
-                  {saveStatus === "saved" && "✓ Saved"}
-                  {saveStatus === "error" && "⚠ Save failed"}
-                </span>
-              )}
+
             </div>
           </div>
 
@@ -279,31 +323,51 @@ export default function ExamClient({
       </div>
 
       <div className="space-y-6 mb-8">
-        {questions.map((q) => (
-          <div
-            key={q.id}
-            className="bg-white shadow-sm p-6 border border-gray-200 rounded-lg"
-          >
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-medium text-gray-900">
-                <span className="mr-2">{q.order}.</span>
-                {q.text}
+        {questions.map((q) => {
+          const qStatus = questionSaveStatus[q.id] || "idle";
+          return (
+            <div
+              key={q.id}
+              className="bg-white shadow-sm p-6 border border-gray-200 rounded-lg"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="font-medium text-gray-900">
+                  <span className="mr-2">{q.order}.</span>
+                  {q.text}
+                </div>
+                <div className="flex items-center gap-2">
+                  {qStatus === "saving" && (
+                    <span className="flex items-center gap-1 text-xs text-blue-500 animate-pulse font-medium">
+                      Saving...
+                    </span>
+                  )}
+                  {qStatus === "saved" && (
+                    <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
+                      ✓ Saved
+                    </span>
+                  )}
+                  {qStatus === "error" && (
+                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+                      ⚠ Error
+                    </span>
+                  )}
+                  <span className="bg-gray-100 px-2 py-1 rounded font-medium text-gray-500 text-sm">
+                    {q.points} {q.points === 1 ? "point" : "points"}
+                  </span>
+                </div>
               </div>
-              <span className="bg-gray-100 px-2 py-1 rounded font-medium text-gray-500 text-sm">
-                {q.points} {q.points === 1 ? "point" : "points"}
-              </span>
-            </div>
 
-            <div className="mt-4">
-              <QuestionRenderer
-                question={q}
-                savedAnswer={answers[q.id] || null}
-                onChange={handleAnswerChange}
-                disabled={isSubmitting || isLoadingPage}
-              />
+              <div className="mt-4">
+                <QuestionRenderer
+                  question={q}
+                  savedAnswer={answers[q.id] || null}
+                  onChange={handleAnswerChange}
+                  disabled={isSubmitting || isLoadingPage}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="flex justify-between items-center bg-white shadow-sm p-4 border border-gray-200 rounded-lg">

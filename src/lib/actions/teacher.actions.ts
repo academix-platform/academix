@@ -71,7 +71,6 @@ export const createTeacher = async (
       username: data.username,
       password: data.password,
       firstName: data.name,
-      ...(data.email ? { emailAddress: [data.email] } : {}),
       publicMetadata: { role: "teacher" },
     });
     createdUserId = user.id;

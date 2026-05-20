@@ -40,7 +40,7 @@ const columns = [
   { header: "Actions", accessor: "action" },
 ];
 
-const renderRow = (item: SubmissionRow) => (
+const renderRow = (item: SubmissionRow, examId: number) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
@@ -77,7 +77,7 @@ const renderRow = (item: SubmissionRow) => (
     <td className="p-4">
       {(item.status === "SUBMITTED" || item.status === "GRADED") && (
         <Link
-          href={`/list/exams/${item.examId}/submissions/${item.id}`}
+          href={`/list/exams/${examId}/submissions/${item.id}`}
           className="px-3 py-1.5 bg-academixPurpleDark text-white text-xs
             rounded-md hover:opacity-90 transition"
         >
@@ -186,7 +186,7 @@ const ExamSubmissionsPage = async ({
       {/* Table */}
       <Table
         columns={columns}
-        renderRow={(item) => renderRow(item as SubmissionRow)}
+        renderRow={(item) => renderRow(item as SubmissionRow, examId)}
         data={submissions}
         emptyTitle="No submissions yet"
         emptyDescription="Students have not submitted this exam yet."
