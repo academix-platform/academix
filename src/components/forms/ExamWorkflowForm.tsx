@@ -327,6 +327,22 @@ function QuestionEditor({
           )}
         </div>
       )}
+
+      {qType === "TEXT" && (
+        <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
+          <h3 className="font-medium text-gray-700 text-sm">Correct Answer</h3>
+          <textarea
+            {...register(`questions.${index}.textAnswer`)}
+            className="w-full p-3 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm min-h-[100px] transition-all"
+            placeholder="Write the correct answer here..."
+          />
+          {errors?.questions?.[index]?.textAnswer?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.questions[index]?.textAnswer?.message?.toString()}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -364,7 +380,7 @@ export default function ExamWorkflowForm({
       autoSaveInterval: initialData?.autoSaveInterval ?? 30,
       enableAutoSubmit: initialData?.enableAutoSubmit ?? true,
       questionsPerPage: initialData?.questionsPerPage ?? 1,
-      questions: initialData?.questions ?? [
+      questions: (initialData?.questions ?? [
         {
           type: "TEXT",
           text: "",
@@ -373,8 +389,12 @@ export default function ExamWorkflowForm({
           allowMultiple: false,
           options: [],
           correctAnswer: [],
+          textAnswer: "",
         },
-      ],
+      ]).map((q) => ({
+        ...q,
+        textAnswer: q.textAnswer ?? "",
+      })),
     },
   });
 
@@ -560,6 +580,7 @@ export default function ExamWorkflowForm({
                 allowMultiple: false,
                 options: [],
                 correctAnswer: [],
+                textAnswer: "",
               })
             }
             className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"

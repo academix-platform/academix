@@ -129,8 +129,17 @@ export const createExamWorkflow = async (
     }
 
     // Create an exam for each class with its questions
+    const uniqueClassLessons = Array.from(
+      lessons.reduce((map, lesson) => {
+        if (!map.has(lesson.classId)) {
+          map.set(lesson.classId, lesson);
+        }
+        return map;
+      }, new Map<number, typeof lessons[0]>()).values()
+    );
+
     await prisma.$transaction(
-      lessons.map((lesson) =>
+      uniqueClassLessons.map((lesson) =>
         prisma.exam.create({
           data: {
             title: data.title,
@@ -160,6 +169,7 @@ export const createExamWorkflow = async (
                   options: q.options ?? [],
                   correctAnswer: q.correctAnswer ?? [],
                   allowMultiple: q.allowMultiple,
+                  textAnswer: q.textAnswer,
                   schoolId: access.schoolId,
                 })),
               },
@@ -307,6 +317,7 @@ export const updateExamWorkflow = async (
               options: q.options ?? [],
               correctAnswer: q.correctAnswer ?? [],
               allowMultiple: q.allowMultiple,
+              textAnswer: q.textAnswer,
               schoolId: access.schoolId,
             })),
           });
@@ -338,6 +349,7 @@ export const updateExamWorkflow = async (
                     options: q.options ?? [],
                     correctAnswer: q.correctAnswer ?? [],
                     allowMultiple: q.allowMultiple,
+                    textAnswer: q.textAnswer,
                     schoolId: access.schoolId,
                   })),
                 },

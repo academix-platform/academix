@@ -449,6 +449,7 @@ export const questionSchema = z.object({
     .array(z.string().min(1, "Correct answer is required"))
     .optional(),
   allowMultiple: z.boolean().default(false),
+  textAnswer: z.string().optional().nullable(),
 }).superRefine((data, ctx) => {
   if (data.type === "MCQ") {
     if (!data.options || data.options.length < 2) {

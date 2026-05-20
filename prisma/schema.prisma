@@ -434,6 +434,7 @@ model Question {
   options       Json?        // MCQ only: string[]
   correctAnswer String[]     // T/F and MCQ — array supports multiple correct answers
   allowMultiple Boolean      @default(false)
+  textAnswer    String?      // Optional model answer for TEXT questions
   answers       Answer[]
 
   @@index([schoolId])

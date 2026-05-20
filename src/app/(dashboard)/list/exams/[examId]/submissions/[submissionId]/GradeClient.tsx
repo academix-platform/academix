@@ -256,6 +256,16 @@ const GradeClient = ({
                   </div>
                 )}
 
+                {/* Correct Answer - for TEXT */}
+                {answer.question.type === "TEXT" && answer.question.textAnswer && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3">
+                    <p className="text-xs text-gray-400 mb-1">Correct Answer:</p>
+                    <div className="text-sm text-blue-700 whitespace-pre-wrap">
+                      {answer.question.textAnswer}
+                    </div>
+                  </div>
+                )}
+
                 {/* Score Input */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">

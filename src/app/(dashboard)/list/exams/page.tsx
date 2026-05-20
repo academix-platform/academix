@@ -209,47 +209,47 @@ const ExamListPage = async ({
     }),
   ]);
 
-  const dataWithClassDisplay: ExamList[] =
-    role === "admin" || role === "teacher"
-      ? (() => {
-          const classGroups = new Map<string, Set<string>>();
+  const classGroups = new Map<string, Set<string>>();
+  const uniqueExamsMap = new Map<string, typeof data[0]>();
 
-          for (const exam of data) {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+  for (const exam of data) {
+    const groupKey = [
+      exam.title,
+      exam.startTime.toISOString(),
+      exam.endTime.toISOString(),
+      exam.subject?.name,
+    ].join("|");
 
-            if (!classGroups.has(groupKey)) {
-              classGroups.set(groupKey, new Set<string>());
-            }
+    if (!classGroups.has(groupKey)) {
+      classGroups.set(groupKey, new Set<string>());
+    }
 
-            if (exam.class?.name) {
-              classGroups.get(groupKey)!.add(exam.class.name);
-            }
-          }
+    if (exam.class?.name) {
+      classGroups.get(groupKey)!.add(exam.class.name);
+    }
 
-          return data.map((exam) => {
-            const groupKey = [
-              exam.title,
-              exam.startTime.toISOString(),
-              exam.endTime.toISOString(),
-              exam.subject?.name,
-            ].join("|");
+    if (!uniqueExamsMap.has(groupKey)) {
+      uniqueExamsMap.set(groupKey, exam);
+    }
+  }
 
-            const groupedClasses = classGroups.get(groupKey);
-            return {
-              ...exam,
-              displayClasses:
-                groupedClasses && groupedClasses.size > 1
-                  ? Array.from(groupedClasses).sort().join(", ")
-                  : exam.class?.name,
-            };
-          });
-        })()
-      : data;
+  const dataWithClassDisplay: ExamList[] = Array.from(uniqueExamsMap.values()).map((exam) => {
+    const groupKey = [
+      exam.title,
+      exam.startTime.toISOString(),
+      exam.endTime.toISOString(),
+      exam.subject?.name,
+    ].join("|");
+
+    const groupedClasses = classGroups.get(groupKey);
+    return {
+      ...exam,
+      displayClasses:
+        groupedClasses && groupedClasses.size > 1
+          ? Array.from(groupedClasses).sort().join(", ")
+          : exam.class?.name,
+    };
+  });
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">

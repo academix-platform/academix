@@ -98,6 +98,7 @@ export default async function CreateExamWorkflowPage({
             ? (question.options as string[])
             : [],
           correctAnswer: question.correctAnswer ?? [],
+          textAnswer: question.textAnswer ?? "",
         })),
       }
     : undefined;

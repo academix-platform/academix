@@ -40,7 +40,7 @@ const columns = [
   { header: "Actions", accessor: "action" },
 ];
 
-const renderRow = (item: SubmissionRow, examId: number) => (
+const renderRow = (item: SubmissionRow) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
@@ -77,7 +77,7 @@ const renderRow = (item: SubmissionRow, examId: number) => (
     <td className="p-4">
       {(item.status === "SUBMITTED" || item.status === "GRADED") && (
         <Link
-          href={`/list/exams/${examId}/submissions/${item.id}`}
+          href={`/list/exams/${item.examId}/submissions/${item.id}`}
           className="px-3 py-1.5 bg-academixPurpleDark text-white text-xs
             rounded-md hover:opacity-90 transition"
         >
@@ -120,8 +120,22 @@ const ExamSubmissionsPage = async ({
 
   if (!exam) redirect("/list/exams");
 
+  // Find all exams in the same group (same title, times, subject, school, academic year)
+  const groupExams = await prisma.exam.findMany({
+    where: {
+      title: exam.title,
+      startTime: exam.startTime,
+      endTime: exam.endTime,
+      subjectId: exam.subjectId,
+      schoolId,
+      academicYearId: exam.academicYearId,
+    },
+    select: { id: true },
+  });
+  const examIds = groupExams.map((e) => e.id);
+
   const submissions = await prisma.submission.findMany({
-    where: { examId, schoolId },
+    where: { examId: { in: examIds }, schoolId },
     include: {
       student: { select: { name: true, username: true } },
     },
@@ -172,7 +186,7 @@ const ExamSubmissionsPage = async ({
       {/* Table */}
       <Table
         columns={columns}
-        renderRow={(item) => renderRow(item as SubmissionRow, examId)}
+        renderRow={(item) => renderRow(item as SubmissionRow)}
         data={submissions}
         emptyTitle="No submissions yet"
         emptyDescription="Students have not submitted this exam yet."
