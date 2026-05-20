@@ -1,8 +1,5 @@
 "use client";
 
-import { useAuth } from "@clerk/nextjs";
-import { createNotification } from "@/lib/actions/notification";
-
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
@@ -40,9 +37,6 @@ export default function ExamClient({
   totalPages,
 }: ExamClientProps) {
   const router = useRouter();
-  
-  // Get current user's ID dynamically from Clerk
-  const { userId } = useAuth();
 
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<number, string>>(
@@ -82,6 +76,7 @@ export default function ExamClient({
         toast.error(res.message || "Failed to save answer.");
       } else {
         setSaveStatus("saved");
+        // Clear from pending once saved successfully
         delete pendingAnswersRef.current[questionId];
       }
     }, 1000);
@@ -110,6 +105,7 @@ export default function ExamClient({
     setIsLoadingPage(true);
     debouncedSaveRef.current?.flush();
 
+    // Flush any pending answers immediately
     for (const [qId, ans] of Object.entries(pendingAnswersRef.current)) {
       await saveAnswer(
         { success: true, error: false },
@@ -162,16 +158,6 @@ export default function ExamClient({
         setIsSubmitting(false);
       } else {
         toast.success("Exam submitted successfully!");
-        
-        // Trigger notification after successful manual submission
-        if (userId) {
-          await createNotification(
-            userId,
-            "Exam Submitted Successfully",
-            `You have successfully completed and submitted the exam: ${exam.title}`
-          );
-        }
-
         router.push("/list/exams");
       }
     }
@@ -183,16 +169,6 @@ export default function ExamClient({
     debouncedSaveRef.current?.flush();
     await submitExam(submission.id);
     toast.info("Exam time is up! Auto-submitting...");
-    
-    // Trigger notification after automatic timeout submission
-    if (userId) {
-      await createNotification(
-        userId,
-        "Exam Auto-Submitted",
-        `Time ran out and your exam was automatically submitted: ${exam.title}`
-      );
-    }
-
     router.push("/list/exams");
   };
 
@@ -357,7 +333,7 @@ export default function ExamClient({
             Next
           </button>
         ) : (
-          <div className="opacity-0 px-4 py-2">Next</div>
+          <div className="opacity-0 px-4 py-2">Next</div> // Spacer
         )}
       </div>
     </div>
