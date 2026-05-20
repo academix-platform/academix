@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getNotifications, markAsRead } from "@/src/lib/actions/notification";
+import { getNotifications, markAsRead } from "@/lib/actions/notification";
 
 export default function NotificationsDropdown({ userId }: { userId: string }) {
   const [notifications, setNotifications] = useState<any[]>([]);

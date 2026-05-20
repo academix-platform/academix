@@ -11,7 +11,7 @@ import { useRouter } from "next/navigation";
 
 // Import notification utilities
 import { useAuth } from "@clerk/nextjs";
-import { createNotification } from "@/src/lib/actions/notification";
+import { createNotification } from "@/lib/actions/notification";
 
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";

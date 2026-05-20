@@ -1,6 +1,6 @@
 "use server";
 
-import { prisma } from "@/lib/prisma"; 
+import  prisma  from "@/lib/prisma"; 
 
 // 1. Create Notification
 export async function createNotification(

@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@clerk/nextjs";
-import { createNotification } from "@/src/lib/actions/notification";
+import { createNotification } from "@/lib/actions/notification";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
