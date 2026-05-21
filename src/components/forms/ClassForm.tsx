@@ -1,6 +1,5 @@
 "use client";
 
-import prisma from "@/lib/prisma";
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
 
@@ -64,40 +63,41 @@ const ClassForm = ({
   const [showSupervisorDropdown, setShowSupervisorDropdown] = useState(false);
   const [filteredTeachers, setFilteredTeachers] = useState<
     { id: string; name: string }[]
-  >([]);
+  >(([]);
 
-  const onSubmit = handleSubmit((data) => {
+  const onSubmit = handleSubmit((formData) => {
     startTransition(() => {
       void (async () => {
-        const result = await action({ success: false, error: false }, data);
-           ////////////////
-       if (result.success) {
-  const values = formValues as any;
-  const supervisorId = values.supervisorId || values.teacherId;
+        const result = await action({ success: false, error: false }, formData);
+        
+        /////////// التعديل الآمن وفحص المتغيرات لحماية الـ Build ///////////
+        if (result.success) {
+          const supervisorId = formData.supervisorId;
 
-  if (type === "create" && supervisorId) {
-    try {
-      const schoolId = await getSchoolId();
+          if (type === "create" && supervisorId) {
+            try {
+              const schoolId = await getSchoolId();
 
-      await createNotification({
-        schoolId,
-        recipientType: "TEACHER",
-        recipientId: String(supervisorId), 
-        type: "CLASS",
-        title: "New Class Assigned ",
-        message: You have been assigned as the supervisor for Class: "${values.name || ''}",
-        relatedId: Number(result?.id || 0),
-      });
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-  toast(Class has been created!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-          ///////////////
+              await createNotification({
+                schoolId,
+                recipientType: "TEACHER",
+                recipientId: String(supervisorId), 
+                type: "CLASS",
+                title: "New Class Assigned",
+                message: `You have been assigned as the supervisor for Class: "${formData.name || ''}"`,
+                relatedId: Number(result?.id || 0),
+              });
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
+          toast(`Class has been ${type === "create" ? "created" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+        /////////////// نهاية التعديل ///////////////
+        
         toast.error(result.message ?? "Something went wrong!");
       })();
     });
@@ -255,5 +255,3 @@ const ClassForm = ({
 };
 
 export default ClassForm;
-
-
