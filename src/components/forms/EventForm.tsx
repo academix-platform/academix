@@ -1,4 +1,7 @@
 "use client";
+import prisma from "@/lib/prisma";
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
@@ -79,14 +82,41 @@ const EventForm = ({
     startTransition(async () => {
       try {
         const result = await action({ success: false, error: false }, parsed);
+           //////////////////
+       if (result.success) {
+  if (type === "create") {
+    try {
+      const schoolId = await getSchoolId();
 
-        if (result.success) {
-          toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
-          setOpen(false);
-          router.refresh();
-          return;
-        }
+      const students = await prisma.student.findMany({
+        where: {
+          classId: { in: formValues.classIds.map(Number) },
+        },
+        select: { id: true },
+      });
 
+      for (const student of students) {
+        await createNotification({
+          schoolId,
+          recipientType: "STUDENT",
+          recipientId: student.id,
+          type: "EVENT",
+          title: "New Event",
+          message: A new event "${formValues.title}" has been scheduled.,
+          relatedId: Number(formValues.id ?? 0),
+        });
+      }
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
+
+  toast(Event has been ${type === "create" ? "created" : "updated"}!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+           ///////////////
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
