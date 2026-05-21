@@ -2,7 +2,6 @@
 
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
-import prisma from "@/lib/prisma";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -68,44 +67,35 @@ const AssignmentForm = ({
           { success: false, error: false },
           formValues,
         );
-           ///////////
- if (result.success) {
+        
+        /////////// التعديل الآمن هنا لحماية الـ Build ///////////
+        if (result.success) {
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId(); 
 
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId(); 
+              // نرسل الإشعار للصفوف المختارة مباشرة، والسير أكشن يتولى التوزيع خلف الكواليس بأمان
+              await createNotification({
+                schoolId,
+                recipientType: "STUDENT",
+                recipientId: formValues.classIds.map(Number), // تمرير المصفوفة للسيرفر بأمان
+                type: "ASSIGNMENT",
+                title: "New Assignment",
+                message: `A new assignment "${formValues.title}" has been posted.`,
+                relatedId: Number(formValues.subjectId ?? 0),
+              });
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
 
-      const students = await prisma.student.findMany({
-        where: {
-          classId: {
-            in: formValues.classIds.map(Number),
-          },
-        },
-        select: { id: true },
-      });
+          toast(`Assignment has been ${type === "create" ? "created" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+        ////////////// نهاية التعديل //////////////
 
-      for (const student of students) {
-        await createNotification({
-          schoolId,
-          recipientType: "STUDENT",
-          recipientId: student.id,
-          type: "ASSIGNMENT",
-          title: "New Assignment",
-          message: A new assignment "${formValues.title}" has been posted.,
-          relatedId: Number(formValues.subjectId ?? 0),
-        });
-      }
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-
-  toast(Assignment has been ${type === "create" ? "created" : "updated"}!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-        //////////////
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
