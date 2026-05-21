@@ -1,42 +1,103 @@
 "use server";
 
-import  prisma  from "@/lib/prisma"; 
+import prisma from "@/lib/prisma";
+import { NotificationType } from "@prisma/client";
 
-// 1. Create Notification
-export async function createNotification(
-  userId: string,
-  title: string,
-  message: string
-) {
-  if (!userId || !title || !message) {
-    throw new Error("Missing fields");
-  }
-
-  return await prisma.notification.create({
+/* =========================
+   CREATE NOTIFICATION
+========================= */
+export async function createNotification({
+  recipientId,
+  recipientType,
+  type,
+  title,
+  message,
+  relatedId,
+  schoolId,
+}: {
+  recipientId: string;
+  recipientType: "STUDENT" | "TEACHER" | "PARENT" | "ADMIN";
+  type: NotificationType;
+  title: string;
+  message?: string;
+  relatedId?: number;
+  schoolId: number;
+}) {
+  return prisma.notification.create({
     data: {
-      userId,
+      recipientId,
+      recipientType,
+      type,
       title,
       message,
+      relatedId,
+      schoolId,
+      isRead: false,
     },
   });
 }
 
-// 2. Get Notifications
-export async function getNotifications(userId: string) {
-  if (!userId) return [];
-  
-  return await prisma.notification.findMany({
-    where: { userId },
-    orderBy: {
-      createdAt: "desc",
+/* =========================
+   GET RECENT (LAST 10)
+========================= */
+export async function getRecentNotifications(recipientId: string) {
+  return prisma.notification.findMany({
+    where: { recipientId },
+    orderBy: { createdAt: "desc" },
+    take: 10,
+  });
+}
+
+/* =========================
+   PAGINATION (20 PER PAGE)
+========================= */
+export async function getNotificationsPage(
+  recipientId: string,
+  page: number = 1
+) {
+  const pageSize = 20;
+
+  return prisma.notification.findMany({
+    where: { recipientId },
+    orderBy: { createdAt: "desc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+  });
+}
+
+/* =========================
+   UNREAD COUNT
+========================= */
+export async function getUnreadCount(recipientId: string) {
+  return prisma.notification.count({
+    where: {
+      recipientId,
+      isRead: false,
     },
   });
 }
 
-// 3. Mark as Read
-export async function markAsRead(id: string) {
-  return await prisma.notification.update({
+/* =========================
+   MARK AS READ
+========================= */
+export async function markAsRead(id: number) {
+  return prisma.notification.update({
     where: { id },
     data: { isRead: true },
+  });
+}
+
+/* =========================
+   MARK ALL AS READ
+========================= */
+export async function markAllAsRead(recipientId: string) {
+  return prisma.notification.updateMany({
+    where: {
+      recipientId,
+      isRead: false,
+    },
+    data: {
+      isRead: true,
+    },
   });
 }
