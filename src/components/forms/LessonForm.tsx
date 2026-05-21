@@ -1,6 +1,5 @@
 "use client";
 
-import prisma from "@/lib/prisma";
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
 
@@ -386,41 +385,38 @@ const LessonForm = ({
           { success: false, error: false },
           formValues,
         );
-          ////////////////////
+        
         if (result.success) {
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId();
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId();
+              
+              // نعتمد هنا على مصفوفة المعرفات القادمة مباشرة وآمنة من الـ Server Action
+              const studentIds: string[] = result.students ?? [];
+              const className = selectedClass?.name ?? "your class";
 
-      const students = await prisma.student.findMany({
-        where: {
-          classId: Number(formValues.classId),
-        },
-        select: { id: true },
-      });
+              for (const studentId of studentIds) {
+                await createNotification({
+                  schoolId,
+                  recipientType: "STUDENT",
+                  recipientId: String(studentId),
+                  type: "LESSON",
+                  title: "Schedule Update",
+                  message: `A new weekly lesson schedule has been added for class: ${className}.`,
+                  relatedId: Number(formValues.classId),
+                });
+              }
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
 
-      for (const student of students) {
-        await createNotification({
-          schoolId,
-          recipientType: "STUDENT",
-          recipientId: student.id,
-          type: "LESSON",
-          title: "Schedule Update",
-          message: A new lesson has been added to your schedule: "${formValues.name}",
-          relatedId: Number(formValues.classId),
-        });
-      }
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-
-  toast(Lesson has been ${type === "create" ? "created" : "updated"}!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-              ////////////////////
+          toast(`Lesson has been ${type === "create" ? "created" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+        
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
