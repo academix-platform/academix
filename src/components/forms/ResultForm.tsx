@@ -1,5 +1,9 @@
 "use client";
 
+import prisma from "@/lib/prisma";
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Dispatch,
@@ -71,16 +75,52 @@ const ResultForm = ({
           { success: false, error: false },
           formValues,
         );
+           //////////////
+       if (result.success) {
+  if (type === "create") {
+    try {
+      const schoolId = await getSchoolId();
+      const values = formValues as any;
+      const targetStudentId = values.studentId || values.id;
 
-        if (result.success) {
-          toast(
-            `Result has been ${type === "create" ? "created" : "updated"}!`,
-          );
-          setOpen(false);
-          router.refresh();
-          return;
+      const studentData = await prisma.student.findUnique({
+        where: { id: targetStudentId },
+        select: { id: true, parentId: true },
+      });
+
+      if (studentData) {
+        await createNotification({
+          schoolId,
+          recipientType: "STUDENT",
+          recipientId: studentData.id,
+          type: "RESULT",
+          title: "New Exam Result",
+          message: Your exam result has been published. Check your grades!,
+          relatedId: Number(values.examId || 0),
+        });
+
+        if (studentData.parentId) {
+          await createNotification({
+            schoolId,
+            recipientType: "PARENT",
+            recipientId: studentData.parentId,
+            type: "RESULT",
+            title: "Child Exam Result",
+            message: Your child's exam result has been published.,
+            relatedId: Number(values.examId || 0),
+          });
         }
-
+      }
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
+  toast(Result has been saved!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+                 ////////////////
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
