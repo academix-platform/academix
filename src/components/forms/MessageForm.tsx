@@ -1,5 +1,5 @@
 "use client";
-import prisma from "@/lib/prisma";
+
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
 
@@ -65,34 +65,35 @@ const MessageForm = ({
           { success: false, error: false },
           formValues,
         );
-    ///////////////////
-if (result.success) {
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId();
 
-      await createNotification({
-        schoolId,
-        recipientType: formValues.receiverType,
-        recipientId: formValues.receiverId,
-        type: "MESSAGE",
-        title: "New Message",
-        message: You have received a new message: "${formValues.title}",
-        relatedId: Number(formValues.id ?? 0),
-      });
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
+        if (result.success) {
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId();
 
-  toast(Message has been ${type === "create" ? "sent" : "updated"}!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-     ////////////////////
+              await createNotification({
+                schoolId,
+                recipientType: result.data?.receiverType || "STUDENT",
+                recipientId: result.data?.receiverId || "",
+                type: "MESSAGE",
+                title: "New Message",
+                message: `You have received a new message: "${formValues.title}"`,
+                relatedId: Number(result.data?.id ?? 0),
+              });
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
+
+          toast.success(`Message has been ${type === "create" ? "sent" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+
         toast.error(result.message ?? "Something went wrong!");
-      } catch {
+      } catch (error) {
+        console.error("Form submission error:", error);
         toast.error("Something went wrong!");
       }
     });
