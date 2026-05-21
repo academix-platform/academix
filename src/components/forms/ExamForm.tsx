@@ -1,5 +1,9 @@
 "use client";
 
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
+import prisma from "@/lib/prisma";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
 import InputField from "../InputField";
@@ -8,10 +12,6 @@ import { createExam, updateExam } from "@/lib/actions";
 import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-
-// Import notification utilities
-import { useAuth } from "@clerk/nextjs";
-import { createNotification } from "@/lib/actions/notification";
 
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";
@@ -56,9 +56,6 @@ const ExamForm = ({
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
 
-  // Get current authenticated user's ID from Clerk
-  const { userId } = useAuth();
-
   const onSubmit = handleSubmit((formValues) => {
     const action = type === "create" ? createExam : updateExam;
 
@@ -69,22 +66,44 @@ const ExamForm = ({
           formValues,
         );
 
-        if (result.success) {
-          toast(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+         ///////////
+   if (result.success) {
 
-          // Trigger a notification if an exam was successfully created
-          if (type === "create" && userId) {
-            await createNotification(
-              userId,
-              "New Exam Created",
-              `A new exam has been scheduled: ${formValues.title || "Untitled Exam"}`
-            );
-          }
+  if (type === "create") {
+    try {
+      const schoolId = await getSchoolId(); 
 
-          setOpen(false);
-          router.refresh();
-          return;
-        }
+      const students = await prisma.student.findMany({
+        where: {
+          classId: {
+            in: formValues.classIds.map(Number),
+          },
+        },
+        select: { id: true },
+      });
+
+      for (const student of students) {
+        await createNotification({
+          schoolId,
+          recipientType: "STUDENT",
+          recipientId: student.id,
+          type: "EXAM",
+          title: "New EXAM",
+          message: A new exam "${formValues.title}" has been posted.,
+          relatedId: Number(formValues.subjectId ?? 0),
+        });
+      }
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
+
+  toast(Exam has been ${type === "create" ? "created" : "updated"}!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+        //////////////
 
         toast.error(result.message ?? "Something went wrong!");
       } catch {
