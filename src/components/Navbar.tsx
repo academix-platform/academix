@@ -1,12 +1,17 @@
 "use client";
 
-import { Search, MessageCircle } from "lucide-react";
+import { Search, MessageCircle, Bell } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
+import Link from "next/link";
 
-// Import your custom real-time notifications dropdown component
-import NotificationsDropdown from "./NotificationsDropdown";
+///////////////////////////////
+import {
+  getUnreadCount,
+} from "@/lib/actions/notification";
+///////////////////////////////
 
 type NavbarProps = {
   authUser: AuthUser | null;
@@ -15,13 +20,57 @@ type NavbarProps = {
 
 const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   const { user, isLoaded } = useUser();
+  const [messageCount, setMessageCount] = useState<number>(0);
+
+  ///////////////////////////////
+  const [notificationCount, setNotificationCount] = useState<number>(0);
+  ///////////////////////////////
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMessageCount = async () => {
+      try {
+        const response = await fetch("/api/messages/count");
+        if (response.ok) {
+          const data = await response.json();
+          setMessageCount(data.count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch message count:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    ///////////////////////////////
+    const fetchNotifications = async () => {
+      try {
+        if (!authUser?.id) return;
+
+        const count = await getUnreadCount(authUser.id);
+        setNotificationCount(count);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+      }
+    };
+    ///////////////////////////////
+
+    if (authUser) {
+      fetchMessageCount();
+      ///////////////////////////////
+      fetchNotifications();
+      ///////////////////////////////
+    }
+  }, [authUser]);
 
   const fallbackName = "User";
   const fallbackRole = authUser?.role ?? null;
 
   const fullName =
     (isLoaded && user?.fullName) ||
-    (isLoaded && [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
+    (isLoaded &&
+      [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
     fallbackName;
 
   const role =
@@ -47,7 +96,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
       {/* SEARCH */}
       <div className="flex items-center gap-4 text-xs">
         {schoolName && (
-          <span className="ml-2 font-bold text-academixPurpleDark text-lg whitespace-nowrap">
+          <span className="ml-2 font-bold text-academixPurpleDark text-lg uppercase whitespace-nowrap">
             {schoolName}
           </span>
         )}
@@ -55,18 +104,36 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
 
       {/* RIGHT */}
       <div className="flex justify-end items-center gap-6 w-full">
-        <div className="flex items-center gap-2">
-          <button
-            aria-label="Messages"
-            className="flex justify-center items-center bg-white rounded-full w-7 h-7"
-          >
-            <MessageCircle className="w-5 h-5 text-gray-600" />
-          </button>
+        <div className="flex items-center gap-3">
+          {role !== "admin" && (
+            <Link
+              href="/list/messages"
+              aria-label="Messages"
+              className="relative w-7 h-7"
+            >
+              <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
+              {messageCount > 0 && (
+                <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+                  {messageCount > 99 ? "99+" : messageCount}
+                </div>
+              )}
+            </Link>
+          )}
 
-          {/* Replaced the static button placeholder with the real-time dropdown.
-            We safely pass the dynamic clerk user id if it is loaded.
-          */}
-          <NotificationsDropdown userId={isLoaded && user?.id ? user.id : ""} />
+          {/* /////////////////////////////// */}
+          <Link
+            href="/list/notifications"
+            aria-label="Notifications"
+            className="relative w-7 h-7"
+          >
+            <Bell className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
+            {notificationCount > 0 && (
+              <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+                {notificationCount > 99 ? "99+" : notificationCount}
+              </div>
+            )}
+          </Link>
+          {/* /////////////////////////////// */}
         </div>
 
         {/* USER INFO */}
