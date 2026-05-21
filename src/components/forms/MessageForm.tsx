@@ -1,4 +1,7 @@
 "use client";
+import prisma from "@/lib/prisma";
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
@@ -62,16 +65,32 @@ const MessageForm = ({
           { success: false, error: false },
           formValues,
         );
+    ///////////////////
+if (result.success) {
+  if (type === "create") {
+    try {
+      const schoolId = await getSchoolId();
 
-        if (result.success) {
-          toast(
-            `Message has been ${type === "create" ? "created" : "updated"}!`,
-          );
-          setOpen(false);
-          router.refresh();
-          return;
-        }
+      await createNotification({
+        schoolId,
+        recipientType: formValues.receiverType,
+        recipientId: formValues.receiverId,
+        type: "MESSAGE",
+        title: "New Message",
+        message: You have received a new message: "${formValues.title}",
+        relatedId: Number(formValues.id ?? 0),
+      });
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
 
+  toast(Message has been ${type === "create" ? "sent" : "updated"}!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+     ////////////////////
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
