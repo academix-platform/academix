@@ -1,5 +1,9 @@
 "use client";
 
+import prisma from "@/lib/prisma";
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import InputField from "../InputField";
@@ -66,16 +70,34 @@ const ClassForm = ({
     startTransition(() => {
       void (async () => {
         const result = await action({ success: false, error: false }, data);
+           ////////////////
+       if (result.success) {
+  const values = formValues as any;
+  const supervisorId = values.supervisorId || values.teacherId;
 
-        if (result.success) {
-          toast(
-            `${type === "create" ? "Class created" : "Class updated"} successfully!`,
-          );
-          setOpen(false);
-          router.refresh();
-          return;
-        }
+  if (type === "create" && supervisorId) {
+    try {
+      const schoolId = await getSchoolId();
 
+      await createNotification({
+        schoolId,
+        recipientType: "TEACHER",
+        recipientId: String(supervisorId), 
+        type: "CLASS",
+        title: "New Class Assigned ",
+        message: You have been assigned as the supervisor for Class: "${values.name || ''}",
+        relatedId: Number(result?.id || 0),
+      });
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
+  toast(Class has been created!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+          ///////////////
         toast.error(result.message ?? "Something went wrong!");
       })();
     });
