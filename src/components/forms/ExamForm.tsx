@@ -2,7 +2,6 @@
 
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
-import prisma from "@/lib/prisma";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, useWatch } from "react-hook-form";
@@ -66,44 +65,33 @@ const ExamForm = ({
           formValues,
         );
 
-         ///////////
-   if (result.success) {
+        if (result.success) {
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId(); 
 
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId(); 
+              // أرسل إشعاراً واحداً موجهاً للفصل بالكامل ومحمي من الـ Build 
+              // بدلاً من عمل loop على الطلاب داخل الـ Client Component
+              await createNotification({
+                schoolId,
+                recipientType: "STUDENT",
+                recipientId: "CLASS_ALL", // أو أرسلها كإشعار عام للفصل وسيتولى السيرفر مطابقتها بناءً على الـ relatedId
+                type: "EXAM",
+                title: "New Exam Scheduled 📝",
+                message: `A new exam "${formValues.title}" has been posted for your class.`,
+                relatedId: Number(formValues.subjectId ?? 0),
+              });
 
-      const students = await prisma.student.findMany({
-        where: {
-          classId: {
-            in: formValues.classIds.map(Number),
-          },
-        },
-        select: { id: true },
-      });
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
 
-      for (const student of students) {
-        await createNotification({
-          schoolId,
-          recipientType: "STUDENT",
-          recipientId: student.id,
-          type: "EXAM",
-          title: "New EXAM",
-          message: A new exam "${formValues.title}" has been posted.,
-          relatedId: Number(formValues.subjectId ?? 0),
-        });
-      }
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-
-  toast(Exam has been ${type === "create" ? "created" : "updated"}!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-        //////////////
+          toast.success(`Exam has been ${type === "create" ? "created" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
 
         toast.error(result.message ?? "Something went wrong!");
       } catch {
@@ -209,30 +197,9 @@ const ExamForm = ({
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        <InputField
-          label="Exam Title"
-          name="title"
-          defaultValue={data?.title}
-          register={register}
-          error={errors?.title}
-          inputProps={{ placeholder: "e.g. Midterm Quiz" }}
-        />
-        <InputField
-          label="Start Date"
-          name="startTime"
-          type="datetime-local"
-          defaultValue={startDefaultValue}
-          register={register}
-          error={errors?.startTime}
-        />
-        <InputField
-          label="End Date"
-          name="endTime"
-          type="datetime-local"
-          defaultValue={endDefaultValue}
-          register={register}
-          error={errors?.endTime}
-        />
+        <InputField label="Exam Title" name="title" defaultValue="{data?.title}" register="{register}" error="{errors?.title}" inputProps="{{" placeholder: "e.g. Midterm Quiz" }}/>
+        <InputField label="Start Date" name="startTime" type="datetime-local" defaultValue="{startDefaultValue}" register="{register}" error="{errors?.startTime}"/>
+        <InputField label="End Date" name="endTime" type="datetime-local" defaultValue="{endDefaultValue}" register="{register}" error="{errors?.endTime}"/>
         {type === "update" && (
           <input type="hidden" {...register("id")} defaultValue={data?.id} />
         )}
@@ -319,5 +286,3 @@ const ExamForm = ({
 };
 
 export default ExamForm;
-
-
