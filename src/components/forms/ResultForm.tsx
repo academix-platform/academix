@@ -1,6 +1,5 @@
 "use client";
 
-import prisma from "@/lib/prisma";
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
 
@@ -75,54 +74,53 @@ const ResultForm = ({
           { success: false, error: false },
           formValues,
         );
-           //////////////
-       if (result.success) {
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId();
-      const values = formValues as any;
-      const targetStudentId = values.studentId || values.id;
 
-      const studentData = await prisma.student.findUnique({
-        where: { id: targetStudentId },
-        select: { id: true, parentId: true },
-      });
+        if (result.success) {
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId();
+              
+              
+              const studentId = result.data?.studentId;
+              const parentId = result.data?.parentId; 
 
-      if (studentData) {
-        await createNotification({
-          schoolId,
-          recipientType: "STUDENT",
-          recipientId: studentData.id,
-          type: "RESULT",
-          title: "New Exam Result",
-          message: Your exam result has been published. Check your grades!,
-          relatedId: Number(values.examId || 0),
-        });
+              if (studentId) {
+                await createNotification({
+                  schoolId,
+                  recipientType: "STUDENT",
+                  recipientId: studentId,
+                  type: "RESULT",
+                  title: "New Exam Result",
+                  message: `Your exam result has been published. Check your grades!`,
+                  relatedId: Number(formValues.assessmentId || 0),
+                });
 
-        if (studentData.parentId) {
-          await createNotification({
-            schoolId,
-            recipientType: "PARENT",
-            recipientId: studentData.parentId,
-            type: "RESULT",
-            title: "Child Exam Result",
-            message: Your child's exam result has been published.,
-            relatedId: Number(values.examId || 0),
-          });
+                if (parentId) {
+                  await createNotification({
+                    schoolId,
+                    recipientType: "PARENT",
+                    recipientId: parentId,
+                    type: "RESULT",
+                    title: "Child Exam Result",
+                    message: `Your child's exam result has been published.`,
+                    relatedId: Number(formValues.assessmentId || 0),
+                  });
+                }
+              }
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
+
+          toast.success(`Result has been saved!`);
+          setOpen(false);
+          router.refresh();
+          return;
         }
-      }
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-  toast(Result has been saved!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-                 ////////////////
+
         toast.error(result.message ?? "Something went wrong!");
-      } catch {
+      } catch (error) {
+        console.error("Form submission error:", error);
         toast.error("Something went wrong!");
       }
     });
@@ -351,5 +349,3 @@ const ResultForm = ({
 };
 
 export default ResultForm;
-
-
