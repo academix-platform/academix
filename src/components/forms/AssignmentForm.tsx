@@ -69,27 +69,21 @@ const AssignmentForm = ({
           formValues,
         );
            ///////////
-    if (result.success) {
+ if (result.success) {
 
   if (type === "create") {
     try {
+      const schoolId = await getSchoolId(); 
 
-      // get dynamic schoolId
-      const schoolId = await getSchoolId();
-
-      // get students inside selected classes
       const students = await prisma.student.findMany({
         where: {
           classId: {
             in: formValues.classIds.map(Number),
           },
         },
-        select: {
-          id: true,
-        },
+        select: { id: true },
       });
 
-      // create notification for each student
       for (const student of students) {
         await createNotification({
           schoolId,
@@ -97,20 +91,16 @@ const AssignmentForm = ({
           recipientId: student.id,
           type: "ASSIGNMENT",
           title: "New Assignment",
-          message: New assignment "${formValues.title}" has been posted.,
+          message: A new assignment "${formValues.title}" has been posted.,
           relatedId: Number(formValues.subjectId ?? 0),
         });
       }
-
     } catch (error) {
       console.error("Notification error:", error);
     }
   }
 
-  toast(
-    Assignment has been ${type === "create" ? "created" : "updated"}!,
-  );
-
+  toast(Assignment has been ${type === "create" ? "created" : "updated"}!);
   setOpen(false);
   router.refresh();
   return;
