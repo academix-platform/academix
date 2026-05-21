@@ -1,5 +1,9 @@
 "use client";
 
+import prisma from "@/lib/prisma";
+import { createNotification } from "@/lib/actions/notification";
+import { getSchoolId } from "@/lib/getSchoolId";
+
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   lessonDays,
@@ -382,14 +386,41 @@ const LessonForm = ({
           { success: false, error: false },
           formValues,
         );
-
+          ////////////////////
         if (result.success) {
-          toast("Weekly lesson schedule has been saved.");
-          setOpen(false);
-          router.refresh();
-          return;
-        }
+  if (type === "create") {
+    try {
+      const schoolId = await getSchoolId();
 
+      const students = await prisma.student.findMany({
+        where: {
+          classId: Number(formValues.classId),
+        },
+        select: { id: true },
+      });
+
+      for (const student of students) {
+        await createNotification({
+          schoolId,
+          recipientType: "STUDENT",
+          recipientId: student.id,
+          type: "LESSON",
+          title: "Schedule Update",
+          message: A new lesson has been added to your schedule: "${formValues.name}",
+          relatedId: Number(formValues.classId),
+        });
+      }
+    } catch (error) {
+      console.error("Notification error:", error);
+    }
+  }
+
+  toast(Lesson has been ${type === "create" ? "created" : "updated"}!);
+  setOpen(false);
+  router.refresh();
+  return;
+}
+              ////////////////////
         toast.error(result.message ?? "Something went wrong!");
       } catch {
         toast.error("Something went wrong!");
