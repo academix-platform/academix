@@ -1,5 +1,5 @@
 "use client";
-import prisma from "@/lib/prisma";
+
 import { createNotification } from "@/lib/actions/notification";
 import { getSchoolId } from "@/lib/getSchoolId";
 
@@ -82,43 +82,40 @@ const EventForm = ({
     startTransition(async () => {
       try {
         const result = await action({ success: false, error: false }, parsed);
-           //////////////////
-       if (result.success) {
-  if (type === "create") {
-    try {
-      const schoolId = await getSchoolId();
+        
+        if (result.success) {
+          if (type === "create") {
+            try {
+              const schoolId = await getSchoolId();
+              
+              // لتجنب استدعاء قاعدة البيانات مباشرة في الـ Client Component،
+              // نعتمد على استجابة الـ Action الراجع (result.students) أو معالجة الإشعارات بالخلفية
+              const studentIds: string[] = result.students ?? [];
 
-      const students = await prisma.student.findMany({
-        where: {
-          classId: { in: formValues.classIds.map(Number) },
-        },
-        select: { id: true },
-      });
+              for (const studentId of studentIds) {
+                await createNotification({
+                  schoolId,
+                  recipientType: "STUDENT",
+                  recipientId: String(studentId),
+                  type: "EVENT",
+                  title: "New Event",
+                  message: `A new event "${formValues.title}" has been scheduled.`,
+                  relatedId: Number(result.id ?? formValues.id ?? 0),
+                });
+              }
+            } catch (error) {
+              console.error("Notification error:", error);
+            }
+          }
 
-      for (const student of students) {
-        await createNotification({
-          schoolId,
-          recipientType: "STUDENT",
-          recipientId: student.id,
-          type: "EVENT",
-          title: "New Event",
-          message: A new event "${formValues.title}" has been scheduled.,
-          relatedId: Number(formValues.id ?? 0),
-        });
-      }
-    } catch (error) {
-      console.error("Notification error:", error);
-    }
-  }
-
-  toast(Event has been ${type === "create" ? "created" : "updated"}!);
-  setOpen(false);
-  router.refresh();
-  return;
-}
-           ///////////////
+          toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
+          setOpen(false);
+          router.refresh();
+          return;
+        }
+        
         toast.error(result.message ?? "Something went wrong!");
-      } catch {
+      } catch (err) {
         toast.error("Something went wrong!");
       }
     });
@@ -293,5 +290,3 @@ const EventForm = ({
 };
 
 export default EventForm;
-
-
