@@ -63,6 +63,7 @@ export async function uploadAssignmentFile(
     const result = await cloudinary.uploader.upload(dataUri, {
       folder: "assignments",
       resource_type: isImage ? "image" : "raw",
+      type: "upload",           // ← هذا يجعل الملف public دائماً
       use_filename: true,
       unique_filename: true,
     });

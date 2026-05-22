@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Download, Users, FileText, CheckCircle, Clock } from "lucide-react";
+import { X, Download, Users, FileText, CheckCircle, Clock, MessageSquare, Send, Loader2 } from "lucide-react";
+import { toast } from "react-toastify";
+import { updateTeacherFeedback } from "@/lib/actions/submission.actions";
 
 type Submission = {
   id: number;
@@ -9,11 +11,12 @@ type Submission = {
   fileName: string;
   fileType: string;
   note: string | null;
+  teacherFeedback: string | null;
   createdAt: Date;
   student: {
     id: string;
     name: string;
-      img: string | null;
+    img: string | null;
   };
 };
 
@@ -29,8 +32,14 @@ export default function SubmissionsModal({
   totalStudents,
 }: Props) {
   const [open, setOpen] = useState(false);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [submissions, setSubmissions] =  useState<Submission[]>([]);
   const [loading, setLoading] = useState(false);
+  const [feedbackModal, setFeedbackModal] = useState<{
+    submissionId: number;
+    studentName: string;
+  } | null>(null);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -44,9 +53,28 @@ export default function SubmissionsModal({
   const submitted = submissions.length;
   const notSubmitted = totalStudents - submitted;
 
+  async function handleSaveFeedback() {
+    if (!feedbackModal) return;
+    setSaving(true);
+    const result = await updateTeacherFeedback(feedbackModal.submissionId, feedbackText);
+    setSaving(false);
+    if (result.success) {
+      toast.success(result.message);
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === feedbackModal.submissionId
+            ? { ...s, teacherFeedback: feedbackText }
+            : s
+        )
+      );
+      setFeedbackModal(null);
+    } else {
+      toast.error(result.message);
+    }
+  }
+
   return (
     <>
-      {/* زر فتح */}
       <button
         type="button"
         onClick={() => setOpen(true)}
@@ -58,11 +86,9 @@ export default function SubmissionsModal({
         Submissions
       </button>
 
-      {/* Modal */}
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
           <div className="bg-white rounded-xl shadow-xl w-full max-w-lg mx-4 max-h-[85vh] flex flex-col">
-
             {/* Header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
@@ -118,7 +144,7 @@ export default function SubmissionsModal({
                 <ul className="divide-y divide-gray-50">
                   {submissions.map((s) => (
                     <li key={s.id} className="flex items-start gap-3 py-3">
-                      {/* صورة الطالب */}
+                      {/* Student avatar */}
                       {s.student.img ? (
                         <img
                           src={s.student.img}
@@ -132,7 +158,7 @@ export default function SubmissionsModal({
                         </div>
                       )}
 
-                      {/* معلومات التسليم */}
+                      {/* Submission info */}
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-800">
                           {s.student.name}
@@ -157,18 +183,37 @@ export default function SubmissionsModal({
                         </p>
                       </div>
 
-                      {/* زر تحميل */}
+                      {/* زر التحميل المعدل ليستخدم API العام /api/download مع type=submission */}
                       <a
-                        href={s.fileUrl}
+                        href={`/api/download/${s.id}?type=submission`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        download={s.fileName}
                         className="flex-shrink-0 p-1.5 rounded-lg text-gray-400
                                    hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                         title="Download submission"
                       >
                         <Download className="w-4 h-4" />
                       </a>
+
+                      {/* زر Feedback */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFeedbackModal({
+                            submissionId: s.id,
+                            studentName: s.student.name,
+                          });
+                          setFeedbackText(s.teacherFeedback ?? "");
+                        }}
+                        className="relative flex-shrink-0 p-1.5 rounded-lg text-gray-400
+                                   hover:text-green-600 hover:bg-green-50 transition-colors"
+                        title={s.teacherFeedback ? "Edit feedback" : "Add feedback"}
+                      >
+                        <MessageSquare className="w-4 h-4" />
+                        {s.teacherFeedback && (
+                          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-green-500" />
+                        )}
+                      </button>
                     </li>
                   ))}
                 </ul>
@@ -184,6 +229,73 @@ export default function SubmissionsModal({
                            text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Feedback Modal */}
+      {feedbackModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-gray-800 text-base">
+                Teacher Feedback
+              </h3>
+              <button
+                type="button"
+                onClick={() => setFeedbackModal(null)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-3">
+              Student:{" "}
+              <span className="font-medium text-gray-700">
+                {feedbackModal.studentName}
+              </span>
+            </p>
+
+            <textarea
+              value={feedbackText}
+              onChange={(e) => setFeedbackText(e.target.value)}
+              rows={4}
+              placeholder="Write your feedback for this student..."
+              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none
+                         focus:ring-2 focus:ring-indigo-300 resize-none"
+            />
+
+            <div className="flex gap-3 mt-4">
+              <button
+                type="button"
+                onClick={() => setFeedbackModal(null)}
+                className="flex-1 py-2 border rounded-lg text-gray-600
+                           hover:bg-gray-50 text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveFeedback}
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-2
+                           bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300
+                           text-white font-medium py-2 rounded-lg text-sm transition-colors"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Save Feedback
+                  </>
+                )}
               </button>
             </div>
           </div>

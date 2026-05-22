@@ -1,3 +1,4 @@
+// src/app/(dashboard)/list/assignments/page.tsx
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
@@ -13,7 +14,6 @@ import { UserRole } from "@/lib/utils";
 import { Assignment, Class, Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
 import { Download } from "lucide-react";
-import AssignmentFileUpload from "@/components/AssignmentFileUpload";
 import AssignmentSubmit from "@/components/AssignmentSubmit";
 import SubmissionsModal from "@/components/SubmissionsModal";
 
@@ -21,13 +21,15 @@ type AssignmentList = Assignment & {
   subject: Pick<Subject, "name"> | null;
   class: Pick<Class, "name"> | null;
   lesson: { teacher: Pick<Teacher, "name"> };
-  submissions?: {
+  assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
+    id: number;
     fileUrl: string;
     fileName: string;
     createdAt: Date;
     note: string | null;
+    teacherFeedback: string | null;
   }[];
-  _count?: { submissions: number };
+  _count?: { assignmentSubmissions: number };
 };
 
 const formatDateTime = (date: Date) =>
@@ -38,7 +40,7 @@ const formatDateTime = (date: Date) =>
 
 const getColumns = (role: UserRole | null) => {
   const columns: { header: string; accessor: string; className?: string }[] = [
-    { header: "Title",   accessor: "title" },
+    { header: "Title", accessor: "title" },
     { header: "Subject", accessor: "subject" },
   ];
 
@@ -65,7 +67,10 @@ const getColumns = (role: UserRole | null) => {
 };
 
 const renderRow = (item: AssignmentList, role: UserRole | null) => {
-  const mySubmission = item.submissions?.[0] ?? null;
+  // ✅ استخدام assignmentSubmissions بدلاً من submissions
+  const mySubmission = item.assignmentSubmissions?.[0] ?? null;
+  const canManage = role === "teacher" || role === "admin";
+
   return (
     <tr
       key={item.id}
@@ -82,12 +87,10 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
       </td>
       <td>
         <div className="flex items-center gap-2 flex-wrap">
-          {item.fileUrl && (
+          {/* زر Download للطالب فقط (إن وجد ملف) */}
+          {role === "student" && item.fileUrl && (
             <a
-              href={item.fileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              download={item.fileName ?? true}
+              href={`/api/download/${item.id}?type=assignment`}
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-xs font-medium"
             >
               <Download className="w-3.5 h-3.5" />
@@ -96,25 +99,25 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
           )}
           {role === "student" && (
             <AssignmentSubmit
+              key={mySubmission?.id ?? 'no-submission'} // إضافة مفتاح لإعادة التصيير عند التحديث
               assignmentId={item.id}
               assignmentTitle={item.title}
               endDate={item.endDate}
-              existingSubmission={mySubmission}
+              existingSubmission={mySubmission ? {
+                id: mySubmission.id,
+                fileUrl: mySubmission.fileUrl,
+                fileName: mySubmission.fileName,
+                createdAt: mySubmission.createdAt,
+                note: mySubmission.note,
+                teacherFeedback: mySubmission.teacherFeedback,
+              } : null}
             />
           )}
-          {role === "teacher" && (
-            <AssignmentFileUpload
-              assignmentId={item.id}
-              assignmentTitle={item.title}
-              currentFileUrl={item.fileUrl}
-              currentFileName={item.fileName}
-            />
-          )}
-          {role === "teacher" && (
+          {canManage && (
             <SubmissionsModal
               assignmentId={item.id}
               assignmentTitle={item.title}
-              totalStudents={item._count?.submissions ?? 0}
+              totalStudents={item._count?.assignmentSubmissions ?? 0}
             />
           )}
           {(role === "admin" || role === "teacher") && (
@@ -163,17 +166,19 @@ const AssignmentListPage = async ({
     }),
   );
 
+  const includeSubmissionsCount = role === "teacher" || role === "admin";
+
   const [data, count] = await prisma.$transaction([
     prisma.assignment.findMany({
       where: query,
       include: {
         subject: { select: { name: true } },
-        class:   { select: { name: true } },
-        lesson:  { select: { teacher: { select: { name: true } } } },
+        class: { select: { name: true } },
+        lesson: { select: { teacher: { select: { name: true } } } },
         assignmentSubmissions: role === "student" && userId
-          ? { where: { studentId: userId }, select: { fileUrl: true, fileName: true, createdAt: true, note: true } }
+          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true } }
           : false,
-        _count: role === "teacher" ? { select: { assignmentSubmissions: true } } : false,
+        _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },
       orderBy,
       take: ITEM_PER_PAGE,

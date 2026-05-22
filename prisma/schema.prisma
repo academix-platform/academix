@@ -348,11 +348,13 @@ model Assignment {
 
 // Assignment file submission (from stash)
 model AssignmentSubmission {
-  id        Int      @id @default(autoincrement())
-  fileUrl   String
-  fileName  String
-  fileType  String
-  note      String?
+  id              Int     @id @default(autoincrement())
+  fileUrl         String
+  fileName        String
+  fileType        String
+  note            String?
+  teacherFeedback String?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

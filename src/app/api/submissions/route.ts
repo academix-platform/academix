@@ -7,7 +7,8 @@ export async function GET(req: NextRequest) {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
 
-    if (!userId || role !== "teacher") {
+    // ✅ السماح للمعلم والأدمن
+    if (!userId || (role !== "teacher" && role !== "admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -16,11 +17,22 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "assignmentId is required" }, { status: 400 });
     }
 
-    // التحقق أن الواجب يخص هذا المعلم
-    const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, lesson: { teacherId: userId } },
-      select: { id: true },
-    });
+    // ✅ التحقق من صلاحية الوصول إلى الواجب
+    let assignment;
+    if (role === "admin") {
+      // الأدمن يرى كل الواجبات
+      assignment = await prisma.assignment.findUnique({
+        where: { id: assignmentId },
+        select: { id: true },
+      });
+    } else {
+      // المعلم يرى فقط واجباته
+      assignment = await prisma.assignment.findFirst({
+        where: { id: assignmentId, lesson: { teacherId: userId } },
+        select: { id: true },
+      });
+    }
+
     if (!assignment) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }

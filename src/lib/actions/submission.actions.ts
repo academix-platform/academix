@@ -1,3 +1,4 @@
+// src/lib/actions/submission.actions.ts
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
@@ -23,20 +24,32 @@ async function uploadToCloudinary(file: File) {
   const buffer = Buffer.from(bytes);
   const base64 = buffer.toString("base64");
   const dataUri = `data:${file.type};base64,${base64}`;
-  const ext = file.name.split(".").pop()?.toLowerCase() ?? "bin";
-  const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(ext);
-
   const result = await cloudinary.uploader.upload(dataUri, {
     folder: "submissions",
-    resource_type: isImage ? "image" : "raw",
+    resource_type: "auto",
     use_filename: true,
     unique_filename: true,
   });
-
-  return { url: result.secure_url, fileType: ext, fileName: file.name };
+  return { url: result.secure_url, fileType: result.format, fileName: file.name, publicId: result.public_id };
 }
 
-// ─── تسليم الطالب (إنشاء أو إعادة تسليم) ────────────────────────────────────
+async function deleteFromCloudinary(publicId: string) {
+  try {
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Failed to delete old file:", error);
+  }
+}
+
+function extractPublicIdFromUrl(url: string): string | null {
+  const parts = url.split('/');
+  const uploadIndex = parts.findIndex(p => p === 'upload');
+  if (uploadIndex === -1 || uploadIndex + 2 >= parts.length) return null;
+  const publicIdParts = parts.slice(uploadIndex + 2);
+  const publicId = publicIdParts.join('/').split('.')[0];
+  return publicId;
+}
+
 export async function submitAssignment(
   _state: SubmissionState,
   formData: FormData
@@ -44,14 +57,13 @@ export async function submitAssignment(
   try {
     const { userId, sessionClaims } = await auth();
     const role = (sessionClaims?.metadata as { role?: string })?.role;
-
     if (!userId || role !== "student") {
       return { success: false, error: true, message: "Unauthorized" };
     }
 
     const assignmentId = Number(formData.get("assignmentId"));
     if (!assignmentId) {
-      return { success: false, error: true, message: "Assignment ID is required" };
+      return { success: false, error: true, message: "Assignment ID required" };
     }
 
     const student = await prisma.student.findUnique({
@@ -62,17 +74,21 @@ export async function submitAssignment(
       return { success: false, error: true, message: "Student not found" };
     }
 
-    // التحقق أن الواجب يخص صف الطالب
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
         schoolId: student.schoolId,
         class: { students: { some: { id: userId } } },
       },
-      select: { id: true },
+      select: { id: true, endDate: true },
     });
     if (!assignment) {
       return { success: false, error: true, message: "Assignment not found" };
+    }
+
+    const now = new Date();
+    if (now > new Date(assignment.endDate)) {
+      return { success: false, error: true, message: "Deadline passed. Cannot replace file." };
     }
 
     const academicYear = await getCurrentAcademicYearOrNull(student.schoolId);
@@ -88,14 +104,25 @@ export async function submitAssignment(
       return { success: false, error: true, message: "File must be under 20MB" };
     }
 
-    const note = (formData.get("note") as string) || null;
-    const { url, fileType, fileName } = await uploadToCloudinary(file);
+    const existing = await prisma.assignmentSubmission.findUnique({
+      where: { assignmentId_studentId: { assignmentId, studentId: userId } },
+      select: { fileUrl: true },
+    });
 
-    // upsert — إنشاء أو تحديث إذا سبق التسليم
+    // رفع الملف الجديد
+    const { url, fileType, fileName, publicId: newPublicId } = await uploadToCloudinary(file);
+
+    // حذف الملف القديم إذا وجد
+    if (existing?.fileUrl) {
+      const oldPublicId = extractPublicIdFromUrl(existing.fileUrl);
+      if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+    }
+
+    const note = formData.get("note") as string | null;
+
+    // حفظ أو تحديث التسليم
     await prisma.assignmentSubmission.upsert({
-      where: {
-        assignmentId_studentId: { assignmentId, studentId: userId },
-      },
+      where: { assignmentId_studentId: { assignmentId, studentId: userId } },
       create: {
         fileUrl: url,
         fileName,
@@ -116,9 +143,41 @@ export async function submitAssignment(
     });
 
     revalidatePath("/list/assignments");
-    return { success: true, error: false, message: "Submitted successfully!" };
+
+    // ✅ تحديد الرسالة المناسبة
+    const isUpdate = !!existing;
+    const successMessage = isUpdate
+      ? "File replaced successfully!"
+      : "Assignment submitted successfully!";
+
+    return { success: true, error: false, message: successMessage };
   } catch (err) {
-    console.error("[submitAssignment]", err);
+    console.error(err);
+    return { success: false, error: true, message: "Something went wrong" };
+  }
+}
+
+export async function updateTeacherFeedback(
+  submissionId: number,
+  teacherFeedback: string
+): Promise<SubmissionState> {
+  try {
+    const { userId, sessionClaims } = await auth();
+    const role = (sessionClaims?.metadata as { role?: string })?.role;
+
+    if (!userId || !["teacher", "admin"].includes(role ?? "")) {
+      return { success: false, error: true, message: "Unauthorized" };
+    }
+
+    await prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: { teacherFeedback },
+    });
+
+    revalidatePath("/list/assignments");
+    return { success: true, error: false, message: "Feedback saved successfully!" };
+  } catch (err) {
+    console.error(err);
     return { success: false, error: true, message: "Something went wrong" };
   }
 }

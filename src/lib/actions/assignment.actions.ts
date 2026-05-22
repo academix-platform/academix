@@ -1,6 +1,7 @@
+// src/lib/actions/assignment.actions.ts
 "use server";
 
-import { AssignmentSchema } from "../formValidationSchemas";
+import { assignmentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
   CurrentState,
@@ -10,15 +11,92 @@ import {
   requireActionAccess,
   successResult,
 } from "./helpers";
+import cloudinary from "@/lib/cloudinary";
+
+async function uploadAssignmentFile(file: File, folder = "assignments"): Promise<{ url: string; name: string }> {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+
+  return new Promise((resolve, reject) => {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder, resource_type: "auto", filename_override: file.name },
+      (error, result) => {
+        if (error || !result) reject(error || new Error("Upload failed"));
+        else resolve({ url: result.secure_url, name: file.name });
+      }
+    );
+    uploadStream.end(buffer);
+  });
+}
+
+async function deleteAssignmentFile(fileUrl: string) {
+  if (!fileUrl.includes("cloudinary")) return;
+  try {
+    const parts = fileUrl.split('/');
+    const publicIdWithExt = parts.slice(7).join('/');
+    const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error("Failed to delete file from Cloudinary:", error);
+  }
+}
+
+function extractAssignmentData(formData: FormData): {
+  id?: number;
+  title: string;
+  startDate: Date;
+  endDate: Date;
+  subjectId: number;
+  classIds: number[];
+  file: File | null;
+  removeFile: boolean;
+} {
+  const idRaw = formData.get("id");
+  const id = idRaw ? Number(idRaw) : undefined;
+  const title = formData.get("title") as string;
+  const startDateRaw = formData.get("startDate") as string;
+  const endDateRaw = formData.get("endDate") as string;
+  const subjectId = Number(formData.get("subjectId"));
+  const classIdsRaw = formData.getAll("classIds");
+  const classIds = classIdsRaw.map(c => Number(c)).filter(id => !isNaN(id));
+  const file = formData.get("file") as File | null;
+  const removeFile = formData.get("removeFile") === "true";
+
+  return {
+    id,
+    title,
+    startDate: new Date(startDateRaw),
+    endDate: new Date(endDateRaw),
+    subjectId,
+    classIds,
+    file,
+    removeFile,
+  };
+}
 
 export const createAssignment = async (
   currentState: CurrentState,
-  data: AssignmentSchema,
+  formData: FormData,
 ) => {
   const access = await requireActionAccess(["admin", "teacher"]);
   if ("error" in access) return access;
   const role = access.role;
   const userId = access.userId;
+
+  const { title, startDate, endDate, subjectId, classIds, file, removeFile } =
+    extractAssignmentData(formData);
+
+  const validation = assignmentSchema.safeParse({
+    title,
+    startDate,
+    endDate,
+    subjectId,
+    classIds,
+  });
+  if (!validation.success) {
+    return { success: false, error: true, message: validation.error.errors[0].message };
+  }
+
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
@@ -26,14 +104,13 @@ export const createAssignment = async (
       where: {
         academicYearId,
         schoolId: access.schoolId,
-        subjectId: data.subjectId,
-        classId: { in: data.classIds },
+        subjectId,
+        classId: { in: classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
       },
       select: { id: true, classId: true },
     });
 
-    const matchedClassIds = new Set(lessons.map((lesson) => lesson.classId));
     if (lessons.length === 0) {
       return {
         success: false,
@@ -41,28 +118,42 @@ export const createAssignment = async (
         message: "No lessons were found for the selected subject and classes.",
       };
     }
-
-    if (matchedClassIds.size !== data.classIds.length) {
+    if (lessons.length !== classIds.length) {
       return {
         success: false,
         error: true,
-        message:
-          "One or more selected classes do not have a lesson for that subject.",
+        message: "One or more selected classes do not have a lesson for that subject.",
       };
+    }
+
+    let fileUrl: string | null = null;
+    let fileName: string | null = null;
+    if (file && file.size > 0 && !removeFile) {
+      try {
+        const upload = await uploadAssignmentFile(file);
+        fileUrl = upload.url;
+        fileName = upload.name;
+        console.log("✅ File uploaded:", fileUrl);
+      } catch (err) {
+        console.error("❌ Upload failed:", err);
+        return { success: false, error: true, message: "File upload failed." };
+      }
     }
 
     await prisma.$transaction(
       lessons.map((lesson) =>
         prisma.assignment.create({
           data: {
-            title: data.title,
-            startDate: data.startDate,
-            endDate: data.endDate,
+            title,
+            startDate,
+            endDate,
             lessonId: lesson.id,
             classId: lesson.classId,
-            subjectId: data.subjectId,
+            subjectId,
             academicYearId,
             schoolId: access.schoolId,
+            fileUrl,
+            fileName,
           },
         }),
       ),
@@ -76,14 +167,13 @@ export const createAssignment = async (
 
 export const updateAssignment = async (
   currentState: CurrentState,
-  data: AssignmentSchema,
+  formData: FormData,
 ) => {
-  if (!data.id) {
-    return {
-      success: false,
-      error: true,
-      message: "Assignment id is required.",
-    };
+  const { id, title, startDate, endDate, subjectId, classIds, file, removeFile } =
+    extractAssignmentData(formData);
+
+  if (!id) {
+    return { success: false, error: true, message: "Assignment id is required." };
   }
 
   const access = await requireActionAccess(["admin", "teacher"]);
@@ -91,39 +181,38 @@ export const updateAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
+  const validation = assignmentSchema.safeParse({
+    title,
+    startDate,
+    endDate,
+    subjectId,
+    classIds,
+  });
+  if (!validation.success) {
+    return { success: false, error: true, message: validation.error.errors[0].message };
+  }
+
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const existingAssignment = await prisma.assignment.findUnique({
-      where: { id: data.id, schoolId: access.schoolId },
-      select: {
-        id: true,
-        title: true,
-        startDate: true,
-        endDate: true,
-        subjectId: true,
-      },
+      where: { id, schoolId: access.schoolId },
+      select: { fileUrl: true, fileName: true, title: true, startDate: true, endDate: true, subjectId: true },
     });
-
     if (!existingAssignment) {
-      return {
-        success: false,
-        error: true,
-        message: "The assignment you are trying to update was not found.",
-      };
+      return { success: false, error: true, message: "Assignment not found." };
     }
 
     const lessons = await prisma.lesson.findMany({
       where: {
         academicYearId,
-        subjectId: data.subjectId,
-        classId: { in: data.classIds },
+        subjectId,
+        classId: { in: classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
       },
       select: { id: true, classId: true },
     });
 
-    const matchedClassIds = new Set(lessons.map((lesson) => lesson.classId));
     if (lessons.length === 0) {
       return {
         success: false,
@@ -131,16 +220,36 @@ export const updateAssignment = async (
         message: "No lessons were found for the selected subject and classes.",
       };
     }
-
-    if (matchedClassIds.size !== data.classIds.length) {
+    if (lessons.length !== classIds.length) {
       return {
         success: false,
         error: true,
-        message:
-          "One or more selected classes do not have a lesson for that subject.",
+        message: "One or more selected classes do not have a lesson for that subject.",
       };
     }
 
+    let fileUrl = existingAssignment.fileUrl;
+    let fileName = existingAssignment.fileName;
+
+    if (removeFile && existingAssignment.fileUrl) {
+      await deleteAssignmentFile(existingAssignment.fileUrl);
+      fileUrl = null;
+      fileName = null;
+      console.log("🗑️ File removed.");
+    }
+
+    if (file && file.size > 0) {
+      // حذف القديم إذا كان موجوداً
+      if (existingAssignment.fileUrl && !removeFile) {
+        await deleteAssignmentFile(existingAssignment.fileUrl);
+      }
+      const upload = await uploadAssignmentFile(file);
+      fileUrl = upload.url;
+      fileName = upload.name;
+      console.log("✅ New file uploaded:", fileUrl);
+    }
+
+    // تحديث جميع الواجبات المرتبطة (نفس المجموعة)
     const groupAssignments = await prisma.assignment.findMany({
       where: {
         title: existingAssignment.title,
@@ -154,62 +263,45 @@ export const updateAssignment = async (
       select: { id: true, classId: true },
     });
 
-    const selectedLessonsByClass = new Map<
-      number,
-      { id: number; classId: number }
-    >();
+    const selectedLessonsByClass = new Map<number, { id: number; classId: number }>();
     for (const lesson of lessons) {
       selectedLessonsByClass.set(lesson.classId, lesson);
     }
 
     await prisma.$transaction(async (tx) => {
+      // حذف القديم غير المحدد
       for (const assignment of groupAssignments) {
-        if (
-          assignment.classId &&
-          !selectedLessonsByClass.has(assignment.classId)
-        ) {
+        if (assignment.classId && !selectedLessonsByClass.has(assignment.classId)) {
           await tx.assignment.delete({ where: { id: assignment.id } });
         }
       }
 
+      // إنشاء أو تحديث
       for (const [classId, lesson] of selectedLessonsByClass) {
-        const existingClassAssignment = groupAssignments.find(
-          (assignment) => assignment.classId === classId,
-        );
-
+        const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
+        const data = {
+          title,
+          startDate,
+          endDate,
+          lessonId: lesson.id,
+          classId,
+          subjectId,
+          academicYearId,
+          schoolId: access.schoolId,
+          fileUrl,
+          fileName,
+        };
         if (existingClassAssignment) {
-          await tx.assignment.update({
-            where: { id: existingClassAssignment.id },
-            data: {
-              title: data.title,
-              startDate: data.startDate,
-              endDate: data.endDate,
-              lessonId: lesson.id,
-              classId,
-              subjectId: data.subjectId,
-              academicYearId,
-              schoolId: access.schoolId,
-            },
-          });
+          await tx.assignment.update({ where: { id: existingClassAssignment.id }, data });
         } else {
-          await tx.assignment.create({
-            data: {
-              title: data.title,
-              startDate: data.startDate,
-              endDate: data.endDate,
-              lessonId: lesson.id,
-              classId,
-              subjectId: data.subjectId,
-              academicYearId,
-              schoolId: access.schoolId,
-            },
-          });
+          await tx.assignment.create({ data });
         }
       }
     });
 
     return successResult(["/list/assignments"]);
   } catch (err) {
+    console.error("Update error:", err);
     return errorResult(err);
   }
 };
@@ -227,13 +319,13 @@ export const deleteAssignment = async (
   if ("error" in access) return access;
   const role = access.role;
   const userId = access.userId;
+
   try {
     if (role === "teacher") {
       const teacherAssignment = await prisma.assignment.findFirst({
         where: { id, schoolId: access.schoolId, lesson: { teacherId: userId } },
-        select: { id: true },
+        select: { id: true, fileUrl: true },
       });
-
       if (!teacherAssignment) {
         return {
           success: false,
@@ -241,16 +333,21 @@ export const deleteAssignment = async (
           message: "You are not allowed to delete this assignment.",
         };
       }
+      if (teacherAssignment.fileUrl) {
+        await deleteAssignmentFile(teacherAssignment.fileUrl);
+      }
+    } else {
+      const assignment = await prisma.assignment.findUnique({
+        where: { id, schoolId: access.schoolId },
+        select: { fileUrl: true },
+      });
+      if (assignment?.fileUrl) {
+        await deleteAssignmentFile(assignment.fileUrl);
+      }
     }
 
-    const deleted = await prisma.assignment.deleteMany({
-      where: { id, schoolId: access.schoolId },
-    });
-    if (deleted.count === 0) {
-      return { success: false, error: true, message: "Assignment not found." };
-    }
-
-    return successResult();
+    await prisma.assignment.deleteMany({ where: { id, schoolId: access.schoolId } });
+    return successResult(["/list/assignments"]);
   } catch (err) {
     return errorResult(err);
   }

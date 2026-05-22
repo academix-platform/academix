@@ -64,9 +64,7 @@ export default async function SubjectDetailPage({
 
   const { userId, role, schoolId } = await requireAuth();
 
-  // schoolId من الـ helper الموجود في المشروع
-
-  // ── جلب المادة مع كل البيانات ─────────────────────────────────────────────
+  // جلب المادة مع كل البيانات
   const subject = await prisma.subject.findFirst({
     where: { id: subjectId, schoolId },
     include: {
@@ -125,8 +123,7 @@ export default async function SubjectDetailPage({
 
   return (
     <div className="min-h-screen bg-gray-50 p-6 space-y-6">
-
-      {/* ── Breadcrumb ──────────────────────────────────────────────────── */}
+      {/* Breadcrumb */}
       <nav className="flex items-center gap-1.5 text-sm text-gray-500">
         <Link
           href="/list/subjects"
@@ -138,7 +135,7 @@ export default async function SubjectDetailPage({
         <span className="text-gray-800 font-medium">{subject.name}</span>
       </nav>
 
-      {/* ── Header ──────────────────────────────────────────────────────── */}
+      {/* Header */}
       <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-start gap-4">
         <div className="p-4 bg-purple-100 rounded-xl">
           <BookOpen className="w-8 h-8 text-purple-600" />
@@ -155,7 +152,7 @@ export default async function SubjectDetailPage({
         </div>
       </div>
 
-      {/* ── Stats ───────────────────────────────────────────────────────── */}
+      {/* Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <StatCard
           icon={Users}
@@ -183,12 +180,10 @@ export default async function SubjectDetailPage({
         />
       </div>
 
-      {/* ── Main grid ───────────────────────────────────────────────────── */}
+      {/* Main grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-        {/* ── Left column (2/3) ─────────────────────────────────────────── */}
+        {/* Left column (2/3) */}
         <div className="lg:col-span-2 space-y-6">
-
           {/* Teachers */}
           <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
             <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -268,9 +263,7 @@ export default async function SubjectDetailPage({
                           </p>
                         )}
                         <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
-                          <span>
-                            Class: {a.lesson.class.name}
-                          </span>
+                          <span>Class: {a.lesson.class.name}</span>
                           <span>·</span>
                           <span>
                             Due:{" "}
@@ -287,13 +280,12 @@ export default async function SubjectDetailPage({
                         </div>
                       </div>
 
-                      {/* زر التحميل — لجميع المستخدمين إن وُجد ملف */}
+                      {/* Download button - for all users if file exists */}
                       {a.fileUrl && (
                         <a
-                          href={a.fileUrl}
+                          href={`/api/download/${a.id}?type=assignment`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          download={a.fileName ?? true}
                           title="Download assignment file"
                           className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5
                                      bg-orange-50 text-orange-700 hover:bg-orange-100
@@ -374,11 +366,10 @@ export default async function SubjectDetailPage({
           />
         </div>
 
-        {/* ── Right column (1/3) ────────────────────────────────────────── */}
+        {/* Right column (1/3) */}
         <div className="space-y-6">
-
-          {/* فورم الرفع — للمعلم فقط */}
-          {role === "teacher" && (
+          {/* Upload form — for teachers AND admins ✅ */}
+          {(role === "teacher" || role === "admin") && (
             <StudyMaterialUpload subjectId={subjectId} />
           )}
 
@@ -424,7 +415,6 @@ export default async function SubjectDetailPage({
               </div>
             </dl>
           </div>
-
         </div>
       </div>
     </div>
