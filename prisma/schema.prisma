@@ -14,33 +14,34 @@ model School {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  academicYears         AcademicYear[]
-  admins                Admin[]
-  students              Student[]
-  studentAcademicYears  StudentAcademicYear[]
-  teachers              Teacher[]
-  parents               Parent[]
-  grades                Grade[]
-  classes               Class[]
-  subjects              Subject[]
-  lessons               Lesson[]
-  events                Event[]
-  announcements         Announcement[]
-  messages              Message[]
-  attendances           Attendance[]
-  exams                 Exam[]
-  assignments           Assignment[]
-  studyMaterials        StudyMaterial[]
-  schoolSettings        SchoolSettings[]
-  results               Result[]
-  questions             Question[]
-  submissions           Submission[] // exam submissions
-  answers               Answer[]
-  assignmentSubmissions AssignmentSubmission[] // assignment submissions
+  academicYears AcademicYear[]
+  admins  Admin[] 
+  students Student[]
+  studentAcademicYears StudentAcademicYear[]
+  teachers Teacher[]
+  parents Parent[]
+  grades Grade[]
+  classes Class[]
+  subjects Subject[]
+  lessons Lesson[]
+  events Event[]
+  announcements Announcement[]
+  messages Message[]
+  attendances Attendance[]
+  exams Exam[]
+  assignments Assignment[]
+  schoolSettings SchoolSettings[]
+  results Result[]
+
+  // Exam workflow relations
+  questions   Question[]
+  submissions Submission[]
+  answers     Answer[]
 }
 
-model Admin {
-  id       String @id
+
+model Admin{
+  id String @id
   username String
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id])
@@ -58,11 +59,27 @@ model SchoolSettings {
   workDayEnd   DateTime @db.Time
 
   lessonDuration Int
-  lessonsPerDay  Int
+  lessonsPerDay Int
 
   updatedAt DateTime @updatedAt
 
   @@index([schoolId])
+}
+
+model SchoolDayException {
+  id Int @id @default(autoincrement())
+  schoolId Int
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  date DateTime @db.Date
+  type SchoolDayExceptionType
+  name String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, date])
+  @@index([schoolId])
+  @@index([date])
 }
 
 model AcademicYear {
@@ -594,6 +611,7 @@ enum Day {
   TUESDAY
   WEDNESDAY
   THURSDAY
+  FRIDAY
 }
 
 enum StudentStatus {
@@ -606,4 +624,10 @@ enum StudentStatus {
 enum PassFailStatus {
   PASS
   FAIL
+}
+
+enum SchoolDayExceptionType {
+  HOLIDAY
+  OFF_DAY
+  WORKING_OVERRIDE
 }
