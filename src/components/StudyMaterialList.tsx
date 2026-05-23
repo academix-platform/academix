@@ -123,7 +123,7 @@ export default function StudyMaterialList({
 
       <ul className="divide-y divide-gray-50">
         {materials.map((m) => {
-          const isOwner = role === "teacher" && currentUserId === m.teacher.id;
+          const isOwner = role === "admin" || (role === "teacher" && currentUserId === m.teacher.id);
 
           return (
             <li

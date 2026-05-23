@@ -80,15 +80,15 @@ export async function submitAssignment(
         schoolId: student.schoolId,
         class: { students: { some: { id: userId } } },
       },
-      select: { id: true, endDate: true },
+      select: { id: true, endDate: true, allowLateSubmission: true },
     });
     if (!assignment) {
       return { success: false, error: true, message: "Assignment not found" };
     }
 
     const now = new Date();
-    if (now > new Date(assignment.endDate)) {
-      return { success: false, error: true, message: "Deadline passed. Cannot replace file." };
+    if (now > new Date(assignment.endDate) && !assignment.allowLateSubmission) {
+      return { success: false, error: true, message: "Deadline passed. Submission is not allowed." };
     }
 
     const academicYear = await getCurrentAcademicYearOrNull(student.schoolId);

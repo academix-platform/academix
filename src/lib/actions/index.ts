@@ -76,3 +76,6 @@ export * from "./studyMaterial.actions";
 
 // Assignment submission actions
 export * from "./submission.actions";
+
+// Subject page settings actions
+export * from "./subjectPageSettings.actions";

@@ -14,34 +14,38 @@ model School {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  academicYears AcademicYear[]
-  admins  Admin[] 
-  students Student[]
-  studentAcademicYears StudentAcademicYear[]
-  teachers Teacher[]
-  parents Parent[]
-  grades Grade[]
-  classes Class[]
-  subjects Subject[]
-  lessons Lesson[]
-  events Event[]
-  announcements Announcement[]
-  messages Message[]
-  attendances Attendance[]
-  exams Exam[]
-  assignments Assignment[]
-  schoolSettings SchoolSettings[]
-  results Result[]
+  academicYears         AcademicYear[]
+  admins                Admin[]
+  students              Student[]
+  studentAcademicYears  StudentAcademicYear[]
+  teachers              Teacher[]
+  parents               Parent[]
+  grades                Grade[]
+  classes               Class[]
+  subjects              Subject[]
+  lessons               Lesson[]
+  events                Event[]
+  announcements         Announcement[]
+  messages              Message[]
+  attendances           Attendance[]
+  exams                 Exam[]
+  assignments           Assignment[]
+  assignmentSubmissions AssignmentSubmission[]
+  studyMaterials        StudyMaterial[]
+  schoolSettings        SchoolSettings[]
+  schoolDayExceptions   SchoolDayException[]
+  results               Result[]
 
   // Exam workflow relations
   questions   Question[]
   submissions Submission[]
   answers     Answer[]
+
+  subjectPageSettings SubjectPageSettings[]
 }
 
-
-model Admin{
-  id String @id
+model Admin {
+  id       String @id
   username String
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id])
@@ -51,15 +55,16 @@ model Admin{
 }
 
 model SchoolSettings {
-  id       Int    @id @default(autoincrement())
-  schoolId Int    @unique
-  school   School @relation(fields: [schoolId], references: [id])
+  id       Int      @id @default(autoincrement())
+  schoolId Int      @unique
+  school   School   @relation(fields: [schoolId], references: [id])
 
   workDayStart DateTime @db.Time
   workDayEnd   DateTime @db.Time
 
   lessonDuration Int
-  lessonsPerDay Int
+  lessonsPerDay  Int
+  workingDays   String[] @default([])
 
   updatedAt DateTime @updatedAt
 
@@ -67,15 +72,15 @@ model SchoolSettings {
 }
 
 model SchoolDayException {
-  id Int @id @default(autoincrement())
-  schoolId Int
-  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  date DateTime @db.Date
-  type SchoolDayExceptionType
-  name String?
-  notes String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id        Int                    @id @default(autoincrement())
+  schoolId  Int
+  school    School                 @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  date      DateTime               @db.Date
+  type      SchoolDayExceptionType
+  name      String?
+  notes     String?
+  createdAt DateTime               @default(now())
+  updatedAt DateTime               @updatedAt
 
   @@unique([schoolId, date])
   @@index([schoolId])
@@ -145,26 +150,27 @@ model Student {
 }
 
 model Teacher {
-  id                String          @id
-  schoolId          Int
-  school            School          @relation(fields: [schoolId], references: [id])
-  username          String
-  name              String
-  email             String?
-  phone             String?
-  address           String
-  img               String?
-  bloodType         String
-  sex               UserSex
-  createdAt         DateTime        @default(now())
-  subjects          Subject[]
-  lessons           Lesson[]
-  classes           Class[]         @relation("TeacherClasses")
-  supervisedClasses Class[]         @relation("ClassSupervisor")
-  attendances       Attendance[]
-  messages          Message[]
-  studyMaterials    StudyMaterial[]
-  birthday          DateTime
+  id                  String                @id
+  schoolId            Int
+  school              School                @relation(fields: [schoolId], references: [id])
+  username            String
+  name                String
+  email               String?
+  phone               String?
+  address             String
+  img                 String?
+  bloodType           String
+  sex                 UserSex
+  createdAt           DateTime              @default(now())
+  subjects            Subject[]
+  lessons             Lesson[]
+  classes             Class[]               @relation("TeacherClasses")
+  supervisedClasses   Class[]               @relation("ClassSupervisor")
+  attendances         Attendance[]
+  messages            Message[]
+  studyMaterials      StudyMaterial[]
+  birthday            DateTime
+  subjectPageSettings SubjectPageSettings[]
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
@@ -260,17 +266,18 @@ model StudentAcademicYear {
 }
 
 model Subject {
-  id             Int             @id @default(autoincrement())
+  id             Int                   @id @default(autoincrement())
   schoolId       Int
-  school         School          @relation(fields: [schoolId], references: [id])
+  school         School                @relation(fields: [schoolId], references: [id])
   name           String
   gradeId        Int
-  grade          Grade           @relation(fields: [gradeId], references: [id])
+  grade          Grade                 @relation(fields: [gradeId], references: [id])
   teachers       Teacher[]
   lessons        Lesson[]
   exams          Exam[]
   assignments    Assignment[]
   studyMaterials StudyMaterial[]
+  pageSettings   SubjectPageSettings[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -336,15 +343,16 @@ model Exam {
 }
 
 model Assignment {
-  id          Int      @id @default(autoincrement())
-  schoolId    Int
-  school      School   @relation(fields: [schoolId], references: [id])
-  title       String
-  description String?
-  startDate   DateTime
-  endDate     DateTime
-  fileUrl     String?
-  fileName    String?
+  id                  Int      @id @default(autoincrement())
+  schoolId            Int
+  school              School   @relation(fields: [schoolId], references: [id])
+  title               String
+  description         String?
+  startDate           DateTime
+  endDate             DateTime
+  fileUrl             String?
+  fileName            String?
+  allowLateSubmission Boolean  @default(false) // ✅ أضف هذا السطر
 
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])
@@ -509,6 +517,43 @@ model Message {
   classes        Class[]
 
   @@index([schoolId])
+}
+
+// ===== SUBJECT PAGE SETTINGS =====
+
+model SubjectPageSettings {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
+
+  subjectId Int
+  subject   Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  teacherId String
+  teacher   Teacher @relation(fields: [teacherId], references: [id])
+
+  // Welcome announcement shown at top of page for students
+  announcement String?
+
+  // Short course description
+  description String?
+
+  // Banner image (Cloudinary URL)
+  bannerImage String?
+
+  // Banner height: sm | md | lg
+  bannerHeight String @default("md")
+
+  // Order of sections: JSON array e.g. ["assignments","lessons","materials"]
+  sectionsOrder Json @default("[\"assignments\",\"lessons\",\"materials\"]")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([subjectId, teacherId])
+  @@index([schoolId])
+  @@index([subjectId])
+  @@index([teacherId])
 }
 
 // ===== EXAM WORKFLOW MODELS =====

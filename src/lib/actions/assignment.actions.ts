@@ -50,6 +50,7 @@ function extractAssignmentData(formData: FormData): {
   classIds: number[];
   file: File | null;
   removeFile: boolean;
+  allowLateSubmission: boolean; // ✅ حقل جديد
 } {
   const idRaw = formData.get("id");
   const id = idRaw ? Number(idRaw) : undefined;
@@ -61,6 +62,8 @@ function extractAssignmentData(formData: FormData): {
   const classIds = classIdsRaw.map(c => Number(c)).filter(id => !isNaN(id));
   const file = formData.get("file") as File | null;
   const removeFile = formData.get("removeFile") === "true";
+  // ✅ boolean يُرسَل كـ string "true"/"false" من FormData
+  const allowLateSubmission = formData.get("allowLateSubmission") === "true";
 
   return {
     id,
@@ -71,6 +74,7 @@ function extractAssignmentData(formData: FormData): {
     classIds,
     file,
     removeFile,
+    allowLateSubmission,
   };
 }
 
@@ -83,7 +87,7 @@ export const createAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
-  const { title, startDate, endDate, subjectId, classIds, file, removeFile } =
+  const { title, startDate, endDate, subjectId, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   const validation = assignmentSchema.safeParse({
@@ -92,6 +96,7 @@ export const createAssignment = async (
     endDate,
     subjectId,
     classIds,
+    allowLateSubmission,
   });
   if (!validation.success) {
     return { success: false, error: true, message: validation.error.errors[0].message };
@@ -133,7 +138,6 @@ export const createAssignment = async (
         const upload = await uploadAssignmentFile(file);
         fileUrl = upload.url;
         fileName = upload.name;
-        console.log("✅ File uploaded:", fileUrl);
       } catch (err) {
         console.error("❌ Upload failed:", err);
         return { success: false, error: true, message: "File upload failed." };
@@ -154,6 +158,7 @@ export const createAssignment = async (
             schoolId: access.schoolId,
             fileUrl,
             fileName,
+            allowLateSubmission, // ✅ حفظ الخيار
           },
         }),
       ),
@@ -169,7 +174,7 @@ export const updateAssignment = async (
   currentState: CurrentState,
   formData: FormData,
 ) => {
-  const { id, title, startDate, endDate, subjectId, classIds, file, removeFile } =
+  const { id, title, startDate, endDate, subjectId, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   if (!id) {
@@ -187,6 +192,7 @@ export const updateAssignment = async (
     endDate,
     subjectId,
     classIds,
+    allowLateSubmission,
   });
   if (!validation.success) {
     return { success: false, error: true, message: validation.error.errors[0].message };
@@ -235,21 +241,17 @@ export const updateAssignment = async (
       await deleteAssignmentFile(existingAssignment.fileUrl);
       fileUrl = null;
       fileName = null;
-      console.log("🗑️ File removed.");
     }
 
     if (file && file.size > 0) {
-      // حذف القديم إذا كان موجوداً
       if (existingAssignment.fileUrl && !removeFile) {
         await deleteAssignmentFile(existingAssignment.fileUrl);
       }
       const upload = await uploadAssignmentFile(file);
       fileUrl = upload.url;
       fileName = upload.name;
-      console.log("✅ New file uploaded:", fileUrl);
     }
 
-    // تحديث جميع الواجبات المرتبطة (نفس المجموعة)
     const groupAssignments = await prisma.assignment.findMany({
       where: {
         title: existingAssignment.title,
@@ -269,14 +271,12 @@ export const updateAssignment = async (
     }
 
     await prisma.$transaction(async (tx) => {
-      // حذف القديم غير المحدد
       for (const assignment of groupAssignments) {
         if (assignment.classId && !selectedLessonsByClass.has(assignment.classId)) {
           await tx.assignment.delete({ where: { id: assignment.id } });
         }
       }
 
-      // إنشاء أو تحديث
       for (const [classId, lesson] of selectedLessonsByClass) {
         const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
         const data = {
@@ -290,6 +290,7 @@ export const updateAssignment = async (
           schoolId: access.schoolId,
           fileUrl,
           fileName,
+          allowLateSubmission, // ✅ حفظ الخيار عند التحديث
         };
         if (existingClassAssignment) {
           await tx.assignment.update({ where: { id: existingClassAssignment.id }, data });

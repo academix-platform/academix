@@ -13,6 +13,7 @@ type Submission = {
   note: string | null;
   teacherFeedback: string | null;
   createdAt: Date;
+  updatedAt: Date;
   student: {
     id: string;
     name: string;
@@ -24,12 +25,27 @@ type Props = {
   assignmentId: number;
   assignmentTitle: string;
   totalStudents: number;
+  endDate: Date; // ✅ لحساب التسليم المتأخر
 };
+
+
+// ─── دالة حساب الفرق بين وقتين ─────────────────────────────────────────────
+function getTimeDiff(from: Date, to: Date): string {
+  const diffMs = to.getTime() - from.getTime();
+  const absDiff = Math.abs(diffMs);
+  const mins = Math.floor(absDiff / 60000);
+  const hours = Math.floor(absDiff / 3600000);
+  const days = Math.floor(absDiff / 86400000);
+  if (days >= 1) return `${days} day${days > 1 ? "s" : ""}`;
+  if (hours >= 1) return `${hours} hour${hours > 1 ? "s" : ""}`;
+  return `${mins} minute${mins > 1 ? "s" : ""}`;
+}
 
 export default function SubmissionsModal({
   assignmentId,
   assignmentTitle,
   totalStudents,
+  endDate,
 }: Props) {
   const [open, setOpen] = useState(false);
   const [submissions, setSubmissions] =  useState<Submission[]>([]);
@@ -52,6 +68,7 @@ export default function SubmissionsModal({
 
   const submitted = submissions.length;
   const notSubmitted = totalStudents - submitted;
+  const isDeadlinePassed = new Date() > new Date(endDate);
 
   async function handleSaveFeedback() {
     if (!feedbackModal) return;
@@ -108,6 +125,19 @@ export default function SubmissionsModal({
               </button>
             </div>
 
+            {/* Deadline Banner */}
+            {isDeadlinePassed && (
+              <div className="flex items-center gap-2 px-6 py-2 bg-red-50 border-b border-red-100">
+                <Clock className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
+                <p className="text-xs text-red-600 font-medium">
+                  Deadline passed — ready for grading
+                </p>
+                <span className="ml-auto text-xs text-red-400">
+                  {new Date(endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                </span>
+              </div>
+            )}
+
             {/* Stats */}
             <div className="flex gap-3 px-6 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg">
@@ -160,9 +190,22 @@ export default function SubmissionsModal({
 
                       {/* Submission info */}
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-800">
-                          {s.student.name}
-                        </p>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <p className="text-sm font-medium text-gray-800">
+                            {s.student.name}
+                          </p>
+                          {new Date(s.updatedAt) > new Date(endDate) ? (
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-medium">
+                              <Clock className="w-2.5 h-2.5" />
+                              Late (+{getTimeDiff(new Date(endDate), new Date(s.updatedAt))})
+                            </span>
+                          ) : (
+                            <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
+                              <CheckCircle className="w-2.5 h-2.5" />
+                              {getTimeDiff(new Date(s.updatedAt), new Date(endDate))} early
+                            </span>
+                          )}
+                        </div>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <FileText className="w-3 h-3 text-gray-400" />
                           <span className="text-xs text-gray-500 truncate max-w-[180px]">

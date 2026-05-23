@@ -11,7 +11,7 @@ import { createAssignment, updateAssignment } from "@/lib/actions";
 import { Dispatch, SetStateAction, useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { Download, Upload, X } from "lucide-react";
+import { Download, Upload, X, Clock } from "lucide-react";
 
 // دالة مساعدة لتحويل التاريخ إلى صيغة datetime-local
 const toDatetimeLocalValue = (value: unknown) => {
@@ -76,7 +76,6 @@ function FileUploadSection({
             {currentFileName || "Current file"}
           </span>
           <div className="flex gap-2">
-            {/* رابط التحميل باستخدام معرف الواجب */}
             {assignmentId && (
               <a
                 href={`/api/download/${assignmentId}?type=assignment`}
@@ -153,12 +152,14 @@ const AssignmentForm = ({
     handleSubmit,
     control,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<AssignmentSchema>({
     resolver: zodResolver(assignmentSchema),
     defaultValues: {
       subjectId: data?.subjectId,
       classIds: data?.classId ? [data.classId] : [],
+      allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
 
@@ -167,10 +168,12 @@ const AssignmentForm = ({
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [shouldRemoveFile, setShouldRemoveFile] = useState(false);
 
+  // مراقبة قيمة allowLateSubmission لتحديث الـ UI
+  const allowLateSubmission = watch("allowLateSubmission");
+
   const onSubmit = handleSubmit(async (formValues) => {
     const action = type === "create" ? createAssignment : updateAssignment;
 
-    // إنشاء FormData لإرسال الملف إذا وجد
     const formData = new FormData();
     Object.entries(formValues).forEach(([key, value]) => {
       if (key === "classIds" && Array.isArray(value)) {
@@ -369,7 +372,7 @@ const AssignmentForm = ({
         </div>
       </div>
 
-      {/* ── قسم رفع الملفات (يمتد على عرض الصف بالكامل) ── */}
+      {/* ── قسم رفع الملفات ── */}
       <div className="col-span-full">
         <FileUploadSection
           assignmentId={data?.id}
@@ -378,6 +381,37 @@ const AssignmentForm = ({
           onFileSelect={setSelectedFile}
           onRemoveExisting={() => setShouldRemoveFile(true)}
         />
+      </div>
+
+      {/* ── خيار السماح بالتسليم المتأخر ── */}
+      <div className="flex items-center justify-between p-4 border rounded-lg bg-gray-50">
+        <div className="flex items-center gap-3">
+          <div className={`p-2 rounded-lg ${allowLateSubmission ? "bg-amber-100" : "bg-gray-100"}`}>
+            <Clock className={`w-4 h-4 ${allowLateSubmission ? "text-amber-600" : "text-gray-400"}`} />
+          </div>
+          <div>
+            <p className="text-sm font-medium text-gray-700">Allow Late Submission</p>
+            <p className="text-xs text-gray-400">
+              {allowLateSubmission
+                ? "Students can submit after the deadline"
+                : "Students cannot submit after the deadline"}
+            </p>
+          </div>
+        </div>
+        {/* Toggle Switch */}
+        <label className="relative inline-flex items-center cursor-pointer">
+          <input
+            type="checkbox"
+            className="sr-only peer"
+            {...register("allowLateSubmission")}
+          />
+          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer
+                          peer-checked:after:translate-x-full peer-checked:after:border-white
+                          after:content-[''] after:absolute after:top-[2px] after:left-[2px]
+                          after:bg-white after:border-gray-300 after:border after:rounded-full
+                          after:h-5 after:w-5 after:transition-all
+                          peer-checked:bg-amber-500" />
+        </label>
       </div>
 
       <button

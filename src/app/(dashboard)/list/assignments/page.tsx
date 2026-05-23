@@ -99,10 +99,11 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
           )}
           {role === "student" && (
             <AssignmentSubmit
-              key={mySubmission?.id ?? 'no-submission'} // إضافة مفتاح لإعادة التصيير عند التحديث
+              key={mySubmission?.id ?? 'no-submission'}
               assignmentId={item.id}
               assignmentTitle={item.title}
               endDate={item.endDate}
+              allowLateSubmission={item.allowLateSubmission} // ✅
               existingSubmission={mySubmission ? {
                 id: mySubmission.id,
                 fileUrl: mySubmission.fileUrl,
@@ -118,6 +119,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               assignmentId={item.id}
               assignmentTitle={item.title}
               totalStudents={item._count?.assignmentSubmissions ?? 0}
+              endDate={item.endDate}
             />
           )}
           {(role === "admin" || role === "teacher") && (

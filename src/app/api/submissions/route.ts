@@ -44,7 +44,7 @@ export async function GET(req: NextRequest) {
           select: { id: true, name: true, img: true },
         },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { updatedAt: "desc" }  // ✅ ترتيب حسب آخر تعديل,
     });
 
     return NextResponse.json(submissions);

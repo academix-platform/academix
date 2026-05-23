@@ -83,6 +83,7 @@ export const updateSchoolSettings = async (
               workDayEnd: Date;
               lessonDuration: number;
               lessonsPerDay: number;
+              workingDays: string[];
             };
           }) => Promise<unknown>;
         };
@@ -112,6 +113,14 @@ export const updateSchoolSettings = async (
         workDayEnd: toUtcTime(end.hour, end.minute),
         lessonDuration: lessonDurationMinutes,
         lessonsPerDay,
+        workingDays: [
+          "SATURDAY",
+          "SUNDAY",
+          "MONDAY",
+          "TUESDAY",
+          "WEDNESDAY",
+          "THURSDAY",
+        ],
       },
     });
 
