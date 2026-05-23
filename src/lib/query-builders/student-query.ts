@@ -71,26 +71,40 @@ export async function buildStudentQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
-      case "teacherId":
-        conditions.push({
-          class: {
-            lessons: {
-              some: { teacherId: value },
-            },
-          },
-        });
-        break;
+  case "classId":
+    conditions.push({
+      classId: Number(value),
+    });
+    break;
 
-      case "search":
-        conditions.push({
-          OR: [
-            { name: { contains: value, mode: "insensitive" } },
-            { username: { contains: value, mode: "insensitive" } },
-            { phone: { contains: value, mode: "insensitive" } },
-            { address: { contains: value, mode: "insensitive" } },
-          ],
-        });
-        break;
+    case "gradeId":
+  conditions.push({
+    class: {
+      gradeId: Number(value),
+    },
+  });
+  break;
+
+  case "teacherId":
+    conditions.push({
+      class: {
+        lessons: {
+          some: { teacherId: value },
+        },
+      },
+    });
+    break;
+
+  case "search":
+    conditions.push({
+      OR: [
+        { name: { contains: value, mode: "insensitive" } },
+        { username: { contains: value, mode: "insensitive" } },
+        { phone: { contains: value, mode: "insensitive" } },
+        { address: { contains: value, mode: "insensitive" } },
+      ],
+    });
+    break;
     }
   }
 
