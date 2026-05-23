@@ -15,6 +15,7 @@ import { useFormStatus } from "react-dom";
 import {
   deleteAnnouncement,
   deleteClass,
+  deleteGrade,
   deleteAssignment,
   deleteExam,
   deleteEvent,
@@ -31,6 +32,7 @@ import AssignmentForm from "./forms/AssignmentForm";
 import ClassDeleteForm from "./forms/ClassDeleteForm";
 
 const deleteActionMap = {
+  grade: deleteGrade,
   subject: deleteSubject,
   class: deleteClass,
   teacher: deleteTeacher,
@@ -67,6 +69,9 @@ const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
 const ClassForm = dynamic(() => import("./forms/ClassForm"), {
   loading: () => <h1>Loading...</h1>,
 });
+const GradeForm = dynamic(() => import("./forms/GradeForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
 const LessonForm = dynamic(() => import("./forms/LessonForm"), {
   loading: () => <h1>Loading...</h1>,
 });
@@ -86,6 +91,9 @@ const MessageForm = dynamic(() => import("@/components/forms/MessageForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 const StudentDeleteForm = dynamic(() => import("./forms/StudentDeleteForm"), {
+  loading: () => <h1>Loading...</h1>,
+});
+const GradeDeleteForm = dynamic(() => import("./forms/GradeDeleteForm"), {
   loading: () => <h1>Loading...</h1>,
 });
 
@@ -131,6 +139,14 @@ const forms: {
   ),
   class: (setOpen, type, data, relatedData) => (
     <ClassForm
+      setOpen={setOpen}
+      type={type}
+      data={data}
+      relatedData={relatedData}
+    />
+  ),
+  grade: (setOpen, type, data, relatedData) => (
+    <GradeForm
       setOpen={setOpen}
       type={type}
       data={data}
@@ -251,6 +267,15 @@ const FormModal = ({
       if (table === "class") {
         return (
           <ClassDeleteForm
+            data={data}
+            relatedData={relatedData}
+            setOpen={setOpen}
+          />
+        );
+      }
+      if (table === "grade") {
+        return (
+          <GradeDeleteForm
             data={data}
             relatedData={relatedData}
             setOpen={setOpen}

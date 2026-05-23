@@ -14,6 +14,7 @@ export const routePermissions: Record<string, UserRole[]> = {
   "/list/parents(.*)": ["admin", "teacher"],
   "/list/subjects(.*)": ["admin", "teacher", "student", "parent"],
   "/list/classes(.*)": ["admin", "teacher"],
+  "/list/grades(.*)": ["admin"],
   "/list/exams(.*)": ["admin", "teacher", "student", "parent"],
   "/list/assignments(.*)": ["admin", "teacher", "student", "parent"],
   "/list/results(.*)": ["admin", "teacher", "student", "parent"],

@@ -32,6 +32,7 @@ model School {
   exams Exam[]
   assignments Assignment[]
   schoolSettings SchoolSettings[]
+  dayExceptions SchoolDayException[]
   results Result[]
 
   // Exam workflow relations
@@ -62,10 +63,27 @@ model SchoolSettings {
 
   lessonDuration Int
   lessonsPerDay Int
+  workingDays Json @default("[\"SATURDAY\",\"SUNDAY\",\"MONDAY\",\"TUESDAY\",\"WEDNESDAY\",\"THURSDAY\"]")
 
   updatedAt DateTime @updatedAt
 
   @@index([schoolId])
+}
+
+model SchoolDayException {
+  id Int @id @default(autoincrement())
+  schoolId Int
+  school School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  date DateTime @db.Date
+  type SchoolDayExceptionType
+  name String?
+  notes String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([schoolId, date])
+  @@index([schoolId])
+  @@index([date])
 }
 
 model AcademicYear {
@@ -519,6 +537,7 @@ enum Day{
   TUESDAY
   WEDNESDAY
   THURSDAY
+  FRIDAY
 }
 
 enum StudentStatus {
@@ -531,4 +550,10 @@ enum StudentStatus {
 enum PassFailStatus {
   PASS
   FAIL
+}
+
+enum SchoolDayExceptionType {
+  HOLIDAY
+  OFF_DAY
+  WORKING_OVERRIDE
 }

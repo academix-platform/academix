@@ -2,6 +2,7 @@
 
 import { createAcademicYear, updateAcademicYear } from "@/lib/actions";
 import type { AcademicYearItem } from "@/lib/academicYears";
+import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
@@ -29,6 +30,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
   const [form, setForm] = useState<FormState>(emptyFormState);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const sortedYears = useMemo(
     () =>
@@ -44,10 +46,12 @@ const AcademicYearForm = ({ academicYears }: Props) => {
       endDate: year.endDate,
       isCurrent: year.isCurrent,
     });
+    setIsModalOpen(true);
   };
 
   const onReset = () => {
     setForm(emptyFormState);
+    setIsModalOpen(false);
   };
 
   const onSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -79,94 +83,24 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-        <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
-          <span className="block font-semibold text-gray-700 text-sm">
-            Academic Year Information
-          </span>
-          <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-          <label className="flex flex-col gap-2 md:col-span-2 xl:col-span-3">
-            <span className="font-medium text-gray-700 text-sm">Name</span>
-            <input
-              type="text"
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-              value={form.name}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, name: e.target.value }))
-              }
-              placeholder="2025/2026"
-              required
-            />
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="font-medium text-gray-600 text-sm">
-              Start Date
-            </span>
-            <input
-              type="date"
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-              value={form.startDate}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, startDate: e.target.value }))
-              }
-              required
-            />
-          </label>
-
-          <label className="flex flex-col gap-2">
-            <span className="font-medium text-gray-700 text-sm">End Date</span>
-            <input
-              type="date"
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
-              value={form.endDate}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, endDate: e.target.value }))
-              }
-              required
-            />
-          </label>
-          </div>
-
-          <label className="flex items-center gap-2 font-medium text-gray-700 text-sm">
-            <input
-              type="checkbox"
-              checked={form.isCurrent}
-              onChange={(e) =>
-                setForm((prev) => ({ ...prev, isCurrent: e.target.checked }))
-              }
-              className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
-            />
-            Mark as current academic year
-          </label>
+      <div className="flex justify-between items-center">
+        <div className="flex flex-col">
+          <h2 className="font-semibold text-lg">Academic Years</h2>
+          <p className="mt-2 text-gray-500 text-sm">
+            Create and maintain academic year ranges.
+          </p>
         </div>
-
-        <div className="flex gap-3">
-          <button
-            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
-            disabled={isSubmitting}
-            type="submit"
-          >
-            {form.id
-              ? isSubmitting
-                ? "Updating..."
-                : "Update Academic Year"
-              : isSubmitting
-                ? "Creating..."
-                : "Create Academic Year"}
-          </button>
-
-          {form.id ? (
-            <button
-              className="hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 text-sm transition-colors"
-              type="button"
-              onClick={onReset}
-            >
-              Cancel Edit
-            </button>
-          ) : null}
-        </div>
-      </form>
+        <button
+          type="button"
+          onClick={() => {
+            setForm(emptyFormState);
+            setIsModalOpen(true);
+          }}
+          className="bg-academixPurpleDark hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
+        >
+          Add Academic Year
+        </button>
+      </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
@@ -208,6 +142,113 @@ const AcademicYearForm = ({ academicYears }: Props) => {
           </tbody>
         </table>
       </div>
+
+      {isModalOpen ? (
+        <div
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) {
+              onReset();
+            }
+          }}
+        >
+          <form
+            className="relative bg-white p-5 rounded-md w-full max-w-3xl"
+            onSubmit={onSubmit}
+            role="dialog"
+            aria-modal="true"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-lg">
+                {form.id ? "Edit Academic Year" : "Add Academic Year"}
+              </h3>
+              <button
+                type="button"
+                onClick={onReset}
+                className="text-gray-500 hover:text-gray-700 transition-colors"
+                aria-label="Close modal"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+              <label className="flex flex-col gap-2 md:col-span-2">
+                <span className="font-medium text-gray-700 text-sm">Name</span>
+                <input
+                  type="text"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  value={form.name}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, name: e.target.value }))
+                  }
+                  placeholder="2025/2026"
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-medium text-gray-600 text-sm">
+                  Start Date
+                </span>
+                <input
+                  type="date"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  value={form.startDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, startDate: e.target.value }))
+                  }
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-2">
+                <span className="font-medium text-gray-700 text-sm">
+                  End Date
+                </span>
+                <input
+                  type="date"
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  value={form.endDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({ ...prev, endDate: e.target.value }))
+                  }
+                  required
+                />
+              </label>
+            </div>
+
+            <label className="flex items-center gap-2 mt-4 font-medium text-gray-700 text-sm">
+              <input
+                type="checkbox"
+                checked={form.isCurrent}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, isCurrent: e.target.checked }))
+                }
+                className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
+              />
+              Mark as current academic year
+            </label>
+
+            <div className="flex gap-3 mt-5">
+              <button
+                className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
+                disabled={isSubmitting}
+                type="submit"
+              >
+                {form.id
+                  ? isSubmitting
+                    ? "Updating..."
+                    : "Update Academic Year"
+                  : isSubmitting
+                    ? "Creating..."
+                    : "Create Academic Year"}
+              </button>
+            </div>
+          </form>
+        </div>
+      ) : null}
     </div>
   );
 };
