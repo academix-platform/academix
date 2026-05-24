@@ -1,14 +1,17 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { routePermissions } from "./lib/settings";
-
-type AllowedRole = string;
+import { getRoleHome, type UserRole } from "./lib/utils";
 
 const isSignInRoute = createRouteMatcher(["/sign-in(.*)"]);
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/api/webhooks(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  "/sign-in(.*)",
+  "/api/webhooks(.*)",
+  "/school-signup(.*)",
+]);
 
 const matchers = (
-  Object.entries(routePermissions) as [string, AllowedRole[]][]
+  Object.entries(routePermissions) as [string, UserRole[]][]
 ).map(([route, allowedRoles]) => ({
   matcher: createRouteMatcher([route]),
   allowedRoles,
@@ -18,12 +21,26 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
   const role =
-    (sessionClaims?.metadata as { role?: AllowedRole } | undefined)?.role ??
+    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ??
     null;
 
   const isSignIn = isSignInRoute(req);
   const isPublic = isPublicRoute(req);
   const isRoot = req.nextUrl.pathname === "/";
+
+  const shouldUsePostLogin =
+    role === "admin" ||
+    role === "teacher" ||
+    role === "student" ||
+    role === "parent";
+
+  if (
+    role === "superAdmin" &&
+    (req.nextUrl.pathname.startsWith("/list/") ||
+      req.nextUrl.pathname.startsWith("/settings"))
+  ) {
+    return NextResponse.redirect(new URL("/super-admin", req.url));
+  }
 
   if (isSignIn && userId) {
     const redirectUrl = req.nextUrl.searchParams.get("redirect_url");
@@ -32,7 +49,8 @@ export default clerkMiddleware(async (auth, req) => {
     }
 
     if (role) {
-      return NextResponse.redirect(new URL(`/${role}`, req.url));
+      const destination = shouldUsePostLogin ? "/post-login" : getRoleHome(role);
+      return NextResponse.redirect(new URL(destination, req.url));
     }
 
     // Keep user on /sign-in loading view until role is available.
@@ -41,7 +59,8 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (isRoot && userId) {
     if (role) {
-      return NextResponse.redirect(new URL(`/${role}`, req.url));
+      const destination = shouldUsePostLogin ? "/post-login" : getRoleHome(role);
+      return NextResponse.redirect(new URL(destination, req.url));
     }
     return NextResponse.redirect(new URL("/post-login", req.url));
   }
@@ -59,7 +78,7 @@ export default clerkMiddleware(async (auth, req) => {
   for (const { matcher, allowedRoles } of matchers) {
     if (matcher(req)) {
       if (!role || !allowedRoles.includes(role)) {
-        const dest = role ? `/${role}` : "/unauthorized";
+        const dest = role ? getRoleHome(role) : "/unauthorized";
         return NextResponse.redirect(new URL(dest, req.url));
       }
       break;

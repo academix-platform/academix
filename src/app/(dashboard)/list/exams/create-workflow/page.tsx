@@ -13,7 +13,11 @@ export default async function CreateExamWorkflowPage({
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
   const resolvedSearchParams = await searchParams;
   const examIdParam = getQueryParam(resolvedSearchParams.examId);
+  const subjectIdParam = getQueryParam(resolvedSearchParams.subjectId);
   const examId = examIdParam ? Number.parseInt(examIdParam, 10) : NaN;
+  const preselectedSubjectId = subjectIdParam
+    ? Number.parseInt(subjectIdParam, 10)
+    : NaN;
 
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
   if (!academicYearId) {
@@ -101,7 +105,10 @@ export default async function CreateExamWorkflowPage({
           textAnswer: question.textAnswer ?? "",
         })),
       }
-    : undefined;
+    : Number.isNaN(preselectedSubjectId) ||
+        !subjects.some((subject) => subject.id === preselectedSubjectId)
+      ? undefined
+      : { subjectId: preselectedSubjectId };
 
   const classes = await prisma.class.findMany({
     where: {

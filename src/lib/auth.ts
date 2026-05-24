@@ -2,11 +2,14 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "./prisma";
 import { redirect } from "next/navigation";
 import { UserRole } from "./utils";
+import { SchoolStatus } from "@prisma/client";
 
 export type AuthUser = {
   userId: string;
   role: UserRole;
   schoolId: number;
+  schoolStatus: SchoolStatus | null;
+  schoolPauseReason: string | null;
 };
 
 class AuthError extends Error {
@@ -52,6 +55,8 @@ async function getSchoolId(userId: string, role: UserRole): Promise<number> {
             select,
           })
         ).schoolId;
+      case "superAdmin":
+        return 0;
     }
   } catch (err: unknown) {
     if (
@@ -81,8 +86,21 @@ export const getAuthUser = async (): Promise<AuthUser | null> => {
   if (!role) return null;
 
   const schoolId = await getSchoolId(userId, role);
+  const school =
+    schoolId > 0
+      ? await prisma.school.findUnique({
+          where: { id: schoolId },
+          select: { status: true, pauseReason: true },
+        })
+      : null;
 
-  return { userId, role, schoolId };
+  return {
+    userId,
+    role,
+    schoolId,
+    schoolStatus: school?.status ?? null,
+    schoolPauseReason: school?.pauseReason ?? null,
+  };
 };
 
 export async function requireAuth(): Promise<AuthUser> {
@@ -99,4 +117,11 @@ export async function requireRole(user: AuthUser, roles: UserRole[]) {
   if (!roles.includes(user.role)) {
     redirect("/unauthorized");
   }
+}
+
+export async function enforceAdminSchoolAccess(user: AuthUser) {
+  if (!["admin", "teacher", "student", "parent"].includes(user.role)) return;
+  if (user.schoolStatus === "ACTIVE") return;
+
+  redirect("/school-access");
 }

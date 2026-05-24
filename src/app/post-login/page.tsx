@@ -2,21 +2,37 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { getRoleHome, type UserRole } from "@/lib/utils";
+import { SchoolStatus } from "@prisma/client";
 
-async function resolveRoleFromDb(userId: string): Promise<UserRole | null> {
+async function resolveRoleAndSchoolStatusFromDb(userId: string): Promise<{
+  role: UserRole | null;
+  schoolStatus: SchoolStatus | null;
+}> {
   const [admin, teacher, student, parent] = await Promise.all([
-    prisma.admin.findUnique({ where: { id: userId }, select: { id: true } }),
-    prisma.teacher.findUnique({ where: { id: userId }, select: { id: true } }),
-    prisma.student.findUnique({ where: { id: userId }, select: { id: true } }),
-    prisma.parent.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.admin.findUnique({
+      where: { id: userId },
+      select: { id: true, school: { select: { status: true } } },
+    }),
+    prisma.teacher.findUnique({
+      where: { id: userId },
+      select: { id: true, school: { select: { status: true } } },
+    }),
+    prisma.student.findUnique({
+      where: { id: userId },
+      select: { id: true, school: { select: { status: true } } },
+    }),
+    prisma.parent.findUnique({
+      where: { id: userId },
+      select: { id: true, school: { select: { status: true } } },
+    }),
   ]);
 
-  if (admin) return "admin";
-  if (teacher) return "teacher";
-  if (student) return "student";
-  if (parent) return "parent";
+  if (admin) return { role: "admin", schoolStatus: admin.school.status };
+  if (teacher) return { role: "teacher", schoolStatus: teacher.school.status };
+  if (student) return { role: "student", schoolStatus: student.school.status };
+  if (parent) return { role: "parent", schoolStatus: parent.school.status };
 
-  return null;
+  return { role: null, schoolStatus: null };
 }
 
 export default async function PostLoginPage() {
@@ -28,7 +44,19 @@ export default async function PostLoginPage() {
 
   const roleFromClaims = (sessionClaims?.metadata as { role?: UserRole } | undefined)
     ?.role;
-  const role = roleFromClaims ?? (await resolveRoleFromDb(userId));
+  const resolved = await resolveRoleAndSchoolStatusFromDb(userId);
+  const role = roleFromClaims ?? resolved.role;
+
+  if (role === "admin" || role === "teacher" || role === "student" || role === "parent") {
+    const status = resolved.schoolStatus;
+    if (status === "PENDING" || status === "PAUSED") {
+      redirect("/school-access");
+    }
+
+    if (status !== "ACTIVE") {
+      redirect("/unauthorized");
+    }
+  }
 
   if (role) {
     redirect(getRoleHome(role));

@@ -6,6 +6,7 @@ import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 
 export type FormContainerProps = {
   table:
+    | "grade"
     | "teacher"
     | "student"
     | "parent"
@@ -62,6 +63,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
     }
 
     switch (table) {
+      case "grade":
+        break;
       case "subject":
         if (!schoolId) break;
         const teachers = await prisma.teacher.findMany({
@@ -398,6 +401,37 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           teachers: messageTeachers,
         };
         break;
+    }
+  } else if (table === "grade" && id) {
+    if (!schoolId) {
+      return (
+        <div>
+          <FormModal table={table} type={type} data={data} id={id} relatedData={{}} />
+        </div>
+      );
+    }
+
+    const gradeId = typeof id === "string" ? Number.parseInt(id, 10) : id;
+
+    if (!Number.isNaN(gradeId)) {
+      const [grade, classItems] = await prisma.$transaction([
+        prisma.grade.findFirst({
+          where: { id: gradeId, schoolId },
+          select: {
+            id: true,
+            level: true,
+            _count: { select: { classes: true } },
+          },
+        }),
+        prisma.class.findMany({
+          where: { schoolId, gradeId },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        }),
+      ]);
+
+      relatedData = { classes: classItems };
+      modalData = grade ?? data;
     }
   } else if (table === "class" && id) {
     if (!schoolId) {

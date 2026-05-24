@@ -1,5 +1,11 @@
 import "dotenv/config";
-import { Day, PrismaClient, StudentStatus, UserSex } from "@prisma/client";
+import {
+  Day,
+  PrismaClient,
+  SchoolStatus,
+  StudentStatus,
+  UserSex,
+} from "@prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 
 const adapter = new PrismaPg({
@@ -13,29 +19,48 @@ const normalizeDay = (date: Date) => {
   return new Date(`${iso}T00:00:00.000Z`);
 };
 
+const safeDeleteMany = async (run: () => Promise<unknown>) => {
+  try {
+    await run();
+  } catch (error) {
+    if (
+      typeof error === "object" &&
+      error !== null &&
+      "code" in error &&
+      (error as { code?: string }).code === "P2021"
+    ) {
+      return;
+    }
+    throw error;
+  }
+};
+
 const clearDatabase = async () => {
   await prisma.answer.deleteMany();
   await prisma.submission.deleteMany();
   await prisma.question.deleteMany();
-  await prisma.result.deleteMany();
-  await prisma.attendance.deleteMany();
-  await prisma.message.deleteMany();
-  await prisma.event.deleteMany();
-  await prisma.announcement.deleteMany();
-  await prisma.assignment.deleteMany();
-  await prisma.exam.deleteMany();
-  await prisma.lesson.deleteMany();
-  await prisma.studentAcademicYear.deleteMany();
-  await prisma.student.deleteMany();
-  await prisma.parent.deleteMany();
-  await prisma.subject.deleteMany();
-  await prisma.class.deleteMany();
-  await prisma.teacher.deleteMany();
-  await prisma.grade.deleteMany();
-  await prisma.admin.deleteMany();
-  await prisma.academicYear.deleteMany();
-  await prisma.schoolSettings.deleteMany();
-  await prisma.school.deleteMany();
+  await safeDeleteMany(() => prisma.answer.deleteMany());
+  await safeDeleteMany(() => prisma.submission.deleteMany());
+  await safeDeleteMany(() => prisma.question.deleteMany());
+  await safeDeleteMany(() => prisma.result.deleteMany());
+  await safeDeleteMany(() => prisma.attendance.deleteMany());
+  await safeDeleteMany(() => prisma.message.deleteMany());
+  await safeDeleteMany(() => prisma.event.deleteMany());
+  await safeDeleteMany(() => prisma.announcement.deleteMany());
+  await safeDeleteMany(() => prisma.assignment.deleteMany());
+  await safeDeleteMany(() => prisma.exam.deleteMany());
+  await safeDeleteMany(() => prisma.lesson.deleteMany());
+  await safeDeleteMany(() => prisma.studentAcademicYear.deleteMany());
+  await safeDeleteMany(() => prisma.student.deleteMany());
+  await safeDeleteMany(() => prisma.parent.deleteMany());
+  await safeDeleteMany(() => prisma.subject.deleteMany());
+  await safeDeleteMany(() => prisma.class.deleteMany());
+  await safeDeleteMany(() => prisma.teacher.deleteMany());
+  await safeDeleteMany(() => prisma.grade.deleteMany());
+  await safeDeleteMany(() => prisma.admin.deleteMany());
+  await safeDeleteMany(() => prisma.academicYear.deleteMany());
+  await safeDeleteMany(() => prisma.schoolSettings.deleteMany());
+  await safeDeleteMany(() => prisma.school.deleteMany());
 };
 
 const seedSchool = async ({
@@ -53,6 +78,8 @@ const seedSchool = async ({
   studentName,
   className,
   subjectName,
+  schoolStatus,
+  pauseReason,
 }: {
   schoolName: string;
   adminId: string;
@@ -68,9 +95,18 @@ const seedSchool = async ({
   studentName: string;
   className: string;
   subjectName: string;
+  schoolStatus: SchoolStatus;
+  pauseReason?: string | null;
 }) => {
   const school = await prisma.school.create({
-    data: { name: schoolName },
+    data: {
+      name: schoolName,
+      status: schoolStatus,
+      pauseReason:
+        schoolStatus === SchoolStatus.PAUSED
+          ? (pauseReason ?? "Paused by super admin for review.")
+          : null,
+    },
   });
 
   await prisma.schoolSettings.create({
@@ -80,6 +116,14 @@ const seedSchool = async ({
       workDayEnd: new Date("1970-01-01T14:00:00.000Z"),
       lessonDuration: 45,
       lessonsPerDay: 6,
+      workingDays: [
+        "SATURDAY",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+      ],
     },
   });
 
@@ -178,27 +222,27 @@ const seedSchool = async ({
     },
   });
 
-const student = await prisma.student.create({
-  data: {
-    id: studentId,
-    username: studentUsername,
-    name: studentName,
-    email: `${studentUsername}@example.com`,
-    phone: `${school.id}33333333`,
-    address: `${schoolName} City`,
-    bloodType: "A+",
+  const student = await prisma.student.create({
+    data: {
+      id: studentId,
+      username: studentUsername,
+      name: studentName,
+      email: `${studentUsername}@example.com`,
+      phone: `${school.id}33333333`,
+      address: `${schoolName} City`,
+      bloodType: "A+",
 
-    sex: UserSex.MALE,
-    birthday: new Date("2010-01-01"),
+      sex: UserSex.MALE,
+      birthday: new Date("2010-01-01"),
 
-    schoolId: school.id,
-    parentId: parent.id,
-    classId: classA.id,
-    gradeId: grade1.id,
+      schoolId: school.id,
+      parentId: parent.id,
+      classId: classA.id,
+      gradeId: grade1.id,
 
-    status: StudentStatus.ACTIVE,
-  },
-});
+      status: StudentStatus.ACTIVE,
+    },
+  });
 
   await prisma.studentAcademicYear.create({
     data: {
@@ -331,6 +375,8 @@ const student = await prisma.student.create({
 async function main() {
   await clearDatabase();
 
+
+
   await seedSchool({
     schoolName: "Alpha School",
     adminId: "admin_alpha",
@@ -346,6 +392,7 @@ async function main() {
     studentName: "Student Alpha",
     className: "1A",
     subjectName: "Mathematics",
+    schoolStatus: SchoolStatus.ACTIVE,
   });
 
   await seedSchool({
@@ -363,9 +410,31 @@ async function main() {
     studentName: "Student Beta",
     className: "1B",
     subjectName: "Science",
+    schoolStatus: SchoolStatus.PENDING,
   });
 
-  console.log("Seed completed successfully for 2 schools.");
+  await seedSchool({
+    schoolName: "Gamma School",
+    adminId: "admin_gamma",
+    adminUsername: "admin_gamma",
+    teacherId: "teacher_gamma",
+    teacherUsername: "teacher_gamma",
+    teacherName: "Teacher Gamma",
+    parentId: "parent_gamma",
+    parentUsername: "parent_gamma",
+    parentName: "Parent Gamma",
+    studentId: "student_gamma",
+    studentUsername: "student_gamma",
+    studentName: "Student Gamma",
+    className: "1C",
+    subjectName: "English",
+    schoolStatus: SchoolStatus.PAUSED,
+    pauseReason: "Pending compliance document update.",
+  });
+
+  console.log(
+    "Seed completed successfully for 3 schools (ACTIVE, PENDING, PAUSED).",
+  );
 }
 
 main()

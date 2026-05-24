@@ -3,6 +3,7 @@ export { createSubject, updateSubject, deleteSubject } from "./subject.actions";
 
 // Class actions
 export { createClass, updateClass, deleteClass } from "./class.actions";
+export { createGrade, deleteGrade } from "./grade.actions";
 
 // Teacher actions
 export { createTeacher, updateTeacher, deleteTeacher } from "./teacher.actions";
@@ -16,6 +17,7 @@ export { createParent, updateParent, deleteParent } from "./parent.actions";
 
 // Lesson actions
 export { saveLessonSchedule } from "./lesson.actions";
+
 // Exam actions
 export { createExam, updateExam, deleteExam } from "./exam.actions";
 
@@ -46,7 +48,12 @@ export {
 export { createMessage, updateMessage, deleteMessage } from "./message.actions";
 
 // School settings actions
-export { updateSchoolSettings } from "./schoolSettings.actions";
+export {
+  updateSchoolSettings,
+  updateSchoolWorkingDays,
+  createSchoolDayException,
+  deleteSchoolDayException,
+} from "./schoolSettings.actions";
 
 // Academic year actions
 export { createAcademicYear, updateAcademicYear } from "./academicYear.actions";
@@ -64,3 +71,12 @@ export {
   recordDisconnection,
   approveAndFinalizeGrading,
 } from "./examWorkflow.actions";
+
+// Study material actions
+export * from "./studyMaterial.actions";
+
+// Assignment submission actions
+export * from "./submission.actions";
+
+// Subject page settings actions
+export * from "./subjectPageSettings.actions";

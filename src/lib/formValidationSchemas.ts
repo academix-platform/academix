@@ -23,6 +23,14 @@ export const classSchema = z.object({
 export type ClassSchema = z.infer<typeof classSchema>;
 /////////////////////////////////////////////////////////////
 
+export const gradeSchema = z.object({
+  id: z.coerce.number().optional(),
+  level: z.coerce.number().int().min(1, { message: "Grade level is required!" }),
+});
+
+export type GradeSchema = z.infer<typeof gradeSchema>;
+/////////////////////////////////////////////////////////////
+
 export const teacherSchema = z.object({
   id: z.string().optional(),
   username: z
@@ -132,7 +140,15 @@ export const lessonSchema = z
     id: z.coerce.number().optional(),
     name: z.string().min(1, { message: "Lesson name is required!" }),
     day: z.enum(
-      ["SATURDAY", "SUNDAY", "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY"],
+      [
+        "SATURDAY",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+        "FRIDAY",
+      ],
       {
         message: "Day is required!",
       },
@@ -157,6 +173,7 @@ export const lessonDays = [
   "TUESDAY",
   "WEDNESDAY",
   "THURSDAY",
+  "FRIDAY",
 ] as const;
 
 const MAX_LESSON_SLOTS_PER_DAY = 12;
@@ -187,7 +204,7 @@ export const lessonScheduleSchema = z
           ),
         }),
       )
-      .min(lessonDays.length, { message: "Schedule entries are required." }),
+      .min(1, { message: "Schedule entries are required." }),
   })
   .superRefine((data, ctx) => {
     const seen = new Set<string>();
@@ -279,6 +296,39 @@ export const schoolSettingsSchema = z
 
 export type SchoolSettingsSchema = z.infer<typeof schoolSettingsSchema>;
 
+export const schoolDayValues = [
+  "SATURDAY",
+  "SUNDAY",
+  "MONDAY",
+  "TUESDAY",
+  "WEDNESDAY",
+  "THURSDAY",
+  "FRIDAY",
+] as const;
+
+export const schoolDayExceptionTypes = [
+  "HOLIDAY",
+  "OFF_DAY",
+  "WORKING_OVERRIDE",
+] as const;
+
+export const schoolWorkingDaysSchema = z.object({
+  workingDays: z
+    .array(z.enum(schoolDayValues))
+    .min(1, { message: "Select at least one working day." }),
+});
+
+export type SchoolWorkingDaysSchema = z.infer<typeof schoolWorkingDaysSchema>;
+
+export const schoolDayExceptionSchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, { message: "Date is required." }),
+  type: z.enum(schoolDayExceptionTypes),
+  name: z.string().max(120).optional().or(z.literal("")),
+  notes: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type SchoolDayExceptionSchema = z.infer<typeof schoolDayExceptionSchema>;
+
 export const academicYearSchema = z
   .object({
     id: z.coerce.number().optional(),
@@ -319,6 +369,8 @@ export const examSchema = z
 
 export type ExamSchema = z.infer<typeof examSchema>;
 
+// ضع هذا مكان assignmentSchema الموجود في formValidationSchemas.ts
+ 
 export const assignmentSchema = z
   .object({
     id: z.coerce.number().optional(),
@@ -329,14 +381,15 @@ export const assignmentSchema = z
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
+    allowLateSubmission: z.coerce.boolean().default(false), // ✅ حقل جديد
   })
   .refine((data) => data.endDate > data.startDate, {
     message: "End date must be after start date!",
     path: ["endDate"],
   });
-
+ 
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
-
+ 
 export const resultSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, { message: "Student is required!" }),

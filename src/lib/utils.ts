@@ -1,3 +1,5 @@
+import type { SchoolWeekDay } from "./schoolCalendar";
+
 const getLatestSaturday = (): Date => {
   const today = new Date();
   const dayOfWeek = today.getDay();
@@ -14,9 +16,10 @@ const dayOffsets = {
   TUESDAY: 3,
   WEDNESDAY: 4,
   THURSDAY: 5,
+  FRIDAY: 6,
 } as const;
 
-type LessonDay = keyof typeof dayOffsets | "FRIDAY";
+type LessonDay = keyof typeof dayOffsets;
 
 export const adjustScheduleToCurrentWeek = (
   lessons: {
@@ -26,12 +29,23 @@ export const adjustScheduleToCurrentWeek = (
     start: Date;
     end: Date;
   }[],
+  workingDays?: SchoolWeekDay[],
 ): { title: string; lessonName?: string; start: Date; end: Date }[] => {
   const latestSaturday = getLatestSaturday();
+  const enabledDays = new Set<SchoolWeekDay>(
+    workingDays ?? [
+      "SATURDAY",
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+    ],
+  );
 
   return lessons.flatMap((lesson) => {
-    // Friday is an off day and should not be shown in the work schedule.
-    if (lesson.day === "FRIDAY") {
+    if (!enabledDays.has(lesson.day)) {
       return [];
     }
 
@@ -67,13 +81,14 @@ export const adjustScheduleToCurrentWeek = (
   });
 };
 
-export type UserRole = "admin" | "teacher" | "student" | "parent";
+export type UserRole = "admin" | "teacher" | "student" | "parent" | "superAdmin";
 export function getRoleHome(role: UserRole): string {
   const homes: Record<UserRole, string> = {
     admin: "/admin",
     teacher: "/teacher",
     student: "/student",
     parent: "/parent",
+    superAdmin: "/super-admin",
   };
   return homes[role];
 }
