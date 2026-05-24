@@ -5,6 +5,7 @@ import { getRoleHome, type UserRole } from "./lib/utils";
 
 const isSignInRoute = createRouteMatcher(["/sign-in(.*)"]);
 const isPublicRoute = createRouteMatcher([
+  "/",
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",

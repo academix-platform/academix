@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getRoleHome, type UserRole } from "@/lib/utils";
-import { Eye, EyeClosed, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 const LoginContent = () => {
   const { isLoaded: isUserLoaded, user } = useUser();
@@ -92,19 +92,27 @@ const LoginContent = () => {
       <div className="-right-16 -bottom-20 absolute bg-white/20 blur-3xl rounded-full w-80 h-80" />
       <div className="z-10 relative flex flex-col gap-6 shadow-2xl backdrop-blur-sm p-10 md:p-12 border border-white/60 rounded-2xl w-full max-w-[460px]">
         <div>
-          <h1 className="flex items-center gap-2 mb-2 font-bold text-white text-2xl">
-            <Image
-              src="/logo-white.png"
-              alt="Academix logo"
-              className="w-[48px] h-[36px] rotate-[-15deg]"
-              width={40}
-              height={40}
-            />
-            ACADEMIX
-          </h1>
-          <h2 className="ml-4 text-gray-300">Sign in to your account</h2>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 mb-4 text-gray-200 hover:text-white text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Go home
+          </Link>
+          <div>
+            <h1 className="flex items-center gap-2 mb-2 font-bold text-white text-2xl">
+              <Image
+                src="/logo-white.png"
+                alt="Academix logo"
+                className="w-[48px] h-[36px] rotate-[-15deg]"
+                width={40}
+                height={40}
+              />
+              ACADEMIX
+            </h1>
+            <h2 className="ml-4 text-gray-300">Sign in to your account</h2>
+          </div>
         </div>
-
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1">
             <label className="text-white text-xs" htmlFor="identifier">

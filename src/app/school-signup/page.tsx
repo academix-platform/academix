@@ -1,5 +1,7 @@
 import SchoolSignupForm from "@/components/SchoolSignupForm";
 import Image from "next/image";
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
 
 export default function SchoolSignupPage() {
   return (
@@ -10,6 +12,13 @@ export default function SchoolSignupPage() {
       <div className="z-10 relative gap-0 grid grid-cols-1 lg:grid-cols-2 bg-white shadow-xl mx-auto rounded-3xl w-full max-w-5xl lg:h-[90dvh] overflow-hidden">
         <div className="relative flex flex-col bg-gradient-to-br from-academixPurpleDark via-violet-600 to-fuchsia-600 p-7 md:p-8 text-white">
           <div>
+            <Link
+              href="/sign-in"
+              className="inline-flex items-center gap-2 mb-4 text-white/80 hover:text-white text-sm transition-colors"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Go back
+            </Link>
             <div className="flex items-center gap-2">
               <Image
                 src="/logo-white.png"
