@@ -29,11 +29,31 @@ export type SubjectPageSettingsData = {
 
 // ─── Validation ───────────────────────────────────────────────────────────────
 const VALID_SECTIONS = ["assignments", "exams", "materials"] as const;
+const ANNOUNCEMENT_MAX_WORDS = 12;
+const DESCRIPTION_MAX_WORDS = 24;
+const countWords = (value?: string | null) =>
+  (value ?? "").trim().split(/\s+/).filter(Boolean).length;
 
 const SaveSchema = z.object({
   subjectId: z.coerce.number().int().positive(),
-  announcement: z.string().max(500).optional().nullable(),
-  description: z.string().max(1000).optional().nullable(),
+  announcement: z
+    .string()
+    .max(500)
+    .optional()
+    .nullable()
+    .refine(
+      (value) => countWords(value) <= ANNOUNCEMENT_MAX_WORDS,
+      `Announcement must be ${ANNOUNCEMENT_MAX_WORDS} words or fewer.`,
+    ),
+  description: z
+    .string()
+    .max(1000)
+    .optional()
+    .nullable()
+    .refine(
+      (value) => countWords(value) <= DESCRIPTION_MAX_WORDS,
+      `Description must be ${DESCRIPTION_MAX_WORDS} words or fewer.`,
+    ),
   sectionsOrder: z
     .array(z.enum(VALID_SECTIONS))
     .length(3)

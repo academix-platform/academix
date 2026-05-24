@@ -155,11 +155,19 @@ function ExamsSection({
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
       <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
         <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-red-500" />
+          <FileText className="w-4 h-4 text-yellow-500" />
           <h2 className="font-semibold text-gray-800 text-base">Exams</h2>
           <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
         </div>
-        {createAction}
+        <div className="flex items-center gap-2">
+          <Link
+            href="/list/exams"
+            className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md text-white text-sm transition-colors"
+          >
+            Manage Exams
+          </Link>
+          {createAction}
+        </div>
       </div>
       {exams.length === 0 ? (
         <div className="px-6 py-8 text-center">
@@ -294,7 +302,7 @@ export default async function SubjectDetailPage({
     ]
   ).map((section) => (section === "lessons" ? "exams" : section));
 
-  const isTeacher = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
+  const isAuthorized = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
 
   // خريطة الأقسام
   const sectionMap: Record<string, ReactNode> = {
@@ -302,7 +310,7 @@ export default async function SubjectDetailPage({
       <AssignmentsSection
         assignments={subject.assignments}
         createAction={
-          isTeacher ? (
+          isAuthorized ? (
             <FormContainer
               table="assignment"
               type="create"
@@ -320,7 +328,7 @@ export default async function SubjectDetailPage({
       <ExamsSection
         exams={subject.exams}
         createAction={
-          isTeacher ? (
+          isAuthorized ? (
             <Link
               href={`/list/exams/create-workflow?subjectId=${subjectId}`}
               className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
@@ -370,6 +378,7 @@ export default async function SubjectDetailPage({
             src={pageSettings.bannerImage}
             alt={`${subject.name} banner`}
             fill
+            unoptimized
             className="object-cover"
             priority
           />
@@ -379,11 +388,13 @@ export default async function SubjectDetailPage({
       {/* Header */}
       <div className="flex justify-between items-start gap-4 bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
         <div className="flex items-start gap-4">
-          <div className="bg-purple-100 p-4 rounded-xl">
-            <BookOpen className="w-8 h-8 text-purple-600" />
+          <div className="bg-purple-100 p-3 sm:p-4 rounded-xl">
+            <BookOpen className="w-6 sm:w-8 h-6 sm:h-8 text-purple-600" />
           </div>
           <div>
-            <h1 className="font-bold text-gray-800 text-2xl">{subject.name}</h1>
+            <h1 className="font-bold text-gray-800 text-xl sm:text-2xl">
+              {subject.name}
+            </h1>
             <p className="mt-1 text-gray-500 text-sm">
               Grade {subject.grade.level} · {subject.teachers.length} teacher
               {subject.teachers.length !== 1 ? "s" : ""}
@@ -398,7 +409,7 @@ export default async function SubjectDetailPage({
         </div>
 
         {/* Edit Page button — teachers only */}
-        {isTeacher && (
+        {isAuthorized && (
           <SubjectPageEditor
             subjectId={subjectId}
             initialSettings={{
@@ -443,7 +454,7 @@ export default async function SubjectDetailPage({
           icon={FileText}
           label="Exams"
           value={subject.exams.length}
-          color="bg-red-500"
+          color="bg-yellow-500"
         />
       </div>
 
