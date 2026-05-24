@@ -175,9 +175,9 @@ export default function StudyMaterialList({
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-lg text-white text-xs hover:scale-[1.05] transition transition-colors"
+            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
           >
-            <Plus className="w-3.5 h-3.5" />
+            <Plus className="w-4 h-4" />
             Upload
           </button>
         )}

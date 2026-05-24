@@ -140,6 +140,7 @@ function AssignmentsSection({
 
 function ExamsSection({
   exams,
+  createAction,
 }: {
   exams: {
     id: number;
@@ -148,13 +149,17 @@ function ExamsSection({
     endTime: Date;
     class: { name: string } | null;
   }[];
+  createAction?: ReactNode;
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
-        <FileText className="w-4 h-4 text-red-500" />
-        <h2 className="font-semibold text-gray-800 text-base">Exams</h2>
-        <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
+      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
+        <div className="flex items-center gap-2">
+          <FileText className="w-4 h-4 text-red-500" />
+          <h2 className="font-semibold text-gray-800 text-base">Exams</h2>
+          <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
+        </div>
+        {createAction}
       </div>
       {exams.length === 0 ? (
         <div className="px-6 py-8 text-center">
@@ -311,7 +316,21 @@ export default async function SubjectDetailPage({
         }
       />
     ),
-    exams: <ExamsSection exams={subject.exams} />,
+    exams: (
+      <ExamsSection
+        exams={subject.exams}
+        createAction={
+          isTeacher ? (
+            <Link
+              href={`/list/exams/create-workflow?subjectId=${subjectId}`}
+              className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
+            >
+              Create Exam
+            </Link>
+          ) : undefined
+        }
+      />
+    ),
     materials: (
       <StudyMaterialList
         materials={materials}
