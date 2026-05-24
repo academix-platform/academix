@@ -44,15 +44,6 @@ function StatCard({
 }
 
 // ─── Day label map ────────────────────────────────────────────────────────────
-const dayLabel: Record<string, string> = {
-  SATURDAY: "Sat",
-  SUNDAY: "Sun",
-  MONDAY: "Mon",
-  TUESDAY: "Tue",
-  WEDNESDAY: "Wed",
-  THURSDAY: "Thu",
-};
-
 // ─── Section renderers ────────────────────────────────────────────────────────
 function AssignmentsSection({
   assignments,
@@ -131,54 +122,56 @@ function AssignmentsSection({
   );
 }
 
-function LessonsSection({
-  lessons,
+function ExamsSection({
+  exams,
 }: {
-  lessons: {
+  exams: {
     id: number;
-    name: string;
-    day: string;
+    title: string;
     startTime: Date;
     endTime: Date;
-    class: { name: string };
+    class: { name: string } | null;
   }[];
 }) {
   return (
     <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
       <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
-        <BookOpen className="w-4 h-4 text-green-500" />
-        <h2 className="text-base font-semibold text-gray-800">Lessons Schedule</h2>
+        <FileText className="w-4 h-4 text-red-500" />
+        <h2 className="text-base font-semibold text-gray-800">Exams</h2>
+        <span className="ml-1 text-sm text-gray-400">({exams.length})</span>
       </div>
-      {lessons.length === 0 ? (
+      {exams.length === 0 ? (
         <div className="px-6 py-8 text-center">
-          <p className="text-gray-400 text-sm">No lessons scheduled.</p>
+          <p className="text-gray-400 text-sm">No exams scheduled.</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
               <tr className="text-left text-gray-500 bg-gray-50">
-                <th className="px-6 py-3 font-medium">Lesson</th>
+                <th className="px-6 py-3 font-medium">Title</th>
                 <th className="px-6 py-3 font-medium">Class</th>
-                <th className="px-6 py-3 font-medium">Day</th>
-                <th className="px-6 py-3 font-medium">Time</th>
+                <th className="px-6 py-3 font-medium">Start Time</th>
+                <th className="px-6 py-3 font-medium">End Time</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
-              {lessons.map((l) => (
-                <tr key={l.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium text-gray-800">{l.name}</td>
-                  <td className="px-6 py-3 text-gray-600">{l.class.name}</td>
+              {exams.map((exam) => (
+                <tr key={exam.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-3 font-medium text-gray-800">{exam.title}</td>
+                  <td className="px-6 py-3 text-gray-600">{exam.class?.name ?? "-"}</td>
                   <td className="px-6 py-3 text-gray-600">
-                    {dayLabel[l.day] ?? l.day}
-                  </td>
-                  <td className="px-6 py-3 text-gray-600">
-                    {new Date(l.startTime).toLocaleTimeString("en-GB", {
+                    {new Date(exam.startTime).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
-                    })}{" "}
-                    –{" "}
-                    {new Date(l.endTime).toLocaleTimeString("en-GB", {
+                    })}
+                  </td>
+                  <td className="px-6 py-3 text-gray-600">
+                    {new Date(exam.endTime).toLocaleString("en-GB", {
+                      day: "numeric",
+                      month: "short",
                       hour: "2-digit",
                       minute: "2-digit",
                     })}
@@ -192,7 +185,6 @@ function LessonsSection({
     </div>
   );
 }
-
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function SubjectDetailPage({
   params,
@@ -247,7 +239,14 @@ export default async function SubjectDetailPage({
         orderBy: { endDate: "asc" },
       },
       exams: {
-        select: { id: true },
+        select: {
+          id: true,
+          title: true,
+          startTime: true,
+          endTime: true,
+          class: { select: { name: true } },
+        },
+        orderBy: { startTime: "asc" },
       },
       // جلب إعدادات الصفحة — المعلم يجلب إعداداته، الأدمن والطالب يجلبون أول إعداد موجود
       pageSettings: roleStr === "teacher" && userId
@@ -267,14 +266,16 @@ export default async function SubjectDetailPage({
 
   // إعدادات الصفحة
   const pageSettings = subject.pageSettings[0] ?? null;
-  const sectionsOrder: string[] =
-    (pageSettings?.sectionsOrder as string[]) ?? ["assignments", "lessons", "materials"];
+  const sectionsOrder: string[] = (
+    (pageSettings?.sectionsOrder as string[]) ?? ["assignments", "exams", "materials"]
+  ).map((section) => (section === "lessons" ? "exams" : section));
 
   // خريطة الأقسام
   const sectionMap: Record<string, ReactNode> = {
     assignments: <AssignmentsSection assignments={subject.assignments} />,
-    lessons: <LessonsSection lessons={subject.lessons} />,
-      materials: (
+    exams: <ExamsSection exams={subject.exams} />,
+    lessons: <ExamsSection exams={subject.exams} />,
+    materials: (
       <StudyMaterialList
         materials={materials}
         subjectId={subjectId}
@@ -468,10 +469,6 @@ export default async function SubjectDetailPage({
               <div className="flex justify-between">
                 <dt className="text-gray-500">Classes</dt>
                 <dd className="font-medium text-gray-700">{classCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Lessons</dt>
-                <dd className="font-medium text-gray-700">{subject.lessons.length}</dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-gray-500">Assignments</dt>

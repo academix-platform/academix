@@ -1,7 +1,7 @@
 // src/app/api/download/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
-import crypto from "crypto";
+import cloudinary from "@/lib/cloudinary";
 
 // ========== استخراج resource_type من URL ==========
 function extractResourceType(fileUrl: string): "image" | "video" | "raw" {
@@ -10,41 +10,44 @@ function extractResourceType(fileUrl: string): "image" | "video" | "raw" {
   return "raw";
 }
 
-// ========== استخراج public_id بدون version ==========
-function extractPublicId(fileUrl: string): string {
+// ========== استخراج delivery type من URL ==========
+function extractDeliveryType(
+  fileUrl: string,
+): "upload" | "private" | "authenticated" {
   try {
     const url = new URL(fileUrl);
-    const uploadIndex = url.pathname.indexOf("/upload/");
-    if (uploadIndex === -1) return fileUrl;
-    let afterUpload = url.pathname.slice(uploadIndex + 8);
-    afterUpload = afterUpload.replace(/^v\d+\//, ""); // حذف version
-    return afterUpload; // assignments/ac7e8oweloekwz7uzwqe.pdf
+    if (url.pathname.includes("/private/")) return "private";
+    if (url.pathname.includes("/authenticated/")) return "authenticated";
+    return "upload";
   } catch {
-    return fileUrl;
+    return "upload";
   }
 }
 
-// ========== توليد Signed URL - نفس خوارزمية Cloudinary بالضبط ==========
-function generateSignedUrl(
-  publicId: string,
-  resourceType: "image" | "video" | "raw"
-): string {
-  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-  const apiSecret = process.env.CLOUDINARY_API_SECRET!;
-  const apiKey = process.env.CLOUDINARY_API_KEY!;
+// ========== استخراج public_id (بدون extension) + format ==========
+function extractCloudinaryAssetParts(fileUrl: string): {
+  publicIdNoExt: string;
+  format: string;
+} | null {
+  try {
+    const url = new URL(fileUrl);
+    const match = url.pathname.match(
+      /\/(?:image|video|raw)\/(?:upload|private|authenticated)\/(?:v\d+\/)?(.+)$/,
+    );
+    const pathAfterType = match?.[1];
+    if (!pathAfterType) return null;
 
-  const expiresAt = Math.floor(Date.now() / 1000) + 300;
+    const lastDot = pathAfterType.lastIndexOf(".");
+    if (lastDot === -1) return null;
 
-  // Cloudinary signature algorithm:
-  // parameters مرتبة أبجدياً + مدموجة + secret في النهاية
-  const paramsToSign = `public_id=${publicId}&timestamp=${expiresAt}`;
-  const toSign = paramsToSign + apiSecret;
-  const signature = crypto.createHash("sha256").update(toSign).digest("hex");
+    const publicIdNoExt = pathAfterType.slice(0, lastDot);
+    const format = pathAfterType.slice(lastDot + 1).toLowerCase();
+    if (!publicIdNoExt || !format) return null;
 
-  return (
-    `https://res.cloudinary.com/${cloudName}/${resourceType}/upload/` +
-    `${publicId}?api_key=${apiKey}&timestamp=${expiresAt}&signature=${signature}`
-  );
+    return { publicIdNoExt, format };
+  } catch {
+    return null;
+  }
 }
 
 // ========== بناء قائمة URLs ==========
@@ -54,22 +57,44 @@ function buildUrlsToTry(fileUrl: string): string[] {
     url.protocol = "https:";
 
     const resourceType = extractResourceType(fileUrl);
-    const publicId = extractPublicId(fileUrl);
+    const deliveryType = extractDeliveryType(fileUrl);
+    const assetParts = extractCloudinaryAssetParts(fileUrl);
 
     console.log("[Download] resourceType:", resourceType);
-    console.log("[Download] publicId:", publicId);
-
-    // signed URL بالـ resource_type الأصلي
-    const signedOriginal = generateSignedUrl(publicId, resourceType);
-
-    // signed URL كـ raw
-    const signedRaw = generateSignedUrl(publicId, "raw");
+    console.log("[Download] deliveryType:", deliveryType);
+    console.log("[Download] assetParts:", assetParts);
 
     // URL أصلي كما هو (بالـ version)
     url.protocol = "https:";
     const originalUrl = url.toString();
 
-    return [signedOriginal, signedRaw, originalUrl];
+    if (!assetParts) return [originalUrl];
+
+    // Cloudinary SDK-generated signed download URLs (more reliable than manual signing).
+    const signedPrimary = cloudinary.utils.private_download_url(
+      assetParts.publicIdNoExt,
+      assetParts.format,
+      {
+        resource_type: resourceType,
+        type: deliveryType,
+        expires_at: Math.floor(Date.now() / 1000) + 300,
+        attachment: true,
+      },
+    );
+
+    const signedRawUpload = cloudinary.utils.private_download_url(
+      assetParts.publicIdNoExt,
+      assetParts.format,
+      {
+        resource_type: "raw",
+        type: "upload",
+        expires_at: Math.floor(Date.now() / 1000) + 300,
+        attachment: true,
+      },
+    );
+
+    // Try original first (public assets), then signed fallbacks.
+    return [originalUrl, signedPrimary, signedRawUpload];
   } catch {
     return [fileUrl];
   }
@@ -121,15 +146,29 @@ function getExtensionFromUrl(url: string): string | null {
   return null;
 }
 
+function getExtensionFromFileName(
+  fileName: string | null | undefined,
+): string | null {
+  if (!fileName) return null;
+  const trimmed = fileName.trim();
+  const dotIndex = trimmed.lastIndexOf(".");
+  if (dotIndex === -1) return null;
+  const ext = trimmed.slice(dotIndex + 1).toLowerCase();
+  if (ext.length === 0 || ext.length > 8) return null;
+  return ext;
+}
+
 function getExtensionFromContentType(contentType: string): string {
   const map: Record<string, string> = {
     "application/pdf": "pdf",
     "application/msword": "doc",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document":
+      "docx",
     "application/vnd.ms-excel": "xls",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": "xlsx",
     "application/vnd.ms-powerpoint": "ppt",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation": "pptx",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation":
+      "pptx",
     "image/jpeg": "jpg",
     "image/png": "png",
     "image/gif": "gif",
@@ -147,7 +186,7 @@ type DownloadType = "assignment" | "studyMaterial" | "submission";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   try {
     const { searchParams } = new URL(request.url);
@@ -161,6 +200,7 @@ export async function GET(
 
     let fileUrl: string | null = null;
     let baseName = "file";
+    let originalFileName: string | null = null;
 
     // ========== 1. جلب البيانات من DB ==========
     if (type === "assignment") {
@@ -171,10 +211,12 @@ export async function GET(
       if (!assignment)
         return new NextResponse("Assignment not found", { status: 404 });
       if (!assignment.fileUrl)
-        return new NextResponse("This assignment has no attached file", { status: 404 });
+        return new NextResponse("This assignment has no attached file", {
+          status: 404,
+        });
       fileUrl = assignment.fileUrl;
+      originalFileName = assignment.fileName || null;
       baseName = assignment.fileName || assignment.title || "assignment";
-
     } else if (type === "studyMaterial") {
       const material = await prisma.studyMaterial.findUnique({
         where: { id: recordId },
@@ -183,10 +225,12 @@ export async function GET(
       if (!material)
         return new NextResponse("Study material not found", { status: 404 });
       if (!material.fileUrl)
-        return new NextResponse("This material has no attached file", { status: 404 });
+        return new NextResponse("This material has no attached file", {
+          status: 404,
+        });
       fileUrl = material.fileUrl;
+      originalFileName = material.fileName || null;
       baseName = material.fileName || material.title || "study-material";
-
     } else if (type === "submission") {
       const submission = await prisma.assignmentSubmission.findUnique({
         where: { id: recordId },
@@ -198,12 +242,14 @@ export async function GET(
       if (!submission)
         return new NextResponse("Submission not found", { status: 404 });
       if (!submission.fileUrl)
-        return new NextResponse("This submission has no attached file", { status: 404 });
+        return new NextResponse("This submission has no attached file", {
+          status: 404,
+        });
       fileUrl = submission.fileUrl;
+      originalFileName = submission.fileName || null;
       const studentName = submission.student?.name || "student";
       const assignmentTitle = submission.assignment?.title || "submission";
       baseName = submission.fileName || `${studentName}_${assignmentTitle}`;
-
     } else {
       return new NextResponse("Invalid download type", { status: 400 });
     }
@@ -212,9 +258,7 @@ export async function GET(
     const isCloudinaryUrl =
       fileUrl.includes("cloudinary.com") || fileUrl.includes("res.cloudinary");
 
-    const urlsToTry = isCloudinaryUrl
-      ? buildUrlsToTry(fileUrl)
-      : [fileUrl];
+    const urlsToTry = isCloudinaryUrl ? buildUrlsToTry(fileUrl) : [fileUrl];
 
     console.log("[Download] fileUrl from DB:", fileUrl);
     console.log("[Download] urlsToTry:", urlsToTry);
@@ -246,7 +290,7 @@ export async function GET(
       console.error("[Download] All URLs failed. Last:", lastUrl, lastStatus);
       return new NextResponse(
         `Failed to fetch file (storage returned ${lastStatus})`,
-        { status: 502 }
+        { status: 502 },
       );
     }
 
@@ -259,11 +303,13 @@ export async function GET(
 
     // ========== 4. كشف الامتداد ==========
     const extension =
-      detectExtensionFromBuffer(buffer) ||
+      getExtensionFromFileName(originalFileName) ||
       getExtensionFromUrl(fileUrl) ||
       getExtensionFromContentType(
-        fileResponse.headers.get("Content-Type") || "application/octet-stream"
-      );
+        fileResponse.headers.get("Content-Type") || "application/octet-stream",
+      ) ||
+      detectExtensionFromBuffer(buffer) ||
+      getExtensionFromFileName(baseName);
 
     // ========== 5. الرد ==========
     const safeBaseName = baseName.replace(/[^a-zA-Z0-9\u0600-\u06FF\-_]/g, "_");
@@ -275,7 +321,7 @@ export async function GET(
     headers.set("Content-Type", contentType.split(";")[0].trim());
     headers.set(
       "Content-Disposition",
-      `attachment; filename*=UTF-8''${encodeURIComponent(finalFileName)}`
+      `attachment; filename*=UTF-8''${encodeURIComponent(finalFileName)}`,
     );
     headers.set("Content-Length", buffer.length.toString());
     headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
