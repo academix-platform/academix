@@ -14,7 +14,8 @@ import { Eye } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { PageSearchParams } from "@/lib/pageParams";
-
+import SubjectFilter from "@/components/SubjectFilter";
+import ClassFilter from "@/components/ClassFilter";
 type TeacherList = Teacher & {
   subjects: Subject[];
 };
@@ -119,6 +120,31 @@ const TeacherListPage = async ({
       return value ? [[key, value]] : [];
     }),
   );
+    const subjects = await prisma.subject.findMany({
+  where: {
+    schoolId,
+  },
+  select: {
+    id: true,
+    name: true,
+  },
+  orderBy: {
+    name: "asc",
+  },
+});
+
+const classes = await prisma.class.findMany({
+  where: {
+    schoolId,
+  },
+  select: {
+    id: true,
+    name: true,
+  },
+  orderBy: {
+    name: "asc",
+  },
+});
 
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
@@ -141,6 +167,8 @@ const TeacherListPage = async ({
         <h1 className="font-semibold text-lg">All Teachers</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+         <SubjectFilter subjects={subjects} />
+         <ClassFilter classes={classes} />
           <TableSearch />
 
           <div className="flex items-center self-end gap-2">

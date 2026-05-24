@@ -29,20 +29,42 @@ export async function buildTeacherQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
-      case "classId": {
-        const classId = Number.parseInt(value, 10);
-        if (!Number.isNaN(classId)) {
-          conditions.push({
-            lessons: {
-              some: {
-                classId,
-              },
-            },
-          });
-        }
-        break;
-      }
+   case "classId": {
+  const classId = Number.parseInt(value, 10);
 
+  if (!Number.isNaN(classId)) {
+    conditions.push({
+      OR: [
+        {
+          classes: {
+            some: {
+              id: classId,
+            },
+          },
+        },
+        {
+          supervisedClasses: {
+            some: {
+              id: classId,
+            },
+          },
+        },
+      ],
+    });
+  }
+
+  break;
+}
+      case "subjectId":{
+  conditions.push({
+    subjects: {
+      some: {
+        id: Number(value),
+      },
+    },
+  });
+  break;
+      }
       case "search":
         conditions.push({
           OR: [

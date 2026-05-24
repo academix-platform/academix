@@ -21,6 +21,8 @@ import Link from "next/link";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { UserRole } from "@/lib/utils";
 import type { PageSearchParams } from "@/lib/pageParams";
+import GradeFilter from "@/components/GradeFilter";
+import ClassFilter from "@/components/ClassFilter";
 
 type StudentList = Student & { class: Class };
 
@@ -138,6 +140,32 @@ const StudentListPage = async ({
     exportQuery.set("academicYearId", String(academicYearId));
   }
 
+  const classes = await prisma.class.findMany({
+    where: {
+      schoolId,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  const grades = await prisma.grade.findMany({
+    where: {
+      schoolId,
+    },
+    select: {
+      id: true,
+      level: true,
+    },
+    orderBy: {
+      level: "asc",
+    },
+  });
+
   const [data, count] = await prisma.$transaction([
     prisma.student.findMany({
       where: query,
@@ -154,55 +182,74 @@ const StudentListPage = async ({
   ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div className="flex items-center gap-4">
-          <h1 className="font-semibold text-lg">All Students</h1>
+  <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
+
+    {/* HEADER */}
+    <div className="flex flex-col gap-4">
+
+      {/* TOP ROW */}
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <h1 className="font-semibold text-lg">All Students</h1>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <TableSearch />
+
+          <FilterSortActions />
 
           {role === "admin" && (
-            <StudentsFilters
-              academicYears={academicYears}
-              currentAcademicYearId={academicYearId}
-            />
+            <>
+              <ExportButton
+                href={`/api/admin/students/export?${exportQuery.toString()}`}
+              />
+
+              <FormContainer table="student" type="create" />
+            </>
           )}
         </div>
-
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center gap-2">
-            <FilterSortActions />
-
-            {role === "admin" && (
-              <>
-                <ExportButton
-                  href={`/api/admin/students/export?${exportQuery.toString()}`}
-                />
-
-                <FormContainer table="student" type="create" />
-              </>
-            )}
-          </div>
-        </div>
       </div>
 
-      <Table
-        columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role)}
-        data={data}
-        emptyTitle="No students found"
-        emptyDescription="Try changing your filters or search terms."
-      />
-      <div className="flex justify-between items-center">
-        {role === "admin" && (
-          <PromoteStudentsButton
-            academicYearName={currentAcademicYear.name}
-            academicYearEndDate={currentAcademicYear.endDate}
-          />
-        )}
-        <Pagination page={p} count={count} />
-      </div>
+      {/* FILTERS */}
+      <div className="flex flex-wrap items-end gap-2">
+
+  {role === "admin" && (
+    <StudentsFilters
+      academicYears={academicYears}
+      currentAcademicYearId={academicYearId}
+    />
+  )}
+
+  {/* SPACE */}
+  <div className="w-64" />
+
+  <GradeFilter grades={grades} />
+
+  <ClassFilter classes={classes} />
+
+</div>
     </div>
-  );
+
+    {/* TABLE */}
+    <Table
+      columns={getColumns(role)}
+      renderRow={(item) => renderRow(item, role)}
+      data={data}
+      emptyTitle="No students found"
+      emptyDescription="Try changing your filters or search terms."
+    />
+
+    {/* PAGINATION */}
+    <div className="flex justify-between items-center">
+      {role === "admin" && (
+        <PromoteStudentsButton
+          academicYearName={currentAcademicYear.name}
+          academicYearEndDate={currentAcademicYear.endDate}
+        />
+      )}
+
+      <Pagination page={p} count={count} />
+    </div>
+  </div>
+);
 };
 
 export default StudentListPage;
