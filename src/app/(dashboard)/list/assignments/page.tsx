@@ -1,3 +1,4 @@
+// src/app/(dashboard)/list/assignments/page.tsx
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
@@ -12,13 +13,23 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Assignment, Class, Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
+import { Download } from "lucide-react";
+import AssignmentSubmit from "@/components/AssignmentSubmit";
+import SubmissionsModal from "@/components/SubmissionsModal";
 
 type AssignmentList = Assignment & {
   subject: Pick<Subject, "name"> | null;
   class: Pick<Class, "name"> | null;
-  lesson: {
-    teacher: Pick<Teacher, "name">;
-  };
+  lesson: { teacher: Pick<Teacher, "name"> };
+  assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
+    id: number;
+    fileUrl: string;
+    fileName: string;
+    createdAt: Date;
+    note: string | null;
+    teacherFeedback: string | null;
+  }[];
+  _count?: { assignmentSubmissions: number };
 };
 
 const formatDateTime = (date: Date) =>
@@ -38,11 +49,7 @@ const getColumns = (role: UserRole | null) => {
   }
 
   if (role !== "teacher") {
-    columns.push({
-      header: "Teacher",
-      accessor: "teacher",
-      className: "hidden md:table-cell",
-    });
+    columns.push({ header: "Teacher", accessor: "teacher", className: "hidden md:table-cell" });
   }
 
   columns.push({
@@ -59,45 +66,80 @@ const getColumns = (role: UserRole | null) => {
   return columns;
 };
 
-const renderRow = (item: AssignmentList, role: UserRole | null) => (
-  <tr
-    key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
-  >
-    <td className="p-4">{item.title}</td>
+const renderRow = (item: AssignmentList, role: UserRole | null) => {
+  // ✅ استخدام assignmentSubmissions بدلاً من submissions
+  const mySubmission = item.assignmentSubmissions?.[0] ?? null;
+  const canManage = role === "teacher" || role === "admin";
 
-    <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
-
-    {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
-
-    {role !== "teacher" && (
-      <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
-    )}
-
-    <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-      {formatDateTime(item.endDate)}
-    </td>
-
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <>
-            <FormContainer table="assignment" type="update" data={item} />
-            <FormContainer table="assignment" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
+  return (
+    <tr
+      key={item.id}
+      className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    >
+      <td className="p-4">{item.title}</td>
+      <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
+      {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
+      {role !== "teacher" && (
+        <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+      )}
+      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
+        {formatDateTime(item.endDate)}
+      </td>
+      <td>
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* زر Download للطالب فقط (إن وجد ملف) */}
+          {role === "student" && item.fileUrl && (
+            <a
+              href={`/api/download/${item.id}?type=assignment`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-xs font-medium"
+            >
+              <Download className="w-3.5 h-3.5" />
+              Download
+            </a>
+          )}
+          {role === "student" && (
+            <AssignmentSubmit
+              key={mySubmission?.id ?? 'no-submission'}
+              assignmentId={item.id}
+              assignmentTitle={item.title}
+              endDate={item.endDate}
+              allowLateSubmission={item.allowLateSubmission} // ✅
+              existingSubmission={mySubmission ? {
+                id: mySubmission.id,
+                fileUrl: mySubmission.fileUrl,
+                fileName: mySubmission.fileName,
+                createdAt: mySubmission.createdAt,
+                note: mySubmission.note,
+                teacherFeedback: mySubmission.teacherFeedback,
+              } : null}
+            />
+          )}
+          {canManage && (
+            <SubmissionsModal
+              assignmentId={item.id}
+              assignmentTitle={item.title}
+              totalStudents={item._count?.assignmentSubmissions ?? 0}
+              endDate={item.endDate}
+            />
+          )}
+          {(role === "admin" || role === "teacher") && (
+            <>
+              <FormContainer table="assignment" type="update" data={item} />
+              <FormContainer table="assignment" type="delete" id={item.id} />
+            </>
+          )}
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const AssignmentListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, userId, schoolId } =
-    await enforceRouteAccess("/list/assignments");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
 
   const resolvedSearchParams = await searchParams;
 
@@ -122,10 +164,11 @@ const AssignmentListPage = async ({
       if (Array.isArray(value)) {
         return value.map((item) => [key, item]);
       }
-
       return value ? [[key, value]] : [];
     }),
   );
+
+  const includeSubmissionsCount = role === "teacher" || role === "admin";
 
   const [data, count] = await prisma.$transaction([
     prisma.assignment.findMany({
@@ -133,32 +176,27 @@ const AssignmentListPage = async ({
       include: {
         subject: { select: { name: true } },
         class: { select: { name: true } },
-        lesson: {
-          select: {
-            teacher: { select: { name: true } },
-          },
-        },
+        lesson: { select: { teacher: { select: { name: true } } } },
+        assignmentSubmissions: role === "student" && userId
+          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true } }
+          : false,
+        _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },
       orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.assignment.count({
-      where: query,
-    }),
+    prisma.assignment.count({ where: query }),
   ]);
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
         <h1 className="font-semibold text-lg">All Assignments</h1>
-
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
-
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
-
             {(role === "admin" || role === "teacher") && (
               <>
                 {role === "admin" && (
@@ -166,7 +204,6 @@ const AssignmentListPage = async ({
                     href={`/api/admin/assignments/export?${exportQuery.toString()}`}
                   />
                 )}
-
                 <FormContainer table="assignment" type="create" />
               </>
             )}
