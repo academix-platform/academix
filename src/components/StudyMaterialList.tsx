@@ -10,8 +10,8 @@ import {
   Trash2,
   Loader2,
   BookOpen,
-  Plus,
   X,
+  Upload,
 } from "lucide-react";
 import {
   deleteStudyMaterial,
@@ -122,9 +122,9 @@ export default function StudyMaterialList({
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-md text-white text-sm transition-colors"
           >
-            <Plus className="w-4 h-4" />
+            <Upload className="w-4 h-4" />
             Upload Material
           </button>
         )}
@@ -175,9 +175,9 @@ export default function StudyMaterialList({
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
+            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
           >
-            <Plus className="w-4 h-4" />
+            <Upload className="w-3.5 h-3.5" />
             Upload
           </button>
         )}

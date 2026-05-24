@@ -73,7 +73,7 @@ function AssignmentsSection({
         <div className="flex items-center gap-2">
           <Link
             href="/list/assignments"
-            className="bg-orange-500 hover:bg-orange-600 p-1.5 rounded-md text-white text-sm transition-colors"
+            className="bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
           >
             Manage Assignments
           </Link>
@@ -162,7 +162,7 @@ function ExamsSection({
         <div className="flex items-center gap-2">
           <Link
             href="/list/exams"
-            className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md text-white text-sm transition-colors"
+            className="bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
           >
             Manage Exams
           </Link>
@@ -331,7 +331,7 @@ export default async function SubjectDetailPage({
           isAuthorized ? (
             <Link
               href={`/list/exams/create-workflow?subjectId=${subjectId}`}
-              className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
+              className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
             >
               Create Exam
             </Link>
