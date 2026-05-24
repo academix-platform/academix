@@ -113,6 +113,14 @@ const seedSchool = async ({
       workDayEnd: new Date("1970-01-01T14:00:00.000Z"),
       lessonDuration: 45,
       lessonsPerDay: 6,
+      workingDays: [
+        "SATURDAY",
+        "SUNDAY",
+        "MONDAY",
+        "TUESDAY",
+        "WEDNESDAY",
+        "THURSDAY",
+      ],
     },
   });
 
@@ -363,6 +371,8 @@ const student = await prisma.student.create({
 
 async function main() {
   await clearDatabase();
+  
+  
 
   await seedSchool({
     schoolName: "Alpha School",

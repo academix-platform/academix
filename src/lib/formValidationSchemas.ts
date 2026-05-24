@@ -369,6 +369,8 @@ export const examSchema = z
 
 export type ExamSchema = z.infer<typeof examSchema>;
 
+// ضع هذا مكان assignmentSchema الموجود في formValidationSchemas.ts
+ 
 export const assignmentSchema = z
   .object({
     id: z.coerce.number().optional(),
@@ -379,14 +381,15 @@ export const assignmentSchema = z
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
+    allowLateSubmission: z.coerce.boolean().default(false), // ✅ حقل جديد
   })
   .refine((data) => data.endDate > data.startDate, {
     message: "End date must be after start date!",
     path: ["endDate"],
   });
-
+ 
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
-
+ 
 export const resultSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, { message: "Student is required!" }),

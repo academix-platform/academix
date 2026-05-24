@@ -17,6 +17,7 @@ export { createParent, updateParent, deleteParent } from "./parent.actions";
 
 // Lesson actions
 export { saveLessonSchedule } from "./lesson.actions";
+
 // Exam actions
 export { createExam, updateExam, deleteExam } from "./exam.actions";
 
@@ -69,3 +70,12 @@ export {
   extendTime,
   recordDisconnection,
 } from "./examWorkflow.actions";
+
+// Study material actions
+export * from "./studyMaterial.actions";
+
+// Assignment submission actions
+export * from "./submission.actions";
+
+// Subject page settings actions
+export * from "./subjectPageSettings.actions";

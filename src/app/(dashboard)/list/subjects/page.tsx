@@ -2,7 +2,6 @@ import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildSubjectQuery } from "@/lib/query-builders/subject-query";
@@ -11,58 +10,13 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
+import Link from "next/link";
+import { BookText } from "lucide-react";
 
 type SubjectList = Subject & {
   teachers: Teacher[];
   grade: { id: number; level: number } | null;
 };
-
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teachers",
-    accessor: "teachers",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: role === "admin" ? "Actions" : "",
-    accessor: "action",
-  },
-];
-
-const renderRow = (item: SubjectList, role: UserRole | null) => (
-  <tr
-    key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
-  >
-    <td className="flex items-center gap-4 p-4">{item.name}</td>
-
-    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
-
-    <td className="hidden md:table-cell">
-      {item.teachers.map((teacher) => teacher.name).join(", ")}
-    </td>
-
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormContainer table="subject" type="update" data={item} />
-            <FormContainer table="subject" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 
 const SubjectListPage = async ({
   searchParams,
@@ -89,7 +43,6 @@ const SubjectListPage = async ({
       if (Array.isArray(value)) {
         return value.map((item) => [key, item]);
       }
-
       return value ? [[key, value]] : [];
     }),
   );
@@ -105,9 +58,7 @@ const SubjectListPage = async ({
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.subject.count({
-      where: query,
-    }),
+    prisma.subject.count({ where: query }),
   ]);
 
   return (
@@ -126,7 +77,6 @@ const SubjectListPage = async ({
                 <ExportButton
                   href={`/api/admin/subjects/export?${exportQuery.toString()}`}
                 />
-
                 <FormContainer table="subject" type="create" />
               </>
             )}
@@ -134,13 +84,72 @@ const SubjectListPage = async ({
         </div>
       </div>
 
-      <Table
-        columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role)}
-        data={data}
-        emptyTitle="No subjects found"
-        emptyDescription="Try changing your filters or search terms."
-      />
+      {data.length === 0 ? (
+        <div className="flex flex-col justify-center items-center bg-gray-50 mt-6 p-10 rounded-xl text-center">
+          <h3 className="font-semibold text-gray-700 text-base">
+            No subjects found
+          </h3>
+          <p className="mt-1 text-gray-400 text-sm">
+            Try changing your filters or search terms.
+          </p>
+        </div>
+      ) : (
+        <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
+          {data.map((item: SubjectList) => (
+            <div
+              key={item.id}
+              className="flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 border border-gray-100 rounded-xl min-h-[150px] transition-shadow"
+            >
+              <div className="space-y-8">
+                <div className="flex justify-between items-start">
+                  {" "}
+                  <Link
+                    href={`/list/subjects/${item.id}`}
+                    className="flex items-center gap-1 font-semibold text-white hover:text-purple-600 text-lg transition-colors"
+                  >
+                    <BookText className="inline mr-1 w-5 h-5" />
+                    {item.name}
+                  </Link>
+                  {role === "admin" && (
+                    <div className="flex items-center gap-2">
+                      <FormContainer
+                        table="subject"
+                        type="update"
+                        data={item}
+                      />
+                      <FormContainer
+                        table="subject"
+                        type="delete"
+                        id={item.id}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-black text-sm">
+                    Grade:{" "}
+                    <span className="font-medium text-gray-700">
+                      {item.grade?.level ?? "-"}
+                    </span>
+                  </p>
+
+                  <p className="text-black text-sm line-clamp-2">
+                    Teachers:{" "}
+                    <span className="font-medium text-gray-700">
+                      {item.teachers.length > 0
+                        ? item.teachers
+                            .map((teacher) => teacher.name)
+                            .join(", ")
+                        : "-"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <Pagination page={p} count={count} />
     </div>
