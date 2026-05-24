@@ -54,6 +54,9 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   const formattedRole = role
     ? role.charAt(0).toUpperCase() + role.slice(1)
     : "";
+  const normalizedRole = role?.toLowerCase().replace(/[\s_]/g, "");
+  const canViewMessages =
+    normalizedRole !== "admin" && normalizedRole !== "superadmin";
 
   const initials =
     fullName
@@ -77,7 +80,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
       {/* RIGHT */}
       <div className="flex justify-end items-center gap-6 w-full">
         <div className="flex items-center gap-3">
-          {role !== "admin" && (
+          {canViewMessages && (
             <Link
               href="/list/messages"
               aria-label="Messages"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { type FormEvent, useState } from "react";
 import { updateSchoolStatus } from "@/lib/actions/school.actions";
 import { SchoolStatus } from "@prisma/client";
 import { toast } from "react-toastify";
@@ -49,6 +49,8 @@ const ModalShell = ({
 const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
   const [showActivateConfirm, setShowActivateConfirm] = useState(false);
   const [showPauseConfirm, setShowPauseConfirm] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
+  const [isPausing, setIsPausing] = useState(false);
   const router = useRouter();
 
   const onActivateClick = () => {
@@ -73,16 +75,21 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
     formData.set("status", "ACTIVE");
 
     try {
+      setIsActivating(true);
       await updateSchoolStatus(formData);
       setShowActivateConfirm(false);
       toast.success("School activated successfully.");
       router.refresh();
     } catch {
       toast.error("Failed to activate school.");
+    } finally {
+      setIsActivating(false);
     }
   };
 
   const submitPause = async (formData: FormData) => {
+    if (isPausing) return;
+
     const reason = String(formData.get("pauseReason") ?? "").trim();
     if (!reason) {
       toast.error("Pause reason is required.");
@@ -93,13 +100,22 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
     formData.set("status", "PAUSED");
 
     try {
+      setIsPausing(true);
       await updateSchoolStatus(formData);
       setShowPauseConfirm(false);
       toast.success("School paused successfully.");
       router.refresh();
     } catch {
       toast.error("Failed to pause school.");
+    } finally {
+      setIsPausing(false);
     }
+  };
+
+  const onPauseSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    await submitPause(formData);
   };
 
   return (
@@ -108,14 +124,14 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
         <button
           type="button"
           onClick={onActivateClick}
-          className="bg-green-600 px-2 py-1 rounded text-white text-xs"
+          className="bg-green-600 px-2 py-1 rounded text-white text-xs hover:scale-[1.05] transition"
         >
           Activate
         </button>
         <button
           type="button"
           onClick={onPauseClick}
-          className="bg-red-600 px-2 py-1 rounded text-white text-xs"
+          className="bg-red-600 px-2 py-1 rounded text-white text-xs hover:scale-[1.05] transition"
         >
           Pause
         </button>
@@ -127,7 +143,8 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
           onClose={() => setShowActivateConfirm(false)}
         >
           <p className="mb-4 text-gray-700 text-sm">
-            Are you sure you want to activate <span className="font-medium">{schoolName}</span>?
+            Are you sure you want to activate{" "}
+            <span className="font-medium">{schoolName}</span>?
           </p>
           <div className="flex justify-end gap-2">
             <button
@@ -141,21 +158,23 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
               className="bg-green-600 px-3 py-1.5 rounded text-white text-sm"
               type="button"
               onClick={submitActivate}
+              disabled={isActivating}
             >
-              Confirm
+              {isActivating ? "Activating..." : "Confirm"}
             </button>
           </div>
         </ModalShell>
       )}
 
       {showPauseConfirm && (
-        <ModalShell title="Confirm Pause" onClose={() => setShowPauseConfirm(false)}>
-          <form
-            action={submitPause}
-            className="space-y-3"
-          >
+        <ModalShell
+          title="Confirm Pause"
+          onClose={() => setShowPauseConfirm(false)}
+        >
+          <form onSubmit={onPauseSubmit} className="space-y-3">
             <p className="text-gray-700 text-sm">
-              Enter a reason before pausing <span className="font-medium">{schoolName}</span>.
+              Enter a reason before pausing{" "}
+              <span className="font-medium">{schoolName}</span>.
             </p>
             <textarea
               name="pauseReason"
@@ -172,8 +191,12 @@ const SchoolStatusActions = ({ schoolId, schoolName, schoolStatus }: Props) => {
               >
                 Cancel
               </button>
-              <button className="bg-red-600 px-3 py-1.5 rounded text-white text-sm" type="submit">
-                Confirm Pause
+              <button
+                className="bg-red-600 px-3 py-1.5 rounded text-white text-sm"
+                type="submit"
+                disabled={isPausing}
+              >
+                {isPausing ? "Pausing..." : "Confirm"}
               </button>
             </div>
           </form>
