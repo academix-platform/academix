@@ -17,6 +17,7 @@ import StudyMaterialList, {
   StudyMaterialItem,
 } from "@/components/StudyMaterialList";
 import SubjectPageEditor from "@/components/SubjectPageEditor";
+import SubjectDetailsTabs from "@/components/SubjectDetailsTabs";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -31,13 +32,13 @@ function StatCard({
   color: string;
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5 flex items-center gap-4">
+    <div className="flex items-center gap-4 bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
       <div className={`p-3 rounded-xl ${color}`}>
         <Icon className="w-5 h-5 text-white" />
       </div>
       <div>
-        <p className="text-2xl font-bold text-gray-800">{value}</p>
-        <p className="text-sm text-gray-500">{label}</p>
+        <p className="font-bold text-gray-800 text-2xl">{value}</p>
+        <p className="text-gray-500 text-sm">{label}</p>
       </div>
     </div>
   );
@@ -58,11 +59,13 @@ function AssignmentsSection({
   }[];
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+    <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
+      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
         <ClipboardList className="w-4 h-4 text-orange-500" />
-        <h2 className="text-base font-semibold text-gray-800">Assignments</h2>
-        <span className="ml-1 text-sm text-gray-400">({assignments.length})</span>
+        <h2 className="font-semibold text-gray-800 text-base">Assignments</h2>
+        <span className="ml-1 text-gray-400 text-sm">
+          ({assignments.length})
+        </span>
       </div>
       {assignments.length === 0 ? (
         <div className="px-6 py-8 text-center">
@@ -75,16 +78,18 @@ function AssignmentsSection({
             return (
               <li
                 key={a.id}
-                className="flex items-start justify-between gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+                className="flex justify-between items-start gap-4 hover:bg-gray-50 px-6 py-4 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 truncate">{a.title}</p>
+                  <p className="font-medium text-gray-800 truncate">
+                    {a.title}
+                  </p>
                   {a.description && (
-                    <p className="text-sm text-gray-500 mt-0.5 line-clamp-1">
+                    <p className="mt-0.5 text-gray-500 text-sm line-clamp-1">
                       {a.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 text-xs text-gray-400">
+                  <div className="flex items-center gap-2 mt-1 text-gray-400 text-xs">
                     <span>Class: {a.lesson.class.name}</span>
                     <span>·</span>
                     <span>
@@ -95,7 +100,7 @@ function AssignmentsSection({
                       })}
                     </span>
                     {isOverdue && (
-                      <span className="text-red-500 font-medium">Overdue</span>
+                      <span className="font-medium text-red-500">Overdue</span>
                     )}
                   </div>
                 </div>
@@ -105,9 +110,7 @@ function AssignmentsSection({
                     target="_blank"
                     rel="noopener noreferrer"
                     title="Download assignment file"
-                    className="flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5
-                               bg-orange-50 text-orange-700 hover:bg-orange-100
-                               rounded-lg text-xs font-medium transition-colors"
+                    className="flex flex-shrink-0 items-center gap-1.5 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-medium text-orange-700 text-xs transition-colors"
                   >
                     <FileText className="w-3.5 h-3.5" />
                     Download
@@ -134,11 +137,11 @@ function ExamsSection({
   }[];
 }) {
   return (
-    <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+    <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
+      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
         <FileText className="w-4 h-4 text-red-500" />
-        <h2 className="text-base font-semibold text-gray-800">Exams</h2>
-        <span className="ml-1 text-sm text-gray-400">({exams.length})</span>
+        <h2 className="font-semibold text-gray-800 text-base">Exams</h2>
+        <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
       </div>
       {exams.length === 0 ? (
         <div className="px-6 py-8 text-center">
@@ -148,7 +151,7 @@ function ExamsSection({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-gray-500 bg-gray-50">
+              <tr className="bg-gray-50 text-gray-500 text-left">
                 <th className="px-6 py-3 font-medium">Title</th>
                 <th className="px-6 py-3 font-medium">Class</th>
                 <th className="px-6 py-3 font-medium">Start Time</th>
@@ -158,8 +161,12 @@ function ExamsSection({
             <tbody className="divide-y divide-gray-50">
               {exams.map((exam) => (
                 <tr key={exam.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium text-gray-800">{exam.title}</td>
-                  <td className="px-6 py-3 text-gray-600">{exam.class?.name ?? "-"}</td>
+                  <td className="px-6 py-3 font-medium text-gray-800">
+                    {exam.title}
+                  </td>
+                  <td className="px-6 py-3 text-gray-600">
+                    {exam.class?.name ?? "-"}
+                  </td>
                   <td className="px-6 py-3 text-gray-600">
                     {new Date(exam.startTime).toLocaleString("en-GB", {
                       day: "numeric",
@@ -206,17 +213,6 @@ export default async function SubjectDetailPage({
       teachers: {
         select: { id: true, name: true, img: true },
       },
-      lessons: {
-        select: {
-          id: true,
-          name: true,
-          day: true,
-          startTime: true,
-          endTime: true,
-          class: { select: { name: true } },
-        },
-        orderBy: { day: "asc" },
-      },
       studyMaterials: {
         include: {
           teacher: { select: { id: true, name: true } },
@@ -249,15 +245,21 @@ export default async function SubjectDetailPage({
         orderBy: { startTime: "asc" },
       },
       // جلب إعدادات الصفحة — المعلم يجلب إعداداته، الأدمن والطالب يجلبون أول إعداد موجود
-      pageSettings: roleStr === "teacher" && userId
-        ? { where: { teacherId: userId }, take: 1 }
-        : { take: 1 },
+      pageSettings:
+        roleStr === "teacher" && userId
+          ? { where: { teacherId: userId }, take: 1 }
+          : { take: 1 },
     },
   });
 
   if (!subject) notFound();
 
-  const classCount = new Set(subject.lessons.map((l) => l.class.name)).size;
+  const classCount = new Set([
+    ...subject.assignments.map((assignment) => assignment.lesson.class.name),
+    ...subject.exams
+      .map((exam) => exam.class?.name)
+      .filter((className): className is string => !!className),
+  ]).size;
 
   const materials: StudyMaterialItem[] = subject.studyMaterials.map((m) => ({
     ...m,
@@ -267,14 +269,17 @@ export default async function SubjectDetailPage({
   // إعدادات الصفحة
   const pageSettings = subject.pageSettings[0] ?? null;
   const sectionsOrder: string[] = (
-    (pageSettings?.sectionsOrder as string[]) ?? ["assignments", "exams", "materials"]
+    (pageSettings?.sectionsOrder as string[]) ?? [
+      "materials",
+      "assignments",
+      "exams",
+    ]
   ).map((section) => (section === "lessons" ? "exams" : section));
 
   // خريطة الأقسام
   const sectionMap: Record<string, ReactNode> = {
     assignments: <AssignmentsSection assignments={subject.assignments} />,
     exams: <ExamsSection exams={subject.exams} />,
-    lessons: <ExamsSection exams={subject.exams} />,
     materials: (
       <StudyMaterialList
         materials={materials}
@@ -288,22 +293,30 @@ export default async function SubjectDetailPage({
   const isTeacher = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
+    <div className="space-y-6 bg-gray-50 p-6 min-h-screen">
       {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-sm text-gray-500">
-        <Link href="/list/subjects" className="hover:text-purple-600 transition-colors">
+      <nav className="flex items-center gap-1.5 text-gray-500 text-sm">
+        <Link
+          href="/list/subjects"
+          className="hover:text-purple-600 transition-colors"
+        >
           Subjects
         </Link>
         <ChevronRight className="w-4 h-4" />
-        <span className="text-gray-800 font-medium">{subject.name}</span>
+        <span className="font-medium text-gray-800">{subject.name}</span>
       </nav>
 
       {/* Banner Image */}
       {pageSettings?.bannerImage && (
-        <div className={`relative w-full rounded-xl overflow-hidden shadow-sm ${
-          pageSettings.bannerHeight === "sm" ? "h-32" :
-          pageSettings.bannerHeight === "lg" ? "h-72" : "h-48"
-        }`}>
+        <div
+          className={`relative w-full rounded-xl overflow-hidden shadow-sm ${
+            pageSettings.bannerHeight === "sm"
+              ? "h-32"
+              : pageSettings.bannerHeight === "lg"
+                ? "h-72"
+                : "h-48"
+          }`}
+        >
           <Image
             src={pageSettings.bannerImage}
             alt={`${subject.name} banner`}
@@ -315,23 +328,20 @@ export default async function SubjectDetailPage({
       )}
 
       {/* Header */}
-      <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6 flex items-start justify-between gap-4">
+      <div className="flex justify-between items-start gap-4 bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
         <div className="flex items-start gap-4">
-          <div className="p-4 bg-purple-100 rounded-xl">
+          <div className="bg-purple-100 p-4 rounded-xl">
             <BookOpen className="w-8 h-8 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">{subject.name}</h1>
-            <p className="text-gray-500 mt-1 text-sm">
-              Grade {subject.grade.level} ·{" "}
-              {subject.teachers.length} teacher
-              {subject.teachers.length !== 1 ? "s" : ""} ·{" "}
-              {subject.lessons.length} lesson
-              {subject.lessons.length !== 1 ? "s" : ""}
+            <h1 className="font-bold text-gray-800 text-2xl">{subject.name}</h1>
+            <p className="mt-1 text-gray-500 text-sm">
+              Grade {subject.grade.level} · {subject.teachers.length} teacher
+              {subject.teachers.length !== 1 ? "s" : ""}
             </p>
             {/* Course description */}
             {pageSettings?.description && (
-              <p className="text-gray-600 mt-2 text-sm max-w-xl">
+              <p className="mt-2 max-w-xl text-gray-600 text-sm">
                 {pageSettings.description}
               </p>
             )}
@@ -355,79 +365,137 @@ export default async function SubjectDetailPage({
 
       {/* Announcement banner */}
       {pageSettings?.announcement && (
-        <div className="bg-purple-50 border border-purple-200 rounded-xl px-5 py-4 text-sm text-purple-800 font-medium">
+        <div className="bg-purple-50 px-5 py-4 border border-purple-200 rounded-xl font-medium text-purple-800 text-sm">
           📢 {pageSettings.announcement}
         </div>
       )}
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <StatCard icon={Users} label="Teachers" value={subject.teachers.length} color="bg-blue-500" />
-        <StatCard icon={GraduationCap} label="Classes" value={classCount} color="bg-green-500" />
-        <StatCard icon={ClipboardList} label="Assignments" value={subject.assignments.length} color="bg-orange-500" />
-        <StatCard icon={FileText} label="Exams" value={subject.exams.length} color="bg-red-500" />
+      <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
+        <StatCard
+          icon={Users}
+          label="Teachers"
+          value={subject.teachers.length}
+          color="bg-blue-500"
+        />
+        <StatCard
+          icon={GraduationCap}
+          label="Classes"
+          value={classCount}
+          color="bg-green-500"
+        />
+        <StatCard
+          icon={ClipboardList}
+          label="Assignments"
+          value={subject.assignments.length}
+          color="bg-orange-500"
+        />
+        <StatCard
+          icon={FileText}
+          label="Exams"
+          value={subject.exams.length}
+          color="bg-red-500"
+        />
       </div>
 
       {/* Main grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left column (2/3) — sections ordered by teacher preference */}
-        <div className="lg:col-span-2 space-y-6">
-          {/* Teachers */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
-            <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Users className="w-4 h-4 text-blue-500" />
-              Teachers
-            </h2>
-            {subject.teachers.length === 0 ? (
-              <p className="text-gray-400 text-sm">No teachers assigned yet.</p>
-            ) : (
-              <ul className="flex flex-wrap gap-3">
-                {subject.teachers.map((t) => (
-                  <li key={t.id}>
-                    <Link
-                      href={`/list/teachers/${t.id}`}
-                      className="flex items-center gap-2 px-3 py-2 rounded-lg
-                                 border border-gray-100 hover:border-purple-200
-                                 hover:bg-purple-50 transition-colors"
-                    >
-                      {t.img ? (
-                        <Image
-                          src={t.img}
-                          alt={t.name}
-                          width={28}
-                          height={28}
-                          className="w-7 h-7 rounded-full object-cover"
-                        />
-                      ) : (
-                        <div className="w-7 h-7 rounded-full bg-purple-100 flex items-center
-                                        justify-center text-purple-700 font-semibold text-xs">
-                          {t.name[0]}
-                        </div>
-                      )}
-                      <span className="text-sm font-medium text-gray-700">{t.name}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-
-          {/* Dynamic sections ordered by teacher */}
-          {sectionsOrder.map((section) => (
-            <div key={section}>{sectionMap[section]}</div>
-          ))}
+      <div className="gap-6 grid grid-cols-1 lg:grid-cols-3">
+        <div className="space-y-6 lg:col-span-2">
+          <SubjectDetailsTabs
+            sectionsOrder={sectionsOrder}
+            assignmentsContent={sectionMap.assignments}
+            examsContent={sectionMap.exams}
+            materialsContent={sectionMap.materials}
+          />
         </div>
 
         {/* Right column (1/3) */}
-        <div className="space-y-6">
+        <div className="space-y-6 h-full">
           {(roleStr === "teacher" || roleStr === "admin") && (
             <StudyMaterialUpload subjectId={subjectId} />
           )}
 
-          {/* Teacher info card — للطالب فقط */}
+          {/* Subject info card */}
+          <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
+            <h3 className="mb-3 font-semibold text-gray-700 text-sm">
+              Subject Info
+            </h3>
+            <dl className="space-y-2.5 text-sm">
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Grade</dt>
+                <dd className="font-medium text-gray-700">
+                  Grade {subject.grade.level}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Classes</dt>
+                <dd className="font-medium text-gray-700">{classCount}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Assignments</dt>
+                <dd className="font-medium text-gray-700">
+                  {subject.assignments.length}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Materials</dt>
+                <dd className="font-medium text-gray-700">
+                  {subject.studyMaterials.length}
+                </dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-gray-500">Exams</dt>
+                <dd className="font-medium text-gray-700">
+                  {subject.exams.length}
+                </dd>
+              </div>
+            </dl>
+          </div>
+
+          {roleStr === "admin" && (
+            <div className="bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
+              <h2 className="flex items-center gap-2 mb-4 font-semibold text-gray-800 text-base">
+                <Users className="w-4 h-4 text-blue-500" />
+                Teachers
+              </h2>
+              {subject.teachers.length === 0 ? (
+                <p className="text-gray-400 text-sm">
+                  No teachers assigned yet.
+                </p>
+              ) : (
+                <ul className="flex flex-wrap gap-3">
+                  {subject.teachers.map((t) => (
+                    <li key={t.id}>
+                      <Link
+                        href={`/list/teachers/${t.id}`}
+                        className="flex items-center gap-2 hover:bg-purple-50 px-3 py-2 border border-gray-100 hover:border-purple-200 rounded-lg transition-colors"
+                      >
+                        {t.img ? (
+                          <Image
+                            src={t.img}
+                            alt={t.name}
+                            width={28}
+                            height={28}
+                            className="rounded-full w-7 h-7 object-cover"
+                          />
+                        ) : (
+                          <div className="flex justify-center items-center bg-purple-100 rounded-full w-7 h-7 font-semibold text-purple-700 text-xs">
+                            {t.name[0]}
+                          </div>
+                        )}
+                        <span className="font-medium text-gray-700 text-sm">
+                          {t.name}
+                        </span>
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
           {roleStr === "student" && subject.teachers.length > 0 && (
-            <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-              <h3 className="text-sm font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
+              <h3 className="flex items-center gap-2 mb-4 font-semibold text-gray-700 text-sm">
                 <Users className="w-4 h-4 text-blue-500" />
                 Your Teacher{subject.teachers.length > 1 ? "s" : ""}
               </h3>
@@ -440,50 +508,24 @@ export default async function SubjectDetailPage({
                         alt={t.name}
                         width={40}
                         height={40}
-                        className="w-10 h-10 rounded-full object-cover flex-shrink-0"
+                        className="flex-shrink-0 rounded-full w-10 h-10 object-cover"
                       />
                     ) : (
-                      <div className="w-10 h-10 rounded-full bg-purple-100 flex items-center
-                                      justify-center text-purple-700 font-bold text-sm flex-shrink-0">
+                      <div className="flex flex-shrink-0 justify-center items-center bg-purple-100 rounded-full w-10 h-10 font-bold text-purple-700 text-sm">
                         {t.name[0]}
                       </div>
                     )}
                     <div>
-                      <p className="text-sm font-medium text-gray-800">{t.name}</p>
-                      <p className="text-xs text-gray-400">Subject Teacher</p>
+                      <p className="font-medium text-gray-800 text-sm">
+                        {t.name}
+                      </p>
+                      <p className="text-gray-400 text-xs">Subject Teacher</p>
                     </div>
                   </li>
                 ))}
               </ul>
             </div>
           )}
-
-          {/* Subject info card */}
-          <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-gray-700 mb-3">Subject Info</h3>
-            <dl className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Grade</dt>
-                <dd className="font-medium text-gray-700">Grade {subject.grade.level}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Classes</dt>
-                <dd className="font-medium text-gray-700">{classCount}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Assignments</dt>
-                <dd className="font-medium text-gray-700">{subject.assignments.length}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Materials</dt>
-                <dd className="font-medium text-gray-700">{subject.studyMaterials.length}</dd>
-              </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">Exams</dt>
-                <dd className="font-medium text-gray-700">{subject.exams.length}</dd>
-              </div>
-            </dl>
-          </div>
         </div>
       </div>
     </div>
