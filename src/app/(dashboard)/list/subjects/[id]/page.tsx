@@ -17,6 +17,7 @@ import StudyMaterialList, {
 } from "@/components/StudyMaterialList";
 import SubjectPageEditor from "@/components/SubjectPageEditor";
 import SubjectDetailsTabs from "@/components/SubjectDetailsTabs";
+import FormContainer from "@/components/FormContainer";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -47,6 +48,7 @@ function StatCard({
 // ─── Section renderers ────────────────────────────────────────────────────────
 function AssignmentsSection({
   assignments,
+  createAction,
 }: {
   assignments: {
     id: number;
@@ -56,15 +58,27 @@ function AssignmentsSection({
     fileUrl: string | null;
     lesson: { class: { name: string } };
   }[];
+  createAction?: ReactNode;
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
-        <ClipboardList className="w-4 h-4 text-orange-500" />
-        <h2 className="font-semibold text-gray-800 text-base">Assignments</h2>
-        <span className="ml-1 text-gray-400 text-sm">
-          ({assignments.length})
-        </span>
+      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
+        <div className="flex items-center gap-2">
+          <ClipboardList className="w-4 h-4 text-orange-500" />
+          <h2 className="font-semibold text-gray-800 text-base">Assignments</h2>
+          <span className="ml-1 text-gray-400 text-sm">
+            ({assignments.length})
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/list/assignments"
+            className="bg-orange-500 hover:bg-orange-600 p-1.5 rounded-md text-white text-sm transition-colors"
+          >
+            Manage Assignments
+          </Link>
+          {createAction}
+        </div>
       </div>
       {assignments.length === 0 ? (
         <div className="px-6 py-8 text-center">
@@ -231,7 +245,7 @@ export default async function SubjectDetailPage({
             select: { class: { select: { name: true } } },
           },
         },
-        orderBy: { endDate: "asc" },
+        orderBy: { id: "desc" },
       },
       exams: {
         select: {
@@ -275,9 +289,28 @@ export default async function SubjectDetailPage({
     ]
   ).map((section) => (section === "lessons" ? "exams" : section));
 
+  const isTeacher = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
+
   // خريطة الأقسام
   const sectionMap: Record<string, ReactNode> = {
-    assignments: <AssignmentsSection assignments={subject.assignments} />,
+    assignments: (
+      <AssignmentsSection
+        assignments={subject.assignments}
+        createAction={
+          isTeacher ? (
+            <FormContainer
+              table="assignment"
+              type="create"
+              data={{
+                subjectId,
+                subjectName: subject.name,
+                lockSubject: true,
+              }}
+            />
+          ) : undefined
+        }
+      />
+    ),
     exams: <ExamsSection exams={subject.exams} />,
     materials: (
       <StudyMaterialList
@@ -288,8 +321,6 @@ export default async function SubjectDetailPage({
       />
     ),
   };
-
-  const isTeacher = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
 
   return (
     <div className="space-y-6 bg-gray-50 p-6 min-h-screen">

@@ -162,6 +162,7 @@ const AssignmentForm = ({
       allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
+  const isSubjectLocked = type === "create" && Boolean(data?.lockSubject) && Boolean(data?.subjectId);
 
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
@@ -310,18 +311,27 @@ const AssignmentForm = ({
 
         <div className="flex flex-col gap-2 w-full">
           <label className="font-medium text-gray-700 text-sm">Subject</label>
-          <select
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-            {...register("subjectId")}
-            defaultValue={data?.subjectId}
-          >
-            <option value="">Select subject</option>
-            {subjects.map((subject: { id: number; name: string }) => (
-              <option value={subject.id} key={subject.id}>
-                {subject.name}
-              </option>
-            ))}
-          </select>
+          {isSubjectLocked ? (
+            <>
+              <input type="hidden" {...register("subjectId")} value={data.subjectId} />
+              <div className="bg-gray-50 px-4 py-3 border-2 border-gray-200 rounded-lg text-gray-700 text-sm">
+                {data?.subjectName ?? `Subject #${data.subjectId}`}
+              </div>
+            </>
+          ) : (
+            <select
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+              {...register("subjectId")}
+              defaultValue={data?.subjectId}
+            >
+              <option value="">Select subject</option>
+              {subjects.map((subject: { id: number; name: string }) => (
+                <option value={subject.id} key={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          )}
           {errors.subjectId?.message && (
             <p className="font-medium text-red-500 text-xs">
               {errors.subjectId.message.toString()}
