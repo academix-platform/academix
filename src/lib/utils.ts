@@ -81,13 +81,14 @@ export const adjustScheduleToCurrentWeek = (
   });
 };
 
-export type UserRole = "admin" | "teacher" | "student" | "parent";
+export type UserRole = "admin" | "teacher" | "student" | "parent" | "superAdmin";
 export function getRoleHome(role: UserRole): string {
   const homes: Record<UserRole, string> = {
     admin: "/admin",
     teacher: "/teacher",
     student: "/student",
     parent: "/parent",
+    superAdmin: "/super-admin",
   };
   return homes[role];
 }

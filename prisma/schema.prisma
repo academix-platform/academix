@@ -9,8 +9,17 @@ datasource db {
 }
 
 model School {
-  id        Int      @id @default(autoincrement())
-  name      String   @unique
+  id Int @id @default(autoincrement())
+  name String @unique
+  contactEmail String?
+  contactPhone String?
+  website String?
+  country String?
+  city String?
+  address String?
+  registrationNumber String?
+  status SchoolStatus @default(PENDING)
+  pauseReason String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -669,6 +678,12 @@ enum StudentStatus {
 enum PassFailStatus {
   PASS
   FAIL
+}
+
+enum SchoolStatus {
+  PENDING
+  ACTIVE
+  PAUSED
 }
 
 enum SchoolDayExceptionType {

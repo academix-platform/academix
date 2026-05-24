@@ -1,11 +1,15 @@
 import SettingsSectionsPanel from "@/components/SettingsSectionsPanel";
 import { getAcademicYears } from "@/lib/academicYears";
-import { requireAuth, requireRole } from "@/lib/auth";
-import { getSchoolDayExceptions, getSchoolScheduleSettings } from "@/lib/schoolSettings";
+import { enforceAdminSchoolAccess, requireAuth, requireRole } from "@/lib/auth";
+import {
+  getSchoolDayExceptions,
+  getSchoolScheduleSettings,
+} from "@/lib/schoolSettings";
 
 const SettingsPage = async () => {
   const user = await requireAuth();
   requireRole(user, ["admin"]);
+  await enforceAdminSchoolAccess(user);
 
   const [settings, academicYears, dayExceptions] = await Promise.all([
     getSchoolScheduleSettings(user.schoolId),

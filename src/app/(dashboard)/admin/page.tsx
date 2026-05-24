@@ -6,6 +6,7 @@ import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { UserRole } from "@/lib/utils";
+type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
 
 const AdminPage = async ({
   searchParams,
@@ -13,7 +14,7 @@ const AdminPage = async ({
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
   const user = await requireAuth();
-  const roleTypes: UserRole[] = ["admin", "teacher", "student", "parent"];
+  const roleTypes: SchoolDashboardRole[] = ["admin", "teacher", "student", "parent"];
   const schoolId = user.schoolId;
   const [currentYear, counts] = await Promise.all([
     getCurrentAcademicYearOrNull(schoolId),
@@ -24,7 +25,7 @@ const AdminPage = async ({
       prisma.parent.count({ where: { schoolId } }),
     ]),
   ]);
-  const countByRole: Record<UserRole, number> = {
+  const countByRole: Record<SchoolDashboardRole, number> = {
     admin: counts[0],
     teacher: counts[1],
     student: counts[2],

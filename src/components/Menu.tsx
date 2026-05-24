@@ -24,6 +24,7 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { NavigationLink } from "./NavigationLink";
+import { getRoleHome } from "@/lib/utils";
 
 type MenuItem = {
   icon: LucideIcon;
@@ -45,9 +46,15 @@ export const menuItems: MenuSection[] = [
       {
         icon: LayoutDashboard,
         label: "Dashboard",
-        href: (role) => `/${role}`,
+        href: (role) => getRoleHome(role as Parameters<typeof getRoleHome>[0]),
         shouldPrefetch: true,
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "superAdmin"],
+      },
+      {
+        icon: School,
+        label: "Schools",
+        href: "/super-admin",
+        visible: [],
       },
       {
         icon: GraduationCap,
@@ -162,7 +169,7 @@ export const menuItems: MenuSection[] = [
         icon: LogOut,
         label: "Logout",
         href: "/sign-in",
-        visible: ["admin", "teacher", "student", "parent"],
+        visible: ["admin", "teacher", "student", "parent", "superAdmin"],
       },
     ],
   },

@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, MessageCircle, Bell } from "lucide-react";
+import { Search, Bell, MessageCircle } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";

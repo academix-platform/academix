@@ -1,7 +1,9 @@
 import { UserRole } from "@/lib/utils";
 import { ShieldCheck, GraduationCap, Users, UserRound } from "lucide-react";
 
-const roleIconMap: Record<UserRole, React.ReactNode> = {
+type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
+
+const roleIconMap: Record<SchoolDashboardRole, React.ReactNode> = {
   admin: <ShieldCheck className="opacity-80 w-6 h-6 text-black" />,
   teacher: <GraduationCap className="opacity-80 w-6 h-6 text-black" />,
   student: <UserRound className="opacity-80 w-6 h-6 text-black" />,
@@ -9,7 +11,7 @@ const roleIconMap: Record<UserRole, React.ReactNode> = {
 };
 
 type UserCardProps = {
-  type: UserRole;
+  type: SchoolDashboardRole;
   count: number;
   currentYearName?: string | null;
 };
