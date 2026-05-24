@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import {
   FileText,
@@ -10,11 +10,14 @@ import {
   Trash2,
   Loader2,
   BookOpen,
+  Plus,
+  X,
 } from "lucide-react";
 import {
   deleteStudyMaterial,
   StudyMaterialState,
 } from "@/lib/actions/studyMaterial.actions";
+import StudyMaterialUpload from "@/components/StudyMaterialUpload";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -102,6 +105,9 @@ export default function StudyMaterialList({
   currentUserId,
   role,
 }: Props) {
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const canUpload = role === "teacher" || role === "admin";
+
   if (materials.length === 0) {
     return (
       <div className="bg-white shadow-sm p-10 border border-gray-100 rounded-xl text-center">
@@ -109,21 +115,72 @@ export default function StudyMaterialList({
         <p className="font-medium text-gray-500">No study materials yet</p>
         <p className="mt-1 text-gray-400 text-sm">
           {role === "teacher"
-            ? "Upload the first material using the form on the right."
+            ? "Upload the first material using the upload button."
             : "Your teacher hasn't uploaded any materials yet."}
         </p>
+        {canUpload && (
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Upload Material
+          </button>
+        )}
+        {isUploadOpen && (
+          <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
+            <div
+              className="absolute inset-0 bg-black/40"
+              onClick={() => setIsUploadOpen(false)}
+            />
+            <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="font-semibold text-gray-800 text-base">
+                  Upload Study Material
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setIsUploadOpen(false)}
+                  className="hover:bg-gray-100 p-1.5 rounded-lg text-gray-500 hover:text-gray-700"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <StudyMaterialUpload
+                subjectId={subjectId}
+                compact
+                onSuccess={() => setIsUploadOpen(false)}
+              />
+            </div>
+          </div>
+        )}
       </div>
     );
   }
 
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
-        <BookOpen className="w-5 h-5 text-purple-500" />
-        <h2 className="font-semibold text-gray-800 text-base">
-          Study Materials
-        </h2>
-        <span className="ml-1 text-gray-400 text-sm">({materials.length})</span>
+      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
+        <div className="flex items-center gap-2">
+          <BookOpen className="w-5 h-5 text-purple-500" />
+          <h2 className="font-semibold text-gray-800 text-base">
+            Study Materials
+          </h2>
+          <span className="ml-1 text-gray-400 text-sm">
+            ({materials.length})
+          </span>
+        </div>
+        {canUpload && (
+          <button
+            type="button"
+            onClick={() => setIsUploadOpen(true)}
+            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-lg text-white text-xs hover:scale-[1.05] transition transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Upload
+          </button>
+        )}
       </div>
 
       <ul className="divide-y divide-gray-50">
@@ -198,6 +255,34 @@ export default function StudyMaterialList({
           );
         })}
       </ul>
+
+      {isUploadOpen && (
+        <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setIsUploadOpen(false)}
+          />
+          <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-gray-800 text-base">
+                Upload Study Material
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsUploadOpen(false)}
+                className="hover:bg-gray-100 p-1.5 rounded-lg text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+            <StudyMaterialUpload
+              subjectId={subjectId}
+              compact
+              onSuccess={() => setIsUploadOpen(false)}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

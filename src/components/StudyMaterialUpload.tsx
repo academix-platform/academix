@@ -16,9 +16,15 @@ const initialState: StudyMaterialState = {
 
 type Props = {
   subjectId: number;
+  compact?: boolean;
+  onSuccess?: () => void;
 };
 
-export default function StudyMaterialUpload({ subjectId }: Props) {
+export default function StudyMaterialUpload({
+  subjectId,
+  compact = false,
+  onSuccess,
+}: Props) {
   const formRef = useRef<HTMLFormElement>(null);
 
   const [state, formAction, isPending] = useActionState(
@@ -30,17 +36,26 @@ export default function StudyMaterialUpload({ subjectId }: Props) {
     if (state.success) {
       toast.success(state.message);
       formRef.current?.reset();
+      onSuccess?.();
     } else if (state.error) {
       toast.error(state.message);
     }
-  }, [state]);
+  }, [state, onSuccess]);
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-      <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
-        <Upload className="w-4 h-4 text-purple-500" />
-        Upload Study Material
-      </h2>
+    <div
+      className={
+        compact
+          ? ""
+          : "bg-white rounded-xl shadow-sm border border-gray-100 p-6"
+      }
+    >
+      {!compact && (
+        <h2 className="text-base font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          <Upload className="w-4 h-4 text-purple-500" />
+          Upload Study Material
+        </h2>
+      )}
 
       <form ref={formRef} action={formAction} className="space-y-4">
         <input type="hidden" name="subjectId" value={subjectId} />

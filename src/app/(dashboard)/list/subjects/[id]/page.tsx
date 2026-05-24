@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import StudyMaterialUpload from "@/components/StudyMaterialUpload";
 import StudyMaterialList, {
   StudyMaterialItem,
 } from "@/components/StudyMaterialList";
@@ -411,10 +410,6 @@ export default async function SubjectDetailPage({
 
         {/* Right column (1/3) */}
         <div className="space-y-6 h-full">
-          {(roleStr === "teacher" || roleStr === "admin") && (
-            <StudyMaterialUpload subjectId={subjectId} />
-          )}
-
           {/* Subject info card */}
           <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
             <h3 className="mb-3 font-semibold text-gray-700 text-sm">
