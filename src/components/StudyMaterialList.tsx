@@ -32,30 +32,36 @@ export type StudyMaterialItem = {
 function FileIcon({ type }: { type: string }) {
   if (["jpg", "jpeg", "png", "gif", "webp"].includes(type))
     return <FileImage className="w-8 h-8 text-blue-400" />;
-  if (type === "pdf")
-    return <FileText className="w-8 h-8 text-red-400" />;
+  if (type === "pdf") return <FileText className="w-8 h-8 text-red-400" />;
   return <File className="w-8 h-8 text-gray-400" />;
 }
 
 const badgeColors: Record<string, string> = {
-  pdf:  "bg-red-100 text-red-700",
-  doc:  "bg-blue-100 text-blue-700",
+  pdf: "bg-red-100 text-red-700",
+  doc: "bg-blue-100 text-blue-700",
   docx: "bg-blue-100 text-blue-700",
-  ppt:  "bg-orange-100 text-orange-700",
+  ppt: "bg-orange-100 text-orange-700",
   pptx: "bg-orange-100 text-orange-700",
-  xls:  "bg-green-100 text-green-700",
+  xls: "bg-green-100 text-green-700",
   xlsx: "bg-green-100 text-green-700",
-  png:  "bg-purple-100 text-purple-700",
-  jpg:  "bg-purple-100 text-purple-700",
+  png: "bg-purple-100 text-purple-700",
+  jpg: "bg-purple-100 text-purple-700",
   jpeg: "bg-purple-100 text-purple-700",
-  zip:  "bg-yellow-100 text-yellow-700",
+  zip: "bg-yellow-100 text-yellow-700",
 };
 
 // ─── Delete button ────────────────────────────────────────────────────────────
 // مكون منفصل حتى لا يتشارك الـ state مع باقي العناصر
 function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
-  const init: StudyMaterialState = { success: false, error: false, message: "" };
-  const [state, formAction, isPending] = useActionState(deleteStudyMaterial, init);
+  const init: StudyMaterialState = {
+    success: false,
+    error: false,
+    message: "",
+  };
+  const [state, formAction, isPending] = useActionState(
+    deleteStudyMaterial,
+    init,
+  );
 
   useEffect(() => {
     if (state.success) toast.success(state.message);
@@ -70,8 +76,7 @@ function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
         type="submit"
         disabled={isPending}
         title="Delete"
-        className="p-1.5 rounded-lg text-gray-400 hover:text-red-500
-                   hover:bg-red-50 transition-colors disabled:opacity-40"
+        className="hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
       >
         {isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -99,10 +104,10 @@ export default function StudyMaterialList({
 }: Props) {
   if (materials.length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-10 text-center">
-        <BookOpen className="w-10 h-10 text-gray-200 mx-auto mb-3" />
-        <p className="text-gray-500 font-medium">No study materials yet</p>
-        <p className="text-gray-400 text-sm mt-1">
+      <div className="bg-white shadow-sm p-10 border border-gray-100 rounded-xl text-center">
+        <BookOpen className="mx-auto mb-3 w-10 h-10 text-gray-200" />
+        <p className="font-medium text-gray-500">No study materials yet</p>
+        <p className="mt-1 text-gray-400 text-sm">
           {role === "teacher"
             ? "Upload the first material using the form on the right."
             : "Your teacher hasn't uploaded any materials yet."}
@@ -112,23 +117,25 @@ export default function StudyMaterialList({
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-      <div className="px-6 py-4 border-b border-gray-100 flex items-center gap-2">
+    <div className="bg-white shadow-sm border border-gray-100 rounded-xl overflow-hidden">
+      <div className="flex items-center gap-2 px-6 py-4 border-gray-100 border-b">
         <BookOpen className="w-5 h-5 text-purple-500" />
-        <h2 className="text-base font-semibold text-gray-800">
+        <h2 className="font-semibold text-gray-800 text-base">
           Study Materials
         </h2>
-        <span className="ml-1 text-sm text-gray-400">({materials.length})</span>
+        <span className="ml-1 text-gray-400 text-sm">({materials.length})</span>
       </div>
 
       <ul className="divide-y divide-gray-50">
         {materials.map((m) => {
-          const isOwner = role === "admin" || (role === "teacher" && currentUserId === m.teacher.id);
+          const isOwner =
+            role === "admin" ||
+            (role === "teacher" && currentUserId === m.teacher.id);
 
           return (
             <li
               key={m.id}
-              className="flex items-start gap-4 px-6 py-4 hover:bg-gray-50 transition-colors"
+              className="flex items-start gap-4 hover:bg-gray-50 px-6 py-4 transition-colors"
             >
               {/* أيقونة نوع الملف */}
               <div className="flex-shrink-0 mt-0.5">
@@ -137,7 +144,7 @@ export default function StudyMaterialList({
 
               {/* المعلومات */}
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
+                <div className="flex flex-wrap items-center gap-2">
                   <span className="font-medium text-gray-800 truncate">
                     {m.title}
                   </span>
@@ -150,15 +157,13 @@ export default function StudyMaterialList({
                 </div>
 
                 {m.description && (
-                  <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">
+                  <p className="mt-0.5 text-gray-500 text-sm line-clamp-2">
                     {m.description}
                   </p>
                 )}
 
-                <div className="flex items-center gap-2 mt-1.5 text-xs text-gray-400 flex-wrap">
-                  <span>
-                    {m.teacher.name}
-                  </span>
+                <div className="flex flex-wrap items-center gap-2 mt-1.5 text-gray-400 text-xs">
+                  <span>{m.teacher.name}</span>
                   <span>·</span>
                   <span>
                     {new Date(m.createdAt).toLocaleDateString("en-GB", {
@@ -168,29 +173,26 @@ export default function StudyMaterialList({
                     })}
                   </span>
                   <span>·</span>
-                  <span className="truncate max-w-[140px]">{m.fileName}</span>
+                  <span className="max-w-[140px] truncate">{m.fileName}</span>
                 </div>
               </div>
 
               {/* أزرار الإجراءات */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-1">
                 {/* تحميل — لجميع المستخدمين */}
                 <a
-                  href={m.fileUrl}
+                  href={`/api/download/${m.id}?type=studyMaterial`}
                   target="_blank"
                   rel="noopener noreferrer"
                   download={m.fileName}
                   title="Download"
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-purple-600
-                             hover:bg-purple-50 transition-colors"
+                  className="hover:bg-purple-50 p-1.5 rounded-lg text-gray-400 hover:text-purple-600 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                 </a>
 
                 {/* حذف — للمعلم صاحب الملف فقط */}
-                {isOwner && (
-                  <DeleteButton id={m.id} subjectId={subjectId} />
-                )}
+                {isOwner && <DeleteButton id={m.id} subjectId={subjectId} />}
               </div>
             </li>
           );

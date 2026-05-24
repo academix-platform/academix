@@ -28,7 +28,7 @@ export type SubjectPageSettingsData = {
 };
 
 // ─── Validation ───────────────────────────────────────────────────────────────
-const VALID_SECTIONS = ["assignments", "lessons", "materials"] as const;
+const VALID_SECTIONS = ["assignments", "exams", "materials"] as const;
 
 const SaveSchema = z.object({
   subjectId: z.coerce.number().int().positive(),
@@ -37,7 +37,7 @@ const SaveSchema = z.object({
   sectionsOrder: z
     .array(z.enum(VALID_SECTIONS))
     .length(3)
-    .default(["assignments", "lessons", "materials"]),
+    .default(["assignments", "exams", "materials"]),
   bannerHeight: z.enum(["sm", "md", "lg"]).default("md"),
 });
 
@@ -65,7 +65,7 @@ export async function getSubjectPageSettings(
       bannerImage: settings.bannerImage,
       sectionsOrder: (settings.sectionsOrder as string[]) ?? [
         "assignments",
-        "lessons",
+        "exams",
         "materials",
       ],
     };
@@ -120,7 +120,7 @@ export async function saveSubjectPageSettings(
     }
 
     // Parse sectionsOrder from JSON string
-    let sectionsOrderRaw: string[] = ["assignments", "lessons", "materials"];
+    let sectionsOrderRaw: string[] = ["assignments", "exams", "materials"];
     try {
       const raw = formData.get("sectionsOrder");
       if (raw) sectionsOrderRaw = JSON.parse(raw as string);

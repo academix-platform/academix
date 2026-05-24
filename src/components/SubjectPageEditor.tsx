@@ -11,22 +11,22 @@ import {
   ImageIcon,
   Trash2,
   ClipboardList,
-  BookOpen,
+  FileText,
   FolderOpen,
 } from "lucide-react";
 import { saveSubjectPageSettings } from "@/lib/actions/subjectPageSettings.actions";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
-type Section = "assignments" | "lessons" | "materials";
+type Section = "assignments" | "exams" | "materials";
 
 const SECTION_LABELS: Record<Section, { label: string; icon: React.ReactNode }> = {
   assignments: {
     label: "Assignments",
     icon: <ClipboardList className="w-4 h-4 text-orange-500" />,
   },
-  lessons: {
-    label: "Lessons Schedule",
-    icon: <BookOpen className="w-4 h-4 text-green-500" />,
+  exams: {
+    label: "Exams",
+    icon: <FileText className="w-4 h-4 text-red-500" />,
   },
   materials: {
     label: "Study Materials",
@@ -45,6 +45,21 @@ interface Props {
   };
 }
 
+const normalizeSections = (sectionsOrder: string[]): Section[] => {
+  const mapped = sectionsOrder.map((section) =>
+    section === "lessons" ? "exams" : section
+  );
+
+  const sections = mapped.filter(
+    (section): section is Section =>
+      section === "assignments" || section === "exams" || section === "materials"
+  );
+
+  return sections.length === 3
+    ? sections
+    : ["assignments", "exams", "materials"];
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 export default function SubjectPageEditor({ subjectId, initialSettings }: Props) {
   const [open, setOpen] = useState(false);
@@ -60,7 +75,7 @@ export default function SubjectPageEditor({ subjectId, initialSettings }: Props)
     (initialSettings.bannerHeight as "sm" | "md" | "lg") ?? "md"
   );
   const [sections, setSections] = useState<Section[]>(
-    (initialSettings.sectionsOrder as Section[]) ?? ["assignments", "lessons", "materials"]
+    normalizeSections(initialSettings.sectionsOrder)
   );
   const [successMsg, setSuccessMsg] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
