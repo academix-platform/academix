@@ -12,7 +12,7 @@ const HomeNavbar = () => {
     { label: "Home", href: "#" },
     { label: "About", href: "#about" },
     { label: "Features", href: "#features" },
-    { label: "Roles", href: "#roles" },
+    { label: "Users", href: "#roles" },
     { label: "How It Works", href: "#how-it-works" },
   ];
 
@@ -42,7 +42,7 @@ const HomeNavbar = () => {
             </a>
 
             <div className="hidden lg:flex items-center gap-8">
-              {navLinks.map((link) => (
+              {navLinks.slice(1).map((link) => (
                 <a
                   key={link.label}
                   href={link.href}
@@ -52,7 +52,7 @@ const HomeNavbar = () => {
                 </a>
               ))}
             </div>
-            <div className="hidden md:flex items-center gap-4">
+            <div className="hidden lg:flex items-center gap-4">
               <Link
                 href="/sign-in"
                 className="text-slate-300 hover:text-white transition-colors duration-200"
@@ -70,7 +70,7 @@ const HomeNavbar = () => {
             {/* Mobile menu button */}
             <button
               onClick={toggleMenu}
-              className="md:hidden text-white hover:text-slate-300 transition-colors"
+              className="lg:hidden text-white hover:text-slate-300 transition-colors"
             >
               <Menu className="w-6 h-6" />
             </button>
