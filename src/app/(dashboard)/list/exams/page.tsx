@@ -22,6 +22,11 @@ type ExamList = Exam & {
   lesson: {
     teacher: Pick<Teacher, "name">;
   };
+  studentSubmission?: {
+    status: string;
+    gradePublished: boolean;
+    totalScore: number | null;
+  } | null;
 };
 
 const formatDateTime = (date: Date) =>
@@ -36,15 +41,15 @@ const getColumns = (role: UserRole | null) => {
     accessor: string;
     className?: string;
   }[] = [
-    {
-      header: "Title",
-      accessor: "title",
-    },
-    {
-      header: "Subject",
-      accessor: "subject",
-    },
-  ];
+      {
+        header: "Title",
+        accessor: "title",
+      },
+      {
+        header: "Subject",
+        accessor: "subject",
+      },
+    ];
 
   if (role !== "student") {
     columns.push({
@@ -73,6 +78,19 @@ const getColumns = (role: UserRole | null) => {
       className: "hidden md:table-cell min-w-[180px] w-[180px]",
     },
   );
+
+  if (role === "student") {
+    columns.push({
+      header: "My Status",
+      accessor: "myStatus",
+      className: "hidden md:table-cell",
+    });
+    columns.push({
+      header: "My Score",
+      accessor: "myScore",
+      className: "hidden md:table-cell",
+    });
+  }
 
   columns.push({
     header: role === "admin" || role === "teacher" ? "Actions" : "",
@@ -107,6 +125,31 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
       {formatDateTime(item.endTime)}
     </td>
 
+    {role === "student" && (
+      <td className="hidden md:table-cell p-4">
+        {(() => {
+          const sub = item.studentSubmission;
+          if (!sub) return <span className="text-gray-400 text-xs">Not started</span>;
+          if (sub.status === "IN_PROGRESS")
+            return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">In Progress</span>;
+          if (sub.status === "SUBMITTED")
+            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">Awaiting Evaluation</span>;
+          if (sub.status === "GRADED" && !sub.gradePublished)
+            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">Graded – Pending Release</span>;
+          if (sub.status === "GRADED" && sub.gradePublished)
+            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">Grade Released</span>;
+        })()}
+      </td>
+    )}
+
+    {role === "student" && (
+      <td className="hidden md:table-cell p-4 font-semibold text-academixPurpleDark">
+        {item.studentSubmission?.gradePublished && item.studentSubmission.totalScore !== null
+          ? item.studentSubmission.totalScore
+          : <span className="text-gray-300 font-normal">—</span>}
+      </td>
+    )}
+
     <td>
       <div className="flex items-center gap-2">
         {(role === "admin" || role === "teacher") && (
@@ -129,10 +172,17 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
             Submissions
           </Link>
         )}
-        {role === "student" && (
+        {role === "student" && !item.studentSubmission && (
           <Link href={`/list/exams/${item.id}/take`}>
             <button className="bg-academixPurpleDark hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs hover:scale-[1.05] transition">
               Take Exam
+            </button>
+          </Link>
+        )}
+        {role === "student" && item.studentSubmission?.status === "IN_PROGRESS" && (
+          <Link href={`/list/exams/${item.id}/take`}>
+            <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
+              Continue
             </button>
           </Link>
         )}
@@ -233,6 +283,22 @@ const ExamListPage = async ({
     }
   }
 
+  // For student role: fetch their submission status for each displayed exam
+  let studentSubmissionsMap = new Map<
+    number,
+    { status: string; gradePublished: boolean; totalScore: number | null }
+  >();
+  if (role === "student") {
+    const examIds = data.map((e) => e.id);
+    const studentSubmissions = await prisma.submission.findMany({
+      where: { studentId: userId, examId: { in: examIds }, schoolId },
+      select: { examId: true, status: true, gradePublished: true, totalScore: true },
+    });
+    for (const sub of studentSubmissions) {
+      studentSubmissionsMap.set(sub.examId, { status: sub.status, gradePublished: sub.gradePublished, totalScore: sub.totalScore ?? null });
+    }
+  }
+
   const dataWithClassDisplay: ExamList[] = Array.from(uniqueExamsMap.values()).map((exam) => {
     const groupKey = [
       exam.title,
@@ -248,6 +314,7 @@ const ExamListPage = async ({
         groupedClasses && groupedClasses.size > 1
           ? Array.from(groupedClasses).sort().join(", ")
           : exam.class?.name,
+      studentSubmission: role === "student" ? (studentSubmissionsMap.get(exam.id) ?? null) : undefined,
     };
   });
 

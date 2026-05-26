@@ -4,6 +4,7 @@ import prisma from "@/lib/prisma";
 import { Submission, Student, SubmissionStatus } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import PublishGradesButton from "./PublishGradesButton";
 
 type SubmissionRow = Submission & {
   student: Pick<Student, "name" | "username">;
@@ -147,6 +148,13 @@ const ExamSubmissionsPage = async ({
   const submitted = submissions.filter((s) => s.status !== "IN_PROGRESS").length;
   const graded = submissions.filter((s) => s.status === "GRADED").length;
   const inProgress = submissions.filter((s) => s.status === "IN_PROGRESS").length;
+  const published = submissions.filter((s) => s.gradePublished).length;
+  const hasGradedSubmissions = graded > 0;
+  const allGradedPublished =
+    hasGradedSubmissions &&
+    submissions
+      .filter((s) => s.status === "GRADED")
+      .every((s) => s.gradePublished);
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
@@ -163,10 +171,15 @@ const ExamSubmissionsPage = async ({
           </div>
           <h1 className="font-semibold text-lg">Submissions</h1>
         </div>
+        <PublishGradesButton
+          examId={examId}
+          disabled={!hasGradedSubmissions}
+          allPublished={allGradedPublished}
+        />
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
         <div className="bg-gray-50 rounded-md p-4 flex flex-col gap-1">
           <span className="text-gray-400 text-xs">Total</span>
           <span className="font-bold text-xl">{submissions.length}</span>
@@ -182,6 +195,10 @@ const ExamSubmissionsPage = async ({
         <div className="bg-yellow-50 rounded-md p-4 flex flex-col gap-1">
           <span className="text-yellow-400 text-xs">In Progress</span>
           <span className="font-bold text-xl text-yellow-700">{inProgress}</span>
+        </div>
+        <div className="bg-emerald-50 rounded-md p-4 flex flex-col gap-1">
+          <span className="text-emerald-500 text-xs">Published</span>
+          <span className="font-bold text-xl text-emerald-700">{published}</span>
         </div>
       </div>
 

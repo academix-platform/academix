@@ -70,6 +70,7 @@ export {
   extendTime,
   recordDisconnection,
   approveAndFinalizeGrading,
+  publishExamGrades,
 } from "./examWorkflow.actions";
 
 // Study material actions

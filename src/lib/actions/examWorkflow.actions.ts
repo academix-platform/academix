@@ -271,6 +271,23 @@ export const updateExamWorkflow = async (
       selectedLessonsByClass.set(lesson.classId, lesson);
     }
 
+    const groupExamIds = groupExams.map((exam) => exam.id);
+    const submissionCount = await prisma.submission.count({
+      where: {
+        examId: { in: groupExamIds },
+        schoolId: access.schoolId,
+      },
+    });
+
+    if (submissionCount > 0) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "This exam cannot be edited because students have already started or submitted it. Create a new exam instead.",
+      };
+    }
+
     await prisma.$transaction(async (tx) => {
       for (const exam of groupExams) {
         if (exam.classId && !selectedLessonsByClass.has(exam.classId)) {
@@ -969,6 +986,128 @@ export const approveAndFinalizeGrading = async (submissionId: number) => {
     });
 
     return successResult([`/list/exams/${submission.examId}/submissions`]);
+  } catch (err) {
+    return errorResult(err);
+  }
+};
+
+// ============================================================
+// 12. publishExamGrades
+// ============================================================
+
+export const publishExamGrades = async (examId: number) => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  try {
+    const exam = await prisma.exam.findFirst({
+      where: {
+        id: examId,
+        schoolId: access.schoolId,
+        ...(access.role === "teacher"
+          ? { lesson: { teacherId: access.userId } }
+          : {}),
+      },
+      select: {
+        id: true,
+        title: true,
+        startTime: true,
+        endTime: true,
+        subjectId: true,
+        academicYearId: true,
+      },
+    });
+
+    if (!exam) {
+      return { success: false, error: true, message: "Exam not found." };
+    }
+
+    const groupExams = await prisma.exam.findMany({
+      where: {
+        title: exam.title,
+        startTime: exam.startTime,
+        endTime: exam.endTime,
+        subjectId: exam.subjectId,
+        schoolId: access.schoolId,
+        academicYearId: exam.academicYearId,
+        ...(access.role === "teacher"
+          ? { lesson: { teacherId: access.userId } }
+          : {}),
+      },
+      select: { id: true },
+    });
+
+    const examIds = groupExams.map((item) => item.id);
+
+    const gradedSubmissions = await prisma.submission.findMany({
+      where: {
+        examId: { in: examIds },
+        schoolId: access.schoolId,
+        status: "GRADED",
+        totalScore: { not: null },
+      },
+      select: {
+        examId: true,
+        studentId: true,
+        totalScore: true,
+        exam: {
+          select: {
+            academicYearId: true,
+          },
+        },
+      },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      for (const submission of gradedSubmissions) {
+        if (submission.totalScore === null) continue;
+
+        const existingResult = await tx.result.findFirst({
+          where: {
+            schoolId: access.schoolId,
+            examId: submission.examId,
+            studentId: submission.studentId,
+            academicYearId: submission.exam.academicYearId,
+          },
+          select: { id: true },
+        });
+
+        const resultData = {
+          score: Math.round(submission.totalScore),
+          schoolId: access.schoolId,
+          studentId: submission.studentId,
+          examId: submission.examId,
+          assignmentId: null,
+          academicYearId: submission.exam.academicYearId,
+        };
+
+        if (existingResult) {
+          await tx.result.update({
+            where: { id: existingResult.id },
+            data: resultData,
+          });
+        } else {
+          await tx.result.create({
+            data: resultData,
+          });
+        }
+      }
+
+      await tx.submission.updateMany({
+        where: {
+          examId: { in: examIds },
+          schoolId: access.schoolId,
+          status: "GRADED",
+        },
+        data: { gradePublished: true },
+      });
+    });
+
+    return successResult([
+      "/list/exams",
+      "/list/results",
+      `/list/exams/${examId}/submissions`,
+    ]);
   } catch (err) {
     return errorResult(err);
   }

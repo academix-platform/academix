@@ -602,6 +602,7 @@ model Submission {
   autoSubmitted    Boolean          @default(false)
   lastSyncedAt     DateTime?
   totalScore       Float?
+  gradePublished   Boolean          @default(false)
   extraTime        Int?
   extendedBy       String?
   extendedAt       DateTime?
@@ -633,6 +634,7 @@ model Answer {
   isDraft      Boolean    @default(true)   // false after submitExam finalizes it
   savedAt      DateTime   @default(now())  // ALWAYS set by server — never accepted from client
   score        Float?     // null until graded
+  isOverridden Boolean    @default(false)
 
   @@unique([submissionId, questionId])
   @@index([schoolId])

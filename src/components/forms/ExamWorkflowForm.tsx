@@ -12,7 +12,7 @@ import {
   createExamWorkflow,
   updateExamWorkflow,
 } from "@/lib/actions/examWorkflow.actions";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import InputField from "../InputField";
 
 type ExamWorkflowFormProps = {
@@ -38,7 +38,105 @@ const toDateTimeLocalValue = (value?: string | Date) => {
   return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
 };
 
+const EMPTY_STRING_ARRAY: string[] = [];
+
+type ScrollTarget = HTMLElement | Window;
+type ScrollPosition = {
+  target: ScrollTarget;
+  top: number;
+  left: number;
+};
+type QuestionScrollLock = {
+  positions: ScrollPosition[];
+  viewportTop: number;
+};
+
+const canScroll = (element: HTMLElement) => {
+  const style = window.getComputedStyle(element);
+  const overflowY = `${style.overflowY} ${style.overflow}`;
+
+  return /(auto|scroll|overlay)/.test(overflowY) && element.scrollHeight > element.clientHeight;
+};
+
+const getScrollTargets = (element: HTMLElement): ScrollTarget[] => {
+  const targets: ScrollTarget[] = [];
+  let current = element.parentElement;
+
+  while (current) {
+    if (canScroll(current)) targets.push(current);
+    current = current.parentElement;
+  }
+
+  targets.push(window);
+  return targets;
+};
+
+const getScrollPosition = (target: ScrollTarget): ScrollPosition => {
+  if (target instanceof HTMLElement) {
+    return {
+      target,
+      top: target.scrollTop,
+      left: target.scrollLeft,
+    };
+  }
+
+  return {
+    target,
+    top: target.scrollY,
+    left: target.scrollX,
+  };
+};
+
+const rememberScrollPositions = (element: HTMLElement) =>
+  getScrollTargets(element).map(getScrollPosition);
+
+const restoreScrollPositions = (positions: ScrollPosition[]) => {
+  for (const position of positions) {
+    if (position.target instanceof HTMLElement) {
+      position.target.scrollTop = position.top;
+      position.target.scrollLeft = position.left;
+      continue;
+    }
+
+    position.target.scrollTo({
+      top: position.top,
+      left: position.left,
+      behavior: "auto",
+    });
+  }
+};
+
+const alignElementToViewportTop = (element: HTMLElement, viewportTop: number) => {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const delta = element.getBoundingClientRect().top - viewportTop;
+
+    if (Math.abs(delta) <= 1) return;
+
+    const target = getScrollTargets(element)[0] ?? window;
+
+    if (target instanceof HTMLElement) {
+      target.scrollTop += delta;
+    } else {
+      target.scrollBy({ top: delta, behavior: "auto" });
+    }
+  }
+};
+
+const rememberQuestionScrollLock = (element: HTMLElement): QuestionScrollLock => ({
+  positions: rememberScrollPositions(element),
+  viewportTop: element.getBoundingClientRect().top,
+});
+
+const restoreQuestionScrollLock = (
+  element: HTMLElement,
+  lock: QuestionScrollLock,
+) => {
+  restoreScrollPositions(lock.positions);
+  alignElementToViewportTop(element, lock.viewportTop);
+};
+
 function QuestionEditor({
+  questionKey,
   index,
   control,
   register,
@@ -46,6 +144,7 @@ function QuestionEditor({
   errors,
   removeQuestion,
 }: {
+  questionKey: string;
   index: number;
   control: any;
   register: any;
@@ -61,16 +160,72 @@ function QuestionEditor({
   const typeField = register(typePath);
   const allowMultiple =
     useWatch({ control, name: `questions.${index}.allowMultiple` }) ?? false;
-  const correctAnswers: string[] = useWatch({
+  const watchedCorrectAnswers: string[] | undefined = useWatch({
     control,
     name: correctPath,
     defaultValue: [],
-  }) ?? [];
-  const currentOptions: string[] = useWatch({
+  });
+  const correctAnswers = watchedCorrectAnswers ?? EMPTY_STRING_ARRAY;
+  const watchedCurrentOptions: string[] | undefined = useWatch({
     control,
     name: optionsPath,
     defaultValue: [],
-  }) ?? [];
+  });
+  const currentOptions = watchedCurrentOptions ?? EMPTY_STRING_ARRAY;
+  const editorRef = useRef<HTMLDivElement>(null);
+  const pendingScrollRef = useRef<QuestionScrollLock | null>(null);
+
+  const rememberEditorPosition = () => {
+    const editor = editorRef.current;
+
+    if (!editor) {
+      pendingScrollRef.current = null;
+      return;
+    }
+
+    pendingScrollRef.current = rememberQuestionScrollLock(editor);
+  };
+
+  const restoreEditorPosition = () => {
+    const pendingScroll = pendingScrollRef.current;
+    const editor = editorRef.current;
+
+    if (!pendingScroll || !editor) return;
+    restoreQuestionScrollLock(editor, pendingScroll);
+  };
+
+  const preserveEditorScroll = (update: () => void) => {
+    rememberEditorPosition();
+    update();
+  };
+
+  useLayoutEffect(() => {
+    restoreEditorPosition();
+  });
+
+  useEffect(() => {
+    if (!pendingScrollRef.current) return;
+
+    const firstFrame = requestAnimationFrame(() => {
+      restoreEditorPosition();
+    });
+    const secondFrame = requestAnimationFrame(() => {
+      requestAnimationFrame(restoreEditorPosition);
+    });
+    const interval = window.setInterval(restoreEditorPosition, 50);
+    const timeout = window.setTimeout(() => {
+      restoreEditorPosition();
+      pendingScrollRef.current = null;
+      window.clearInterval(interval);
+    }, 800);
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  });
 
   // --- Track which option indexes are marked correct (by index, not value) ---
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
@@ -107,41 +262,39 @@ function QuestionEditor({
     const nextCorrect = nextSelected
       .map((si) => next[si])
       .filter((v): v is string => Boolean(v?.trim()));
-    setValue(correctPath, nextCorrect, { shouldDirty: true, shouldValidate: true });
+    setValue(correctPath, nextCorrect, { shouldDirty: true });
   };
 
   const handleQuestionTypeChange = (nextType: string) => {
-    if (nextType === "MCQ") {
-      setOptions(["", "", "", ""]);
+    preserveEditorScroll(() => {
+      if (nextType === "MCQ") {
+        setOptions(["", "", "", ""]);
+        setSelectedIndexes([]);
+        setValue(correctPath, [], { shouldDirty: true });
+        setValue(allowMultiplePath, false, {
+          shouldDirty: true,
+        });
+        return;
+      }
+
+      if (nextType === "TRUE_FALSE") {
+        setOptions(["True", "False"]);
+        setSelectedIndexes([]);
+        setValue(correctPath, ["TRUE"], {
+          shouldDirty: true,
+        });
+        setValue(allowMultiplePath, false, {
+          shouldDirty: true,
+        });
+        return;
+      }
+
+      setOptions([]);
       setSelectedIndexes([]);
-      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(correctPath, [], { shouldDirty: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
-        shouldValidate: true,
       });
-      return;
-    }
-
-    if (nextType === "TRUE_FALSE") {
-      setOptions(["True", "False"]);
-      setSelectedIndexes([]);
-      setValue(correctPath, ["TRUE"], {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      setValue(allowMultiplePath, false, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-      return;
-    }
-
-    setOptions([]);
-    setSelectedIndexes([]);
-    setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
-    setValue(allowMultiplePath, false, {
-      shouldDirty: true,
-      shouldValidate: true,
     });
   };
 
@@ -156,41 +309,64 @@ function QuestionEditor({
     if (JSON.stringify(nextCorrect) !== JSON.stringify(correctAnswers)) {
       setValue(correctPath, nextCorrect, {
         shouldDirty: true,
-        shouldValidate: true,
       });
     }
   }, [correctAnswers, correctPath, currentOptions, qType, selectedIndexes, setValue]);
 
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
-    let nextSelected: number[];
+    preserveEditorScroll(() => {
+      let nextSelected: number[];
 
-    if (allowMultiple) {
-      nextSelected = checked
-        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
-            (a, b) => a - b,
-          )
-        : selectedIndexes.filter((i) => i !== optionIndex);
-    } else {
-      nextSelected = checked ? [optionIndex] : [];
-    }
+      if (allowMultiple) {
+        nextSelected = checked
+          ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
+              (a, b) => a - b,
+            )
+          : selectedIndexes.filter((i) => i !== optionIndex);
+      } else {
+        nextSelected = checked ? [optionIndex] : [];
+      }
 
-    setSelectedIndexes(nextSelected);
+      setSelectedIndexes(nextSelected);
 
-    const nextCorrect = nextSelected
-      .map((si) => currentOptions[si])
-      .filter((v): v is string => Boolean(v?.trim()));
-    setValue(correctPath, nextCorrect, {
-      shouldDirty: true,
-      shouldValidate: true,
+      const nextCorrect = nextSelected
+        .map((si) => currentOptions[si])
+        .filter((v): v is string => Boolean(v?.trim()));
+      setValue(correctPath, nextCorrect, {
+        shouldDirty: true,
+      });
     });
   };
 
   const toggleTrueFalse = (value: "TRUE" | "FALSE") => {
-    setValue(correctPath, [value], { shouldDirty: true, shouldValidate: true });
+    preserveEditorScroll(() => {
+      setValue(correctPath, [value], { shouldDirty: true });
+    });
+  };
+
+  const toggleAllowMultiple = (checked: boolean) => {
+    preserveEditorScroll(() => {
+      setValue(allowMultiplePath, checked, { shouldDirty: true });
+
+      if (checked || selectedIndexes.length <= 1) return;
+
+      const nextSelected = selectedIndexes.slice(0, 1);
+      setSelectedIndexes(nextSelected);
+
+      const nextCorrect = nextSelected
+        .map((si) => currentOptions[si])
+        .filter((v): v is string => Boolean(v?.trim()));
+
+      setValue(correctPath, nextCorrect, { shouldDirty: true });
+    });
   };
 
   return (
-    <div className="relative space-y-4 bg-white p-4 border rounded-md">
+    <div
+      ref={editorRef}
+      data-question-editor={questionKey}
+      className="relative space-y-4 bg-white p-4 border rounded-md [overflow-anchor:none]"
+    >
       <button
         type="button"
         onClick={removeQuestion}
@@ -212,8 +388,12 @@ function QuestionEditor({
           <select
             {...typeField}
             onChange={(e) => {
-              typeField.onChange(e);
-              handleQuestionTypeChange(e.target.value);
+              const nextType = e.target.value;
+
+              preserveEditorScroll(() => {
+                typeField.onChange(e);
+                handleQuestionTypeChange(nextType);
+              });
             }}
             className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
           >
@@ -236,7 +416,11 @@ function QuestionEditor({
       {qType === "MCQ" && (
         <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
           <div className="flex items-center gap-2">
-            <input type="checkbox" {...register(allowMultiplePath)} />
+            <input
+              type="checkbox"
+              {...register(allowMultiplePath)}
+              onChange={(e) => toggleAllowMultiple(e.target.checked)}
+            />
             <span className="text-gray-700 text-sm">
               Allow multiple correct answers
             </span>
@@ -357,16 +541,22 @@ export default function ExamWorkflowForm({
 }: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+  const pendingQuestionScrollRef = useRef<{
+    questionKey: string;
+    lock: QuestionScrollLock;
+  } | null>(null);
+  const shouldScrollToNewQuestionRef = useRef(false);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
-    watch,
     formState: { errors },
   } = useForm<CreateExamWorkflowSchema>({
     resolver: zodResolver(createExamWorkflowSchema),
+    shouldFocusError: false,
     defaultValues: {
       title: initialData?.title ?? "",
       startTime: toDateTimeLocalValue(initialData?.startTime) as any,
@@ -403,8 +593,77 @@ export default function ExamWorkflowForm({
     name: "questions",
   });
 
-  const watchEnableTimer = watch("enableTimer");
-  const watchSubjectId = watch("subjectId");
+  const watchEnableTimer = useWatch({ control, name: "enableTimer" });
+  const watchSubjectId = useWatch({ control, name: "subjectId" });
+
+  const rememberQuestionPosition = (target: EventTarget | null) => {
+    if (!(target instanceof HTMLElement)) return;
+
+    const editor = target.closest<HTMLElement>("[data-question-editor]");
+    const questionKey = editor?.dataset.questionEditor;
+
+    if (!editor || !questionKey) return;
+
+    pendingQuestionScrollRef.current = {
+      questionKey,
+      lock: rememberQuestionScrollLock(editor),
+    };
+  };
+
+  const restoreQuestionPosition = () => {
+    const pendingScroll = pendingQuestionScrollRef.current;
+    const form = formRef.current;
+
+    if (!pendingScroll || !form) return;
+
+    const editor = form.querySelector<HTMLElement>(
+      `[data-question-editor="${pendingScroll.questionKey}"]`,
+    );
+
+    if (!editor) return;
+    restoreQuestionScrollLock(editor, pendingScroll.lock);
+  };
+
+  useLayoutEffect(() => {
+    restoreQuestionPosition();
+  });
+
+  useLayoutEffect(() => {
+    if (!shouldScrollToNewQuestionRef.current) return;
+
+    const form = formRef.current;
+    const editors = form?.querySelectorAll<HTMLElement>("[data-question-editor]");
+    const lastEditor = editors?.[editors.length - 1];
+
+    if (!lastEditor) return;
+
+    shouldScrollToNewQuestionRef.current = false;
+    lastEditor.scrollIntoView({ block: "start", behavior: "smooth" });
+  }, [fields.length]);
+
+  useEffect(() => {
+    if (!pendingQuestionScrollRef.current) return;
+
+    const firstFrame = requestAnimationFrame(() => {
+      restoreQuestionPosition();
+    });
+    const secondFrame = requestAnimationFrame(() => {
+      requestAnimationFrame(restoreQuestionPosition);
+    });
+    const interval = window.setInterval(restoreQuestionPosition, 50);
+    const timeout = window.setTimeout(() => {
+      restoreQuestionPosition();
+      pendingQuestionScrollRef.current = null;
+      window.clearInterval(interval);
+    }, 800);
+
+    return () => {
+      cancelAnimationFrame(firstFrame);
+      cancelAnimationFrame(secondFrame);
+      window.clearInterval(interval);
+      window.clearTimeout(timeout);
+    };
+  });
 
   const filteredClasses = useMemo(() => {
     if (!watchSubjectId) {
@@ -453,7 +712,13 @@ export default function ExamWorkflowForm({
   };
 
   return (
-    <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
+    <form
+      ref={formRef}
+      className="flex flex-col gap-6 [overflow-anchor:none]"
+      onPointerDownCapture={(event) => rememberQuestionPosition(event.target)}
+      onChangeCapture={(event) => rememberQuestionPosition(event.target)}
+      onSubmit={handleSubmit(onSubmit)}
+    >
       <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
         <h2 className="font-bold text-gray-900 text-2xl">1. Basic Information</h2>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
@@ -571,18 +836,22 @@ export default function ExamWorkflowForm({
           <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
           <button
             type="button"
-            onClick={() =>
-              append({
-                type: "TEXT",
-                text: "",
-                points: 1,
-                order: fields.length + 1,
-                allowMultiple: false,
-                options: [],
-                correctAnswer: [],
-                textAnswer: "",
-              })
-            }
+            onClick={() => {
+              shouldScrollToNewQuestionRef.current = true;
+              append(
+                {
+                  type: "TEXT",
+                  text: "",
+                  points: 1,
+                  order: fields.length + 1,
+                  allowMultiple: false,
+                  options: [],
+                  correctAnswer: [],
+                  textAnswer: "",
+                },
+                { shouldFocus: false },
+              );
+            }}
             className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
           >
             + Add Question
@@ -593,6 +862,7 @@ export default function ExamWorkflowForm({
           return (
             <QuestionEditor
               key={field.id}
+              questionKey={field.id}
               index={index}
               control={control}
               register={register}
