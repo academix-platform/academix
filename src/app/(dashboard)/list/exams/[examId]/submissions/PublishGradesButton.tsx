@@ -1,6 +1,6 @@
 "use client";
 
-import { publishExamGrades } from "@/lib/actions";
+import { publishExamGrades } from "@/lib/actions/examWorkflow.actions";
 import { CheckCircle, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
@@ -8,18 +8,25 @@ import { toast } from "react-toastify";
 
 type PublishGradesButtonProps = {
   examId: number;
-  disabled: boolean;
-  allPublished: boolean;
+  disabled?: boolean;
+  allPublished?: boolean;
+  allGraded?: boolean;
+  alreadyPublished?: boolean;
 };
 
 const PublishGradesButton = ({
   examId,
   disabled,
   allPublished,
+  allGraded,
+  alreadyPublished,
 }: PublishGradesButtonProps) => {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [synced, setSynced] = useState(false);
+  const published = allPublished ?? alreadyPublished ?? false;
+  const hasPublishableGrades = allGraded ?? !disabled;
+  const isDisabled = disabled ?? (!hasPublishableGrades || published);
 
   const handlePublish = () => {
     startTransition(async () => {
@@ -28,7 +35,7 @@ const PublishGradesButton = ({
       if (result.success) {
         setSynced(true);
         toast.success(
-          allPublished
+          published
             ? "Published grades synced to results."
             : "Grades published to students."
         );
@@ -43,7 +50,7 @@ const PublishGradesButton = ({
     <button
       type="button"
       onClick={handlePublish}
-      disabled={disabled || isPending || synced}
+      disabled={isDisabled || isPending || synced}
       className="inline-flex items-center gap-2 rounded-md bg-green-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-50"
     >
       {isPending ? (
@@ -51,11 +58,9 @@ const PublishGradesButton = ({
       ) : (
         <CheckCircle className="h-4 w-4" />
       )}
-      {synced
-        ? "Results Synced"
-        : allPublished
-          ? "Sync Results"
-          : "Publish Grades"}
+      {synced || published
+        ? "Grades Published"
+        : "Publish Grades"}
     </button>
   );
 };

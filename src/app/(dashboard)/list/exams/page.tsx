@@ -81,14 +81,12 @@ const getColumns = (role: UserRole | null) => {
 
   if (role === "student") {
     columns.push({
-      header: "My Status",
+      header: "Status",
       accessor: "myStatus",
-      className: "hidden md:table-cell",
     });
     columns.push({
-      header: "My Score",
+      header: "Score",
       accessor: "myScore",
-      className: "hidden md:table-cell",
     });
   }
 
@@ -126,24 +124,24 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     </td>
 
     {role === "student" && (
-      <td className="hidden md:table-cell p-4">
+      <td className="p-4 text-left">
         {(() => {
           const sub = item.studentSubmission;
-          if (!sub) return <span className="text-gray-400 text-xs">Not started</span>;
+          if (!sub) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">Not Started</span>;
           if (sub.status === "IN_PROGRESS")
             return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">In Progress</span>;
           if (sub.status === "SUBMITTED")
-            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">Awaiting Evaluation</span>;
+            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">Submitted</span>;
           if (sub.status === "GRADED" && !sub.gradePublished)
-            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">Graded – Pending Release</span>;
+            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">Graded</span>;
           if (sub.status === "GRADED" && sub.gradePublished)
-            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">Grade Released</span>;
+            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">Published</span>;
         })()}
       </td>
     )}
 
     {role === "student" && (
-      <td className="hidden md:table-cell p-4 font-semibold text-academixPurpleDark">
+      <td className="p-4 text-left font-semibold text-academixPurpleDark">
         {item.studentSubmission?.gradePublished && item.studentSubmission.totalScore !== null
           ? item.studentSubmission.totalScore
           : <span className="text-gray-300 font-normal">—</span>}

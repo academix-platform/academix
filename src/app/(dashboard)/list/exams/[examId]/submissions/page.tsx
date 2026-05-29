@@ -173,7 +173,7 @@ const ExamSubmissionsPage = async ({
         </div>
         <PublishGradesButton
           examId={examId}
-          disabled={!hasGradedSubmissions}
+          disabled={!hasGradedSubmissions || allGradedPublished}
           allPublished={allGradedPublished}
         />
       </div>

@@ -320,8 +320,8 @@ function QuestionEditor({
       if (allowMultiple) {
         nextSelected = checked
           ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
-              (a, b) => a - b,
-            )
+            (a, b) => a - b,
+          )
           : selectedIndexes.filter((i) => i !== optionIndex);
       } else {
         nextSelected = checked ? [optionIndex] : [];
@@ -689,10 +689,10 @@ export default function ExamWorkflowForm({
       const res =
         mode === "update" && examId
           ? await updateExamWorkflow(
-              { success: true, error: false },
-              examId,
-              data,
-            )
+            { success: true, error: false },
+            examId,
+            data,
+          )
           : await createExamWorkflow({ success: true, error: false }, data);
       if (res.error) {
         toast.error(res.message);
@@ -893,5 +893,4 @@ export default function ExamWorkflowForm({
     </form>
   );
 }
-
 

@@ -794,6 +794,12 @@ export const gradeAnswer = async (
       },
     });
 
+    // Mark as unpublished since the grade changed
+    await prisma.submission.update({
+      where: { id: answer.submissionId },
+      data: { gradePublished: false },
+    });
+
     // Try to finalize grading if all answers are graded
     await finalizeGrade(answer.submissionId);
 
@@ -819,7 +825,7 @@ export const finalizeGrade = async (submissionId: number) => {
 
   await prisma.submission.update({
     where: { id: submissionId },
-    data: { totalScore, status: "GRADED" },
+    data: { totalScore, status: "GRADED", gradePublished: false },
   });
 };
 
@@ -982,6 +988,7 @@ export const approveAndFinalizeGrading = async (submissionId: number) => {
       data: {
         totalScore,
         status: "GRADED",
+        gradePublished: false,
       },
     });
 
@@ -1112,4 +1119,6 @@ export const publishExamGrades = async (examId: number) => {
     return errorResult(err);
   }
 };
+
+export const publishAllGrades = publishExamGrades;
 

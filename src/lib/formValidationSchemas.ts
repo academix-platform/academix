@@ -497,7 +497,20 @@ export const questionSchema = z.object({
   type: z.enum(["TRUE_FALSE", "MCQ", "TEXT", "FILE"]),
   points: z.coerce.number().min(1).default(1),
   order: z.coerce.number().min(1),
-  options: z.array(z.string().min(1, "Option text is required")).optional(),
+  options: z.preprocess(
+    (val) => {
+      if (Array.isArray(val)) {
+        return val.map((item) => {
+          if (item && typeof item === "object" && "text" in item) {
+            return item.text;
+          }
+          return item;
+        });
+      }
+      return val;
+    },
+    z.array(z.string().min(1, "Option text is required")).optional()
+  ),
   correctAnswer: z
     .array(z.string().min(1, "Correct answer is required"))
     .optional(),
