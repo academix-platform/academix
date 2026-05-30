@@ -12,6 +12,7 @@ import {
   successResult,
 } from "./helpers";
 import cloudinary from "@/lib/cloudinary";
+import { notifyNewAssignment, notifyAssignmentUpdated } from "./notification.actions";
 
 async function uploadAssignmentFile(file: File, folder = "assignments"): Promise<{ url: string; name: string }> {
   const arrayBuffer = await file.arrayBuffer();
@@ -144,7 +145,7 @@ export const createAssignment = async (
       }
     }
 
-    await prisma.$transaction(
+    const createdAssignments = await prisma.$transaction(
       lessons.map((lesson) =>
         prisma.assignment.create({
           data: {
@@ -163,6 +164,18 @@ export const createAssignment = async (
         }),
       ),
     );
+
+    // ✅ إشعار الطلاب بالواجب الجديد
+    for (const assignment of createdAssignments) {
+      if (assignment.classId) {
+        await notifyNewAssignment({
+          schoolId: access.schoolId,
+          assignmentId: assignment.id,
+          assignmentTitle: title,
+          classId: assignment.classId,
+        }).catch(() => {}); // لا نوقف العملية إذا فشل الإشعار
+      }
+    }
 
     return successResult(["/list/assignments"]);
   } catch (err) {
@@ -299,6 +312,15 @@ export const updateAssignment = async (
         }
       }
     });
+
+    // ✅ إشعار الطلاب بتحديث الواجب
+    for (const [classId] of selectedLessonsByClass) {
+      await notifyAssignmentUpdated({
+        schoolId: access.schoolId,
+        assignmentTitle: title,
+        classId,
+      }).catch(() => {});
+    }
 
     return successResult(["/list/assignments"]);
   } catch (err) {

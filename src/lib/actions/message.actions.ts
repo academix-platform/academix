@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyNewMessage, notifyParentsNewMessage } from "./notification.actions";
 import { MessageSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -48,6 +49,43 @@ export const createMessage = async (
         },
       },
     });
+
+    // ✅ إشعار المستقبلين بالرسالة الجديدة
+    const allStudentIds = data.studentIds ?? [];
+    const allTeacherIds = data.teacherIds ?? [];
+
+    // إشعار الطلاب
+    if (allStudentIds.length > 0) {
+      await notifyNewMessage({
+        schoolId: access.schoolId,
+        recipientIds: allStudentIds,
+        recipientRole: "student",
+        senderName: "Admin",
+        messageTitle: data.title,
+      }).catch(() => {});
+    }
+
+    // إشعار المعلمين
+    if (allTeacherIds.length > 0) {
+      await notifyNewMessage({
+        schoolId: access.schoolId,
+        recipientIds: allTeacherIds,
+        recipientRole: "teacher",
+        senderName: "Admin",
+        messageTitle: data.title,
+      }).catch(() => {});
+    }
+
+    // ✅ إشعار الأولياء بالرسالة الجديدة
+    const parentIds = data.parentIds ?? [];
+    if (parentIds.length > 0) {
+      await notifyParentsNewMessage({
+        schoolId: access.schoolId,
+        parentIds,
+        senderName: "Admin",
+        messageTitle: data.title,
+      }).catch(() => {});
+    }
 
     return successResult(["/list/messages"]);
   } catch (err) {

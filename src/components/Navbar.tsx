@@ -1,6 +1,7 @@
 "use client";
 
-import { Search, Bell, MessageCircle } from "lucide-react";
+import { MessageCircle } from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
@@ -92,16 +93,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
             </Link>
           )}
 
-          <Link
-            href="#"
-            aria-label="Notifications"
-            className="relative w-7 h-7"
-          >
-            <Bell className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
-            <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
-              1
-            </div>
-          </Link>
+          <NotificationBell />
         </div>
 
         {/* USER INFO */}

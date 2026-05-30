@@ -19,6 +19,7 @@ import {
   Settings,
   User,
   UsersRound,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -145,6 +146,13 @@ export const menuItems: MenuSection[] = [
         icon: Megaphone,
         label: "Announcements",
         href: "/list/announcements",
+        shouldPrefetch: true,
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: Bell,
+        label: "Notifications",
+        href: "/list/notifications",
         shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
