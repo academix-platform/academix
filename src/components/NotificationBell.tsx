@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Bell, X, CheckCheck, ClipboardList, MessageSquare, Megaphone, BookOpen, Mail, BarChart3, Calendar, Users } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -62,6 +63,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading]         = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
   const fetchNotifs = useCallback(async () => {
@@ -140,7 +142,13 @@ export default function NotificationBell() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
               <Bell className="w-4 h-4 text-gray-600" />
-              <h3 className="font-semibold text-sm text-gray-800">Notifications</h3>
+              <Link
+                href="/list/notifications"
+                onClick={() => setOpen(false)}
+                className="font-semibold text-sm text-gray-800 hover:text-purple-600 transition-colors"
+              >
+                Notifications
+              </Link>
               {unreadCount > 0 && (
                 <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                   {unreadCount} new
@@ -221,17 +229,22 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          {notifications.length > 0 && (
-            <div className="px-4 py-2.5 border-t border-gray-100 text-center">
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                className="text-xs text-gray-400 hover:text-purple-600 transition-colors"
-              >
-                Close
-              </button>
-            </div>
-          )}
+          <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between">
+            <Link
+              href="/list/notifications"
+              onClick={() => setOpen(false)}
+              className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+            >
+              View all notifications →
+            </Link>
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>

@@ -70,7 +70,7 @@ export async function notifyNewAssignment({
 }) {
   const students = await prisma.student.findMany({
     where: { schoolId, classId },
-    select: { id: true },
+    select: { id: true, parentId: true },
   });
 
   await prisma.notification.createMany({
@@ -84,6 +84,24 @@ export async function notifyNewAssignment({
       link:     "/list/assignments",
     })),
   });
+
+  // ✅ إشعار الأولياء بالواجب الجديد
+  const parentIds = [...new Set(
+    students.map((s) => s.parentId).filter((id): id is string => !!id)
+  )];
+  if (parentIds.length > 0) {
+    await prisma.notification.createMany({
+      data: parentIds.map((id) => ({
+        schoolId,
+        userId:   id,
+        userRole: "parent",
+        type:     "NEW_ASSIGNMENT" as NotificationType,
+        title:    "New Assignment",
+        body:     `A new assignment "${assignmentTitle}" has been posted for your child.`,
+        link:     "/list/assignments",
+      })),
+    });
+  }
 }
 
 // ─── 2. تسليم واجب → إشعار للمعلم ───────────────────────────────────────────
@@ -148,7 +166,7 @@ export async function notifyNewExam({
 }) {
   const students = await prisma.student.findMany({
     where: { schoolId, classId },
-    select: { id: true },
+    select: { id: true, parentId: true },
   });
 
   await prisma.notification.createMany({
@@ -547,7 +565,7 @@ export async function notifyAssignmentUpdated({
 }) {
   const students = await prisma.student.findMany({
     where: { schoolId, classId },
-    select: { id: true },
+    select: { id: true, parentId: true },
   });
 
   await prisma.notification.createMany({
@@ -586,4 +604,58 @@ export async function notifyGradeUpdated({
     body:     `Your ${assessmentType} "${assessmentTitle}" grade has been updated to ${score} points.`,
     link:     "/list/results",
   });
+}
+// ─── 18. تغيير الجدول → إشعار للطلاب والأولياء ───────────────────────────────
+export async function notifyStudentsScheduleUpdated({
+  schoolId,
+  classId,
+}: {
+  schoolId: number;
+  classId: number;
+}) {
+  const classInfo = await prisma.class.findUnique({
+    where: { id: classId },
+    select: { name: true },
+  });
+
+  const students = await prisma.student.findMany({
+    where: { schoolId, classId },
+    select: { id: true, parentId: true },
+  });
+
+  if (students.length === 0) return;
+
+  const className = classInfo?.name ?? String(classId);
+
+  // إشعار الطلاب
+  await prisma.notification.createMany({
+    data: students.map((s) => ({
+      schoolId,
+      userId:   s.id,
+      userRole: "student",
+      type:     "SCHEDULE_UPDATED" as NotificationType,
+      title:    "Schedule Updated",
+      body:     `The schedule for your class "${className}" has been updated.`,
+      link:     "/list/lessons",
+    })),
+  });
+
+  // إشعار الأولياء
+  const parentIds = [...new Set(
+    students.map((s) => s.parentId).filter((id): id is string => !!id)
+  )];
+
+  if (parentIds.length > 0) {
+    await prisma.notification.createMany({
+      data: parentIds.map((id) => ({
+        schoolId,
+        userId:   id,
+        userRole: "parent",
+        type:     "SCHEDULE_UPDATED" as NotificationType,
+        title:    "Schedule Updated",
+        body:     `The schedule for class "${className}" has been updated.`,
+        link:     "/list/lessons",
+      })),
+    });
+  }
 }

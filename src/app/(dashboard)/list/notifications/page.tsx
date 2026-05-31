@@ -4,23 +4,22 @@ import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma } from "@prisma/client";
-import { Bell } from "lucide-react";
 import NotificationsClient from "./NotificationsClient";
 
 const TYPE_OPTIONS = [
-  { value: "",                     label: "All Types"       },
-  { value: "NEW_ASSIGNMENT",       label: "Assignments"     },
-  { value: "ASSIGNMENT_UPDATED",   label: "Assignment Updates" },
-  { value: "ASSIGNMENT_FEEDBACK",  label: "Feedback"        },
-  { value: "NEW_EXAM",             label: "Exams"           },
-  { value: "GRADE_POSTED",         label: "Grades"          },
-  { value: "GRADE_UPDATED",        label: "Grade Updates"   },
-  { value: "NEW_ANNOUNCEMENT",     label: "Announcements"   },
-  { value: "NEW_EVENT",            label: "Events"          },
-  { value: "SCHEDULE_UPDATED",     label: "Schedule"        },
-  { value: "ATTENDANCE_SAVED",     label: "Attendance"      },
-  { value: "SUPERVISOR_ASSIGNED",  label: "Supervisor"      },
-  { value: "NEW_MESSAGE",          label: "Messages"        },
+  { value: "",                    label: "All Types"          },
+  { value: "NEW_ASSIGNMENT",      label: "Assignments"        },
+  { value: "ASSIGNMENT_UPDATED",  label: "Assignment Updates" },
+  { value: "ASSIGNMENT_FEEDBACK", label: "Feedback"           },
+  { value: "NEW_EXAM",            label: "Exams"              },
+  { value: "GRADE_POSTED",        label: "Grades"             },
+  { value: "GRADE_UPDATED",       label: "Grade Updates"      },
+  { value: "NEW_ANNOUNCEMENT",    label: "Announcements"      },
+  { value: "NEW_EVENT",           label: "Events"             },
+  { value: "SCHEDULE_UPDATED",    label: "Schedule"           },
+  { value: "ATTENDANCE_SAVED",    label: "Attendance"         },
+  { value: "SUPERVISOR_ASSIGNED", label: "Supervisor"         },
+  { value: "NEW_MESSAGE",         label: "Messages"           },
 ];
 
 export default async function NotificationsPage({
@@ -38,7 +37,7 @@ export default async function NotificationsPage({
 
   const where: Prisma.NotificationWhereInput = {
     userId,
-    ...(type   ? { type: type as any }                              : {}),
+    ...(type   ? { type: type as any } : {}),
     ...(search ? { OR: [
       { title: { contains: search, mode: "insensitive" } },
       { body:  { contains: search, mode: "insensitive" } },
@@ -57,35 +56,20 @@ export default async function NotificationsPage({
   ]);
 
   return (
-    <div className="flex-1 m-4 mt-0 space-y-4">
-      {/* Header */}
-      <div className="bg-white rounded-xl p-5 flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-purple-100 rounded-xl">
-            <Bell className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <h1 className="font-semibold text-lg text-gray-800">Notifications</h1>
-            {unreadCount > 0 && (
-              <p className="text-xs text-gray-500">{unreadCount} unread</p>
-            )}
-          </div>
-        </div>
-        {/* Mark all read button — client */}
-        <NotificationsClient
-          notifications={notifications.map(n => ({
-            ...n,
-            createdAt: n.createdAt.toISOString(),
-          }))}
-          count={count}
-          page={p}
-          unreadCount={unreadCount}
-          typeOptions={TYPE_OPTIONS}
-          currentSearch={search}
-          currentType={type}
-          currentSort={sort}
-        />
-      </div>
+    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
+      <NotificationsClient
+        notifications={notifications.map(n => ({
+          ...n,
+          createdAt: n.createdAt.toISOString(),
+        }))}
+        count={count}
+        page={p}
+        unreadCount={unreadCount}
+        typeOptions={TYPE_OPTIONS}
+        currentSearch={search}
+        currentType={type}
+        currentSort={sort}
+      />
     </div>
   );
 }
