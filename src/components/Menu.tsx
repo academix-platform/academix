@@ -19,6 +19,7 @@ import {
   Settings,
   User,
   UsersRound,
+  Archive,
   type LucideIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -147,7 +148,12 @@ export const menuItems: MenuSection[] = [
         href: "/list/announcements",
         shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
-      },
+      },{
+  icon: Archive,
+  label: "Archive",
+  href: "/archive",
+  visible: ["admin"],
+},
     ],
   },
   {
