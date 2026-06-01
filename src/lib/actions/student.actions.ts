@@ -1,5 +1,5 @@
 "use server";
-
+import { sendAccountEmail } from "../mail";
 import { StudentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -46,25 +46,33 @@ export const createStudent = async (
 
     createdUserId = user.id;
 
-    await prisma.student.create({
-      data: {
-        id: createdUserId,
-        schoolId: access.schoolId,
-        username: data.username,
-        name: data.name,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        gradeId: data.gradeId,
-        classId: data.classId,
-        parentId: data.parentId || null,
-        status: data.status || "ACTIVE",
-      } as any,
-    });
+   await prisma.student.create({
+  data: {
+    id: createdUserId,
+    schoolId: access.schoolId,
+    username: data.username,
+    name: data.name,
+    email: data.email || null,
+    phone: data.phone || null,
+    address: data.address,
+    img: data.img || null,
+    bloodType: data.bloodType,
+    sex: data.sex,
+    birthday: data.birthday,
+    gradeId: data.gradeId,
+    classId: data.classId,
+    parentId: data.parentId || null,
+    status: data.status || "ACTIVE",
+  } as any,
+});
+
+if (data.email && data.password) {
+  await sendAccountEmail(
+    data.email,
+    data.username,
+    data.password
+  );
+}
 
     // Automatically enroll student in the current academic year
     const currentAcademicYearId = await getRequiredAcademicYearId(

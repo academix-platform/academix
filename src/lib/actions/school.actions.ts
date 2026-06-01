@@ -1,5 +1,5 @@
 "use server";
-
+import { sendSchoolApprovalEmail } from "@/lib/mail";
 import { clerkClient } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
@@ -9,7 +9,8 @@ import { getReadableActionErrorMessage } from "./helpers";
 
 const normalize = (value: FormDataEntryValue | null) =>
   typeof value === "string" ? value.trim() : "";
-
+const generatePassword = () =>
+  Math.random().toString(36).slice(-8) + "A1!";
 export async function createSchoolSignup(formData: FormData) {
   const schoolName = normalize(formData.get("schoolName"));
   const contactEmail = normalize(formData.get("contactEmail"));
@@ -140,13 +141,51 @@ export async function updateSchoolStatus(formData: FormData) {
   if (!["PENDING", "ACTIVE", "PAUSED"].includes(statusRaw)) return;
 
   const status = statusRaw as SchoolStatus;
-  await prisma.school.update({
+
+  const schoolBeforeUpdate = await prisma.school.findUnique({
+    where: { id: schoolId },
+    select: {
+      id: true,
+      name: true,
+      contactEmail: true,
+      status: true,
+    },
+  });
+
+  if (!schoolBeforeUpdate) return;
+
+  const updatedSchool = await prisma.school.update({
     where: { id: schoolId },
     data: {
       status,
       pauseReason: status === "PAUSED" ? pauseReason || "No reason provided." : null,
     },
   });
+
+  if (schoolBeforeUpdate.status === "PENDING" && status === "ACTIVE") {
+    const admin = await prisma.admin.findFirst({
+      where: { schoolId },
+      select: {
+        id: true,
+        username: true,
+      },
+    });
+
+    if (admin && schoolBeforeUpdate.contactEmail) {
+      const newPassword = generatePassword();
+
+      await (await clerkClient()).users.updateUser(admin.id, {
+        password: newPassword,
+      });
+
+      await sendSchoolApprovalEmail(
+        schoolBeforeUpdate.contactEmail,
+        updatedSchool.name,
+        admin.username,
+        newPassword
+      );
+    }
+  }
 
   revalidatePath("/super-admin");
 }
