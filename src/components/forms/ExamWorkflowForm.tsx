@@ -12,8 +12,9 @@ import {
   createExamWorkflow,
   updateExamWorkflow,
 } from "@/lib/actions/examWorkflow.actions";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import InputField from "../InputField";
+import { FileText } from "lucide-react";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
@@ -38,196 +39,46 @@ const toDateTimeLocalValue = (value?: string | Date) => {
   return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
 };
 
-const EMPTY_STRING_ARRAY: string[] = [];
-
-type ScrollTarget = HTMLElement | Window;
-type ScrollPosition = {
-  target: ScrollTarget;
-  top: number;
-  left: number;
-};
-type QuestionScrollLock = {
-  positions: ScrollPosition[];
-  viewportTop: number;
-};
-
-const canScroll = (element: HTMLElement) => {
-  const style = window.getComputedStyle(element);
-  const overflowY = `${style.overflowY} ${style.overflow}`;
-
-  return /(auto|scroll|overlay)/.test(overflowY) && element.scrollHeight > element.clientHeight;
-};
-
-const getScrollTargets = (element: HTMLElement): ScrollTarget[] => {
-  const targets: ScrollTarget[] = [];
-  let current = element.parentElement;
-
-  while (current) {
-    if (canScroll(current)) targets.push(current);
-    current = current.parentElement;
-  }
-
-  targets.push(window);
-  return targets;
-};
-
-const getScrollPosition = (target: ScrollTarget): ScrollPosition => {
-  if (target instanceof HTMLElement) {
-    return {
-      target,
-      top: target.scrollTop,
-      left: target.scrollLeft,
-    };
-  }
-
-  return {
-    target,
-    top: target.scrollY,
-    left: target.scrollX,
-  };
-};
-
-const rememberScrollPositions = (element: HTMLElement) =>
-  getScrollTargets(element).map(getScrollPosition);
-
-const restoreScrollPositions = (positions: ScrollPosition[]) => {
-  for (const position of positions) {
-    if (position.target instanceof HTMLElement) {
-      position.target.scrollTop = position.top;
-      position.target.scrollLeft = position.left;
-      continue;
-    }
-
-    position.target.scrollTo({
-      top: position.top,
-      left: position.left,
-      behavior: "auto",
-    });
-  }
-};
-
-const alignElementToViewportTop = (element: HTMLElement, viewportTop: number) => {
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const delta = element.getBoundingClientRect().top - viewportTop;
-
-    if (Math.abs(delta) <= 1) return;
-
-    const target = getScrollTargets(element)[0] ?? window;
-
-    if (target instanceof HTMLElement) {
-      target.scrollTop += delta;
-    } else {
-      target.scrollBy({ top: delta, behavior: "auto" });
-    }
-  }
-};
-
-const rememberQuestionScrollLock = (element: HTMLElement): QuestionScrollLock => ({
-  positions: rememberScrollPositions(element),
-  viewportTop: element.getBoundingClientRect().top,
-});
-
-const restoreQuestionScrollLock = (
-  element: HTMLElement,
-  lock: QuestionScrollLock,
-) => {
-  restoreScrollPositions(lock.positions);
-  alignElementToViewportTop(element, lock.viewportTop);
-};
-
 function QuestionEditor({
-  questionKey,
   index,
   control,
   register,
   setValue,
   errors,
+  isSubmitted,
   removeQuestion,
 }: {
-  questionKey: string;
   index: number;
   control: any;
   register: any;
   setValue: any;
   errors: any;
+  isSubmitted: boolean;
   removeQuestion: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const optionsPath = `questions.${index}.options` as const;
   const correctPath = `questions.${index}.correctAnswer` as const;
   const allowMultiplePath = `questions.${index}.allowMultiple` as const;
   const typePath = `questions.${index}.type` as const;
+  const fileConfigPath = `questions.${index}.fileConfig` as const;
+
   const qType = useWatch({ control, name: typePath }) ?? "TEXT";
   const typeField = register(typePath);
   const allowMultiple =
     useWatch({ control, name: `questions.${index}.allowMultiple` }) ?? false;
-  const watchedCorrectAnswers: string[] | undefined = useWatch({
+  const correctAnswers: string[] = useWatch({
     control,
     name: correctPath,
     defaultValue: [],
-  });
-  const correctAnswers = watchedCorrectAnswers ?? EMPTY_STRING_ARRAY;
-  const watchedCurrentOptions: string[] | undefined = useWatch({
+  } as any) ?? [];
+  const currentOptions: string[] = useWatch({
     control,
     name: optionsPath,
     defaultValue: [],
-  });
-  const currentOptions = watchedCurrentOptions ?? EMPTY_STRING_ARRAY;
-  const editorRef = useRef<HTMLDivElement>(null);
-  const pendingScrollRef = useRef<QuestionScrollLock | null>(null);
+  } as any) ?? [];
 
-  const rememberEditorPosition = () => {
-    const editor = editorRef.current;
-
-    if (!editor) {
-      pendingScrollRef.current = null;
-      return;
-    }
-
-    pendingScrollRef.current = rememberQuestionScrollLock(editor);
-  };
-
-  const restoreEditorPosition = () => {
-    const pendingScroll = pendingScrollRef.current;
-    const editor = editorRef.current;
-
-    if (!pendingScroll || !editor) return;
-    restoreQuestionScrollLock(editor, pendingScroll);
-  };
-
-  const preserveEditorScroll = (update: () => void) => {
-    rememberEditorPosition();
-    update();
-  };
-
-  useLayoutEffect(() => {
-    restoreEditorPosition();
-  });
-
-  useEffect(() => {
-    if (!pendingScrollRef.current) return;
-
-    const firstFrame = requestAnimationFrame(() => {
-      restoreEditorPosition();
-    });
-    const secondFrame = requestAnimationFrame(() => {
-      requestAnimationFrame(restoreEditorPosition);
-    });
-    const interval = window.setInterval(restoreEditorPosition, 50);
-    const timeout = window.setTimeout(() => {
-      restoreEditorPosition();
-      pendingScrollRef.current = null;
-      window.clearInterval(interval);
-    }, 800);
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-      window.clearInterval(interval);
-      window.clearTimeout(timeout);
-    };
-  });
-
-  // --- Track which option indexes are marked correct (by index, not value) ---
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
     if (!currentOptions.length || !correctAnswers.length) return [];
     return currentOptions
@@ -241,15 +92,37 @@ function QuestionEditor({
     return null;
   }, [correctAnswers]);
 
-  // --- Manual option array helpers (replaces useFieldArray) ---
+  const lockScroll = () => {
+    const currentScrollY = window.scrollY;
+    const mainContentContainer = containerRef.current?.closest('.overflow-auto');
+    const containerScrollTop = mainContentContainer ? mainContentContainer.scrollTop : 0;
+
+    window.scrollTo(0, currentScrollY);
+    if (mainContentContainer) {
+      mainContentContainer.scrollTop = containerScrollTop;
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollY);
+      if (mainContentContainer) {
+        mainContentContainer.scrollTop = containerScrollTop;
+      }
+      containerRef.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
+    });
+  };
+
   const setOptions = (next: string[]) => {
     setValue(optionsPath, next, { shouldDirty: true });
   };
 
-  const appendOption = () => setOptions([...currentOptions, ""]);
+  const appendOption = () => {
+    lockScroll();
+    setOptions([...currentOptions, ""]);
+  };
 
   const removeOptionAt = (idx: number) => {
-    // Shrink selectedIndexes when an option is removed
+    lockScroll();
+
     const nextSelected = selectedIndexes
       .filter((si) => si !== idx)
       .map((si) => (si > idx ? si - 1 : si));
@@ -258,47 +131,47 @@ function QuestionEditor({
     const next = currentOptions.filter((_: string, i: number) => i !== idx);
     setOptions(next);
 
-    // Rebuild correctAnswer from remaining selected indexes
     const nextCorrect = nextSelected
       .map((si) => next[si])
       .filter((v): v is string => Boolean(v?.trim()));
-    setValue(correctPath, nextCorrect, { shouldDirty: true });
+    setValue(correctPath, nextCorrect, { shouldDirty: true, shouldValidate: true });
   };
 
   const handleQuestionTypeChange = (nextType: string) => {
-    preserveEditorScroll(() => {
-      if (nextType === "MCQ") {
-        setOptions(["", "", "", ""]);
-        setSelectedIndexes([]);
-        setValue(correctPath, [], { shouldDirty: true });
-        setValue(allowMultiplePath, false, {
-          shouldDirty: true,
-        });
-        return;
-      }
+    lockScroll();
 
-      if (nextType === "TRUE_FALSE") {
-        setOptions(["True", "False"]);
-        setSelectedIndexes([]);
-        setValue(correctPath, ["TRUE"], {
-          shouldDirty: true,
-        });
-        setValue(allowMultiplePath, false, {
-          shouldDirty: true,
-        });
-        return;
-      }
-
+    if (nextType === "MCQ") {
+      setOptions(["", "", "", ""]);
+      setSelectedIndexes([]);
+      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
+    } else if (nextType === "TRUE_FALSE") {
+      setOptions(["True", "False"]);
+      setSelectedIndexes([]);
+      setValue(correctPath, ["TRUE"], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
+    } else if (nextType === "FILE") {
       setOptions([]);
       setSelectedIndexes([]);
-      setValue(correctPath, [], { shouldDirty: true });
-      setValue(allowMultiplePath, false, {
-        shouldDirty: true,
-      });
-    });
+      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(fileConfigPath, {
+        allowedExtensions: [],
+        minFileSizeMb: 0,
+        maxFileSizeMb: 10,
+        instructions: "",
+      }, { shouldDirty: true });
+    } else {
+      setOptions([]);
+      setSelectedIndexes([]);
+      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
+    }
   };
 
-  // Sync correctAnswer values when user edits option text after marking it correct
   useEffect(() => {
     if (qType !== "MCQ" || selectedIndexes.length === 0) return;
 
@@ -309,64 +182,52 @@ function QuestionEditor({
     if (JSON.stringify(nextCorrect) !== JSON.stringify(correctAnswers)) {
       setValue(correctPath, nextCorrect, {
         shouldDirty: true,
+        shouldValidate: true,
       });
     }
   }, [correctAnswers, correctPath, currentOptions, qType, selectedIndexes, setValue]);
 
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
-    preserveEditorScroll(() => {
-      let nextSelected: number[];
+    const optionValue = currentOptions[optionIndex];
+    if (checked && (!optionValue || !optionValue.trim())) {
+      toast.error("Please write the option text before marking it as correct!");
+      return;
+    }
 
-      if (allowMultiple) {
-        nextSelected = checked
-          ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
-            (a, b) => a - b,
-          )
-          : selectedIndexes.filter((i) => i !== optionIndex);
-      } else {
-        nextSelected = checked ? [optionIndex] : [];
-      }
+    lockScroll();
 
-      setSelectedIndexes(nextSelected);
+    let nextSelected: number[];
 
-      const nextCorrect = nextSelected
-        .map((si) => currentOptions[si])
-        .filter((v): v is string => Boolean(v?.trim()));
-      setValue(correctPath, nextCorrect, {
-        shouldDirty: true,
-      });
+    if (allowMultiple) {
+      nextSelected = checked
+        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort((a, b) => a - b)
+        : selectedIndexes.filter((i) => i !== optionIndex);
+    } else {
+      nextSelected = checked ? [optionIndex] : [];
+    }
+
+    setSelectedIndexes(nextSelected);
+
+    const nextCorrect = nextSelected
+      .map((si) => currentOptions[si])
+      .filter((v): v is string => Boolean(v?.trim()));
+
+    setValue(correctPath, nextCorrect, {
+      shouldDirty: true,
+      shouldValidate: true,
     });
   };
 
   const toggleTrueFalse = (value: "TRUE" | "FALSE") => {
-    preserveEditorScroll(() => {
-      setValue(correctPath, [value], { shouldDirty: true });
-    });
+    lockScroll();
+    setValue(correctPath, [value], { shouldDirty: true, shouldValidate: true });
   };
 
-  const toggleAllowMultiple = (checked: boolean) => {
-    preserveEditorScroll(() => {
-      setValue(allowMultiplePath, checked, { shouldDirty: true });
-
-      if (checked || selectedIndexes.length <= 1) return;
-
-      const nextSelected = selectedIndexes.slice(0, 1);
-      setSelectedIndexes(nextSelected);
-
-      const nextCorrect = nextSelected
-        .map((si) => currentOptions[si])
-        .filter((v): v is string => Boolean(v?.trim()));
-
-      setValue(correctPath, nextCorrect, { shouldDirty: true });
-    });
-  };
+  // فحص ما إذا كان هناك أي خيار فارغ داخل السؤال الحالي
+  const hasEmptyOption = currentOptions.some((opt) => !opt || !opt.trim());
 
   return (
-    <div
-      ref={editorRef}
-      data-question-editor={questionKey}
-      className="relative space-y-4 bg-white p-4 border rounded-md [overflow-anchor:none]"
-    >
+    <div ref={containerRef} className="relative space-y-4 bg-white p-4 border rounded-md">
       <button
         type="button"
         onClick={removeQuestion}
@@ -388,12 +249,8 @@ function QuestionEditor({
           <select
             {...typeField}
             onChange={(e) => {
-              const nextType = e.target.value;
-
-              preserveEditorScroll(() => {
-                typeField.onChange(e);
-                handleQuestionTypeChange(nextType);
-              });
+              typeField.onChange(e);
+              handleQuestionTypeChange(e.target.value);
             }}
             className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
           >
@@ -416,11 +273,7 @@ function QuestionEditor({
       {qType === "MCQ" && (
         <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
           <div className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              {...register(allowMultiplePath)}
-              onChange={(e) => toggleAllowMultiple(e.target.checked)}
-            />
+            <input type="checkbox" {...register(allowMultiplePath)} />
             <span className="text-gray-700 text-sm">
               Allow multiple correct answers
             </span>
@@ -453,9 +306,7 @@ function QuestionEditor({
                       type={allowMultiple ? "checkbox" : "radio"}
                       name={`questions.${index}.correctAnswer`}
                       checked={isSelected}
-                      onChange={(e) =>
-                        toggleMcqAnswer(optionIndex, e.target.checked)
-                      }
+                      onChange={(e) => toggleMcqAnswer(optionIndex, e.target.checked)}
                     />
                     Correct
                   </label>
@@ -470,9 +321,10 @@ function QuestionEditor({
               );
             })}
 
-            {errors?.questions?.[index]?.options?.message && (
-              <p className="font-medium text-red-500 text-xs">
-                {errors.questions[index]?.options?.message?.toString()}
+            {/* إظهار الخطأ فوراً في حال حاول المعلم إنشاء الاختبار وهناك خيارات فارغة */}
+            {(errors?.questions?.[index]?.options?.message || (isSubmitted && hasEmptyOption)) && (
+              <p className="font-medium text-red-500 text-xs mt-1">
+                {errors?.questions?.[index]?.options?.message?.toString() || "⚠️ All option fields must be filled. Please do not leave empty options."}
               </p>
             )}
           </div>
@@ -527,6 +379,91 @@ function QuestionEditor({
           )}
         </div>
       )}
+
+      {qType === "FILE" && (
+        <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-academixPurpleDark" />
+            <h3 className="font-medium text-gray-700 text-sm">File Upload Settings</h3>
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-medium text-gray-700 text-xs">Allowed File Extensions</label>
+            <input
+              type="text"
+              className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+              placeholder="e.g. pdf, docx, jpg"
+              {...register(`questions.${index}.fileConfig.allowedExtensions`, {
+                setValueAs: (v: any) => {
+                  if (Array.isArray(v)) return v;
+                  if (typeof v === "string") {
+                    if (!v.trim()) return [];
+                    return v
+                      .split(",")
+                      .map((s) => s.trim().toLowerCase().replace(/^\./, ""))
+                      .filter(Boolean);
+                  }
+                  return [];
+                },
+              })}
+              defaultValue={(() => {
+                const currentVal = control._formValues.questions?.[index]?.fileConfig?.allowedExtensions;
+                return Array.isArray(currentVal) ? currentVal.join(", ") : currentVal ?? "";
+              })()}
+              onBlur={(e) => {
+                setValue(`questions.${index}.fileConfig.allowedExtensions`, e.target.value, {
+                  shouldDirty: true,
+                  shouldValidate: true
+                });
+              }}
+            />
+            <p className="text-xs text-gray-400">Leave empty to accept all file types (Optional)</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <label className="font-medium text-gray-700 text-xs">Min File Size (MB)</label>
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                {...register(`questions.${index}.fileConfig.minFileSizeMb`, { valueAsNumber: true })}
+                className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-medium text-gray-700 text-xs">Max File Size (MB)</label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                step={0.1}
+                {...register(`questions.${index}.fileConfig.maxFileSizeMb`, { valueAsNumber: true })}
+                className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+              />
+              <p className="text-xs text-gray-400">System max: 10 MB</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-medium text-gray-700 text-xs">Instructions for Student (optional)</label>
+            <textarea
+              rows={3}
+              {...register(`questions.${index}.fileConfig.instructions`)}
+              className="w-full p-3 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm min-h-[60px] transition-all"
+              placeholder="e.g. Upload your essay as a PDF file..."
+            />
+          </div>
+
+          <p className="text-xs text-gray-400 italic">FILE questions are graded manually.</p>
+
+          {errors?.questions?.[index]?.fileConfig?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.questions[index]?.fileConfig?.message?.toString()}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -541,22 +478,16 @@ export default function ExamWorkflowForm({
 }: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const formRef = useRef<HTMLFormElement>(null);
-  const pendingQuestionScrollRef = useRef<{
-    questionKey: string;
-    lock: QuestionScrollLock;
-  } | null>(null);
-  const shouldScrollToNewQuestionRef = useRef(false);
 
   const {
     register,
     control,
     handleSubmit,
     setValue,
-    formState: { errors },
+    watch,
+    formState: { errors, isSubmitted },
   } = useForm<CreateExamWorkflowSchema>({
     resolver: zodResolver(createExamWorkflowSchema),
-    shouldFocusError: false,
     defaultValues: {
       title: initialData?.title ?? "",
       startTime: toDateTimeLocalValue(initialData?.startTime) as any,
@@ -593,85 +524,14 @@ export default function ExamWorkflowForm({
     name: "questions",
   });
 
-  const watchEnableTimer = useWatch({ control, name: "enableTimer" });
-  const watchSubjectId = useWatch({ control, name: "subjectId" });
-
-  const rememberQuestionPosition = (target: EventTarget | null) => {
-    if (!(target instanceof HTMLElement)) return;
-
-    const editor = target.closest<HTMLElement>("[data-question-editor]");
-    const questionKey = editor?.dataset.questionEditor;
-
-    if (!editor || !questionKey) return;
-
-    pendingQuestionScrollRef.current = {
-      questionKey,
-      lock: rememberQuestionScrollLock(editor),
-    };
-  };
-
-  const restoreQuestionPosition = () => {
-    const pendingScroll = pendingQuestionScrollRef.current;
-    const form = formRef.current;
-
-    if (!pendingScroll || !form) return;
-
-    const editor = form.querySelector<HTMLElement>(
-      `[data-question-editor="${pendingScroll.questionKey}"]`,
-    );
-
-    if (!editor) return;
-    restoreQuestionScrollLock(editor, pendingScroll.lock);
-  };
-
-  useLayoutEffect(() => {
-    restoreQuestionPosition();
-  });
-
-  useLayoutEffect(() => {
-    if (!shouldScrollToNewQuestionRef.current) return;
-
-    const form = formRef.current;
-    const editors = form?.querySelectorAll<HTMLElement>("[data-question-editor]");
-    const lastEditor = editors?.[editors.length - 1];
-
-    if (!lastEditor) return;
-
-    shouldScrollToNewQuestionRef.current = false;
-    lastEditor.scrollIntoView({ block: "start", behavior: "smooth" });
-  }, [fields.length]);
-
-  useEffect(() => {
-    if (!pendingQuestionScrollRef.current) return;
-
-    const firstFrame = requestAnimationFrame(() => {
-      restoreQuestionPosition();
-    });
-    const secondFrame = requestAnimationFrame(() => {
-      requestAnimationFrame(restoreQuestionPosition);
-    });
-    const interval = window.setInterval(restoreQuestionPosition, 50);
-    const timeout = window.setTimeout(() => {
-      restoreQuestionPosition();
-      pendingQuestionScrollRef.current = null;
-      window.clearInterval(interval);
-    }, 800);
-
-    return () => {
-      cancelAnimationFrame(firstFrame);
-      cancelAnimationFrame(secondFrame);
-      window.clearInterval(interval);
-      window.clearTimeout(timeout);
-    };
-  });
+  const watchEnableTimer = watch("enableTimer");
+  const watchSubjectId = watch("subjectId");
 
   const filteredClasses = useMemo(() => {
     if (!watchSubjectId) {
-      // No subject selected yet – hide all classes
       return [];
     }
 
-    // Subject selected – show only classes with lessons for that subject
     const subjectId = Number(watchSubjectId);
     const validClassIds = new Set(
       teacherLessons
@@ -681,18 +541,30 @@ export default function ExamWorkflowForm({
     return classes.filter((c) => validClassIds.has(c.id));
   }, [classes, teacherLessons, watchSubjectId]);
 
-  const watchEnableTimerResult = watchEnableTimer; // Just for reference
-
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
+    // التحقق النهائي عند الضغط على الحفظ لمنع إرسال الفورم تماماً بوجود خيارات فارغة
+    if (data.questions && data.questions.length > 0) {
+      for (let i = 0; i < data.questions.length; i++) {
+        const q = data.questions[i];
+        if (q.type === "MCQ") {
+          const hasEmptyOption = q.options?.some((opt) => !opt || !opt.trim());
+          if (hasEmptyOption) {
+            toast.error(`Question #${i + 1} has empty options! Please fill in all option fields.`);
+            return;
+          }
+          if (!q.correctAnswer || q.correctAnswer.length === 0) {
+            toast.error(`Please select at least one correct answer for Question #${i + 1}.`);
+            return;
+          }
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const res =
         mode === "update" && examId
-          ? await updateExamWorkflow(
-            { success: true, error: false },
-            examId,
-            data,
-          )
+          ? await updateExamWorkflow({ success: true, error: false }, examId, data)
           : await createExamWorkflow({ success: true, error: false }, data);
       if (res.error) {
         toast.error(res.message);
@@ -712,13 +584,7 @@ export default function ExamWorkflowForm({
   };
 
   return (
-    <form
-      ref={formRef}
-      className="flex flex-col gap-6 [overflow-anchor:none]"
-      onPointerDownCapture={(event) => rememberQuestionPosition(event.target)}
-      onChangeCapture={(event) => rememberQuestionPosition(event.target)}
-      onSubmit={handleSubmit(onSubmit)}
-    >
+    <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
       <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
         <h2 className="font-bold text-gray-900 text-2xl">1. Basic Information</h2>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
@@ -836,22 +702,18 @@ export default function ExamWorkflowForm({
           <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
           <button
             type="button"
-            onClick={() => {
-              shouldScrollToNewQuestionRef.current = true;
-              append(
-                {
-                  type: "TEXT",
-                  text: "",
-                  points: 1,
-                  order: fields.length + 1,
-                  allowMultiple: false,
-                  options: [],
-                  correctAnswer: [],
-                  textAnswer: "",
-                },
-                { shouldFocus: false },
-              );
-            }}
+            onClick={() =>
+              append({
+                type: "TEXT",
+                text: "",
+                points: 1,
+                order: fields.length + 1,
+                allowMultiple: false,
+                options: [],
+                correctAnswer: [],
+                textAnswer: "",
+              })
+            }
             className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
           >
             + Add Question
@@ -862,12 +724,12 @@ export default function ExamWorkflowForm({
           return (
             <QuestionEditor
               key={field.id}
-              questionKey={field.id}
               index={index}
               control={control}
               register={register}
               setValue={setValue}
               errors={errors}
+              isSubmitted={isSubmitted}
               removeQuestion={() => remove(index)}
             />
           );
@@ -893,4 +755,3 @@ export default function ExamWorkflowForm({
     </form>
   );
 }
-

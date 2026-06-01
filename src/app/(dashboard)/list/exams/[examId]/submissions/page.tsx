@@ -5,6 +5,7 @@ import { Submission, Student, SubmissionStatus } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import PublishGradesButton from "./PublishGradesButton";
+import { autoSubmitExpiredSubmissions } from "@/lib/actions/examWorkflow.actions";
 
 type SubmissionRow = Submission & {
   student: Pick<Student, "name" | "username">;
@@ -122,6 +123,9 @@ const ExamSubmissionsPage = async ({
 
   if (!exam) redirect("/list/exams");
   const maxScore = exam.questions.reduce((sum, q) => sum + q.points, 0);
+
+  // Auto-submit expired submissions before rendering
+  await autoSubmitExpiredSubmissions(examId).catch(() => {});
 
   // Find all exams in the same group (same title, times, subject, school, academic year)
   const groupExams = await prisma.exam.findMany({

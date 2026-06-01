@@ -622,19 +622,23 @@ model Submission {
 }
 
 model Answer {
-  id           Int        @id @default(autoincrement())
-  schoolId     Int
-  school       School     @relation(fields: [schoolId], references: [id])
-  submissionId Int
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  questionId   Int
-  question     Question   @relation(fields: [questionId], references: [id])
-  textAnswer   String?    // T/F, MCQ (comma-separated for multi-select), TEXT
-  fileUrl      String?    // FILE — relative path or URL
-  isDraft      Boolean    @default(true)   // false after submitExam finalizes it
-  savedAt      DateTime   @default(now())  // ALWAYS set by server — never accepted from client
-  score        Float?     // null until graded
-  isOverridden Boolean    @default(false)
+  id               Int        @id @default(autoincrement())
+  schoolId         Int
+  school           School     @relation(fields: [schoolId], references: [id])
+  submissionId     Int
+  submission       Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId       Int
+  question         Question   @relation(fields: [questionId], references: [id])
+  textAnswer       String?    // T/F, MCQ (comma-separated for multi-select), TEXT
+  fileUrl          String?    // FILE — Cloudinary secure_url
+  isDraft          Boolean    @default(true)   // false after submitExam finalizes it
+  savedAt          DateTime   @default(now())  // ALWAYS set by server — never accepted from client
+  score            Float?     // null until graded
+  isOverridden     Boolean    @default(false)
+  filePublicId     String?    // Cloudinary public_id for deletion
+  fileOriginalName String?    // Student's original filename
+  fileMimeType     String?    // MIME type from Cloudinary
+  fileSizeBytes    Int?       // File size in bytes
 
   @@unique([submissionId, questionId])
   @@index([schoolId])

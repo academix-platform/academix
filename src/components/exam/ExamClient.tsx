@@ -41,8 +41,14 @@ export default function ExamClient({
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<number, string>>(
     initialAnswers.reduce(
-      (acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || "" }),
+      (acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || ans.fileUrl || "" }),
       {},
+    ),
+  );
+  const [answerRecords, setAnswerRecords] = useState<Record<number, Answer>>(
+    initialAnswers.reduce(
+      (acc, ans) => ({ ...acc, [ans.questionId]: ans }),
+      {} as Record<number, Answer>,
     ),
   );
 
@@ -59,6 +65,7 @@ export default function ExamClient({
   const disconnectedAtRef = useRef<number | null>(null);
   const freezeTimerRef = useRef<NodeJS.Timeout | null>(null);
   const debouncedSaveRef = useRef<DebouncedSaveFn | null>(null);
+  const uploadingQuestionsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const debounced = debounce(async (questionId: number, answer: string) => {
@@ -161,12 +168,20 @@ export default function ExamClient({
 
     if ("questions" in res && res.questions) {
       setQuestions(res.questions as Question[]);
+      const savedAnswerList = res.savedAnswers as Answer[];
       setAnswers((prev) => {
         const newAns = { ...prev };
-        (res.savedAnswers as Answer[]).forEach((ans) => {
-          newAns[ans.questionId] = ans.textAnswer || "";
+        savedAnswerList.forEach((ans) => {
+          newAns[ans.questionId] = ans.textAnswer || ans.fileUrl || "";
         });
         return newAns;
+      });
+      setAnswerRecords((prev) => {
+        const newRecs = { ...prev };
+        savedAnswerList.forEach((ans) => {
+          newRecs[ans.questionId] = ans;
+        });
+        return newRecs;
       });
       setCurrentPage(newPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -175,11 +190,21 @@ export default function ExamClient({
     setIsLoadingPage(false);
   };
 
+  const abortAllUploads = async () => {
+    if (uploadingQuestionsRef.current.size > 0) {
+      document.querySelectorAll("[data-file-upload-question]").forEach((el) => {
+        (el as any).__abortUpload?.();
+      });
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+
   const handleSubmit = async () => {
     if (isSubmitting) return;
 
     // Check for unanswered questions on the current page before submit
     const unanswered = questions.filter((q) => {
+      if (q.type === "FILE") return false; // FILE questions are optional
       const ans = pendingAnswersRef.current[q.id] !== undefined
         ? pendingAnswersRef.current[q.id]
         : answers[q.id];
@@ -210,6 +235,7 @@ export default function ExamClient({
       )
     ) {
       setIsSubmitting(true);
+      await abortAllUploads();
       debouncedSaveRef.current?.flush();
 
       const res = await submitExam(submission.id);
@@ -226,6 +252,7 @@ export default function ExamClient({
   const handleAutoSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    await abortAllUploads();
     debouncedSaveRef.current?.flush();
     await submitExam(submission.id);
     toast.info("Exam time is up! Auto-submitting...");
@@ -361,9 +388,17 @@ export default function ExamClient({
                 <QuestionRenderer
                   question={q}
                   savedAnswer={answers[q.id] || null}
+                  savedAnswerRecord={answerRecords[q.id] || null}
+                  submissionId={submission.id}
+                  examId={exam.id}
                   onChange={handleAnswerChange}
                   disabled={isSubmitting || isLoadingPage}
+                  onUploadStart={() => uploadingQuestionsRef.current.add(q.id)}
+                  onUploadEnd={() => uploadingQuestionsRef.current.delete(q.id)}
                 />
+                {q.type === "FILE" && qStatus !== "idle" && (
+                  <span className="ml-2 text-xs text-gray-400">File upload</span>
+                )}
               </div>
             </div>
           );

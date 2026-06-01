@@ -97,6 +97,22 @@ export async function buildResultQuery({
     case "student":
       conditions.push({
         studentId: userId,
+        OR: [
+          // Assignment results — always visible to student
+          { assignmentId: { not: null } },
+          // Exam results — only visible after grades are published
+          {
+            examId: { not: null },
+            exam: {
+              submissions: {
+                some: {
+                  studentId: userId,
+                  gradePublished: true,
+                },
+              },
+            },
+          },
+        ],
       });
       break;
 

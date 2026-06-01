@@ -4,7 +4,7 @@ import { gradeAnswer, approveAndFinalizeGrading } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
-import { CheckCircle, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+import { CheckCircle, ExternalLink, Loader2, AlertCircle, Download, FileText } from "lucide-react";
 import type { Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
 
@@ -297,16 +297,41 @@ const GradeClient = ({
                   <p className="text-xs text-gray-400 mb-1">Student Answer:</p>
 
                   {/* FILE */}
-                  {answer.question.type === "FILE" && answer.fileUrl ? (
-                    <a
-                      href={answer.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-academixPurpleDark hover:underline"
-                    >
-                      View uploaded file
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  {answer.question.type === "FILE" ? (
+                    answer.fileUrl && (answer as any).filePublicId ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              {(answer as any).fileOriginalName ?? "Uploaded file"}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {(answer as any).fileSizeBytes
+                                ? `${((answer as any).fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                                : ""}
+                              {(answer as any).fileSizeBytes && (answer as any).fileMimeType ? " · " : ""}
+                              {(answer as any).fileMimeType?.split("/")?.[1]?.toUpperCase() ?? "FILE"}
+                              {(answer as any).fileSizeBytes || (answer as any).fileMimeType ? " · " : ""}
+                              Uploaded {answer.savedAt
+                                ? new Intl.DateTimeFormat("en-US", { dateStyle: "short", timeStyle: "short" }).format(answer.savedAt)
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <a
+                          href={`/api/exam-files/${answer.id}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-academixPurpleDark hover:underline font-medium"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                          Download File
+                        </a>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">No file submitted.</span>
+                    )
                   ) : (
                     <div className="text-sm text-gray-700 whitespace-pre-wrap">
                       <AnswerDisplay

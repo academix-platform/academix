@@ -36,7 +36,7 @@ export const validateFile = (file: File): string | null => {
  * Used server-side to reject tampered URLs.
  */
 export const validateFileUrl = (url: string): boolean => {
-  // Must be a relative path starting with /uploads/
+  if (url.startsWith("https://res.cloudinary.com/")) return true;
   return /^\/uploads\/\d+\/[^/]+\/\d+_[^/]+$/.test(url);
 };
 

@@ -17,7 +17,13 @@ import {
   SaveAnswerSchema,
   GradeAnswerSchema,
   ExtendTimeSchema,
+  isFileConfig,
+  EXAM_FILE_MAX_SIZE_MB,
 } from "../formValidationSchemas";
+import {
+  deleteExamFileFromCloudinary,
+  generateExamUploadSignature,
+} from "../cloudinary";
 
 // ============================================================
 // HELPERS
@@ -167,7 +173,9 @@ export const createExamWorkflow = async (
                   type: q.type,
                   points: q.points,
                   order: q.order,
-                  options: q.options ?? [],
+                  options: q.type === "FILE"
+                    ? (q.fileConfig ?? { allowedExtensions: [], minFileSizeMb: 0, maxFileSizeMb: EXAM_FILE_MAX_SIZE_MB, instructions: "" })
+                    : (q.options ?? []),
                   correctAnswer: q.correctAnswer ?? [],
                   allowMultiple: q.allowMultiple,
                   textAnswer: q.textAnswer,
@@ -279,13 +287,31 @@ export const updateExamWorkflow = async (
       },
     });
 
-    if (submissionCount > 0) {
-      return {
-        success: false,
-        error: true,
-        message:
-          "This exam cannot be edited because students have already started or submitted it. Create a new exam instead.",
-      };
+    const examStarted = new Date() > existingExam.startTime;
+    const isLocked = examStarted && submissionCount > 0;
+
+    if (isLocked) {
+      await prisma.$transaction(async (tx) => {
+        for (const exam of groupExams) {
+          await tx.exam.update({
+            where: { id: exam.id },
+            data: {
+              title: data.title,
+              startTime: data.startTime,
+              endTime: data.endTime,
+              enableTimer: data.enableTimer,
+              duration: data.duration,
+              enableNavigation: data.enableNavigation,
+              enableAutoSave: data.enableAutoSave,
+              autoSaveInterval: data.autoSaveInterval,
+              enableAutoSubmit: data.enableAutoSubmit,
+              questionsPerPage: data.questionsPerPage,
+            },
+          });
+        }
+      });
+
+      return successResult(["/list/exams"]);
     }
 
     await prisma.$transaction(async (tx) => {
@@ -332,7 +358,9 @@ export const updateExamWorkflow = async (
               type: q.type,
               points: q.points,
               order: q.order,
-              options: q.options ?? [],
+              options: q.type === "FILE"
+                ? (q.fileConfig ?? { allowedExtensions: [], minFileSizeMb: 0, maxFileSizeMb: EXAM_FILE_MAX_SIZE_MB, instructions: "" })
+                : (q.options ?? []),
               correctAnswer: q.correctAnswer ?? [],
               allowMultiple: q.allowMultiple,
               textAnswer: q.textAnswer,
@@ -364,7 +392,9 @@ export const updateExamWorkflow = async (
                     type: q.type,
                     points: q.points,
                     order: q.order,
-                    options: q.options ?? [],
+                    options: q.type === "FILE"
+                      ? (q.fileConfig ?? { allowedExtensions: [], minFileSizeMb: 0, maxFileSizeMb: EXAM_FILE_MAX_SIZE_MB, instructions: "" })
+                      : (q.options ?? []),
                     correctAnswer: q.correctAnswer ?? [],
                     allowMultiple: q.allowMultiple,
                     textAnswer: q.textAnswer,
@@ -617,15 +647,23 @@ export const saveAnswer = async (
       },
       update: {
         textAnswer: normalizedTextAnswer,
-        fileUrl: data.fileUrl,
-        savedAt: new Date(), // The server always sets the time
+        fileUrl: data.fileUrl ?? undefined,
+        filePublicId: data.filePublicId ?? undefined,
+        fileOriginalName: data.fileOriginalName ?? undefined,
+        fileMimeType: data.fileMimeType ?? undefined,
+        fileSizeBytes: data.fileSizeBytes ?? undefined,
+        savedAt: new Date(),
       },
       create: {
         submissionId: data.submissionId,
         questionId: data.questionId,
         schoolId: access.schoolId,
         textAnswer: normalizedTextAnswer,
-        fileUrl: data.fileUrl,
+        fileUrl: data.fileUrl ?? null,
+        filePublicId: data.filePublicId ?? null,
+        fileOriginalName: data.fileOriginalName ?? null,
+        fileMimeType: data.fileMimeType ?? null,
+        fileSizeBytes: data.fileSizeBytes ?? null,
         isDraft: true,
         savedAt: new Date(),
       },
@@ -1117,6 +1155,230 @@ export const publishExamGrades = async (examId: number) => {
     ]);
   } catch (err) {
     return errorResult(err);
+  }
+};
+
+// ============================================================
+// 13. deleteExamFile
+// ============================================================
+
+export const deleteExamFile = async (answerId: number) => {
+  const access = await requireActionAccess(["student"]);
+  if ("error" in access) return { success: false, error: "Unauthorized" };
+
+  try {
+    const answer = await prisma.answer.findUnique({
+      where: { id: answerId },
+      include: {
+        submission: { select: { studentId: true, schoolId: true, status: true } },
+      },
+    });
+
+    if (!answer) {
+      return { success: false, error: "Answer not found." };
+    }
+
+    if (answer.submission.studentId !== access.userId) {
+      return { success: false, error: "Not authorized." };
+    }
+
+    if (answer.submission.status !== "IN_PROGRESS") {
+      return { success: false, error: "Exam already submitted." };
+    }
+
+    if (answer.filePublicId) {
+      await deleteExamFileFromCloudinary(answer.filePublicId);
+    }
+
+    await prisma.answer.update({
+      where: { id: answerId },
+      data: {
+        fileUrl: null,
+        filePublicId: null,
+        fileOriginalName: null,
+        fileMimeType: null,
+        fileSizeBytes: null,
+        savedAt: new Date(),
+      },
+    });
+
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteExamFile]", err);
+    return { success: false, error: "Something went wrong." };
+  }
+};
+
+// ============================================================
+// 14. deleteOldExamFileOnReplace
+// ============================================================
+
+export const deleteOldExamFileOnReplace = async (
+  publicId: string,
+  submissionId: number,
+  questionId: number
+) => {
+  const access = await requireActionAccess(["student"]);
+  if ("error" in access) return { success: false, error: "Unauthorized" };
+
+  try {
+    const submission = await prisma.submission.findUnique({
+      where: { id: submissionId },
+      select: { studentId: true, status: true },
+    });
+
+    if (!submission) {
+      return { success: false, error: "Submission not found." };
+    }
+
+    if (submission.studentId !== access.userId) {
+      return { success: false, error: "Not authorized." };
+    }
+
+    if (submission.status !== "IN_PROGRESS") {
+      return { success: false, error: "Exam already submitted." };
+    }
+
+    await deleteExamFileFromCloudinary(publicId);
+
+    return { success: true };
+  } catch (err) {
+    console.error("[deleteOldExamFileOnReplace]", err);
+    return { success: false, error: "Something went wrong." };
+  }
+};
+
+// ============================================================
+// 15. autoSubmitExpiredSubmissions
+// ============================================================
+
+export const autoSubmitExpiredSubmissions = async (examId: number) => {
+  try {
+    const now = new Date();
+
+    const submissions = await prisma.submission.findMany({
+      where: {
+        examId,
+        status: "IN_PROGRESS",
+      },
+      include: {
+        exam: { select: { duration: true, endTime: true } },
+        answers: { select: { textAnswer: true, fileUrl: true, id: true, filePublicId: true } },
+      },
+    });
+
+    for (const submission of submissions) {
+      const examEndsAt = new Date(
+        submission.startedAt.getTime() +
+        ((submission.exam.duration ?? 0) + (submission.extraTime ?? 0)) * 60000
+      );
+
+      if (now <= examEndsAt) continue;
+
+      const hasContent = submission.answers.some(
+        (a) => (a.textAnswer && a.textAnswer.trim().length > 0) || a.fileUrl
+      );
+
+      if (hasContent) {
+        await prisma.$transaction(async (tx) => {
+          await tx.answer.updateMany({
+            where: { submissionId: submission.id, isDraft: true },
+            data: { isDraft: false },
+          });
+
+          await tx.submission.update({
+            where: { id: submission.id },
+            data: {
+              status: "SUBMITTED",
+              submittedAt: now,
+              autoSubmitted: true,
+            },
+          });
+        });
+
+        try {
+          await autoGrade(submission.id);
+        } catch {
+          // Non-critical — grade what we can
+        }
+      } else {
+        // Empty abandoned submission: clean up Cloudinary files
+        for (const answer of submission.answers) {
+          if (answer.filePublicId) {
+            await deleteExamFileFromCloudinary(answer.filePublicId).catch(() => {});
+          }
+        }
+
+        await prisma.answer.updateMany({
+          where: { submissionId: submission.id },
+          data: {
+            fileUrl: null,
+            filePublicId: null,
+            fileOriginalName: null,
+            fileMimeType: null,
+            fileSizeBytes: null,
+          },
+        });
+      }
+    }
+  } catch (err) {
+    console.error("[autoSubmitExpiredSubmissions]", err);
+    // Silently catch — must never throw (page must still render)
+  }
+};
+
+// ============================================================
+// 15. getExamUploadSignature (server action)
+// ============================================================
+
+export const getExamUploadSignature = async (
+  examId: number,
+  submissionId: number,
+  questionId: number
+) => {
+  const access = await requireActionAccess(["student"]);
+  if ("error" in access) return { error: "Unauthorized" };
+
+  try {
+    const submission = await prisma.submission.findFirst({
+      where: {
+        id: submissionId,
+        studentId: access.userId,
+        schoolId: access.schoolId,
+        status: "IN_PROGRESS",
+      },
+      include: { exam: true },
+    });
+
+    if (!submission) {
+      return { error: "Submission not found or not in progress" };
+    }
+
+    if (submission.examId !== examId) {
+      return { error: "Submission does not belong to this exam" };
+    }
+
+    if (new Date() > submission.exam.endTime) {
+      return { error: "Exam time has expired" };
+    }
+
+    const question = await prisma.question.findFirst({
+      where: { id: questionId, examId, type: "FILE" },
+    });
+
+    if (!question) {
+      return { error: "Question not found or not a FILE type" };
+    }
+
+    return generateExamUploadSignature(
+      access.schoolId,
+      examId,
+      submissionId,
+      questionId
+    );
+  } catch (err) {
+    console.error("[getExamUploadSignature]", err);
+    return { error: "Something went wrong." };
   }
 };
 
