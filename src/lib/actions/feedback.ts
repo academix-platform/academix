@@ -28,6 +28,8 @@ export async function createFeedback(formData: FormData) {
       userId,
     },
   });
+
+  revalidatePath("/feedback");
 }
 
 export async function updateFeedbackStatus(formData: FormData) {

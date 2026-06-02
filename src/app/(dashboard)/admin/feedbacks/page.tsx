@@ -1,3 +1,4 @@
+import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { updateFeedbackStatus } from "@/lib/actions/feedback";
@@ -11,27 +12,57 @@ const statusOrder: Record<string, number> = {
 const getStatusClass = (status: string) => {
   switch (status) {
     case "reviewed":
-      return "bg-lamaSkyLight text-blue-700";
+      return "bg-blue-100 text-blue-700";
     case "resolved":
       return "bg-green-100 text-green-700";
     default:
-      return "bg-lamaYellowLight text-yellow-700";
+      return "bg-yellow-100 text-yellow-700";
   }
 };
 
-const FeedbacksPage = async () => {
+const filters = [
+  { label: "All", href: "/admin/feedbacks" },
+  { label: "Pending", href: "/admin/feedbacks?status=pending" },
+  { label: "Reviewed", href: "/admin/feedbacks?status=reviewed" },
+  { label: "Resolved", href: "/admin/feedbacks?status=resolved" },
+  { label: "Suggestions", href: "/admin/feedbacks?type=suggestion" },
+  { label: "Complaints", href: "/admin/feedbacks?type=complaint" },
+];
+
+const FeedbacksPage = async ({
+  searchParams,
+}: {
+  searchParams?: Promise<{
+    status?: string;
+    type?: string;
+  }>;
+}) => {
   const user = await getAuthUser();
 
   if (!user) {
     return <div>Unauthorized</div>;
   }
 
+  const params = await searchParams;
+
+  const status = params?.status;
+  const type = params?.type;
+
   const feedbacks = await prisma.feedback.findMany({
     where: {
       schoolId: user.schoolId,
+      ...(status ? { status } : {}),
+      ...(type ? { type } : {}),
     },
     orderBy: {
       createdAt: "desc",
+    },
+  });
+
+  const pendingCount = await prisma.feedback.count({
+    where: {
+      schoolId: user.schoolId,
+      status: "pending",
     },
   });
 
@@ -39,9 +70,7 @@ const FeedbacksPage = async () => {
     const statusDiff =
       (statusOrder[a.status] ?? 99) - (statusOrder[b.status] ?? 99);
 
-    if (statusDiff !== 0) {
-      return statusDiff;
-    }
+    if (statusDiff !== 0) return statusDiff;
 
     return (
       new Date(b.createdAt).getTime() -
@@ -51,20 +80,52 @@ const FeedbacksPage = async () => {
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="hidden md:block text-lg font-semibold">
-          Feedbacks
-        </h1>
+      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+        <div>
+          <h1 className="text-lg font-semibold">Feedbacks</h1>
+          <p className="text-sm text-gray-500">
+            Manage suggestions and complaints from students and parents.
+          </p>
+        </div>
 
-        <span className="text-sm text-gray-500">
-          {sortedFeedbacks.length} total
-        </span>
+        <div className="flex items-center gap-3">
+          <span className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700">
+            {pendingCount} pending
+          </span>
+
+          <span className="text-sm text-gray-500">
+            {sortedFeedbacks.length} shown
+          </span>
+        </div>
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        {filters.map((filter) => {
+          const isActive =
+            (!status && !type && filter.label === "All") ||
+            filter.href.includes(`status=${status}`) ||
+            filter.href.includes(`type=${type}`);
+
+          return (
+            <Link
+              key={filter.label}
+              href={filter.href}
+              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+                isActive
+                  ? "bg-[#7C3AED] text-white"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              {filter.label}
+            </Link>
+          );
+        })}
       </div>
 
       <div className="space-y-4">
         {sortedFeedbacks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center">
-            <p className="text-gray-500">No feedbacks yet.</p>
+            <p className="text-gray-500">No feedbacks found.</p>
           </div>
         ) : (
           sortedFeedbacks.map((feedback) => {
@@ -81,13 +142,13 @@ const FeedbacksPage = async () => {
               >
                 <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                   <div>
-                    <div className="flex items-center gap-2 mb-2">
+                    <div className="mb-2 flex items-center gap-2">
                       <span className="capitalize font-semibold text-gray-900">
                         {feedback.type}
                       </span>
 
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusClass(
+                        className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusClass(
                           feedback.status
                         )}`}
                       >
@@ -100,7 +161,7 @@ const FeedbacksPage = async () => {
                     </p>
                   </div>
 
-                  <span className="text-sm text-gray-400 whitespace-nowrap">
+                  <span className="whitespace-nowrap text-sm text-gray-400">
                     {new Date(feedback.createdAt).toLocaleDateString()}
                   </span>
                 </div>
@@ -118,7 +179,7 @@ const FeedbacksPage = async () => {
 
                         <button
                           type="submit"
-                          className="px-4 py-2 rounded-full bg-lamaSkyLight text-blue-700 text-sm font-medium hover:opacity-80 transition"
+                          className="rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-200"
                         >
                           Mark Reviewed
                         </button>
@@ -131,7 +192,7 @@ const FeedbacksPage = async () => {
 
                       <button
                         type="submit"
-                        className="px-4 py-2 rounded-full bg-green-100 text-green-700 text-sm font-medium hover:opacity-80 transition"
+                        className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-200"
                       >
                         Mark Resolved
                       </button>
@@ -144,7 +205,7 @@ const FeedbacksPage = async () => {
 
                         <button
                           type="submit"
-                          className="px-4 py-2 rounded-full bg-lamaYellowLight text-yellow-700 text-sm font-medium hover:opacity-80 transition"
+                          className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 transition hover:bg-yellow-200"
                         >
                           Mark Pending
                         </button>
