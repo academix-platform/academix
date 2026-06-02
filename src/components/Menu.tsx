@@ -154,6 +154,18 @@ export const menuItems: MenuSection[] = [
   href: "/archive",
   visible: ["admin"],
 },
+{
+  icon: MessageCircle,
+  label: "Feedback",
+  href: "/feedback",
+  visible: ["student", "parent"],
+},
+{
+  icon: MessageCircle,
+  label: "Feedbacks",
+  href: "/admin/feedbacks",
+  visible: ["admin"],
+},
     ],
   },
   {
