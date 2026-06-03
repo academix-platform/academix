@@ -13,9 +13,9 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Assignment, Class, Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
-import { Download } from "lucide-react";
+import { Download, Users } from "lucide-react";
+import Link from "next/link";
 import AssignmentSubmit from "@/components/AssignmentSubmit";
-import SubmissionsModal from "@/components/SubmissionsModal";
 
 type AssignmentList = Assignment & {
   subject: Pick<Subject, "name"> | null;
@@ -160,13 +160,13 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
             />
           )}
           {canManage && (
-            <SubmissionsModal
-              assignmentId={item.id}
-              assignmentTitle={item.title}
-              maxScore={item.maxScore}
-              totalStudents={item._count?.assignmentSubmissions ?? 0}
-              endDate={item.endDate}
-            />
+            <Link
+              href={`/list/assignments/${item.id}/submissions`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-academixPurpleLight text-academixPurpleDark hover:brightness-95 transition-colors text-xs font-medium"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Submissions
+            </Link>
           )}
           {(role === "admin" || role === "teacher") && (
             <>

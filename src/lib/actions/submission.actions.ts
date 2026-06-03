@@ -2,6 +2,7 @@
 "use server";
 
 import { auth } from "@clerk/nextjs/server";
+import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
@@ -30,6 +31,11 @@ type SubmissionManagerAccess = {
   schoolId: number;
 };
 
+type AssignmentSubmissionBulkFilters = {
+  classId?: number | null;
+  search?: string | null;
+};
+
 const assignmentManagerWhere = (access: SubmissionManagerAccess) =>
   access.role === "teacher"
     ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
@@ -56,6 +62,112 @@ const findManagedSubmission = async (
           maxScore: true,
         },
       },
+    },
+  });
+};
+
+const getManagedAssignmentGroup = async (
+  assignmentId: number,
+  access: SubmissionManagerAccess,
+) => {
+  const assignment = await prisma.assignment.findFirst({
+    where: {
+      id: assignmentId,
+      schoolId: access.schoolId,
+      ...assignmentManagerWhere(access),
+    },
+    select: {
+      id: true,
+      title: true,
+      startDate: true,
+      endDate: true,
+      subjectId: true,
+      academicYearId: true,
+      maxScore: true,
+    },
+  });
+
+  if (!assignment) return null;
+
+  const groupAssignments = await prisma.assignment.findMany({
+    where: {
+      title: assignment.title,
+      startDate: assignment.startDate,
+      endDate: assignment.endDate,
+      subjectId: assignment.subjectId,
+      schoolId: access.schoolId,
+      academicYearId: assignment.academicYearId,
+      ...assignmentManagerWhere(access),
+    },
+    select: { id: true, classId: true },
+  });
+
+  return {
+    assignment,
+    groupAssignments,
+    assignmentIds: groupAssignments.map((item) => item.id),
+  };
+};
+
+const getBulkAssignmentSubmissions = async (
+  assignmentId: number,
+  access: SubmissionManagerAccess,
+  filters: AssignmentSubmissionBulkFilters = {},
+) => {
+  const group = await getManagedAssignmentGroup(assignmentId, access);
+  if (!group) return null;
+
+  const search = filters.search?.trim();
+
+  const submissions = await prisma.assignmentSubmission.findMany({
+    where: {
+      assignmentId: { in: group.assignmentIds },
+      schoolId: access.schoolId,
+      ...(filters.classId
+        ? { assignment: { classId: filters.classId } }
+        : {}),
+      ...(search
+        ? {
+            student: {
+              OR: [
+                { name: { contains: search, mode: "insensitive" } },
+                { username: { contains: search, mode: "insensitive" } },
+              ],
+            },
+          }
+        : {}),
+    },
+    select: {
+      id: true,
+      assignmentId: true,
+      studentId: true,
+      score: true,
+      academicYearId: true,
+    },
+  });
+
+  return { ...group, submissions };
+};
+
+const deleteAssignmentResultsForSubmissions = async (
+  tx: Prisma.TransactionClient,
+  schoolId: number,
+  submissions: Array<{
+    assignmentId: number;
+    studentId: string;
+    academicYearId: number;
+  }>,
+) => {
+  if (submissions.length === 0) return;
+
+  await tx.result.deleteMany({
+    where: {
+      schoolId,
+      OR: submissions.map((submission) => ({
+        assignmentId: submission.assignmentId,
+        studentId: submission.studentId,
+        academicYearId: submission.academicYearId,
+      })),
     },
   });
 };
@@ -420,5 +532,134 @@ export async function publishAssignmentGrades(
       ...errorResult(err),
       message: "Something went wrong",
     };
+  }
+}
+
+export async function clearAssignmentSubmissionGrades(
+  assignmentId: number,
+  filters: AssignmentSubmissionBulkFilters = {},
+): Promise<SubmissionState> {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) {
+    return { success: false, error: true, message: access.message };
+  }
+
+  try {
+    const bulk = await getBulkAssignmentSubmissions(assignmentId, access, filters);
+    if (!bulk) {
+      return { success: false, error: true, message: "Assignment not found" };
+    }
+
+    const gradedSubmissions = bulk.submissions.filter(
+      (submission) => submission.score !== null,
+    );
+
+    if (gradedSubmissions.length === 0) {
+      return { success: false, error: true, message: "No grades to remove" };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.assignmentSubmission.updateMany({
+        where: {
+          id: { in: gradedSubmissions.map((submission) => submission.id) },
+          schoolId: access.schoolId,
+        },
+        data: {
+          score: null,
+          gradePublished: false,
+          gradedAt: null,
+          gradedBy: null,
+        },
+      });
+
+      await deleteAssignmentResultsForSubmissions(
+        tx,
+        access.schoolId,
+        gradedSubmissions,
+      );
+    });
+
+    revalidatePath("/list/assignments");
+    revalidatePath(`/list/assignments/${assignmentId}/submissions`);
+    revalidatePath("/list/results");
+
+    return {
+      success: true,
+      error: false,
+      message: `Removed ${gradedSubmissions.length} grade${gradedSubmissions.length === 1 ? "" : "s"}.`,
+    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Something went wrong" };
+  }
+}
+
+export async function adjustAssignmentSubmissionScores(
+  assignmentId: number,
+  amount: number,
+  filters: AssignmentSubmissionBulkFilters = {},
+): Promise<SubmissionState> {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) {
+    return { success: false, error: true, message: access.message };
+  }
+
+  try {
+    const bulk = await getBulkAssignmentSubmissions(assignmentId, access, filters);
+    if (!bulk) {
+      return { success: false, error: true, message: "Assignment not found" };
+    }
+
+    const maxScore = bulk.assignment.maxScore;
+    if (!Number.isFinite(amount) || amount === 0 || Math.abs(amount) > maxScore) {
+      return {
+        success: false,
+        error: true,
+        message: `Adjustment must be between -${maxScore} and ${maxScore}, and cannot be 0`,
+      };
+    }
+
+    if (bulk.submissions.length === 0) {
+      return { success: false, error: true, message: "No submissions to adjust" };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const submission of bulk.submissions) {
+        const currentScore = submission.score ?? 0;
+        const nextScore = Math.min(
+          maxScore,
+          Math.max(0, currentScore + amount),
+        );
+
+        await tx.assignmentSubmission.update({
+          where: { id: submission.id },
+          data: {
+            score: nextScore,
+            gradePublished: false,
+            gradedAt: new Date(),
+            gradedBy: access.userId,
+          },
+        });
+      }
+
+      await deleteAssignmentResultsForSubmissions(
+        tx,
+        access.schoolId,
+        bulk.submissions,
+      );
+    });
+
+    revalidatePath("/list/assignments");
+    revalidatePath(`/list/assignments/${assignmentId}/submissions`);
+    revalidatePath("/list/results");
+
+    return {
+      success: true,
+      error: false,
+      message: `Adjusted ${bulk.submissions.length} score${bulk.submissions.length === 1 ? "" : "s"}.`,
+    };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Something went wrong" };
   }
 }
