@@ -284,12 +284,19 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             schoolId,
             academicYearId: academicYearId!,
             ...(resultRole === "teacher"
-              ? { lesson: { teacherId: resultUserId! } }
+              ? {
+                  OR: [
+                    { teacherId: resultUserId! },
+                    { lesson: { teacherId: resultUserId! } },
+                  ],
+                }
               : {}),
           },
           select: {
             id: true,
             title: true,
+            subject: { select: { name: true } },
+            class: { select: { name: true } },
             lesson: {
               select: {
                 subject: { select: { name: true } },
@@ -326,8 +333,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           exams: resultExams.map((exam) => ({
             id: exam.id,
             title: exam.title,
-            subjectName: exam.lesson.subject.name,
-            className: exam.lesson.class.name,
+            subjectName: exam.subject?.name ?? exam.lesson?.subject.name ?? "-",
+            className: exam.class?.name ?? exam.lesson?.class.name ?? "-",
           })),
           assignments: resultAssignments.map((assignment) => ({
             id: assignment.id,

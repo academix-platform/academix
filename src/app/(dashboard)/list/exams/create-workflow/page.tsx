@@ -36,7 +36,7 @@ export default async function CreateExamWorkflowPage({
           }
         : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, gradeId: true },
   });
 
   const exam = Number.isNaN(examId)
@@ -46,7 +46,9 @@ export default async function CreateExamWorkflowPage({
           id: examId,
           schoolId,
           academicYearId,
-          ...(role === "teacher" ? { lesson: { teacherId: userId } } : {}),
+          ...(role === "teacher"
+            ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+            : {}),
         },
         include: {
           questions: {
@@ -64,7 +66,9 @@ export default async function CreateExamWorkflowPage({
           subjectId: exam.subjectId,
           academicYearId,
           schoolId,
-          ...(role === "teacher" ? { lesson: { teacherId: userId } } : {}),
+          ...(role === "teacher"
+            ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+            : {}),
         },
         select: { classId: true },
       })
@@ -110,22 +114,27 @@ export default async function CreateExamWorkflowPage({
       ? undefined
       : { subjectId: preselectedSubjectId };
 
+  const subjectGradeIds = Array.from(
+    new Set(subjects.map((subject) => subject.gradeId)),
+  );
+
   const classes = await prisma.class.findMany({
     where: {
       schoolId,
       ...(role === "teacher"
         ? {
             OR: [
+              { gradeId: { in: subjectGradeIds } },
               { teachers: { some: { id: userId } } },
               { lessons: { some: { teacherId: userId, academicYearId } } },
             ],
           }
         : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, gradeId: true },
   });
 
-  const teacherLessons = await prisma.lesson.findMany({
+  const lessonPairs = await prisma.lesson.findMany({
     where: {
       schoolId,
       academicYearId,
@@ -133,6 +142,28 @@ export default async function CreateExamWorkflowPage({
     },
     select: { subjectId: true, classId: true },
   });
+
+  const subjectClassPairsMap = new Map<
+    string,
+    { subjectId: number; classId: number }
+  >();
+
+  for (const subject of subjects) {
+    for (const classItem of classes) {
+      if (classItem.gradeId === subject.gradeId) {
+        subjectClassPairsMap.set(`${subject.id}:${classItem.id}`, {
+          subjectId: subject.id,
+          classId: classItem.id,
+        });
+      }
+    }
+  }
+
+  for (const pair of lessonPairs) {
+    subjectClassPairsMap.set(`${pair.subjectId}:${pair.classId}`, pair);
+  }
+
+  const subjectClassPairs = Array.from(subjectClassPairsMap.values());
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
@@ -142,7 +173,7 @@ export default async function CreateExamWorkflowPage({
       <ExamWorkflowForm
         subjects={subjects}
         classes={classes}
-        teacherLessons={teacherLessons}
+        teacherLessons={subjectClassPairs}
         mode={exam ? "update" : "create"}
         examId={exam?.id}
         initialData={initialData}

@@ -111,7 +111,7 @@ const ExamSubmissionsPage = async ({
       id: examId,
       schoolId,
       ...(role === "teacher"
-        ? { lesson: { teacherId: userId } }
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
         : {}),
     },
     include: {
@@ -136,6 +136,9 @@ const ExamSubmissionsPage = async ({
       subjectId: exam.subjectId,
       schoolId,
       academicYearId: exam.academicYearId,
+      ...(role === "teacher"
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+        : {}),
     },
     select: { id: true },
   });

@@ -88,7 +88,11 @@ export async function buildResultQuery({
     case "teacher":
       conditions.push({
         OR: [
-          { exam: { lesson: { teacherId: userId } } },
+          {
+            exam: {
+              OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+            },
+          },
           { assignment: { lesson: { teacherId: userId } } },
         ],
       });

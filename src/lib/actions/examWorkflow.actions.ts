@@ -92,6 +92,119 @@ const applyAutoGrades = async (submissionId: number) => {
   return { updatedAnswers, totalScore };
 };
 
+type ExamAccess = {
+  userId: string;
+  role: string;
+  schoolId: number;
+};
+
+const getExamClassAssignments = async (
+  access: ExamAccess,
+  academicYearId: number,
+  subjectId: number,
+  classIds: number[]
+) => {
+  const subject = await prisma.subject.findFirst({
+    where: { id: subjectId, schoolId: access.schoolId },
+    select: {
+      id: true,
+      gradeId: true,
+      teachers: { select: { id: true } },
+    },
+  });
+
+  if (!subject) {
+    return {
+      error: true as const,
+      message: "Selected subject was not found.",
+    };
+  }
+
+  const classes = await prisma.class.findMany({
+    where: { id: { in: classIds }, schoolId: access.schoolId },
+    select: {
+      id: true,
+      gradeId: true,
+      teachers: { select: { id: true } },
+    },
+  });
+
+  if (classes.length !== classIds.length) {
+    return {
+      error: true as const,
+      message: "One or more selected classes were not found.",
+    };
+  }
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      academicYearId,
+      schoolId: access.schoolId,
+      subjectId,
+      classId: { in: classIds },
+      ...(access.role === "teacher" ? { teacherId: access.userId } : {}),
+    },
+    select: { id: true, classId: true, teacherId: true },
+  });
+
+  const lessonsByClass = new Map<number, (typeof lessons)[number]>();
+  for (const lesson of lessons) {
+    if (!lessonsByClass.has(lesson.classId)) {
+      lessonsByClass.set(lesson.classId, lesson);
+    }
+  }
+
+  const subjectTeacherIds = new Set(subject.teachers.map((teacher) => teacher.id));
+  const assignments = [];
+
+  for (const selectedClass of classes) {
+    const lesson = lessonsByClass.get(selectedClass.id);
+    const classTeacherIds = new Set(
+      selectedClass.teachers.map((teacher) => teacher.id)
+    );
+    const sharedTeacherId =
+      [...subjectTeacherIds].find((teacherId) => classTeacherIds.has(teacherId)) ??
+      lesson?.teacherId ??
+      null;
+
+    if (!lesson && selectedClass.gradeId !== subject.gradeId) {
+      return {
+        error: true as const,
+        message: "One or more classes do not match the selected subject grade.",
+      };
+    }
+
+    if (access.role === "teacher") {
+      const teacherHasSubjectGrade =
+        subjectTeacherIds.has(access.userId) &&
+        selectedClass.gradeId === subject.gradeId;
+      const teacherHasClassSubject =
+        subjectTeacherIds.has(access.userId) &&
+        classTeacherIds.has(access.userId);
+      const teacherHasLesson = lesson?.teacherId === access.userId;
+
+      if (!teacherHasSubjectGrade && !teacherHasClassSubject && !teacherHasLesson) {
+        return {
+          error: true as const,
+          message: "You are not assigned to teach this subject for one or more selected classes.",
+        };
+      }
+    }
+
+    assignments.push({
+      classId: selectedClass.id,
+      lessonId: lesson?.id ?? null,
+      teacherId: access.role === "teacher" ? access.userId : sharedTeacherId,
+    });
+  }
+
+  return { error: false as const, assignments };
+};
+
+const teacherExamAccessWhere = (teacherId: string) => ({
+  OR: [{ teacherId }, { lesson: { teacherId } }],
+});
+
 // ============================================================
 // 1. createExamWorkflow
 // ============================================================
@@ -106,54 +219,31 @@ export const createExamWorkflow = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
-    // Verify the lessons
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        academicYearId,
-        schoolId: access.schoolId,
-        subjectId: data.subjectId,
-        classId: { in: data.classIds },
-        ...(access.role === "teacher" ? { teacherId: access.userId } : {}),
-      },
-      select: { id: true, classId: true },
-    });
-
-    if (lessons.length === 0) {
-      return {
-        success: false,
-        error: true,
-        message: "No lessons found for the selected subject and classes.",
-      };
-    }
-
-    const matchedClassIds = new Set(lessons.map((l) => l.classId));
-    if (matchedClassIds.size !== data.classIds.length) {
-      return {
-        success: false,
-        error: true,
-        message: "One or more classes don't have a lesson for this subject.",
-      };
-    }
-
-    // Create an exam for each class with its questions
-    const uniqueClassLessons = Array.from(
-      lessons.reduce((map, lesson) => {
-        if (!map.has(lesson.classId)) {
-          map.set(lesson.classId, lesson);
-        }
-        return map;
-      }, new Map<number, typeof lessons[0]>()).values()
+    const assignmentResult = await getExamClassAssignments(
+      access,
+      academicYearId,
+      data.subjectId,
+      data.classIds
     );
 
+    if (assignmentResult.error) {
+      return {
+        success: false,
+        error: true,
+        message: assignmentResult.message,
+      };
+    }
+
     await prisma.$transaction(
-      uniqueClassLessons.map((lesson) =>
+      assignmentResult.assignments.map((assignment) =>
         prisma.exam.create({
           data: {
             title: data.title,
             startTime: data.startTime,
             endTime: data.endTime,
-            lessonId: lesson.id,
-            classId: lesson.classId,
+            lessonId: assignment.lessonId,
+            teacherId: assignment.teacherId,
+            classId: assignment.classId,
             subjectId: data.subjectId,
             academicYearId,
             schoolId: access.schoolId,
@@ -214,7 +304,7 @@ export const updateExamWorkflow = async (
         id: examId,
         schoolId: access.schoolId,
         academicYearId,
-        ...(access.role === "teacher" ? { lesson: { teacherId: access.userId } } : {}),
+        ...(access.role === "teacher" ? teacherExamAccessWhere(access.userId) : {}),
       },
       select: {
         id: true,
@@ -233,31 +323,18 @@ export const updateExamWorkflow = async (
       };
     }
 
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        academicYearId,
-        schoolId: access.schoolId,
-        subjectId: data.subjectId,
-        classId: { in: data.classIds },
-        ...(access.role === "teacher" ? { teacherId: access.userId } : {}),
-      },
-      select: { id: true, classId: true },
-    });
+    const assignmentResult = await getExamClassAssignments(
+      access,
+      academicYearId,
+      data.subjectId,
+      data.classIds
+    );
 
-    if (lessons.length === 0) {
+    if (assignmentResult.error) {
       return {
         success: false,
         error: true,
-        message: "No lessons found for the selected subject and classes.",
-      };
-    }
-
-    const matchedClassIds = new Set(lessons.map((l) => l.classId));
-    if (matchedClassIds.size !== data.classIds.length) {
-      return {
-        success: false,
-        error: true,
-        message: "One or more classes don't have a lesson for this subject.",
+        message: assignmentResult.message,
       };
     }
 
@@ -269,14 +346,17 @@ export const updateExamWorkflow = async (
         academicYearId,
         schoolId: access.schoolId,
         subjectId: existingExam.subjectId,
-        ...(access.role === "teacher" ? { lesson: { teacherId: access.userId } } : {}),
+        ...(access.role === "teacher" ? teacherExamAccessWhere(access.userId) : {}),
       },
       select: { id: true, classId: true },
     });
 
-    const selectedLessonsByClass = new Map<number, { id: number; classId: number }>();
-    for (const lesson of lessons) {
-      selectedLessonsByClass.set(lesson.classId, lesson);
+    const selectedAssignmentsByClass = new Map<
+      number,
+      (typeof assignmentResult.assignments)[number]
+    >();
+    for (const assignment of assignmentResult.assignments) {
+      selectedAssignmentsByClass.set(assignment.classId, assignment);
     }
 
     const groupExamIds = groupExams.map((exam) => exam.id);
@@ -316,13 +396,13 @@ export const updateExamWorkflow = async (
 
     await prisma.$transaction(async (tx) => {
       for (const exam of groupExams) {
-        if (exam.classId && !selectedLessonsByClass.has(exam.classId)) {
+        if (exam.classId && !selectedAssignmentsByClass.has(exam.classId)) {
           await tx.question.deleteMany({ where: { examId: exam.id } });
           await tx.exam.delete({ where: { id: exam.id } });
         }
       }
 
-      for (const [classId, lesson] of selectedLessonsByClass) {
+      for (const [classId, assignment] of selectedAssignmentsByClass) {
         const existingClassExam = groupExams.find((exam) => exam.classId === classId);
 
         if (existingClassExam) {
@@ -332,7 +412,8 @@ export const updateExamWorkflow = async (
               title: data.title,
               startTime: data.startTime,
               endTime: data.endTime,
-              lessonId: lesson.id,
+              lessonId: assignment.lessonId,
+              teacherId: assignment.teacherId,
               classId,
               subjectId: data.subjectId,
               academicYearId,
@@ -373,7 +454,8 @@ export const updateExamWorkflow = async (
               title: data.title,
               startTime: data.startTime,
               endTime: data.endTime,
-              lessonId: lesson.id,
+              lessonId: assignment.lessonId,
+              teacherId: assignment.teacherId,
               classId,
               subjectId: data.subjectId,
               academicYearId,
@@ -799,9 +881,7 @@ export const gradeAnswer = async (
           subjectId: exam.subjectId,
           schoolId: access.schoolId,
           academicYearId: exam.academicYearId,
-          lesson: {
-            teacherId: access.userId,
-          },
+          ...teacherExamAccessWhere(access.userId),
         },
         select: { id: true },
       });
@@ -896,7 +976,8 @@ export const extendTime = async (
     // Check that the teacher owns the exam
     if (
       access.role === "teacher" &&
-      submission.exam.lesson.teacherId !== access.userId
+      submission.exam.teacherId !== access.userId &&
+      submission.exam.lesson?.teacherId !== access.userId
     ) {
       return { success: false, error: true, message: "Not authorized." };
     }
@@ -989,9 +1070,7 @@ export const approveAndFinalizeGrading = async (submissionId: number) => {
           subjectId: exam.subjectId,
           schoolId: access.schoolId,
           academicYearId: exam.academicYearId,
-          lesson: {
-            teacherId: access.userId,
-          },
+          ...teacherExamAccessWhere(access.userId),
         },
         select: { id: true },
       });
@@ -1050,7 +1129,7 @@ export const publishExamGrades = async (examId: number) => {
         id: examId,
         schoolId: access.schoolId,
         ...(access.role === "teacher"
-          ? { lesson: { teacherId: access.userId } }
+          ? teacherExamAccessWhere(access.userId)
           : {}),
       },
       select: {
@@ -1076,7 +1155,7 @@ export const publishExamGrades = async (examId: number) => {
         schoolId: access.schoolId,
         academicYearId: exam.academicYearId,
         ...(access.role === "teacher"
-          ? { lesson: { teacherId: access.userId } }
+          ? teacherExamAccessWhere(access.userId)
           : {}),
       },
       select: { id: true },

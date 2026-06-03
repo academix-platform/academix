@@ -58,9 +58,7 @@ export async function buildExamQuery({
         const classId = Number.parseInt(value, 10);
         if (!Number.isNaN(classId)) {
           conditions.push({
-            lesson: {
-              classId,
-            },
+            classId,
           });
         }
         break;
@@ -68,9 +66,7 @@ export async function buildExamQuery({
 
       case "teacherId":
         conditions.push({
-          lesson: {
-            teacherId: value,
-          },
+          OR: [{ teacherId: value }, { lesson: { teacherId: value } }],
         });
         break;
 
@@ -84,12 +80,10 @@ export async function buildExamQuery({
               },
             },
             {
-              lesson: {
-                subject: {
-                  name: {
-                    contains: value,
-                    mode: "insensitive",
-                  },
+              subject: {
+                name: {
+                  contains: value,
+                  mode: "insensitive",
                 },
               },
             },
@@ -105,19 +99,15 @@ export async function buildExamQuery({
 
     case "teacher":
       conditions.push({
-        lesson: {
-          teacherId: userId,
-        },
+        OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
       });
       break;
 
     case "student":
       conditions.push({
-        lesson: {
-          class: {
-            students: {
-              some: { id: userId },
-            },
+        class: {
+          students: {
+            some: { id: userId },
           },
         },
       });
@@ -125,11 +115,9 @@ export async function buildExamQuery({
 
     case "parent":
       conditions.push({
-        lesson: {
-          class: {
-            students: {
-              some: { parentId: userId },
-            },
+        class: {
+          students: {
+            some: { parentId: userId },
           },
         },
       });

@@ -47,6 +47,11 @@ export async function GET(req: NextRequest) {
           },
         },
       },
+      teacher: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy,
   });
@@ -67,7 +72,7 @@ export async function GET(req: NextRequest) {
       },
       {
         header: "Teacher",
-        value: (exam) => exam.lesson.teacher.name,
+        value: (exam) => exam.teacher?.name ?? exam.lesson?.teacher.name,
       },
       {
         header: "Start Time",

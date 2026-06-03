@@ -80,7 +80,8 @@ export async function GET(
     } else if (teacher) {
       if (
         answer.submission.schoolId !== teacher.schoolId ||
-        answer.submission.exam.lesson.teacherId !== teacher.id
+        (answer.submission.exam.teacherId !== teacher.id &&
+          answer.submission.exam.lesson?.teacherId !== teacher.id)
       ) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }

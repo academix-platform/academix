@@ -97,7 +97,12 @@ export const updateResult = async (
     const existingResult = await prisma.result.findUnique({
       where: { id: data.id, schoolId: access.schoolId },
       include: {
-        exam: { select: { lesson: { select: { teacherId: true } } } },
+        exam: {
+          select: {
+            teacherId: true,
+            lesson: { select: { teacherId: true } },
+          },
+        },
         assignment: { select: { lesson: { select: { teacherId: true } } } },
       },
     });
@@ -112,7 +117,8 @@ export const updateResult = async (
 
     if (
       role === "teacher" &&
-      existingResult.exam?.lesson.teacherId !== userId &&
+      existingResult.exam?.teacherId !== userId &&
+      existingResult.exam?.lesson?.teacherId !== userId &&
       existingResult.assignment?.lesson.teacherId !== userId
     ) {
       return {
@@ -183,7 +189,12 @@ export const deleteResult = async (
     const existingResult = await prisma.result.findUnique({
       where: { id, schoolId: access.schoolId },
       include: {
-        exam: { select: { lesson: { select: { teacherId: true } } } },
+        exam: {
+          select: {
+            teacherId: true,
+            lesson: { select: { teacherId: true } },
+          },
+        },
         assignment: { select: { lesson: { select: { teacherId: true } } } },
       },
     });
@@ -206,7 +217,8 @@ export const deleteResult = async (
 
     if (
       role === "teacher" &&
-      existingResult.exam?.lesson.teacherId !== userId &&
+      existingResult.exam?.teacherId !== userId &&
+      existingResult.exam?.lesson?.teacherId !== userId &&
       existingResult.assignment?.lesson.teacherId !== userId
     ) {
       return {

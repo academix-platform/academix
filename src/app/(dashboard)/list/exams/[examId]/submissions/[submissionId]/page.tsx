@@ -25,7 +25,7 @@ const GradeSubmissionPage = async ({
       id: examId,
       schoolId,
       ...(role === "teacher"
-        ? { lesson: { teacherId: userId } }
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
         : {}),
     },
     select: {
@@ -49,6 +49,9 @@ const GradeSubmissionPage = async ({
       subjectId: urlExam.subjectId,
       schoolId,
       academicYearId: urlExam.academicYearId,
+      ...(role === "teacher"
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+        : {}),
     },
     select: { id: true },
   });

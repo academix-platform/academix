@@ -19,9 +19,10 @@ type ExamList = Exam & {
   displayClasses?: string;
   subject: Pick<Subject, "name"> | null;
   class: Pick<Class, "name"> | null;
+  teacher: Pick<Teacher, "name"> | null;
   lesson: {
     teacher: Pick<Teacher, "name">;
-  };
+  } | null;
   studentSubmission?: {
     status: string;
     gradePublished: boolean;
@@ -112,7 +113,9 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     )}
 
     {role !== "teacher" && (
-      <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+      <td className="hidden md:table-cell">
+        {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+      </td>
     )}
 
     <td className="hidden md:table-cell w-[180px] min-w-[180px]">
@@ -245,6 +248,11 @@ const ExamListPage = async ({
                 name: true,
               },
             },
+          },
+        },
+        teacher: {
+          select: {
+            name: true,
           },
         },
       },
