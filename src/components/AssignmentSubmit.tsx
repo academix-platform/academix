@@ -17,6 +17,7 @@ import { submitAssignment } from "@/lib/actions/submission.actions";
 type Props = {
   assignmentId: number;
   assignmentTitle: string;
+  maxScore: number;
   endDate: Date;
   allowLateSubmission: boolean; // ✅ prop جديد
   existingSubmission?: {
@@ -26,12 +27,15 @@ type Props = {
     createdAt: Date;
     note?: string | null;
     teacherFeedback?: string | null;
+    score?: number | null;
+    gradePublished?: boolean;
   } | null;
 };
 
 export default function AssignmentSubmit({
   assignmentId,
   assignmentTitle,
+  maxScore,
   endDate,
   allowLateSubmission,
   existingSubmission,
@@ -180,6 +184,24 @@ export default function AssignmentSubmit({
               </div>
             )}
 
+            {existingSubmission && (
+              <div className="flex items-start gap-2 bg-green-50 mb-4 px-3 py-2 border border-green-100 rounded-lg">
+                <CheckCircle className="flex-shrink-0 mt-0.5 w-3.5 h-3.5 text-green-600" />
+                <div>
+                  <p className="font-medium text-green-700 text-xs">
+                    Assignment submitted
+                  </p>
+                  <p className="mt-0.5 text-green-600 text-xs">
+                    {existingSubmission.gradePublished
+                      ? "Your grade is published below."
+                      : existingSubmission.teacherFeedback
+                        ? "Your teacher added feedback below."
+                        : "Waiting for your teacher to review it."}
+                  </p>
+                </div>
+              </div>
+            )}
+
             {/* الملف المسلَّم */}
             {existingSubmission && (
               <div className="bg-gray-50 mb-4 p-3 border rounded-lg">
@@ -211,6 +233,20 @@ export default function AssignmentSubmit({
                     one.
                   </p>
                 )}
+              </div>
+            )}
+
+            {/* Published Grade */}
+            {existingSubmission?.gradePublished && existingSubmission.score !== null && existingSubmission.score !== undefined && (
+              <div className="bg-academixPurpleLight mb-4 p-3 border border-academixPurpleDark/20 rounded-lg">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium text-academixPurpleDark text-xs">
+                    Published Grade
+                  </p>
+                  <p className="font-semibold text-academixPurpleDark text-sm">
+                    {existingSubmission.score}/{maxScore}
+                  </p>
+                </div>
               </div>
             )}
 

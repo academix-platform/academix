@@ -159,6 +159,7 @@ const AssignmentForm = ({
     defaultValues: {
       subjectId: data?.subjectId,
       classIds: data?.classId ? [data.classId] : [],
+      maxScore: data?.maxScore ?? 10,
       allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
@@ -321,6 +322,15 @@ const AssignmentForm = ({
           defaultValue={endDefaultValue}
           register={register}
           error={errors?.endDate}
+        />
+        <InputField
+          label="Marks"
+          name="maxScore"
+          type="number"
+          defaultValue={data?.maxScore ?? 10}
+          register={register}
+          error={errors?.maxScore}
+          inputProps={{ min: 1, step: 0.5 }}
         />
         {type === "update" && (
           <input type="hidden" {...register("id")} defaultValue={data?.id} />

@@ -6,6 +6,11 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import {
+  errorResult,
+  requireActionAccess,
+  successResult,
+} from "@/lib/actions/helpers";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
@@ -17,6 +22,42 @@ export type SubmissionState = {
   success: boolean;
   error: boolean;
   message: string;
+};
+
+type SubmissionManagerAccess = {
+  userId: string;
+  role: string;
+  schoolId: number;
+};
+
+const assignmentManagerWhere = (access: SubmissionManagerAccess) =>
+  access.role === "teacher"
+    ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
+    : {};
+
+const findManagedSubmission = async (
+  submissionId: number,
+  access: SubmissionManagerAccess,
+) => {
+  return prisma.assignmentSubmission.findFirst({
+    where: {
+      id: submissionId,
+      schoolId: access.schoolId,
+      assignment: assignmentManagerWhere(access),
+    },
+    select: {
+      id: true,
+      assignmentId: true,
+      schoolId: true,
+      assignment: {
+        select: {
+          id: true,
+          academicYearId: true,
+          maxScore: true,
+        },
+      },
+    },
+  });
 };
 
 async function uploadToCloudinary(file: File) {
@@ -163,6 +204,10 @@ export async function submitAssignment(
         fileName: uploadedFile.fileName,
         fileType: uploadedFile.fileType,
         note,
+        score: null,
+        gradePublished: false,
+        gradedAt: null,
+        gradedBy: null,
         updatedAt: new Date(),
       },
     });
@@ -187,11 +232,14 @@ export async function updateTeacherFeedback(
   teacherFeedback: string
 ): Promise<SubmissionState> {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const access = await requireActionAccess(["admin", "teacher"]);
+    if ("error" in access) {
+      return { success: false, error: true, message: access.message };
+    }
 
-    if (!userId || !["teacher", "admin"].includes(role ?? "")) {
-      return { success: false, error: true, message: "Unauthorized" };
+    const submission = await findManagedSubmission(submissionId, access);
+    if (!submission) {
+      return { success: false, error: true, message: "Submission not found" };
     }
 
     await prisma.assignmentSubmission.update({
@@ -204,5 +252,173 @@ export async function updateTeacherFeedback(
   } catch (err) {
     console.error(err);
     return { success: false, error: true, message: "Something went wrong" };
+  }
+}
+
+export async function gradeAssignmentSubmission(
+  submissionId: number,
+  score: number,
+): Promise<SubmissionState> {
+  try {
+    const access = await requireActionAccess(["admin", "teacher"]);
+    if ("error" in access) {
+      return { success: false, error: true, message: access.message };
+    }
+
+    const submission = await findManagedSubmission(submissionId, access);
+    if (!submission) {
+      return { success: false, error: true, message: "Submission not found" };
+    }
+
+    const maxScore = submission.assignment.maxScore;
+
+    if (!Number.isFinite(score) || score < 0 || score > maxScore) {
+      return {
+        success: false,
+        error: true,
+        message: `Score must be between 0 and ${maxScore}`,
+      };
+    }
+
+    await prisma.assignmentSubmission.update({
+      where: { id: submissionId },
+      data: {
+        score,
+        gradePublished: false,
+        gradedAt: new Date(),
+        gradedBy: access.userId,
+      },
+    });
+
+    revalidatePath("/list/assignments");
+    revalidatePath("/list/results");
+
+    return { success: true, error: false, message: "Grade saved successfully!" };
+  } catch (err) {
+    console.error(err);
+    return { success: false, error: true, message: "Something went wrong" };
+  }
+}
+
+export async function publishAssignmentGrades(
+  assignmentId: number,
+): Promise<SubmissionState> {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) {
+    return { success: false, error: true, message: access.message };
+  }
+
+  try {
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        schoolId: access.schoolId,
+        ...assignmentManagerWhere(access),
+      },
+      select: {
+        id: true,
+        title: true,
+        startDate: true,
+        endDate: true,
+        subjectId: true,
+        academicYearId: true,
+        maxScore: true,
+      },
+    });
+
+    if (!assignment) {
+      return { success: false, error: true, message: "Assignment not found" };
+    }
+
+    const groupAssignments = await prisma.assignment.findMany({
+      where: {
+        title: assignment.title,
+        startDate: assignment.startDate,
+        endDate: assignment.endDate,
+        subjectId: assignment.subjectId,
+        schoolId: access.schoolId,
+        academicYearId: assignment.academicYearId,
+        ...assignmentManagerWhere(access),
+      },
+      select: { id: true },
+    });
+
+    const assignmentIds = groupAssignments.map((item) => item.id);
+
+    const gradedSubmissions = await prisma.assignmentSubmission.findMany({
+      where: {
+        assignmentId: { in: assignmentIds },
+        schoolId: access.schoolId,
+        score: { not: null },
+      },
+      select: {
+        id: true,
+        assignmentId: true,
+        studentId: true,
+        score: true,
+        academicYearId: true,
+      },
+    });
+
+    if (gradedSubmissions.length === 0) {
+      return {
+        success: false,
+        error: true,
+        message: "No graded submissions to publish",
+      };
+    }
+
+    await prisma.$transaction(async (tx) => {
+      for (const submission of gradedSubmissions) {
+        if (submission.score === null) continue;
+
+        const existingResult = await tx.result.findFirst({
+          where: {
+            schoolId: access.schoolId,
+            assignmentId: submission.assignmentId,
+            studentId: submission.studentId,
+            academicYearId: submission.academicYearId,
+          },
+          select: { id: true },
+        });
+
+        const resultData = {
+          score: Math.round(submission.score),
+          schoolId: access.schoolId,
+          studentId: submission.studentId,
+          examId: null,
+          assignmentId: submission.assignmentId,
+          academicYearId: submission.academicYearId,
+        };
+
+        if (existingResult) {
+          await tx.result.update({
+            where: { id: existingResult.id },
+            data: resultData,
+          });
+        } else {
+          await tx.result.create({ data: resultData });
+        }
+      }
+
+      await tx.assignmentSubmission.updateMany({
+        where: {
+          id: { in: gradedSubmissions.map((submission) => submission.id) },
+          schoolId: access.schoolId,
+        },
+        data: { gradePublished: true },
+      });
+    });
+
+    const result = successResult(["/list/assignments", "/list/results"]);
+    return {
+      ...result,
+      message: "Grades published successfully!",
+    };
+  } catch (err) {
+    return {
+      ...errorResult(err),
+      message: "Something went wrong",
+    };
   }
 }

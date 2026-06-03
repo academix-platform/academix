@@ -29,6 +29,8 @@ type AssignmentList = Assignment & {
     createdAt: Date;
     note: string | null;
     teacherFeedback: string | null;
+    score: number | null;
+    gradePublished: boolean;
   }[];
   _count?: { assignmentSubmissions: number };
 };
@@ -51,6 +53,11 @@ const getColumns = (role: UserRole | null) => {
 
   if (role !== "teacher") {
     columns.push({ header: "Teacher", accessor: "teacher", className: "hidden md:table-cell" });
+  }
+
+  if (role === "student") {
+    columns.push({ header: "Submission", accessor: "submission" });
+    columns.push({ header: "Score", accessor: "score" });
   }
 
   columns.push({
@@ -85,6 +92,38 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
           {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
         </td>
       )}
+      {role === "student" && (
+        <td>
+          {mySubmission ? (
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                mySubmission.gradePublished
+                  ? "bg-academixPurpleLight text-academixPurpleDark"
+                  : mySubmission.teacherFeedback
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-green-50 text-green-700"
+              }`}
+            >
+              {mySubmission.gradePublished
+                ? "Grade published"
+                : mySubmission.teacherFeedback
+                  ? "Feedback ready"
+                  : "Submitted"}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-500">
+              Not submitted
+            </span>
+          )}
+        </td>
+      )}
+      {role === "student" && (
+        <td>
+          {mySubmission?.gradePublished && mySubmission.score !== null
+            ? `${mySubmission.score}/${item.maxScore}`
+            : "-"}
+        </td>
+      )}
       <td className="hidden md:table-cell w-[180px] min-w-[180px]">
         {formatDateTime(item.endDate)}
       </td>
@@ -105,6 +144,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               key={mySubmission?.id ?? 'no-submission'}
               assignmentId={item.id}
               assignmentTitle={item.title}
+              maxScore={item.maxScore}
               endDate={item.endDate}
               allowLateSubmission={item.allowLateSubmission} // ✅
               existingSubmission={mySubmission ? {
@@ -114,6 +154,8 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
                 createdAt: mySubmission.createdAt,
                 note: mySubmission.note,
                 teacherFeedback: mySubmission.teacherFeedback,
+                score: mySubmission.score,
+                gradePublished: mySubmission.gradePublished,
               } : null}
             />
           )}
@@ -121,6 +163,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
             <SubmissionsModal
               assignmentId={item.id}
               assignmentTitle={item.title}
+              maxScore={item.maxScore}
               totalStudents={item._count?.assignmentSubmissions ?? 0}
               endDate={item.endDate}
             />
@@ -182,7 +225,7 @@ const AssignmentListPage = async ({
         lesson: { select: { teacher: { select: { name: true } } } },
         teacher: { select: { name: true } },
         assignmentSubmissions: role === "student" && userId
-          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true } }
+          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true, score: true, gradePublished: true } }
           : false,
         _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },

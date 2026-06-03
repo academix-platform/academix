@@ -106,8 +106,18 @@ export async function buildResultQuery({
       conditions.push({
         studentId: userId,
         OR: [
-          // Assignment results — always visible to student
-          { assignmentId: { not: null } },
+          // Assignment results — only visible after grades are published
+          {
+            assignmentId: { not: null },
+            assignment: {
+              assignmentSubmissions: {
+                some: {
+                  studentId: userId,
+                  gradePublished: true,
+                },
+              },
+            },
+          },
           // Exam results — only visible after grades are published
           {
             examId: { not: null },

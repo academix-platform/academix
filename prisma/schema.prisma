@@ -367,6 +367,7 @@ model Assignment {
   endDate             DateTime
   fileUrl             String?
   fileName            String?
+  maxScore            Float    @default(10)
   allowLateSubmission Boolean  @default(false) // ✅ أضف هذا السطر
 
   classId   Int?
@@ -398,6 +399,10 @@ model AssignmentSubmission {
   fileType        String
   note            String?
   teacherFeedback String?
+  score           Float?
+  gradePublished  Boolean   @default(false)
+  gradedAt        DateTime?
+  gradedBy        String?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

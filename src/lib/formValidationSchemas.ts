@@ -375,6 +375,9 @@ export const assignmentSchema = z
     title: z.string().min(1, { message: "Assignment title is required!" }),
     startDate: z.coerce.date({ message: "Start date is required!" }),
     endDate: z.coerce.date({ message: "End date is required!" }),
+    maxScore: z.coerce
+      .number()
+      .positive({ message: "Marks must be greater than 0!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
     classIds: z
       .array(z.coerce.number())

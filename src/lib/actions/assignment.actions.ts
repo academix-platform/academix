@@ -165,6 +165,7 @@ function extractAssignmentData(formData: FormData): {
   startDate: Date;
   endDate: Date;
   subjectId: number;
+  maxScore: number;
   classIds: number[];
   file: File | null;
   removeFile: boolean;
@@ -176,6 +177,7 @@ function extractAssignmentData(formData: FormData): {
   const startDateRaw = formData.get("startDate") as string;
   const endDateRaw = formData.get("endDate") as string;
   const subjectId = Number(formData.get("subjectId"));
+  const maxScoreRaw = Number(formData.get("maxScore") ?? 10);
   const classIdsRaw = formData.getAll("classIds");
   const classIds = classIdsRaw.map(c => Number(c)).filter(id => !isNaN(id));
   const file = formData.get("file") as File | null;
@@ -189,6 +191,7 @@ function extractAssignmentData(formData: FormData): {
     startDate: new Date(startDateRaw),
     endDate: new Date(endDateRaw),
     subjectId,
+    maxScore: Number.isFinite(maxScoreRaw) && maxScoreRaw > 0 ? maxScoreRaw : 10,
     classIds,
     file,
     removeFile,
@@ -205,13 +208,14 @@ export const createAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
-  const { title, startDate, endDate, subjectId, classIds, file, removeFile, allowLateSubmission } =
+  const { title, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   const validation = assignmentSchema.safeParse({
     title,
     startDate,
     endDate,
+    maxScore,
     subjectId,
     classIds,
     allowLateSubmission,
@@ -262,6 +266,7 @@ export const createAssignment = async (
             teacherId: assignment.teacherId,
             classId: assignment.classId,
             subjectId,
+            maxScore,
             academicYearId,
             schoolId: access.schoolId,
             fileUrl,
@@ -282,7 +287,7 @@ export const updateAssignment = async (
   currentState: CurrentState,
   formData: FormData,
 ) => {
-  const { id, title, startDate, endDate, subjectId, classIds, file, removeFile, allowLateSubmission } =
+  const { id, title, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   if (!id) {
@@ -298,6 +303,7 @@ export const updateAssignment = async (
     title,
     startDate,
     endDate,
+    maxScore,
     subjectId,
     classIds,
     allowLateSubmission,
@@ -390,6 +396,7 @@ export const updateAssignment = async (
           teacherId,
           classId,
           subjectId,
+          maxScore,
           academicYearId,
           schoolId: access.schoolId,
           fileUrl,
