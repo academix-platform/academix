@@ -180,6 +180,7 @@ model Teacher {
   studyMaterials      StudyMaterial[]
   birthday            DateTime
   exams               Exam[]
+  assignments         Assignment[]
   subjectPageSettings SubjectPageSettings[]
 
   @@unique([schoolId, username])
@@ -373,8 +374,11 @@ model Assignment {
   subjectId Int?
   subject   Subject? @relation(fields: [subjectId], references: [id])
 
-  lessonId Int
-  lesson   Lesson @relation(fields: [lessonId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+
+  lessonId Int?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id])
 
   academicYearId Int
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -383,6 +387,7 @@ model Assignment {
   assignmentSubmissions AssignmentSubmission[]
 
   @@index([schoolId])
+  @@index([teacherId])
 }
 
 // Assignment file submission (from stash)

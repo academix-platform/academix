@@ -103,7 +103,12 @@ export const updateResult = async (
             lesson: { select: { teacherId: true } },
           },
         },
-        assignment: { select: { lesson: { select: { teacherId: true } } } },
+        assignment: {
+          select: {
+            teacherId: true,
+            lesson: { select: { teacherId: true } },
+          },
+        },
       },
     });
 
@@ -119,7 +124,8 @@ export const updateResult = async (
       role === "teacher" &&
       existingResult.exam?.teacherId !== userId &&
       existingResult.exam?.lesson?.teacherId !== userId &&
-      existingResult.assignment?.lesson.teacherId !== userId
+      existingResult.assignment?.teacherId !== userId &&
+      existingResult.assignment?.lesson?.teacherId !== userId
     ) {
       return {
         success: false,
@@ -195,7 +201,12 @@ export const deleteResult = async (
             lesson: { select: { teacherId: true } },
           },
         },
-        assignment: { select: { lesson: { select: { teacherId: true } } } },
+        assignment: {
+          select: {
+            teacherId: true,
+            lesson: { select: { teacherId: true } },
+          },
+        },
       },
     });
 
@@ -219,7 +230,8 @@ export const deleteResult = async (
       role === "teacher" &&
       existingResult.exam?.teacherId !== userId &&
       existingResult.exam?.lesson?.teacherId !== userId &&
-      existingResult.assignment?.lesson.teacherId !== userId
+      existingResult.assignment?.teacherId !== userId &&
+      existingResult.assignment?.lesson?.teacherId !== userId
     ) {
       return {
         success: false,

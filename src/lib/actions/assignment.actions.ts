@@ -41,6 +41,124 @@ async function deleteAssignmentFile(fileUrl: string) {
   }
 }
 
+type AssignmentAccess = {
+  userId: string;
+  role: string;
+  schoolId: number;
+};
+
+const assignmentTeacherAccessWhere = (teacherId: string) => ({
+  OR: [{ teacherId }, { lesson: { teacherId } }],
+});
+
+const getAssignmentClassAssignments = async (
+  access: AssignmentAccess,
+  academicYearId: number,
+  subjectId: number,
+  classIds: number[],
+) => {
+  const subject = await prisma.subject.findFirst({
+    where: { id: subjectId, schoolId: access.schoolId },
+    select: {
+      id: true,
+      gradeId: true,
+      teachers: { select: { id: true } },
+    },
+  });
+
+  if (!subject) {
+    return {
+      error: true as const,
+      message: "Selected subject was not found.",
+    };
+  }
+
+  const classes = await prisma.class.findMany({
+    where: { id: { in: classIds }, schoolId: access.schoolId },
+    select: {
+      id: true,
+      gradeId: true,
+      teachers: { select: { id: true } },
+    },
+  });
+
+  if (classes.length !== classIds.length) {
+    return {
+      error: true as const,
+      message: "One or more selected classes were not found.",
+    };
+  }
+
+  const lessons = await prisma.lesson.findMany({
+    where: {
+      academicYearId,
+      schoolId: access.schoolId,
+      subjectId,
+      classId: { in: classIds },
+      ...(access.role === "teacher" ? { teacherId: access.userId } : {}),
+    },
+    select: { id: true, classId: true, teacherId: true },
+  });
+
+  const lessonsByClass = new Map<number, (typeof lessons)[number]>();
+  for (const lesson of lessons) {
+    if (!lessonsByClass.has(lesson.classId)) {
+      lessonsByClass.set(lesson.classId, lesson);
+    }
+  }
+
+  const subjectTeacherIds = new Set(
+    subject.teachers.map((teacher) => teacher.id),
+  );
+  const assignments = [];
+
+  for (const selectedClass of classes) {
+    const lesson = lessonsByClass.get(selectedClass.id);
+    const classTeacherIds = new Set(
+      selectedClass.teachers.map((teacher) => teacher.id),
+    );
+    const sharedTeacherId =
+      [...subjectTeacherIds].find((teacherId) =>
+        classTeacherIds.has(teacherId),
+      ) ??
+      lesson?.teacherId ??
+      null;
+
+    if (!lesson && selectedClass.gradeId !== subject.gradeId) {
+      return {
+        error: true as const,
+        message: "One or more classes do not match the selected subject grade.",
+      };
+    }
+
+    if (access.role === "teacher") {
+      const teacherHasSubjectGrade =
+        subjectTeacherIds.has(access.userId) &&
+        selectedClass.gradeId === subject.gradeId;
+      const teacherHasClassSubject =
+        subjectTeacherIds.has(access.userId) &&
+        classTeacherIds.has(access.userId);
+      const teacherHasLesson = lesson?.teacherId === access.userId;
+
+      if (!teacherHasSubjectGrade && !teacherHasClassSubject && !teacherHasLesson) {
+        return {
+          error: true as const,
+          message:
+            "You are not assigned to teach this subject for one or more selected classes.",
+        };
+      }
+    }
+
+    assignments.push({
+      classId: selectedClass.id,
+      lessonId: lesson?.id ?? null,
+      teacherId: access.role === "teacher" ? access.userId : sharedTeacherId,
+    });
+  }
+
+  return { error: false as const, assignments };
+};
+
 function extractAssignmentData(formData: FormData): {
   id?: number;
   title: string;
@@ -105,29 +223,18 @@ export const createAssignment = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        academicYearId,
-        schoolId: access.schoolId,
-        subjectId,
-        classId: { in: classIds },
-        ...(role === "teacher" ? { teacherId: userId! } : {}),
-      },
-      select: { id: true, classId: true },
-    });
+    const assignmentResult = await getAssignmentClassAssignments(
+      access,
+      academicYearId,
+      subjectId,
+      classIds,
+    );
 
-    if (lessons.length === 0) {
+    if (assignmentResult.error) {
       return {
         success: false,
         error: true,
-        message: "No lessons were found for the selected subject and classes.",
-      };
-    }
-    if (lessons.length !== classIds.length) {
-      return {
-        success: false,
-        error: true,
-        message: "One or more selected classes do not have a lesson for that subject.",
+        message: assignmentResult.message,
       };
     }
 
@@ -145,14 +252,15 @@ export const createAssignment = async (
     }
 
     await prisma.$transaction(
-      lessons.map((lesson) =>
+      assignmentResult.assignments.map((assignment) =>
         prisma.assignment.create({
           data: {
             title,
             startDate,
             endDate,
-            lessonId: lesson.id,
-            classId: lesson.classId,
+            lessonId: assignment.lessonId,
+            teacherId: assignment.teacherId,
+            classId: assignment.classId,
             subjectId,
             academicYearId,
             schoolId: access.schoolId,
@@ -209,28 +317,18 @@ export const updateAssignment = async (
       return { success: false, error: true, message: "Assignment not found." };
     }
 
-    const lessons = await prisma.lesson.findMany({
-      where: {
-        academicYearId,
-        subjectId,
-        classId: { in: classIds },
-        ...(role === "teacher" ? { teacherId: userId! } : {}),
-      },
-      select: { id: true, classId: true },
-    });
+    const assignmentResult = await getAssignmentClassAssignments(
+      access,
+      academicYearId,
+      subjectId,
+      classIds,
+    );
 
-    if (lessons.length === 0) {
+    if (assignmentResult.error) {
       return {
         success: false,
         error: true,
-        message: "No lessons were found for the selected subject and classes.",
-      };
-    }
-    if (lessons.length !== classIds.length) {
-      return {
-        success: false,
-        error: true,
-        message: "One or more selected classes do not have a lesson for that subject.",
+        message: assignmentResult.message,
       };
     }
 
@@ -260,30 +358,36 @@ export const updateAssignment = async (
         academicYearId,
         schoolId: access.schoolId,
         subjectId: existingAssignment.subjectId,
-        ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
+        ...(role === "teacher" ? assignmentTeacherAccessWhere(userId!) : {}),
       },
-      select: { id: true, classId: true },
+      select: { id: true, classId: true, teacherId: true },
     });
 
-    const selectedLessonsByClass = new Map<number, { id: number; classId: number }>();
-    for (const lesson of lessons) {
-      selectedLessonsByClass.set(lesson.classId, lesson);
+    const selectedAssignmentsByClass = new Map<
+      number,
+      (typeof assignmentResult.assignments)[number]
+    >();
+    for (const assignment of assignmentResult.assignments) {
+      selectedAssignmentsByClass.set(assignment.classId, assignment);
     }
 
     await prisma.$transaction(async (tx) => {
       for (const assignment of groupAssignments) {
-        if (assignment.classId && !selectedLessonsByClass.has(assignment.classId)) {
+        if (assignment.classId && !selectedAssignmentsByClass.has(assignment.classId)) {
           await tx.assignment.delete({ where: { id: assignment.id } });
         }
       }
 
-      for (const [classId, lesson] of selectedLessonsByClass) {
+      for (const [classId, assignment] of selectedAssignmentsByClass) {
         const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
+        const teacherId =
+          assignment.teacherId ?? existingClassAssignment?.teacherId ?? null;
         const data = {
           title,
           startDate,
           endDate,
-          lessonId: lesson.id,
+          lessonId: assignment.lessonId,
+          teacherId,
           classId,
           subjectId,
           academicYearId,
@@ -324,7 +428,11 @@ export const deleteAssignment = async (
   try {
     if (role === "teacher") {
       const teacherAssignment = await prisma.assignment.findFirst({
-        where: { id, schoolId: access.schoolId, lesson: { teacherId: userId } },
+        where: {
+          id,
+          schoolId: access.schoolId,
+          ...assignmentTeacherAccessWhere(userId),
+        },
         select: { id: true, fileUrl: true },
       });
       if (!teacherAssignment) {

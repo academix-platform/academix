@@ -20,7 +20,8 @@ import SubmissionsModal from "@/components/SubmissionsModal";
 type AssignmentList = Assignment & {
   subject: Pick<Subject, "name"> | null;
   class: Pick<Class, "name"> | null;
-  lesson: { teacher: Pick<Teacher, "name"> };
+  teacher: Pick<Teacher, "name"> | null;
+  lesson: { teacher: Pick<Teacher, "name"> } | null;
   assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
     id: number;
     fileUrl: string;
@@ -80,7 +81,9 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
       <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
       {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
       {role !== "teacher" && (
-        <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+        <td className="hidden md:table-cell">
+          {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+        </td>
       )}
       <td className="hidden md:table-cell w-[180px] min-w-[180px]">
         {formatDateTime(item.endDate)}
@@ -177,6 +180,7 @@ const AssignmentListPage = async ({
         subject: { select: { name: true } },
         class: { select: { name: true } },
         lesson: { select: { teacher: { select: { name: true } } } },
+        teacher: { select: { name: true } },
         assignmentSubmissions: role === "student" && userId
           ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true } }
           : false,

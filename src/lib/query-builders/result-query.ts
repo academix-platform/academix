@@ -93,7 +93,11 @@ export async function buildResultQuery({
               OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
             },
           },
-          { assignment: { lesson: { teacherId: userId } } },
+          {
+            assignment: {
+              OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+            },
+          },
         ],
       });
       break;

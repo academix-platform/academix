@@ -348,7 +348,7 @@ export const updateExamWorkflow = async (
         subjectId: existingExam.subjectId,
         ...(access.role === "teacher" ? teacherExamAccessWhere(access.userId) : {}),
       },
-      select: { id: true, classId: true },
+      select: { id: true, classId: true, teacherId: true },
     });
 
     const selectedAssignmentsByClass = new Map<
@@ -406,6 +406,9 @@ export const updateExamWorkflow = async (
         const existingClassExam = groupExams.find((exam) => exam.classId === classId);
 
         if (existingClassExam) {
+          const teacherId =
+            assignment.teacherId ?? existingClassExam.teacherId ?? null;
+
           await tx.exam.update({
             where: { id: existingClassExam.id },
             data: {
@@ -413,7 +416,7 @@ export const updateExamWorkflow = async (
               startTime: data.startTime,
               endTime: data.endTime,
               lessonId: assignment.lessonId,
-              teacherId: assignment.teacherId,
+              teacherId,
               classId,
               subjectId: data.subjectId,
               academicYearId,

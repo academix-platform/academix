@@ -37,7 +37,10 @@ export async function uploadAssignmentFile(
 
     // التحقق أن الواجب يخص هذا المعلم
     const assignment = await prisma.assignment.findFirst({
-      where: { id: assignmentId, lesson: { teacherId: userId } },
+      where: {
+        id: assignmentId,
+        OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+      },
       select: { id: true, title: true },
     });
     if (!assignment) {
@@ -72,7 +75,7 @@ export async function uploadAssignmentFile(
     await prisma.assignment.updateMany({
       where: {
         title: assignment.title,
-        lesson: { teacherId: userId },
+        OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
       },
       data: {
         fileUrl: result.secure_url,
