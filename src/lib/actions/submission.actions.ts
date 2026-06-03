@@ -24,13 +24,19 @@ async function uploadToCloudinary(file: File) {
   const buffer = Buffer.from(bytes);
   const base64 = buffer.toString("base64");
   const dataUri = `data:${file.type};base64,${base64}`;
+  const extension = file.name.split(".").pop()?.toLowerCase() || "file";
   const result = await cloudinary.uploader.upload(dataUri, {
     folder: "submissions",
     resource_type: "auto",
     use_filename: true,
     unique_filename: true,
   });
-  return { url: result.secure_url, fileType: result.format, fileName: file.name, publicId: result.public_id };
+  return {
+    url: result.secure_url,
+    fileType: result.format || file.type || extension,
+    fileName: file.name,
+    publicId: result.public_id,
+  };
 }
 
 async function deleteFromCloudinary(publicId: string) {
@@ -78,7 +84,10 @@ export async function submitAssignment(
       where: {
         id: assignmentId,
         schoolId: student.schoolId,
-        class: { students: { some: { id: userId } } },
+        OR: [
+          { class: { students: { some: { id: userId } } } },
+          { lesson: { class: { students: { some: { id: userId } } } } },
+        ],
       },
       select: { id: true, endDate: true, allowLateSubmission: true },
     });
@@ -110,7 +119,23 @@ export async function submitAssignment(
     });
 
     // رفع الملف الجديد
-    const { url, fileType, fileName, publicId: newPublicId } = await uploadToCloudinary(file);
+    let uploadedFile: {
+      url: string;
+      fileType: string;
+      fileName: string;
+      publicId: string;
+    };
+
+    try {
+      uploadedFile = await uploadToCloudinary(file);
+    } catch (uploadError) {
+      console.error("[submitAssignment] upload failed", uploadError);
+      return {
+        success: false,
+        error: true,
+        message: "File upload failed. Please try again.",
+      };
+    }
 
     // حذف الملف القديم إذا وجد
     if (existing?.fileUrl) {
@@ -124,9 +149,9 @@ export async function submitAssignment(
     await prisma.assignmentSubmission.upsert({
       where: { assignmentId_studentId: { assignmentId, studentId: userId } },
       create: {
-        fileUrl: url,
-        fileName,
-        fileType,
+        fileUrl: uploadedFile.url,
+        fileName: uploadedFile.fileName,
+        fileType: uploadedFile.fileType,
         note,
         assignmentId,
         studentId: userId,
@@ -134,9 +159,9 @@ export async function submitAssignment(
         academicYearId: academicYear.id,
       },
       update: {
-        fileUrl: url,
-        fileName,
-        fileType,
+        fileUrl: uploadedFile.url,
+        fileName: uploadedFile.fileName,
+        fileType: uploadedFile.fileType,
         note,
         updatedAt: new Date(),
       },

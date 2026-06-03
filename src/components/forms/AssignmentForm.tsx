@@ -11,7 +11,7 @@ import { createAssignment, updateAssignment } from "@/lib/actions";
 import { Dispatch, SetStateAction, useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
-import { Download, Upload, X, Clock } from "lucide-react";
+import { Download, Upload, X, Clock, Search } from "lucide-react";
 
 // دالة مساعدة لتحويل التاريخ إلى صيغة datetime-local
 const toDatetimeLocalValue = (value: unknown) => {
@@ -212,6 +212,14 @@ const AssignmentForm = ({
 
   const { subjects = [], classes = [], lessons = [] } = relatedData ?? {};
   const selectedSubjectId = useWatch({ control, name: "subjectId" });
+  const selectedSubject = subjects.find(
+    (subject: { id: number; name: string }) =>
+      Number(subject.id) === Number(selectedSubjectId),
+  );
+  const [subjectSearch, setSubjectSearch] = useState(
+    data?.subjectName ?? selectedSubject?.name ?? "",
+  );
+  const [showSubjectDropdown, setShowSubjectDropdown] = useState(false);
   const watchedClassIds = useWatch({ control, name: "classIds" });
   const classIdsRegister = register("classIds");
   const selectedClassIds = useMemo(
@@ -219,6 +227,15 @@ const AssignmentForm = ({
     [watchedClassIds],
   );
   const selectedSubjectIdNumber = Number(selectedSubjectId);
+
+  const filteredSubjects = useMemo(() => {
+    const search = subjectSearch.trim().toLowerCase();
+    if (!search) return subjects;
+
+    return subjects.filter((subject: { id: number; name: string }) =>
+      subject.name.toLowerCase().includes(search),
+    );
+  }, [subjects, subjectSearch]);
 
   const availableClassIds = useMemo(() => {
     if (!selectedSubjectId || Number.isNaN(selectedSubjectIdNumber)) {
@@ -234,7 +251,7 @@ const AssignmentForm = ({
   const filteredClasses =
     selectedSubjectId && !Number.isNaN(selectedSubjectIdNumber)
       ? classes.filter((cls: { id: number; name: string }) => availableClassIds.has(cls.id))
-      : classes;
+      : [];
 
   const selectedClassIdsAsNumbers = useMemo(
     () =>
@@ -319,18 +336,100 @@ const AssignmentForm = ({
               </div>
             </>
           ) : (
-            <select
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-              {...register("subjectId")}
-              defaultValue={data?.subjectId}
-            >
-              <option value="">Select subject</option>
-              {subjects.map((subject: { id: number; name: string }) => (
-                <option value={subject.id} key={subject.id}>
-                  {subject.name}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <input type="hidden" {...register("subjectId")} />
+              <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg transition-all">
+                <Search className="w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  value={subjectSearch}
+                  placeholder="Search subject..."
+                  onFocus={() => setShowSubjectDropdown(true)}
+                  onBlur={() => {
+                    window.setTimeout(() => setShowSubjectDropdown(false), 120);
+                  }}
+                  onChange={(e) => {
+                    setSubjectSearch(e.target.value);
+                    setShowSubjectDropdown(true);
+                    if (selectedSubjectId) {
+                      setValue("subjectId", undefined as any, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      setValue("classIds", [], {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  }}
+                  className="bg-transparent outline-none w-full text-sm"
+                />
+                {subjectSearch && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSubjectSearch("");
+                      setValue("subjectId", undefined as any, {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      setValue("classIds", [], {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                      setShowSubjectDropdown(true);
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Clear subject"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+              {showSubjectDropdown && (
+                <div className="top-full right-0 left-0 z-20 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+                  {filteredSubjects.length > 0 ? (
+                    filteredSubjects.map(
+                      (subject: { id: number; name: string }) => {
+                        const isSelected =
+                          Number(subject.id) === Number(selectedSubjectId);
+
+                        return (
+                          <button
+                            type="button"
+                            key={subject.id}
+                            onMouseDown={(event) => event.preventDefault()}
+                            onClick={() => {
+                              setValue("subjectId", subject.id, {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              });
+                              setValue("classIds", [], {
+                                shouldDirty: true,
+                                shouldValidate: true,
+                              });
+                              setSubjectSearch(subject.name);
+                              setShowSubjectDropdown(false);
+                            }}
+                            className={`px-4 py-3 w-full text-sm text-left transition-colors ${
+                              isSelected
+                                ? "bg-academixPurpleLight text-academixPurpleDark font-medium"
+                                : "hover:bg-academixPurpleLight hover:text-academixPurpleDark"
+                            }`}
+                          >
+                            {subject.name}
+                          </button>
+                        );
+                      },
+                    )
+                  ) : (
+                    <div className="px-4 py-3 text-gray-500 text-sm">
+                      No subjects found.
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           )}
           {errors.subjectId?.message && (
             <p className="font-medium text-red-500 text-xs">
@@ -366,7 +465,11 @@ const AssignmentForm = ({
               </label>
             ))}
             {filteredClasses.length === 0 && (
-              <p className="text-gray-400 text-xs">No classes available.</p>
+              <p className="text-gray-400 text-xs">
+                {selectedSubjectId
+                  ? "No classes found for this subject."
+                  : "Select a subject first to see available classes."}
+              </p>
             )}
           </div>
           {selectedClassIds.length > 0 && (
