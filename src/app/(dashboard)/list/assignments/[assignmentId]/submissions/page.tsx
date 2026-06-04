@@ -2,9 +2,11 @@ import Table from "@/components/Table";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
+import type { AiEvaluation } from "@prisma/client";
 import { Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import AssignmentSubmissionAiEvaluation from "./AssignmentSubmissionAiEvaluation";
 import AssignmentSubmissionBulkActions from "./AssignmentSubmissionBulkActions";
 import AssignmentSubmissionScoreForm from "./AssignmentSubmissionScoreForm";
 import PublishAssignmentGradesButton from "./PublishAssignmentGradesButton";
@@ -24,6 +26,7 @@ type SubmissionRow = {
   gradePublished: boolean;
   updatedAt: Date;
   createdAt: Date;
+  aiEvaluation: AiEvaluation | null;
   student: {
     name: string;
     username: string;
@@ -95,75 +98,91 @@ const getStatusBadge = (submission: SubmissionRow) => {
   );
 };
 
-const renderRow = (item: SubmissionRow, maxScore: number) => (
-  <tr
-    key={item.id}
-    className="border-b border-gray-200 text-sm even:bg-slate-50 hover:bg-academixPurpleLight"
-  >
-    <td className="min-w-[190px] p-4">
-      <div className="flex items-center gap-3">
-        {item.student.img ? (
-          <img
-            src={item.student.img}
-            alt={item.student.name}
-            className="h-8 w-8 rounded-full object-cover"
-          />
-        ) : (
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-academixPurpleLight text-xs font-semibold text-academixPurpleDark">
-            {item.student.name[0] ?? "S"}
+const renderRow = (item: SubmissionRow, maxScore: number) => {
+  const isPdfSubmission = getFileExtension(item.fileName) === "pdf";
+
+  return (
+    <tr
+      key={item.id}
+      className="border-b border-gray-200 text-sm even:bg-slate-50 hover:bg-academixPurpleLight"
+    >
+      <td className="min-w-[190px] p-4">
+        <div className="flex items-center gap-3">
+          {item.student.img ? (
+            <img
+              src={item.student.img}
+              alt={item.student.name}
+              className="h-8 w-8 rounded-full object-cover"
+            />
+          ) : (
+            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-academixPurpleLight text-xs font-semibold text-academixPurpleDark">
+              {item.student.name[0] ?? "S"}
+            </div>
+          )}
+          <div className="flex flex-col">
+            <span className="font-medium text-gray-800">{item.student.name}</span>
+            <span className="text-xs text-gray-400">{item.student.username}</span>
           </div>
-        )}
-        <div className="flex flex-col">
-          <span className="font-medium text-gray-800">{item.student.name}</span>
-          <span className="text-xs text-gray-400">{item.student.username}</span>
         </div>
-      </div>
-    </td>
-    <td className="min-w-[120px] p-4">{item.assignment.class?.name ?? "-"}</td>
-    <td className="hidden max-w-[180px] truncate p-4 text-gray-500 md:table-cell">
-      {item.fileName}
-    </td>
-    <td className="min-w-[120px] p-4">{getStatusBadge(item)}</td>
-    <td className="min-w-[140px] p-4">
-      <AssignmentSubmissionScoreForm
-        submissionId={item.id}
-        currentScore={item.score}
-        maxScore={maxScore}
-      />
-    </td>
-    <td className="hidden p-4 text-gray-500 md:table-cell">
-      {formatDateTime(item.updatedAt)}
-    </td>
-    <td className="min-w-[180px] p-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {getPreviewHref(item) ? (
-          <a
-            href={getPreviewHref(item) ?? undefined}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
-          >
-            <Eye className="h-3.5 w-3.5" />
-            View
-          </a>
-        ) : (
-          <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
-            Preview unavailable
-          </span>
-        )}
-        <a
-          href={`/api/download/${item.id}?type=submission`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-xs font-medium text-academixPurpleDark transition hover:brightness-95"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Download
-        </a>
-      </div>
-    </td>
-  </tr>
-);
+      </td>
+      <td className="min-w-[120px] p-4">{item.assignment.class?.name ?? "-"}</td>
+      <td className="hidden max-w-[180px] truncate p-4 text-gray-500 md:table-cell">
+        {item.fileName}
+      </td>
+      <td className="min-w-[120px] p-4">{getStatusBadge(item)}</td>
+      <td className="min-w-[140px] p-4">
+        <AssignmentSubmissionScoreForm
+          submissionId={item.id}
+          currentScore={item.score}
+          maxScore={maxScore}
+        />
+      </td>
+      <td className="hidden p-4 text-gray-500 md:table-cell">
+        {formatDateTime(item.updatedAt)}
+      </td>
+      <td className="min-w-[260px] p-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2">
+            {getPreviewHref(item) ? (
+              <a
+                href={getPreviewHref(item) ?? undefined}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View
+              </a>
+            ) : (
+              <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
+                Preview unavailable
+              </span>
+            )}
+            <a
+              href={`/api/download/${item.id}?type=submission`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-xs font-medium text-academixPurpleDark transition hover:brightness-95"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </a>
+          </div>
+          <AssignmentSubmissionAiEvaluation
+            submissionId={item.id}
+            maxScore={maxScore}
+            evaluation={item.aiEvaluation}
+            disabledMessage={
+              isPdfSubmission
+                ? undefined
+                : "AI evaluation supports PDF submissions only."
+            }
+          />
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
@@ -239,6 +258,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
     include: {
       student: { select: { name: true, username: true, img: true } },
       assignment: { select: { class: { select: { name: true } } } },
+      aiEvaluation: true,
     },
     orderBy: { updatedAt: "desc" },
   });
@@ -339,7 +359,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
       </div>
 
       <div className="w-full overflow-x-auto">
-        <div className="min-w-[760px]">
+        <div className="min-w-[980px]">
           <Table
             columns={columns}
             renderRow={(item) => renderRow(item as SubmissionRow, assignment.maxScore)}

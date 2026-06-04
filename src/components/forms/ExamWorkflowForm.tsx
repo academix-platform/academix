@@ -364,14 +364,17 @@ function QuestionEditor({
         </div>
       )}
 
-      {qType === "TEXT" && (
+      {(qType === "TEXT" || qType === "FILE") && (
         <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
-          <h3 className="font-medium text-gray-700 text-sm">Correct Answer</h3>
+          <h3 className="font-medium text-gray-700 text-sm">Model Answer / Rubric</h3>
           <textarea
             {...register(`questions.${index}.textAnswer`)}
             className="w-full p-3 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm min-h-[100px] transition-all"
-            placeholder="Write the correct answer here..."
+            placeholder="Write the expected answer or explain how marks should be awarded..."
           />
+          <p className="text-xs text-gray-400">
+            Used to guide manual grading and AI evaluation.
+          </p>
           {errors?.questions?.[index]?.textAnswer?.message && (
             <p className="font-medium text-red-500 text-xs">
               {errors.questions[index]?.textAnswer?.message?.toString()}
@@ -455,7 +458,9 @@ function QuestionEditor({
             />
           </div>
 
-          <p className="text-xs text-gray-400 italic">FILE questions are graded manually.</p>
+          <p className="text-xs text-gray-400 italic">
+            PDF submissions can be evaluated with AI using the model answer / rubric above.
+          </p>
 
           {errors?.questions?.[index]?.fileConfig?.message && (
             <p className="font-medium text-red-500 text-xs">

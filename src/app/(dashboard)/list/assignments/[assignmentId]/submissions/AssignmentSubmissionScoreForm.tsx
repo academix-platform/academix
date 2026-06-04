@@ -3,7 +3,7 @@
 import { gradeAssignmentSubmission } from "@/lib/actions/submission.actions";
 import { Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 
 type Props = {
@@ -20,6 +20,10 @@ export default function AssignmentSubmissionScoreForm({
   const router = useRouter();
   const [score, setScore] = useState(currentScore?.toString() ?? "0");
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    setScore(currentScore?.toString() ?? "0");
+  }, [currentScore]);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();

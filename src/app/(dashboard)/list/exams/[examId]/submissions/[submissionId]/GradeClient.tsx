@@ -2,13 +2,17 @@
 
 import { gradeAnswer, approveAndFinalizeGrading } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 import { CheckCircle, Eye, Loader2, AlertCircle, Download, FileText } from "lucide-react";
-import type { Answer, Question, Submission, Student } from "@prisma/client";
+import type { AiEvaluation, Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
+import GradeAnswerAiEvaluation from "./GradeAnswerAiEvaluation";
 
-type AnswerWithQuestion = Answer & { question: Question };
+type AnswerWithQuestion = Answer & {
+  question: Question;
+  aiEvaluation: AiEvaluation | null;
+};
 
 type GradeClientProps = {
   submission: Submission & { student: Pick<Student, "name" | "username"> };
@@ -116,6 +120,18 @@ const GradeClient = ({
     Record<number, "idle" | "saving" | "saved" | "error">
   >({});
   const [isFinalizing, setIsFinalizing] = useState(false);
+
+  useEffect(() => {
+    setScores((prev) => {
+      const next = { ...prev };
+      for (const answer of answers) {
+        if (answer.score !== null && answer.score !== undefined) {
+          next[answer.id] = String(answer.score);
+        }
+      }
+      return next;
+    });
+  }, [answers]);
 
   const handleAutoSave = async (answerId: number, maxPoints: number) => {
     const scoreStr = scores[answerId];
@@ -275,6 +291,15 @@ const GradeClient = ({
               answer.question.type === "MCQ" && answer.question.allowMultiple;
             const isGraded =
               answer.score !== null && answer.score !== undefined;
+            const isPdfFileAnswer =
+              answer.question.type === "FILE" &&
+              getFileExtension((answer as any).fileOriginalName) === "pdf";
+            const canAiEvaluate =
+              answer.question.type === "TEXT" || isPdfFileAnswer;
+            const aiDisabledMessage =
+              answer.question.type === "FILE" && !isPdfFileAnswer
+                ? "AI evaluation supports PDF file answers only."
+                : undefined;
 
             return (
               <div
@@ -396,6 +421,15 @@ const GradeClient = ({
                     </div>
                   </div>
                 )}
+
+                {canAiEvaluate || aiDisabledMessage ? (
+                  <GradeAnswerAiEvaluation
+                    answerId={answer.id}
+                    maxScore={answer.question.points}
+                    evaluation={answer.aiEvaluation}
+                    disabledMessage={aiDisabledMessage}
+                  />
+                ) : null}
 
                 {/* Score Input */}
                 <div className="flex items-center gap-3">

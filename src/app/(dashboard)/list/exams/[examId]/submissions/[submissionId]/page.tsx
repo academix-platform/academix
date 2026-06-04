@@ -71,6 +71,7 @@ const GradeSubmissionPage = async ({
       answers: {
         include: {
           question: true,
+          aiEvaluation: true,
         },
       },
     },
