@@ -80,5 +80,8 @@ export * from "./studyMaterial.actions";
 // Assignment submission actions
 export * from "./submission.actions";
 
+// AI evaluation actions
+export * from "./aiEvaluation.actions";
+
 // Subject page settings actions
 export * from "./subjectPageSettings.actions";
