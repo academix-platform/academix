@@ -1,6 +1,7 @@
 // lib/actions.ts
 "use server";
 
+import { notifyAttendanceSaved } from "./notification.actions";
 import prisma from "../prisma";
 import { getRequiredAcademicYearId, requireActionAccess } from "./helpers";
 
@@ -74,6 +75,14 @@ export const saveDailyAttendance = async (
         });
       }),
     );
+
+    // ✅ إشعار الأدمن بحفظ الحضور
+    await notifyAttendanceSaved({
+      schoolId: access.schoolId,
+      scope: scope as "students" | "teachers",
+      date: rawDate,
+      count: records.length,
+    }).catch(() => {});
 
     return { success: true, error: false };
   } catch (err: any) {

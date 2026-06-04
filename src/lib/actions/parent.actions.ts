@@ -1,5 +1,5 @@
 "use server";
-
+import { sendAccountEmail } from "../mail";
 import { ParentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -37,23 +37,30 @@ export const createParent = async (
       publicMetadata: { role: "parent" },
     });
     createdUserId = user.id;
+await prisma.parent.create({
+  data: {
+    id: createdUserId,
+    schoolId: access.schoolId,
+    username: data.username,
+    name: data.name,
+    email: data.email || null,
+    phone: data.phone,
+    address: data.address,
+    students: {
+      connect: data.students?.map((studentId: string) => ({
+        id: studentId,
+      })),
+    },
+  },
+});
 
-    await prisma.parent.create({
-      data: {
-        id: createdUserId,
-        schoolId: access.schoolId,
-        username: data.username,
-        name: data.name,
-        email: data.email || null,
-        phone: data.phone,
-        address: data.address,
-        students: {
-          connect: data.students?.map((studentId: string) => ({
-            id: studentId,
-          })),
-        },
-      },
-    });
+if (data.email && data.password) {
+  await sendAccountEmail(
+    data.email,
+    data.username,
+    data.password
+  );
+}
 
     return successResult(["/list/parents"]);
   } catch (err) {

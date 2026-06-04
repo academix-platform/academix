@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyNewExam } from "./notification.actions";
 import { ExamSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -58,10 +59,10 @@ export const createExam = async (
           map.set(lesson.classId, lesson);
         }
         return map;
-      }, new Map<number, typeof lessons[0]>()).values()
+      }, new Map<number, (typeof lessons)[number]>()).values(),
     );
 
-    await prisma.$transaction(
+    const createdExams = await prisma.$transaction(
       uniqueClassLessons.map((lesson) =>
         prisma.exam.create({
           data: {
@@ -77,6 +78,18 @@ export const createExam = async (
         }),
       ),
     );
+
+    // ✅ إشعار الطلاب بالاختبار الجديد
+    for (const exam of createdExams) {
+      if (exam.classId) {
+        await notifyNewExam({
+          schoolId: access.schoolId,
+          examId: exam.id,
+          examTitle: data.title,
+          classId: exam.classId,
+        }).catch(() => {});
+      }
+    }
 
     return successResult(["/list/exams"]);
   } catch (err) {

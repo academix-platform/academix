@@ -12,6 +12,10 @@ import {
   requireActionAccess,
   successResult,
 } from "@/lib/actions/helpers";
+import {
+  notifyAssignmentSubmitted,
+  notifyAssignmentFeedback,
+} from "./notification.actions";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
@@ -326,7 +330,37 @@ export async function submitAssignment(
 
     revalidatePath("/list/assignments");
 
-    // ✅ تحديد الرسالة المناسبة
+    // ✅ إشعار المعلم بالتسليم (فقط عند أول تسليم)
+    if (!existing) {
+      try {
+        const assignmentWithLesson = await prisma.assignment.findUnique({
+          where: { id: assignmentId },
+          select: {
+            title: true,
+            teacherId: true,
+            lesson: { select: { teacherId: true } },
+          },
+        });
+        const studentData = await prisma.student.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+        const teacherId =
+          assignmentWithLesson?.teacherId ??
+          assignmentWithLesson?.lesson?.teacherId;
+
+        if (assignmentWithLesson && studentData && teacherId) {
+          await notifyAssignmentSubmitted({
+            schoolId: student.schoolId,
+            assignmentId,
+            assignmentTitle: assignmentWithLesson.title,
+            studentName: studentData.name,
+            teacherId,
+          });
+        }
+      } catch {}
+    }
+
     const isUpdate = !!existing;
     const successMessage = isUpdate
       ? "File replaced successfully!"
@@ -349,15 +383,39 @@ export async function updateTeacherFeedback(
       return { success: false, error: true, message: access.message };
     }
 
-    const submission = await findManagedSubmission(submissionId, access);
-    if (!submission) {
+    const managedSubmission = await findManagedSubmission(submissionId, access);
+    if (!managedSubmission) {
       return { success: false, error: true, message: "Submission not found" };
     }
 
-    await prisma.assignmentSubmission.update({
+    const submission = await prisma.assignmentSubmission.update({
       where: { id: submissionId },
       data: { teacherFeedback },
+      select: {
+        studentId: true,
+        schoolId: true,
+        assignment: {
+          select: {
+            title: true,
+            teacher: { select: { name: true } },
+            lesson: { select: { teacher: { select: { name: true } } } },
+          },
+        },
+      },
     });
+
+    // ✅ إشعار الطالب بالفيدباك
+    try {
+      await notifyAssignmentFeedback({
+        schoolId: submission.schoolId,
+        studentId: submission.studentId,
+        assignmentTitle: submission.assignment.title,
+        teacherName:
+          submission.assignment.teacher?.name ??
+          submission.assignment.lesson?.teacher.name ??
+          "Your teacher",
+      });
+    } catch {}
 
     revalidatePath("/list/assignments");
     return { success: true, error: false, message: "Feedback saved successfully!" };
