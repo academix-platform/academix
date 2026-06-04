@@ -168,7 +168,7 @@ export default async function CreateExamWorkflowPage({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
       <h1 className="mb-6 font-bold text-gray-900 text-2xl">
-        {exam ? "Update Exam Workflow" : "Create New Exam Workflow"}
+        {exam ? "Update Exam" : "Create New Exam"}
       </h1>
       <ExamWorkflowForm
         subjects={subjects}

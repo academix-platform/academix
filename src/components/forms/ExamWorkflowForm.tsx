@@ -68,16 +68,18 @@ function QuestionEditor({
   const typeField = register(typePath);
   const allowMultiple =
     useWatch({ control, name: `questions.${index}.allowMultiple` }) ?? false;
-  const correctAnswers: string[] = useWatch({
-    control,
-    name: correctPath,
-    defaultValue: [],
-  } as any) ?? [];
-  const currentOptions: string[] = useWatch({
-    control,
-    name: optionsPath,
-    defaultValue: [],
-  } as any) ?? [];
+  const correctAnswers: string[] =
+    useWatch({
+      control,
+      name: correctPath,
+      defaultValue: [],
+    } as any) ?? [];
+  const currentOptions: string[] =
+    useWatch({
+      control,
+      name: optionsPath,
+      defaultValue: [],
+    } as any) ?? [];
 
   const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
     if (!currentOptions.length || !correctAnswers.length) return [];
@@ -94,8 +96,11 @@ function QuestionEditor({
 
   const lockScroll = () => {
     const currentScrollY = window.scrollY;
-    const mainContentContainer = containerRef.current?.closest('.overflow-auto');
-    const containerScrollTop = mainContentContainer ? mainContentContainer.scrollTop : 0;
+    const mainContentContainer =
+      containerRef.current?.closest(".overflow-auto");
+    const containerScrollTop = mainContentContainer
+      ? mainContentContainer.scrollTop
+      : 0;
 
     window.scrollTo(0, currentScrollY);
     if (mainContentContainer) {
@@ -107,7 +112,10 @@ function QuestionEditor({
       if (mainContentContainer) {
         mainContentContainer.scrollTop = containerScrollTop;
       }
-      containerRef.current?.scrollIntoView({ behavior: "auto", block: "nearest" });
+      containerRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+      });
     });
   };
 
@@ -134,7 +142,10 @@ function QuestionEditor({
     const nextCorrect = nextSelected
       .map((si) => next[si])
       .filter((v): v is string => Boolean(v?.trim()));
-    setValue(correctPath, nextCorrect, { shouldDirty: true, shouldValidate: true });
+    setValue(correctPath, nextCorrect, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
   };
 
   const handleQuestionTypeChange = (nextType: string) => {
@@ -144,30 +155,49 @@ function QuestionEditor({
       setOptions(["", "", "", ""]);
       setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
-      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
       setValue(fileConfigPath, undefined, { shouldDirty: true });
     } else if (nextType === "TRUE_FALSE") {
       setOptions(["True", "False"]);
       setSelectedIndexes([]);
-      setValue(correctPath, ["TRUE"], { shouldDirty: true, shouldValidate: true });
-      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(correctPath, ["TRUE"], {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
       setValue(fileConfigPath, undefined, { shouldDirty: true });
     } else if (nextType === "FILE") {
       setOptions([]);
       setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
-      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
-      setValue(fileConfigPath, {
-        allowedExtensions: [],
-        minFileSizeMb: 0,
-        maxFileSizeMb: 10,
-        instructions: "",
-      }, { shouldDirty: true });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue(
+        fileConfigPath,
+        {
+          allowedExtensions: [],
+          minFileSizeMb: 0,
+          maxFileSizeMb: 10,
+          instructions: "",
+        },
+        { shouldDirty: true },
+      );
     } else {
       setOptions([]);
       setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
-      setValue(allowMultiplePath, false, { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
       setValue(fileConfigPath, undefined, { shouldDirty: true });
     }
   };
@@ -185,7 +215,14 @@ function QuestionEditor({
         shouldValidate: true,
       });
     }
-  }, [correctAnswers, correctPath, currentOptions, qType, selectedIndexes, setValue]);
+  }, [
+    correctAnswers,
+    correctPath,
+    currentOptions,
+    qType,
+    selectedIndexes,
+    setValue,
+  ]);
 
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
     const optionValue = currentOptions[optionIndex];
@@ -200,7 +237,9 @@ function QuestionEditor({
 
     if (allowMultiple) {
       nextSelected = checked
-        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort((a, b) => a - b)
+        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
+            (a, b) => a - b,
+          )
         : selectedIndexes.filter((i) => i !== optionIndex);
     } else {
       nextSelected = checked ? [optionIndex] : [];
@@ -227,7 +266,10 @@ function QuestionEditor({
   const hasEmptyOption = currentOptions.some((opt) => !opt || !opt.trim());
 
   return (
-    <div ref={containerRef} className="relative space-y-4 bg-white p-4 border rounded-md">
+    <div
+      ref={containerRef}
+      className="relative space-y-4 bg-white p-4 border rounded-md"
+    >
       <button
         type="button"
         onClick={removeQuestion}
@@ -306,7 +348,9 @@ function QuestionEditor({
                       type={allowMultiple ? "checkbox" : "radio"}
                       name={`questions.${index}.correctAnswer`}
                       checked={isSelected}
-                      onChange={(e) => toggleMcqAnswer(optionIndex, e.target.checked)}
+                      onChange={(e) =>
+                        toggleMcqAnswer(optionIndex, e.target.checked)
+                      }
                     />
                     Correct
                   </label>
@@ -322,9 +366,11 @@ function QuestionEditor({
             })}
 
             {/* إظهار الخطأ فوراً في حال حاول المعلم إنشاء الاختبار وهناك خيارات فارغة */}
-            {(errors?.questions?.[index]?.options?.message || (isSubmitted && hasEmptyOption)) && (
-              <p className="font-medium text-red-500 text-xs mt-1">
-                {errors?.questions?.[index]?.options?.message?.toString() || "⚠️ All option fields must be filled. Please do not leave empty options."}
+            {(errors?.questions?.[index]?.options?.message ||
+              (isSubmitted && hasEmptyOption)) && (
+              <p className="mt-1 font-medium text-red-500 text-xs">
+                {errors?.questions?.[index]?.options?.message?.toString() ||
+                  "⚠️ All option fields must be filled. Please do not leave empty options."}
               </p>
             )}
           </div>
@@ -366,13 +412,15 @@ function QuestionEditor({
 
       {(qType === "TEXT" || qType === "FILE") && (
         <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
-          <h3 className="font-medium text-gray-700 text-sm">Model Answer / Rubric</h3>
+          <h3 className="font-medium text-gray-700 text-sm">
+            Model Answer / Rubric
+          </h3>
           <textarea
             {...register(`questions.${index}.textAnswer`)}
-            className="w-full p-3 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm min-h-[100px] transition-all"
+            className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[100px] text-sm transition-all"
             placeholder="Write the expected answer or explain how marks should be awarded..."
           />
-          <p className="text-xs text-gray-400">
+          <p className="text-gray-400 text-xs">
             Used to guide manual grading and AI evaluation.
           </p>
           {errors?.questions?.[index]?.textAnswer?.message && (
@@ -387,14 +435,18 @@ function QuestionEditor({
         <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-academixPurpleDark" />
-            <h3 className="font-medium text-gray-700 text-sm">File Upload Settings</h3>
+            <h3 className="font-medium text-gray-700 text-sm">
+              File Upload Settings
+            </h3>
           </div>
 
           <div className="space-y-2">
-            <label className="font-medium text-gray-700 text-xs">Allowed File Extensions</label>
+            <label className="font-medium text-gray-700 text-xs">
+              Allowed File Extensions
+            </label>
             <input
               type="text"
-              className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+              className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
               placeholder="e.g. pdf, docx, jpg"
               {...register(`questions.${index}.fileConfig.allowedExtensions`, {
                 setValueAs: (v: any) => {
@@ -410,56 +462,77 @@ function QuestionEditor({
                 },
               })}
               defaultValue={(() => {
-                const currentVal = control._formValues.questions?.[index]?.fileConfig?.allowedExtensions;
-                return Array.isArray(currentVal) ? currentVal.join(", ") : currentVal ?? "";
+                const currentVal =
+                  control._formValues.questions?.[index]?.fileConfig
+                    ?.allowedExtensions;
+                return Array.isArray(currentVal)
+                  ? currentVal.join(", ")
+                  : (currentVal ?? "");
               })()}
               onBlur={(e) => {
-                setValue(`questions.${index}.fileConfig.allowedExtensions`, e.target.value, {
-                  shouldDirty: true,
-                  shouldValidate: true
-                });
+                setValue(
+                  `questions.${index}.fileConfig.allowedExtensions`,
+                  e.target.value,
+                  {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  },
+                );
               }}
             />
-            <p className="text-xs text-gray-400">Leave empty to accept all file types (Optional)</p>
+            <p className="text-gray-400 text-xs">
+              Leave empty to accept all file types (Optional)
+            </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="gap-4 grid grid-cols-2">
             <div className="space-y-2">
-              <label className="font-medium text-gray-700 text-xs">Min File Size (MB)</label>
+              <label className="font-medium text-gray-700 text-xs">
+                Min File Size (MB)
+              </label>
               <input
                 type="number"
                 min={0}
                 step={0.1}
-                {...register(`questions.${index}.fileConfig.minFileSizeMb`, { valueAsNumber: true })}
-                className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+                {...register(`questions.${index}.fileConfig.minFileSizeMb`, {
+                  valueAsNumber: true,
+                })}
+                className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
               />
             </div>
             <div className="space-y-2">
-              <label className="font-medium text-gray-700 text-xs">Max File Size (MB)</label>
+              <label className="font-medium text-gray-700 text-xs">
+                Max File Size (MB)
+              </label>
               <input
                 type="number"
                 min={1}
                 max={10}
                 step={0.1}
-                {...register(`questions.${index}.fileConfig.maxFileSizeMb`, { valueAsNumber: true })}
-                className="w-full p-2 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm transition-all"
+                {...register(`questions.${index}.fileConfig.maxFileSizeMb`, {
+                  valueAsNumber: true,
+                })}
+                className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
               />
-              <p className="text-xs text-gray-400">System max: 10 MB</p>
+              <p className="text-gray-400 text-xs">System max: 10 MB</p>
             </div>
           </div>
 
           <div className="space-y-2">
-            <label className="font-medium text-gray-700 text-xs">Instructions for Student (optional)</label>
+            <label className="font-medium text-gray-700 text-xs">
+              Instructions for Student (optional)
+            </label>
             <textarea
               rows={3}
               {...register(`questions.${index}.fileConfig.instructions`)}
-              className="w-full p-3 border-2 border-gray-200 focus:border-academixPurpleDark focus:outline-none rounded-lg text-sm min-h-[60px] transition-all"
+              className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[60px] text-sm transition-all"
               placeholder="e.g. Upload your essay as a PDF file..."
             />
           </div>
 
-          <p className="text-xs text-gray-400 italic">
-            PDF submissions can be evaluated with AI using the model answer / rubric above.
+          <p className="text-gray-400 text-xs italic">
+            PDF submissions can be evaluated with AI using the model answer /
+            rubric above.
           </p>
 
           {errors?.questions?.[index]?.fileConfig?.message && (
@@ -483,6 +556,7 @@ export default function ExamWorkflowForm({
 }: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const createDateTimeDefault = toDateTimeLocalValue(new Date());
 
   const {
     register,
@@ -495,8 +569,10 @@ export default function ExamWorkflowForm({
     resolver: zodResolver(createExamWorkflowSchema),
     defaultValues: {
       title: initialData?.title ?? "",
-      startTime: toDateTimeLocalValue(initialData?.startTime) as any,
-      endTime: toDateTimeLocalValue(initialData?.endTime) as any,
+      startTime: (toDateTimeLocalValue(initialData?.startTime) ||
+        (mode === "create" ? createDateTimeDefault : "")) as any,
+      endTime: (toDateTimeLocalValue(initialData?.endTime) ||
+        (mode === "create" ? createDateTimeDefault : "")) as any,
       subjectId: initialData?.subjectId,
       classIds: (initialData?.classIds ?? []).map(String) as any,
       enableTimer: initialData?.enableTimer ?? true,
@@ -506,18 +582,20 @@ export default function ExamWorkflowForm({
       autoSaveInterval: initialData?.autoSaveInterval ?? 30,
       enableAutoSubmit: initialData?.enableAutoSubmit ?? true,
       questionsPerPage: initialData?.questionsPerPage ?? 1,
-      questions: (initialData?.questions ?? [
-        {
-          type: "TEXT",
-          text: "",
-          points: 1,
-          order: 1,
-          allowMultiple: false,
-          options: [],
-          correctAnswer: [],
-          textAnswer: "",
-        },
-      ]).map((q) => ({
+      questions: (
+        initialData?.questions ?? [
+          {
+            type: "TEXT",
+            text: "",
+            points: 1,
+            order: 1,
+            allowMultiple: false,
+            options: [],
+            correctAnswer: [],
+            textAnswer: "",
+          },
+        ]
+      ).map((q) => ({
         ...q,
         textAnswer: q.textAnswer ?? "",
       })),
@@ -547,18 +625,21 @@ export default function ExamWorkflowForm({
   }, [classes, teacherLessons, watchSubjectId]);
 
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
-    // التحقق النهائي عند الضغط على الحفظ لمنع إرسال الفورم تماماً بوجود خيارات فارغة
     if (data.questions && data.questions.length > 0) {
       for (let i = 0; i < data.questions.length; i++) {
         const q = data.questions[i];
         if (q.type === "MCQ") {
           const hasEmptyOption = q.options?.some((opt) => !opt || !opt.trim());
           if (hasEmptyOption) {
-            toast.error(`Question #${i + 1} has empty options! Please fill in all option fields.`);
+            toast.error(
+              `Question #${i + 1} has empty options! Please fill in all option fields.`,
+            );
             return;
           }
           if (!q.correctAnswer || q.correctAnswer.length === 0) {
-            toast.error(`Please select at least one correct answer for Question #${i + 1}.`);
+            toast.error(
+              `Please select at least one correct answer for Question #${i + 1}.`,
+            );
             return;
           }
         }
@@ -569,7 +650,11 @@ export default function ExamWorkflowForm({
     try {
       const res =
         mode === "update" && examId
-          ? await updateExamWorkflow({ success: true, error: false }, examId, data)
+          ? await updateExamWorkflow(
+              { success: true, error: false },
+              examId,
+              data,
+            )
           : await createExamWorkflow({ success: true, error: false }, data);
       if (res.error) {
         toast.error(res.message);
@@ -590,139 +675,135 @@ export default function ExamWorkflowForm({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-bold text-gray-900 text-2xl">1. Basic Information</h2>
-        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <InputField
-            label="Exam Title"
-            name="title"
-            register={register}
-            error={errors.title}
-          />
-          <InputField
-            label="Start Time"
-            name="startTime"
-            type="datetime-local"
-            register={register}
-            error={errors.startTime}
-          />
-          <InputField
-            label="End Time"
-            name="endTime"
-            type="datetime-local"
-            register={register}
-            error={errors.endTime}
-          />
+      <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
+        <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+          <h2 className="font-bold text-gray-900 text-2xl">
+            1. Basic Information
+          </h2>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+            <InputField
+              label="Exam Title"
+              name="title"
+              register={register}
+              error={errors.title}
+            />
+            <InputField
+              label="Start Time"
+              name="startTime"
+              type="datetime-local"
+              register={register}
+              error={errors.startTime}
+            />
+            <InputField
+              label="End Time"
+              name="endTime"
+              type="datetime-local"
+              register={register}
+              error={errors.endTime}
+            />
 
-          <div className="flex flex-col gap-2 w-full">
-            <label className="font-medium text-gray-700 text-sm">Subject</label>
-            <select
-              {...register("subjectId")}
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-            >
-              <option value="">Select a subject...</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            {errors.subjectId?.message && (
-              <p className="font-medium text-red-500 text-xs">{errors.subjectId.message}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2 md:col-span-2 w-full">
-            <label className="font-medium text-gray-700 text-sm">Classes</label>
-            <div className="flex flex-wrap gap-4">
-              {filteredClasses.length > 0 ? (
-                filteredClasses.map((c) => (
-                  <label key={c.id} className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      value={String(c.id)}
-                      {...register("classIds")}
-                    />
-                    <span>{c.name}</span>
-                  </label>
-                ))
-              ) : (
-                <p className="italic text-gray-400 text-sm">
-                  {watchSubjectId
-                    ? "No classes found for this subject."
-                    : "Select a subject first to see available classes."}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="font-medium text-gray-700 text-sm">
+                Subject
+              </label>
+              <select
+                {...register("subjectId")}
+                className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+              >
+                <option value="">Select a subject...</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {errors.subjectId?.message && (
+                <p className="font-medium text-red-500 text-xs">
+                  {errors.subjectId.message}
                 </p>
               )}
             </div>
-            {errors.classIds?.message && (
-              <p className="font-medium text-red-500 text-xs">{errors.classIds.message}</p>
-            )}
+
+            <div className="flex flex-col gap-2 md:col-span-2 w-full">
+              <label className="font-medium text-gray-700 text-sm">
+                Classes
+              </label>
+              <div className="flex flex-wrap gap-4">
+                {filteredClasses.length > 0 ? (
+                  filteredClasses.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={String(c.id)}
+                        {...register("classIds")}
+                      />
+                      <span>{c.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm italic">
+                    {watchSubjectId
+                      ? "No classes found for this subject."
+                      : "Select a subject first to see available classes."}
+                  </p>
+                )}
+              </div>
+              {errors.classIds?.message && (
+                <p className="font-medium text-red-500 text-xs">
+                  {errors.classIds.message}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
-        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableTimer")} />
-            <span>Enable Timer</span>
-          </label>
+        <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+          <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableTimer")} />
+              <span>Timer</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableAutoSave")} />
+              <span>Auto-Save</span>
+            </label>
 
-          {watchEnableTimer && (
-            <InputField
-              label="Duration (minutes)"
-              name="duration"
-              type="number"
-              register={register}
-              error={errors.duration}
-            />
-          )}
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableNavigation")} />
+              <span>Previous Page Navigation</span>
+            </label>
 
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableNavigation")} />
-            <span>Allow Previous Page Navigation</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableAutoSave")} />
-            <span>Enable Auto-Save</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableAutoSubmit")} />
-            <span>Enable Auto-Submit when time is up</span>
-          </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableAutoSubmit")} />
+              <span>Auto-Submit when time is up</span>
+            </label>
+            <div className="space-y-2">
+              {watchEnableTimer && (
+                <InputField
+                  label="Duration (minutes)"
+                  name="duration"
+                  type="number"
+                  register={register}
+                  error={errors.duration}
+                />
+              )}
 
-          <InputField
-            label="Questions Per Page"
-            name="questionsPerPage"
-            type="number"
-            register={register}
-            error={errors.questionsPerPage}
-          />
-        </div>
-      </section>
+              <InputField
+                label="Questions Per Page"
+                name="questionsPerPage"
+                type="number"
+                register={register}
+                error={errors.questionsPerPage}
+              />
+            </div>
+          </div>
+        </section>
+      </div>
 
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
+      <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
         <div className="flex justify-between items-center">
           <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
-          <button
-            type="button"
-            onClick={() =>
-              append({
-                type: "TEXT",
-                text: "",
-                points: 1,
-                order: fields.length + 1,
-                allowMultiple: false,
-                options: [],
-                correctAnswer: [],
-                textAnswer: "",
-              })
-            }
-            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
-          >
-            + Add Question
-          </button>
         </div>
 
         {fields.map((field, index) => {
@@ -742,6 +823,24 @@ export default function ExamWorkflowForm({
         {errors.questions?.root?.message && (
           <p className="text-red-500">{errors.questions.root.message}</p>
         )}
+        <button
+          type="button"
+          onClick={() =>
+            append({
+              type: "TEXT",
+              text: "",
+              points: 1,
+              order: fields.length + 1,
+              allowMultiple: false,
+              options: [],
+              correctAnswer: [],
+              textAnswer: "",
+            })
+          }
+          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 ml-auto px-4 py-2 rounded-md w-fit text-white transition-all"
+        >
+          + Add Question
+        </button>
       </section>
 
       <button
