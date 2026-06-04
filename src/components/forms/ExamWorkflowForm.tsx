@@ -15,10 +15,13 @@ import {
 import { useEffect, useMemo, useState, useRef } from "react";
 import InputField from "../InputField";
 import { FileText } from "lucide-react";
+import TeacherSearchInput from "./TeacherSearchInput";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
   classes: { id: number; name: string }[];
+  teachers?: { id: string; name: string }[];
+  canSelectTeacher?: boolean;
   mode?: "create" | "update";
   examId?: number;
   teacherLessons: { subjectId: number; classId: number }[];
@@ -549,6 +552,8 @@ function QuestionEditor({
 export default function ExamWorkflowForm({
   subjects,
   classes,
+  teachers = [],
+  canSelectTeacher = false,
   mode = "create",
   examId,
   initialData,
@@ -570,6 +575,7 @@ export default function ExamWorkflowForm({
     defaultValues: {
       title: initialData?.title ?? "",
       instructions: initialData?.instructions ?? "",
+      teacherId: initialData?.teacherId ?? "",
       startTime: (toDateTimeLocalValue(initialData?.startTime) ||
         (mode === "create" ? createDateTimeDefault : "")) as any,
       endTime: (toDateTimeLocalValue(initialData?.endTime) ||
@@ -610,6 +616,7 @@ export default function ExamWorkflowForm({
 
   const watchEnableTimer = watch("enableTimer");
   const watchSubjectId = watch("subjectId");
+  const watchTeacherId = watch("teacherId");
 
   const filteredClasses = useMemo(() => {
     if (!watchSubjectId) {
@@ -703,6 +710,26 @@ export default function ExamWorkflowForm({
               error={errors.endTime}
             />
 
+            {canSelectTeacher && (
+              <div className="md:col-span-2">
+                <input type="hidden" {...register("teacherId")} />
+                <TeacherSearchInput
+                  label="Assigned Teacher"
+                  teachers={teachers}
+                  value={watchTeacherId}
+                  onChange={(teacherId) =>
+                    setValue("teacherId", teacherId ?? "", {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+                <p className="mt-1 text-gray-400 text-xs">
+                  This teacher will be able to access and evaluate submissions.
+                </p>
+              </div>
+            )}
+
             <div className="flex flex-col gap-2 w-full">
               <label className="font-medium text-gray-700 text-sm">
                 Subject
@@ -763,7 +790,7 @@ export default function ExamWorkflowForm({
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableTimer")} />
-              <span>Timer</span>
+              <span>Show Timer</span>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableAutoSave")} />
@@ -807,15 +834,13 @@ export default function ExamWorkflowForm({
         <div className="flex flex-col gap-2 w-full">
           <label className="font-medium text-gray-700 text-sm">
             Student Instructions
-            <span className="ml-1 font-normal text-gray-400">
-              (optional)
-            </span>
+            <span className="ml-1 font-normal text-gray-400">(optional)</span>
           </label>
           <textarea
             {...register("instructions")}
             rows={4}
             placeholder="Add anything students should read before starting..."
-            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400 resize-none"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all resize-none placeholder-gray-400"
           />
           {errors.instructions?.message && (
             <p className="font-medium text-red-500 text-xs">

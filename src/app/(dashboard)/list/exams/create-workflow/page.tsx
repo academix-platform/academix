@@ -86,6 +86,7 @@ export default async function CreateExamWorkflowPage({
     ? {
         title: exam.title,
         instructions: exam.instructions ?? "",
+        teacherId: exam.teacherId ?? "",
         startTime: exam.startTime,
         endTime: exam.endTime,
         subjectId: exam.subjectId ?? undefined,
@@ -135,6 +136,15 @@ export default async function CreateExamWorkflowPage({
     select: { id: true, name: true, gradeId: true },
   });
 
+  const teachers =
+    role === "admin"
+      ? await prisma.teacher.findMany({
+          where: { schoolId },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : [];
+
   const lessonPairs = await prisma.lesson.findMany({
     where: {
       schoolId,
@@ -174,6 +184,8 @@ export default async function CreateExamWorkflowPage({
       <ExamWorkflowForm
         subjects={subjects}
         classes={classes}
+        teachers={teachers}
+        canSelectTeacher={role === "admin"}
         teacherLessons={subjectClassPairs}
         mode={exam ? "update" : "create"}
         examId={exam?.id}

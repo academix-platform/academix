@@ -12,6 +12,7 @@ import { Dispatch, SetStateAction, useMemo, useState, useTransition } from "reac
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { Download, Upload, X, Clock, Search } from "lucide-react";
+import TeacherSearchInput from "./TeacherSearchInput";
 
 // دالة مساعدة لتحويل التاريخ إلى صيغة datetime-local
 const toDatetimeLocalValue = (value: unknown) => {
@@ -161,6 +162,7 @@ const AssignmentForm = ({
       classIds: data?.classId ? [data.classId] : [],
       maxScore: data?.maxScore ?? 10,
       rubric: data?.rubric ?? "",
+      teacherId: data?.teacherId ?? "",
       allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
@@ -212,8 +214,15 @@ const AssignmentForm = ({
     });
   });
 
-  const { subjects = [], classes = [], lessons = [] } = relatedData ?? {};
+  const {
+    subjects = [],
+    classes = [],
+    lessons = [],
+    teachers = [],
+    role,
+  } = relatedData ?? {};
   const selectedSubjectId = useWatch({ control, name: "subjectId" });
+  const selectedTeacherId = useWatch({ control, name: "teacherId" });
   const selectedSubject = subjects.find(
     (subject: { id: number; name: string }) =>
       Number(subject.id) === Number(selectedSubjectId),
@@ -333,6 +342,25 @@ const AssignmentForm = ({
           error={errors?.maxScore}
           inputProps={{ min: 1, step: 0.5 }}
         />
+        {role === "admin" && (
+          <div className="xl:col-span-2">
+            <input type="hidden" {...register("teacherId")} />
+            <TeacherSearchInput
+              label="Assigned Teacher"
+              teachers={teachers}
+              value={selectedTeacherId}
+              onChange={(teacherId) =>
+                setValue("teacherId", teacherId ?? "", {
+                  shouldDirty: true,
+                  shouldValidate: true,
+                })
+              }
+            />
+            <p className="mt-1 text-gray-400 text-xs">
+              This teacher will be able to access and evaluate submissions.
+            </p>
+          </div>
+        )}
         {type === "update" && (
           <input type="hidden" {...register("id")} defaultValue={data?.id} />
         )}

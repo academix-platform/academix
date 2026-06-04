@@ -234,6 +234,25 @@ export const createExamWorkflow = async (
       };
     }
 
+    const selectedTeacherId =
+      access.role === "admin" && data.teacherId?.trim()
+        ? data.teacherId.trim()
+        : null;
+
+    if (selectedTeacherId) {
+      const teacherExists = await prisma.teacher.count({
+        where: { id: selectedTeacherId, schoolId: access.schoolId },
+      });
+
+      if (!teacherExists) {
+        return {
+          success: false,
+          error: true,
+          message: "Selected teacher was not found.",
+        };
+      }
+    }
+
     await prisma.$transaction(
       assignmentResult.assignments.map((assignment) =>
         prisma.exam.create({
@@ -242,7 +261,7 @@ export const createExamWorkflow = async (
             startTime: data.startTime,
             endTime: data.endTime,
             lessonId: assignment.lessonId,
-            teacherId: assignment.teacherId,
+            teacherId: selectedTeacherId ?? assignment.teacherId,
             classId: assignment.classId,
             subjectId: data.subjectId,
             academicYearId,
@@ -339,6 +358,25 @@ export const updateExamWorkflow = async (
       };
     }
 
+    const selectedTeacherId =
+      access.role === "admin" && data.teacherId?.trim()
+        ? data.teacherId.trim()
+        : null;
+
+    if (selectedTeacherId) {
+      const teacherExists = await prisma.teacher.count({
+        where: { id: selectedTeacherId, schoolId: access.schoolId },
+      });
+
+      if (!teacherExists) {
+        return {
+          success: false,
+          error: true,
+          message: "Selected teacher was not found.",
+        };
+      }
+    }
+
     const groupExams = await prisma.exam.findMany({
       where: {
         title: existingExam.title,
@@ -381,6 +419,7 @@ export const updateExamWorkflow = async (
               startTime: data.startTime,
               endTime: data.endTime,
               instructions: data.instructions,
+              teacherId: selectedTeacherId ?? exam.teacherId,
               enableTimer: data.enableTimer,
               duration: data.duration,
               enableNavigation: data.enableNavigation,
@@ -409,7 +448,10 @@ export const updateExamWorkflow = async (
 
         if (existingClassExam) {
           const teacherId =
-            assignment.teacherId ?? existingClassExam.teacherId ?? null;
+            selectedTeacherId ??
+            existingClassExam.teacherId ??
+            assignment.teacherId ??
+            null;
 
           await tx.exam.update({
             where: { id: existingClassExam.id },
@@ -461,7 +503,7 @@ export const updateExamWorkflow = async (
               startTime: data.startTime,
               endTime: data.endTime,
               lessonId: assignment.lessonId,
-              teacherId: assignment.teacherId,
+              teacherId: selectedTeacherId ?? assignment.teacherId,
               classId,
               subjectId: data.subjectId,
               academicYearId,

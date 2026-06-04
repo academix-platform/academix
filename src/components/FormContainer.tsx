@@ -275,6 +275,14 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             classId: true,
           },
         });
+        const assignmentTeachers =
+          assignmentRole === "admin"
+            ? await prisma.teacher.findMany({
+                where: { schoolId },
+                select: { id: true, name: true },
+                orderBy: { name: "asc" },
+              })
+            : [];
 
         const assignmentPairsMap = new Map<
           string,
@@ -303,6 +311,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           subjects: assignmentSubjects,
           classes: assignmentClasses,
           lessons: Array.from(assignmentPairsMap.values()),
+          teachers: assignmentTeachers,
+          role: assignmentRole,
         };
         break;
       case "result":

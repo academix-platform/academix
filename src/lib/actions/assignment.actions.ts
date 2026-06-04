@@ -166,6 +166,7 @@ function extractAssignmentData(formData: FormData): {
   startDate: Date;
   endDate: Date;
   subjectId: number;
+  teacherId: string | null;
   maxScore: number;
   classIds: number[];
   file: File | null;
@@ -181,6 +182,11 @@ function extractAssignmentData(formData: FormData): {
   const startDateRaw = formData.get("startDate") as string;
   const endDateRaw = formData.get("endDate") as string;
   const subjectId = Number(formData.get("subjectId"));
+  const teacherIdRaw = formData.get("teacherId");
+  const teacherId =
+    typeof teacherIdRaw === "string" && teacherIdRaw.trim()
+      ? teacherIdRaw.trim()
+      : null;
   const maxScoreRaw = Number(formData.get("maxScore") ?? 10);
   const classIdsRaw = formData.getAll("classIds");
   const classIds = classIdsRaw.map(c => Number(c)).filter(id => !isNaN(id));
@@ -196,6 +202,7 @@ function extractAssignmentData(formData: FormData): {
     startDate: new Date(startDateRaw),
     endDate: new Date(endDateRaw),
     subjectId,
+    teacherId,
     maxScore: Number.isFinite(maxScoreRaw) && maxScoreRaw > 0 ? maxScoreRaw : 10,
     classIds,
     file,
@@ -213,7 +220,7 @@ export const createAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
-  const { title, rubric, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { title, rubric, startDate, endDate, subjectId, teacherId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   const validation = assignmentSchema.safeParse({
@@ -223,6 +230,7 @@ export const createAssignment = async (
     endDate,
     maxScore,
     subjectId,
+    teacherId,
     classIds,
     allowLateSubmission,
   });
@@ -232,6 +240,22 @@ export const createAssignment = async (
 
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const selectedTeacherId =
+      access.role === "admin" && teacherId ? teacherId : null;
+
+    if (selectedTeacherId) {
+      const teacherExists = await prisma.teacher.count({
+        where: { id: selectedTeacherId, schoolId: access.schoolId },
+      });
+
+      if (!teacherExists) {
+        return {
+          success: false,
+          error: true,
+          message: "Selected teacher was not found.",
+        };
+      }
+    }
 
     const assignmentResult = await getAssignmentClassAssignments(
       access,
@@ -270,7 +294,7 @@ export const createAssignment = async (
             startDate,
             endDate,
             lessonId: assignment.lessonId,
-            teacherId: assignment.teacherId,
+            teacherId: selectedTeacherId ?? assignment.teacherId,
             classId: assignment.classId,
             subjectId,
             maxScore,
@@ -294,7 +318,7 @@ export const updateAssignment = async (
   currentState: CurrentState,
   formData: FormData,
 ) => {
-  const { id, title, rubric, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { id, title, rubric, startDate, endDate, subjectId, teacherId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   if (!id) {
@@ -313,6 +337,7 @@ export const updateAssignment = async (
     endDate,
     maxScore,
     subjectId,
+    teacherId,
     classIds,
     allowLateSubmission,
   });
@@ -322,6 +347,22 @@ export const updateAssignment = async (
 
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const selectedTeacherId =
+      access.role === "admin" && teacherId ? teacherId : null;
+
+    if (selectedTeacherId) {
+      const teacherExists = await prisma.teacher.count({
+        where: { id: selectedTeacherId, schoolId: access.schoolId },
+      });
+
+      if (!teacherExists) {
+        return {
+          success: false,
+          error: true,
+          message: "Selected teacher was not found.",
+        };
+      }
+    }
 
     const existingAssignment = await prisma.assignment.findUnique({
       where: { id, schoolId: access.schoolId },
@@ -395,7 +436,10 @@ export const updateAssignment = async (
       for (const [classId, assignment] of selectedAssignmentsByClass) {
         const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
         const teacherId =
-          assignment.teacherId ?? existingClassAssignment?.teacherId ?? null;
+          selectedTeacherId ??
+          existingClassAssignment?.teacherId ??
+          assignment.teacherId ??
+          null;
         const data = {
           title,
           rubric,

@@ -358,6 +358,7 @@ export const examSchema = z
     startTime: z.coerce.date({ message: "Start time is required!" }),
     endTime: z.coerce.date({ message: "End time is required!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    teacherId: z.string().optional().nullable(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
@@ -380,6 +381,7 @@ export const assignmentSchema = z
       .number()
       .positive({ message: "Marks must be greater than 0!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    teacherId: z.string().optional().nullable(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
@@ -626,6 +628,7 @@ export const questionSchema = z.object({
 export const createExamWorkflowSchema = z.object({
   title: z.string().min(1, "Title is required"),
   instructions: z.string().optional().nullable(),
+  teacherId: z.string().optional().nullable(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   subjectId: z.coerce.number().min(1, "Subject is required"),
