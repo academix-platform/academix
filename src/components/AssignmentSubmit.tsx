@@ -194,9 +194,7 @@ export default function AssignmentSubmit({
                   <p className="mt-0.5 text-green-600 text-xs">
                     {existingSubmission.gradePublished
                       ? "Your grade is published below."
-                      : existingSubmission.teacherFeedback
-                        ? "Your teacher added feedback below."
-                        : "Waiting for your teacher to review it."}
+                      : "Waiting for your teacher to review it."}
                   </p>
                 </div>
               </div>
@@ -250,39 +248,6 @@ export default function AssignmentSubmit({
               </div>
             )}
 
-            {/* Teacher Feedback */}
-            {existingSubmission?.teacherFeedback ? (
-              <div className="bg-indigo-50 mb-4 p-3 border border-indigo-100 rounded-lg">
-                <div className="flex items-center gap-1.5 mb-2">
-                  <svg
-                    className="w-3.5 h-3.5 text-indigo-500"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-                    />
-                  </svg>
-                  <p className="font-medium text-indigo-700 text-xs">
-                    Teacher Feedback
-                  </p>
-                </div>
-                <p className="text-indigo-900 text-sm leading-relaxed">
-                  {existingSubmission.teacherFeedback}
-                </p>
-              </div>
-            ) : existingSubmission ? (
-              <div className="bg-gray-50 mb-4 p-3 border border-gray-200 border-dashed rounded-lg">
-                <p className="text-gray-400 text-xs text-center">
-                  No teacher feedback yet
-                </p>
-              </div>
-            ) : null}
-
             {/* فورم التسليم — يظهر فقط إذا مسموح بالتسليم */}
             {!isViewOnly && (
               <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
@@ -303,6 +268,9 @@ export default function AssignmentSubmit({
                     accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
                     className="file:bg-academixPurpleLight hover:file:brightness-95 file:mr-3 file:px-3 file:py-1.5 file:border-0 file:rounded-lg w-full file:font-medium text-gray-500 file:text-academixPurpleDark text-sm file:text-sm"
                   />
+                  <p className="mt-1 text-gray-400 text-xs">
+                    Upload a PDF if possible for the best review experience.
+                  </p>
                 </div>
 
                 <div>
