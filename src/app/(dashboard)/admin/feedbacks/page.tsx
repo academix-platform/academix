@@ -1,7 +1,10 @@
 import Link from "next/link";
+import Pagination from "@/components/Pagination";
 import prisma from "@/lib/prisma";
 import { getAuthUser } from "@/lib/auth";
 import { updateFeedbackStatus } from "@/lib/actions/feedback";
+import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
 const statusOrder: Record<string, number> = {
   pending: 1,
@@ -32,10 +35,7 @@ const filters = [
 const FeedbacksPage = async ({
   searchParams,
 }: {
-  searchParams?: Promise<{
-    status?: string;
-    type?: string;
-  }>;
+  searchParams: PageSearchParams;
 }) => {
   const user = await getAuthUser();
 
@@ -45,26 +45,34 @@ const FeedbacksPage = async ({
 
   const params = await searchParams;
 
-  const status = params?.status;
-  const type = params?.type;
+  const status = getQueryParam(params.status);
+  const type = getQueryParam(params.type);
+  const currentPage = getQueryParam(params.page);
+  const p = currentPage ? parseInt(currentPage) : 1;
 
-  const feedbacks = await prisma.feedback.findMany({
-    where: {
-      schoolId: user.schoolId,
-      ...(status ? { status } : {}),
-      ...(type ? { type } : {}),
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const where = {
+    schoolId: user.schoolId,
+    ...(status ? { status } : {}),
+    ...(type ? { type } : {}),
+  };
 
-  const pendingCount = await prisma.feedback.count({
-    where: {
-      schoolId: user.schoolId,
-      status: "pending",
-    },
-  });
+  const [feedbacks, count, pendingCount] = await prisma.$transaction([
+    prisma.feedback.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: ITEM_PER_PAGE,
+      skip: (p - 1) * ITEM_PER_PAGE,
+    }),
+    prisma.feedback.count({ where }),
+    prisma.feedback.count({
+      where: {
+        schoolId: user.schoolId,
+        status: "pending",
+      },
+    }),
+  ]);
 
   const sortedFeedbacks = [...feedbacks].sort((a, b) => {
     const statusDiff =
@@ -72,34 +80,29 @@ const FeedbacksPage = async ({
 
     if (statusDiff !== 0) return statusDiff;
 
-    return (
-      new Date(b.createdAt).getTime() -
-      new Date(a.createdAt).getTime()
-    );
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
   });
 
   return (
-    <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
-      <div className="flex flex-col gap-4 mb-6 md:flex-row md:items-center md:justify-between">
+    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
+      <div className="flex md:flex-row flex-col md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-lg font-semibold">Feedbacks</h1>
-          <p className="text-sm text-gray-500">
+          <h1 className="font-semibold text-lg">Feedbacks</h1>
+          <p className="text-gray-500 text-sm">
             Manage suggestions and complaints from students and parents.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
-          <span className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700">
+          <span className="bg-yellow-100 px-4 py-2 rounded-full font-medium text-yellow-700 text-sm">
             {pendingCount} pending
           </span>
 
-          <span className="text-sm text-gray-500">
-            {sortedFeedbacks.length} shown
-          </span>
+          <span className="text-gray-500 text-sm">{count} shown</span>
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
+      <div className="flex flex-wrap gap-2 mb-6">
         {filters.map((filter) => {
           const isActive =
             (!status && !type && filter.label === "All") ||
@@ -110,7 +113,7 @@ const FeedbacksPage = async ({
             <Link
               key={filter.label}
               href={filter.href}
-              className={`rounded-full px-4 py-2 text-sm font-medium transition ${
+              className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                 isActive
                   ? "bg-[#7C3AED] text-white"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
@@ -124,7 +127,7 @@ const FeedbacksPage = async ({
 
       <div className="space-y-4">
         {sortedFeedbacks.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center">
+          <div className="p-10 border border-gray-300 border-dashed rounded-xl text-center">
             <p className="text-gray-500">No feedbacks found.</p>
           </div>
         ) : (
@@ -134,22 +137,22 @@ const FeedbacksPage = async ({
             return (
               <div
                 key={feedback.id}
-                className={`rounded-2xl border p-5 shadow-sm transition ${
+                className={`rounded-2xl flex flex-col border p-5 shadow-sm transition ${
                   isResolved
                     ? "border-green-100 bg-green-50/40 opacity-80"
                     : "border-gray-200 bg-white hover:shadow-md"
                 }`}
               >
-                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div className="flex md:flex-row flex-col md:justify-between md:items-start gap-3">
                   <div>
-                    <div className="mb-2 flex items-center gap-2">
-                      <span className="capitalize font-semibold text-gray-900">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-semibold text-gray-900 capitalize">
                         {feedback.type}
                       </span>
 
                       <span
                         className={`rounded-full px-3 py-1 text-xs font-medium ${getStatusClass(
-                          feedback.status
+                          feedback.status,
                         )}`}
                       >
                         {feedback.status}
@@ -161,17 +164,17 @@ const FeedbacksPage = async ({
                     </p>
                   </div>
 
-                  <span className="whitespace-nowrap text-sm text-gray-400">
+                  <span className="text-gray-400 text-sm whitespace-nowrap">
                     {new Date(feedback.createdAt).toLocaleDateString()}
                   </span>
                 </div>
 
                 {isResolved ? (
-                  <p className="mt-5 text-sm text-green-700">
+                  <p className="mt-5 text-green-700 text-sm">
                     This feedback is resolved and locked.
                   </p>
                 ) : (
-                  <div className="mt-5 flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 mt-5 ml-auto">
                     {feedback.status !== "reviewed" && (
                       <form action={updateFeedbackStatus}>
                         <input type="hidden" name="id" value={feedback.id} />
@@ -179,7 +182,7 @@ const FeedbacksPage = async ({
 
                         <button
                           type="submit"
-                          className="rounded-full bg-blue-100 px-4 py-2 text-sm font-medium text-blue-700 transition hover:bg-blue-200"
+                          className="bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md font-medium text-blue-700 text-sm transition"
                         >
                           Mark Reviewed
                         </button>
@@ -192,7 +195,7 @@ const FeedbacksPage = async ({
 
                       <button
                         type="submit"
-                        className="rounded-full bg-green-100 px-4 py-2 text-sm font-medium text-green-700 transition hover:bg-green-200"
+                        className="bg-green-100 hover:bg-green-200 px-4 py-2 rounded-md font-medium text-green-700 text-sm transition"
                       >
                         Mark Resolved
                       </button>
@@ -205,7 +208,7 @@ const FeedbacksPage = async ({
 
                         <button
                           type="submit"
-                          className="rounded-full bg-yellow-100 px-4 py-2 text-sm font-medium text-yellow-700 transition hover:bg-yellow-200"
+                          className="bg-yellow-100 hover:bg-yellow-200 px-4 py-2 rounded-md font-medium text-yellow-700 text-sm transition"
                         >
                           Mark Pending
                         </button>
@@ -218,6 +221,8 @@ const FeedbacksPage = async ({
           })
         )}
       </div>
+
+      <Pagination page={p} count={count} />
     </div>
   );
 };

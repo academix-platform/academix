@@ -1,6 +1,9 @@
 import FeedbackModal from "@/components/FeedbackModal";
+import Pagination from "@/components/Pagination";
 import { getAuthUser } from "@/lib/auth";
+import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
+import { ITEM_PER_PAGE } from "@/lib/settings";
 
 const getStatusClass = (status: string) => {
   switch (status) {
@@ -22,22 +25,37 @@ const getTypeLabel = (type: string) => {
   }
 };
 
-export default async function FeedbackPage() {
+export default async function FeedbackPage({
+  searchParams,
+}: {
+  searchParams: PageSearchParams;
+}) {
   const user = await getAuthUser();
 
   if (!user) {
     return <div>Unauthorized</div>;
   }
 
-  const feedbacks = await prisma.feedback.findMany({
-    where: {
-      schoolId: user.schoolId,
-      userId: user.userId,
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-  });
+  const resolvedSearchParams = await searchParams;
+  const currentPage = getQueryParam(resolvedSearchParams.page);
+  const p = currentPage ? parseInt(currentPage) : 1;
+
+  const where = {
+    schoolId: user.schoolId,
+    userId: user.userId,
+  };
+
+  const [feedbacks, count] = await prisma.$transaction([
+    prisma.feedback.findMany({
+      where,
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: ITEM_PER_PAGE,
+      skip: (p - 1) * ITEM_PER_PAGE,
+    }),
+    prisma.feedback.count({ where }),
+  ]);
 
   return (
     <div className="bg-white p-4 rounded-md flex-1 m-4 mt-0">
@@ -54,7 +72,7 @@ export default async function FeedbackPage() {
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            {feedbacks.length} submitted
+            {count} submitted
           </span>
 
           <FeedbackModal />
@@ -103,6 +121,8 @@ export default async function FeedbackPage() {
           ))
         )}
       </div>
+
+      <Pagination page={p} count={count} />
     </div>
   );
 }

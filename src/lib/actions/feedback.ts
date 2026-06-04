@@ -8,14 +8,14 @@ export async function createFeedback(formData: FormData) {
   const user = await getAuthUser();
 
   if (!user) {
-    throw new Error("Unauthorized");
+    return { success: false, error: true, message: "Unauthorized." };
   }
 
   const type = formData.get("type") as string;
   const message = formData.get("message") as string;
 
   if (!type || !message) {
-    throw new Error("Missing fields");
+    return { success: false, error: true, message: "Please fill in all fields." };
   }
 
   const { schoolId, userId } = user;
@@ -30,6 +30,12 @@ export async function createFeedback(formData: FormData) {
   });
 
   revalidatePath("/feedback");
+
+  return {
+    success: true,
+    error: false,
+    message: "Feedback submitted successfully.",
+  };
 }
 
 export async function updateFeedbackStatus(formData: FormData) {

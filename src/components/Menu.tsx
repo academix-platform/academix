@@ -15,6 +15,7 @@ import {
   LogOut,
   Megaphone,
   MessageCircle,
+  MessageSquare,
   School,
   Settings,
   User,
@@ -155,13 +156,13 @@ export const menuItems: MenuSection[] = [
   visible: ["admin"],
 },
 {
-  icon: MessageCircle,
+  icon: MessageSquare,
   label: "Feedback",
   href: "/feedback",
   visible: ["student", "parent"],
 },
 {
-  icon: MessageCircle,
+  icon: MessageSquare,
   label: "Feedbacks",
   href: "/admin/feedbacks",
   visible: ["admin"],
