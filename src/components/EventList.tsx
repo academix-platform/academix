@@ -23,7 +23,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   endOfDay.setHours(23, 59, 59, 999);
 
   const data = await prisma.event.findMany({
-    take: 3,
+    take: 1,
     orderBy: { startDate: "desc" },
     where: {
       schoolId: (await user).schoolId,
@@ -36,7 +36,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   });
   if (data.length === 0) {
     return (
-      <div className="bg-gray-50 p-4 rounded-md text-center">
+      <div className="p-4 rounded-md text-center">
         <p className="text-gray-500 text-sm">No events for this day.</p>
       </div>
     );

@@ -69,9 +69,9 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   return (
     <div className="flex justify-between items-center p-4">
       {/* SEARCH */}
-      <div className="flex items-center gap-4 bg-gradient-to-r from-academixPurpleDark via-violet-500 to-violet-300 ml-2 px-4 py-3 rounded-md text-xs">
+      <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ml-2 px-4 py-3 rounded-md text-xs">
         {schoolName && (
-          <span className="font-bold text-[16px] text-white uppercase whitespace-nowrap">
+          <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
             {schoolName}
           </span>
         )}
