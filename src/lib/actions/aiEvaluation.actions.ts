@@ -348,6 +348,7 @@ export async function evaluateAssignmentSubmissionWithAi(
           id: true,
           title: true,
           description: true,
+          rubric: true,
           maxScore: true,
         },
       },
@@ -364,7 +365,7 @@ export async function evaluateAssignmentSubmissionWithAi(
 
     const { suggestion, model } = await evaluatePdfWithGemini({
       questionText: submission.assignment.title,
-      modelAnswer: submission.assignment.description,
+      modelAnswer: submission.assignment.rubric || submission.assignment.description,
       pdfBuffer: buffer,
       fileName: submission.fileName,
       maxScore: submission.assignment.maxScore,

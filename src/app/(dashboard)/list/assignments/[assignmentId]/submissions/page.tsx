@@ -140,43 +140,35 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
       <td className="hidden p-4 text-gray-500 md:table-cell">
         {formatDateTime(item.updatedAt)}
       </td>
-      <td className="min-w-[260px] p-4">
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2">
-            {getPreviewHref(item) ? (
-              <a
-                href={getPreviewHref(item) ?? undefined}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
-              >
-                <Eye className="h-3.5 w-3.5" />
-                View
-              </a>
-            ) : (
-              <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
-                Preview unavailable
-              </span>
-            )}
+      <td className="min-w-[320px] p-4">
+        <div className="flex flex-wrap items-center gap-2">
+          {getPreviewHref(item) ? (
             <a
-              href={`/api/download/${item.id}?type=submission`}
+              href={getPreviewHref(item) ?? undefined}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-xs font-medium text-academixPurpleDark transition hover:brightness-95"
+              className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
             >
-              <Download className="h-3.5 w-3.5" />
-              Download
+              <Eye className="h-3.5 w-3.5" />
+              View
             </a>
-          </div>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
+              Preview unavailable
+            </span>
+          )}
+          <a
+            href={`/api/download/${item.id}?type=submission`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-xs font-medium text-academixPurpleDark transition hover:brightness-95"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download
+          </a>
           <AssignmentSubmissionAiEvaluation
             submissionId={item.id}
-            maxScore={maxScore}
-            evaluation={item.aiEvaluation}
-            disabledMessage={
-              isPdfSubmission
-                ? undefined
-                : "AI evaluation supports PDF submissions only."
-            }
+            disabled={!isPdfSubmission}
           />
         </div>
       </td>

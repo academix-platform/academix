@@ -364,6 +364,7 @@ model Assignment {
   school              School   @relation(fields: [schoolId], references: [id])
   title               String
   description         String?
+  rubric              String?
   startDate           DateTime
   endDate             DateTime
   fileUrl             String?

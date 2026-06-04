@@ -162,6 +162,7 @@ const getAssignmentClassAssignments = async (
 function extractAssignmentData(formData: FormData): {
   id?: number;
   title: string;
+  rubric: string | null;
   startDate: Date;
   endDate: Date;
   subjectId: number;
@@ -174,6 +175,9 @@ function extractAssignmentData(formData: FormData): {
   const idRaw = formData.get("id");
   const id = idRaw ? Number(idRaw) : undefined;
   const title = formData.get("title") as string;
+  const rubricRaw = formData.get("rubric");
+  const rubric =
+    typeof rubricRaw === "string" && rubricRaw.trim() ? rubricRaw.trim() : null;
   const startDateRaw = formData.get("startDate") as string;
   const endDateRaw = formData.get("endDate") as string;
   const subjectId = Number(formData.get("subjectId"));
@@ -188,6 +192,7 @@ function extractAssignmentData(formData: FormData): {
   return {
     id,
     title,
+    rubric,
     startDate: new Date(startDateRaw),
     endDate: new Date(endDateRaw),
     subjectId,
@@ -208,11 +213,12 @@ export const createAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
-  const { title, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { title, rubric, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   const validation = assignmentSchema.safeParse({
     title,
+    rubric,
     startDate,
     endDate,
     maxScore,
@@ -260,6 +266,7 @@ export const createAssignment = async (
         prisma.assignment.create({
           data: {
             title,
+            rubric,
             startDate,
             endDate,
             lessonId: assignment.lessonId,
@@ -287,7 +294,7 @@ export const updateAssignment = async (
   currentState: CurrentState,
   formData: FormData,
 ) => {
-  const { id, title, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { id, title, rubric, startDate, endDate, subjectId, maxScore, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   if (!id) {
@@ -301,6 +308,7 @@ export const updateAssignment = async (
 
   const validation = assignmentSchema.safeParse({
     title,
+    rubric,
     startDate,
     endDate,
     maxScore,
@@ -390,6 +398,7 @@ export const updateAssignment = async (
           assignment.teacherId ?? existingClassAssignment?.teacherId ?? null;
         const data = {
           title,
+          rubric,
           startDate,
           endDate,
           lessonId: assignment.lessonId,

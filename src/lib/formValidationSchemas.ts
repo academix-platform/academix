@@ -373,6 +373,7 @@ export const assignmentSchema = z
   .object({
     id: z.coerce.number().optional(),
     title: z.string().min(1, { message: "Assignment title is required!" }),
+    rubric: z.string().optional().nullable(),
     startDate: z.coerce.date({ message: "Start date is required!" }),
     endDate: z.coerce.date({ message: "End date is required!" }),
     maxScore: z.coerce

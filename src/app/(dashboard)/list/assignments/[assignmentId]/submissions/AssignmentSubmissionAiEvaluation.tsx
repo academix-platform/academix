@@ -1,29 +1,50 @@
 "use client";
 
-import AiEvaluationCard, {
-  AiEvaluationCardData,
-} from "@/components/AiEvaluationCard";
 import { evaluateAssignmentSubmissionWithAi } from "@/lib/actions";
+import { Loader2, Sparkles } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { useTransition } from "react";
+import { toast } from "react-toastify";
 
 type Props = {
   submissionId: number;
-  maxScore: number;
-  evaluation: AiEvaluationCardData | null;
-  disabledMessage?: string;
+  disabled?: boolean;
 };
 
 export default function AssignmentSubmissionAiEvaluation({
   submissionId,
-  maxScore,
-  evaluation,
-  disabledMessage,
+  disabled,
 }: Props) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+
+  const handleEvaluate = () => {
+    startTransition(async () => {
+      const result = await evaluateAssignmentSubmissionWithAi(submissionId);
+
+      if (result.success) {
+        toast.success(result.message);
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  };
+
   return (
-    <AiEvaluationCard
-      maxScore={maxScore}
-      evaluation={evaluation}
-      disabledMessage={disabledMessage}
-      onEvaluate={() => evaluateAssignmentSubmissionWithAi(submissionId)}
-    />
+    <button
+      type="button"
+      onClick={handleEvaluate}
+      disabled={disabled || isPending}
+      title={disabled ? "AI evaluation supports PDF submissions only." : "Evaluate with AI"}
+      className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
+    >
+      {isPending ? (
+        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+      ) : (
+        <Sparkles className="h-3.5 w-3.5" />
+      )}
+      Evaluate with AI
+    </button>
   );
 }

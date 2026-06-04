@@ -160,6 +160,7 @@ const AssignmentForm = ({
       subjectId: data?.subjectId,
       classIds: data?.classId ? [data.classId] : [],
       maxScore: data?.maxScore ?? 10,
+      rubric: data?.rubric ?? "",
       allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
@@ -496,6 +497,26 @@ const AssignmentForm = ({
       </div>
 
       {/* ── قسم رفع الملفات ── */}
+      <div className="flex flex-col gap-2">
+        <label className="font-medium text-gray-700 text-sm">
+          Model Answer / Rubric
+        </label>
+        <textarea
+          {...register("rubric")}
+          defaultValue={data?.rubric ?? ""}
+          placeholder="Write the expected answer or explain how marks should be awarded..."
+          className="w-full min-h-[110px] rounded-lg border-2 border-gray-200 p-3 text-sm outline-none transition-all focus:border-academixPurpleDark focus:bg-academixPurpleLight"
+        />
+        <p className="text-xs text-gray-400">
+          Used to guide assignment grading and AI evaluation.
+        </p>
+        {errors.rubric?.message && (
+          <p className="font-medium text-red-500 text-xs">
+            {errors.rubric.message.toString()}
+          </p>
+        )}
+      </div>
+
       <div className="col-span-full">
         <FileUploadSection
           assignmentId={data?.id}
