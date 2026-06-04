@@ -61,7 +61,7 @@ const HomeNavbar = () => {
               </Link>
               <Link
                 href="/school-signup"
-                className="bg-academixPurpleDark hover:bg-academixPurpleDark/90 hover:shadow-[0_10px_25px_rgba(124,58,237,0.35)] px-4 py-2 rounded-md font-medium text-white transition-all duration-300"
+                className="bg-academixInk hover:bg-academixPurpleMuted hover:shadow-[0_10px_25px_rgba(124,58,237,0.35)] px-4 py-2 rounded-md font-medium text-white transition-all duration-300"
               >
                 Sign Up
               </Link>
