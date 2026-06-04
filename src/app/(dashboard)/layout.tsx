@@ -17,28 +17,30 @@ export default async function DashboardLayout({
     : null;
 
   return (
-    <div className="flex h-screen overflow-auto">
+    <div className="flex bg-academixPurpleLight h-screen overflow-auto">
       {/* LEFT */}
-      <div className="p-4 w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] overflow-auto">
+      <div className="academix-menu-scroll bg-academixPurpleLight p-4 w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] overflow-auto">
         <Link
           href="/"
           className="flex justify-center lg:justify-start items-center gap-1"
         >
           <Image
-            src="/icon.png"
+            src="/logo-purple.png"
             alt="logo"
             className="w-[32px] h-[32px] rotate-[-15deg]"
             width={32}
             height={32}
             style={{ height: "auto" }}
           />
-          <span className="hidden lg:block font-bold">ACADEMIX</span>
+          <span className="hidden lg:block font-bold text-academixPurpleDark">
+            ACADEMIX
+          </span>
         </Link>
         <Menu authUser={authUser} />
       </div>
 
       {/* RIGHT */}
-      <div className="flex flex-col bg-[#F7F8FA] w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]">
+      <div className="flex flex-col bg-academixPurpleLight w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]">
         <Navbar authUser={authUser} schoolName={schoolName} />
         <div className="flex-1 overflow-auto">{children}</div>
       </div>

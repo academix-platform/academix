@@ -271,14 +271,14 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                   type="button"
                   onClick={handleSignOut}
                   disabled={isSigningOut}
-                  className="group relative flex justify-center lg:justify-start items-center gap-4 hover:bg-academixSkyLight disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-left transition-colors duration-200"
+                  className="group relative flex justify-center lg:justify-start items-center gap-4 hover:bg-academixPurple/35 disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-left transition-all duration-200 hover:translate-x-0.5 active:scale-[0.98]"
                 >
                   <item.icon
                     size={20}
-                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark transition-colors"
+                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark transition-all duration-200 group-hover:scale-105"
                   />
 
-                  <span className="hidden lg:block text-gray-500 group-hover:text-academixPurpleDark transition-colors">
+                  <span className="hidden lg:block text-gray-500 group-hover:text-academixPurpleDark transition-colors duration-200">
                     {isSigningOut ? "Signing out..." : item.label}
                   </span>
                 </button>
@@ -297,33 +297,33 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                 prefetch={item.shouldPrefetch ?? true}
                 className={`
                   relative group flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
-                  transition-colors duration-200
+                  transition-all duration-200 active:scale-[0.98]
                   ${
                     isActive
-                      ? "bg-academixPurpleLight"
-                      : "text-gray-500 hover:bg-academixSkyLight"
+                      ? "bg-academixPurple/45 ring-1 ring-academixPurple/70"
+                      : "text-gray-500 hover:bg-academixPurple/35 hover:translate-x-0.5"
                   }
                 `}
               >
                 {isActive && (
-                  <span className="top-0 left-0 absolute bg-academixPurpleDark rounded-r w-1 h-full" />
+                  <span className="top-1 bottom-1 left-0 absolute bg-academixPurpleDark rounded-r w-1" />
                 )}
 
                 <item.icon
                   size={20}
                   className={`
-                    w-5 h-5 transition-colors
+                    w-5 h-5 transition-all duration-200
                     ${
                       isActive
                         ? "text-academixPurpleDark"
-                        : "text-gray-500 group-hover:text-academixPurpleDark"
+                        : "text-gray-500 group-hover:text-academixPurpleDark group-hover:scale-105"
                     }
                   `}
                 />
 
                 <span
                   className={`
-                    hidden lg:block transition-colors
+                    hidden lg:block transition-colors duration-200
                     ${
                       isActive
                         ? "text-academixPurpleDark font-medium"
