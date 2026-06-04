@@ -5,6 +5,7 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import TakeExamConfirmation from "@/components/exam/TakeExamConfirmation";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
 import prisma from "@/lib/prisma";
@@ -174,11 +175,11 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
           </Link>
         )}
         {role === "student" && !item.studentSubmission && (
-          <Link href={`/list/exams/${item.id}/take`}>
-            <button className="bg-academixPurpleDark hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs hover:scale-[1.05] transition">
-              Take Exam
-            </button>
-          </Link>
+          <TakeExamConfirmation
+            examId={item.id}
+            title={item.title}
+            instructions={item.instructions}
+          />
         )}
         {role === "student" && item.studentSubmission?.status === "IN_PROGRESS" && (
           <Link href={`/list/exams/${item.id}/take`}>

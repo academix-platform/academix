@@ -320,10 +320,11 @@ model Lesson {
 model Exam {
   id        Int      @id @default(autoincrement())
   schoolId  Int
-  school    School   @relation(fields: [schoolId], references: [id])
-  title     String
-  startTime DateTime
-  endTime   DateTime
+    school    School   @relation(fields: [schoolId], references: [id])
+    title     String
+    instructions String?
+    startTime DateTime
+    endTime   DateTime
 
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])

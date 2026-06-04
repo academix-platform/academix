@@ -569,6 +569,7 @@ export default function ExamWorkflowForm({
     resolver: zodResolver(createExamWorkflowSchema),
     defaultValues: {
       title: initialData?.title ?? "",
+      instructions: initialData?.instructions ?? "",
       startTime: (toDateTimeLocalValue(initialData?.startTime) ||
         (mode === "create" ? createDateTimeDefault : "")) as any,
       endTime: (toDateTimeLocalValue(initialData?.endTime) ||
@@ -802,8 +803,31 @@ export default function ExamWorkflowForm({
       </div>
 
       <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+        <h2 className="font-bold text-gray-900 text-2xl">3. Instructions</h2>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            Student Instructions
+            <span className="ml-1 font-normal text-gray-400">
+              (optional)
+            </span>
+          </label>
+          <textarea
+            {...register("instructions")}
+            rows={4}
+            placeholder="Add anything students should read before starting..."
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400 resize-none"
+          />
+          {errors.instructions?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.instructions.message}
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
+          <h2 className="font-bold text-gray-900 text-2xl">4. Questions</h2>
         </div>
 
         {fields.map((field, index) => {

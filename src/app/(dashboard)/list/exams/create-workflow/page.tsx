@@ -85,6 +85,7 @@ export default async function CreateExamWorkflowPage({
   const initialData = exam
     ? {
         title: exam.title,
+        instructions: exam.instructions ?? "",
         startTime: exam.startTime,
         endTime: exam.endTime,
         subjectId: exam.subjectId ?? undefined,

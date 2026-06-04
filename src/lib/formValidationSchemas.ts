@@ -625,6 +625,7 @@ export const questionSchema = z.object({
 
 export const createExamWorkflowSchema = z.object({
   title: z.string().min(1, "Title is required"),
+  instructions: z.string().optional().nullable(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   subjectId: z.coerce.number().min(1, "Subject is required"),
