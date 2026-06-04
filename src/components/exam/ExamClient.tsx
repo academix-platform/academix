@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import type { Exam, Question, Answer } from "@prisma/client";
+import { Loader2, Send, X } from "lucide-react";
 import {
   getExamPage,
   saveAnswer,
@@ -55,6 +56,7 @@ export default function ExamClient({
   const [currentPage, setCurrentPage] = useState(submission.currentPage);
   const [isFrozen, setIsFrozen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
   const [questionSaveStatus, setQuestionSaveStatus] = useState<
     Record<number, "idle" | "saving" | "saved" | "error">
@@ -199,10 +201,9 @@ export default function ExamClient({
     }
   };
 
-  const handleSubmit = async () => {
+  const requestSubmit = () => {
     if (isSubmitting) return;
 
-    // Check for unanswered questions on the current page before submit
     const unanswered = questions.filter((q) => {
       if (q.type === "FILE") return false; // FILE questions are optional
       const ans = pendingAnswersRef.current[q.id] !== undefined
@@ -229,23 +230,23 @@ export default function ExamClient({
       return;
     }
 
-    if (
-      confirm(
-        "Are you sure you want to submit your exam? You cannot change your answers after submitting.",
-      )
-    ) {
-      setIsSubmitting(true);
-      await abortAllUploads();
-      debouncedSaveRef.current?.flush();
+    setShowSubmitConfirm(true);
+  };
 
-      const res = await submitExam(submission.id);
-      if (res.error) {
-        toast.error(res.error as string);
-        setIsSubmitting(false);
-      } else {
-        toast.success("Exam submitted successfully!");
-        router.push("/list/exams");
-      }
+  const handleSubmit = async () => {
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
+    await abortAllUploads();
+    debouncedSaveRef.current?.flush();
+
+    const res = await submitExam(submission.id);
+    if (res.error) {
+      toast.error(res.error as string);
+      setIsSubmitting(false);
+    } else {
+      toast.success("Exam submitted successfully!");
+      router.push("/list/exams");
     }
   };
 
@@ -313,7 +314,7 @@ export default function ExamClient({
   }, [submission.id]);
 
   return (
-    <div className="relative mx-auto px-4 py-8 max-w-4xl">
+    <div className="relative w-full px-4 py-8">
       <FreezeOverlay isFrozen={isFrozen} />
 
       <div className="top-4 z-10 sticky bg-white shadow-sm mb-6 p-6 border border-gray-200 rounded-lg">
@@ -339,7 +340,7 @@ export default function ExamClient({
             )}
 
             <button
-              onClick={handleSubmit}
+              onClick={requestSubmit}
               disabled={isSubmitting || isLoadingPage}
               className="bg-academixPurpleDark hover:bg-academixPurple disabled:opacity-50 px-6 py-2 rounded-md font-semibold text-white transition-colors"
             >
@@ -435,6 +436,66 @@ export default function ExamClient({
           <div className="opacity-0 px-4 py-2">Next</div> // Spacer
         )}
       </div>
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-academixPurpleLight text-academixPurpleDark">
+                  <Send className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-400">
+                    Submit exam
+                  </p>
+                  <h2 className="text-base font-semibold text-gray-900">
+                    Are you sure?
+                  </h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={isSubmitting}
+                className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Close"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-4">
+              <p className="text-sm leading-6 text-gray-600">
+                Once you submit, you cannot change your answers for this exam.
+              </p>
+              <p className="rounded-md bg-academixPurpleLight p-3 text-xs text-academixPurpleDark">
+                Your saved answers will be submitted for grading.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-gray-100 p-4">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={isSubmitting}
+                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Submitting..." : "Submit Exam"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

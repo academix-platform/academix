@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, X } from "lucide-react";
+import { BookOpen, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -17,9 +17,11 @@ export default function TakeExamConfirmation({
 }: TakeExamConfirmationProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const trimmedInstructions = instructions?.trim();
 
   const handleStart = () => {
+    setIsStarting(true);
     router.push(`/list/exams/${examId}/take`);
   };
 
@@ -92,9 +94,11 @@ export default function TakeExamConfirmation({
               <button
                 type="button"
                 onClick={handleStart}
-                className="rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90"
+                disabled={isStarting}
+                className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Start Exam
+                {isStarting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isStarting ? "Starting..." : "Start Exam"}
               </button>
             </div>
           </div>
