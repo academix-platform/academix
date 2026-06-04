@@ -49,7 +49,7 @@ const RolesSection = () => {
           <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
             Designed for Every Role
           </h2>
-          <p className="mt-4 text-slate-300">
+          <p className="mt-4 text-purple-50">
             Tailored experiences for administrators, teachers, and students.
           </p>
         </div>
@@ -57,18 +57,20 @@ const RolesSection = () => {
           {roles.map((role) => (
             <article
               key={role.title}
-              className="bg-[#0e182c] p-6 border border-slate-800 rounded-xl"
+              className="bg-academixPurpleDeep/65 p-6 border border-purple-200/25 rounded-xl"
             >
               <div className="inline-flex justify-center items-center bg-academixPurple/10 mb-4 rounded-lg w-12 h-12 text-academixPurpleDark">
                 <role.icon className="w-5 h-5" />
               </div>
               <h3 className="font-semibold text-2xl">{role.title}</h3>
-              <p className="mt-3 text-slate-400 text-sm">{role.description}</p>
+              <p className="mt-3 text-purple-100 text-sm">
+                {role.description}
+              </p>
               <ul className="space-y-2 mt-5">
                 {role.actions.map((action) => (
                   <li
                     key={action}
-                    className="flex items-center gap-2 text-slate-200 text-sm"
+                    className="flex items-center gap-2 text-purple-100 text-sm"
                   >
                     <CheckCircle2 className="flex-shrink-0 w-4 h-4 text-academixPurpleDark" />
                     {action}

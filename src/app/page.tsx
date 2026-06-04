@@ -9,8 +9,8 @@ import HomeNavbar from "@/components/home/HomeNavbar";
 
 const HomePage = () => {
   return (
-    <main className="bg-[#061026] overflow-x-hidden text-white">
-      <div className="relative flex flex-col items-center bg-[rgba(124,58,237,0.15)]">
+    <main className="bg-[var(--academix-ink)] overflow-x-hidden text-white">
+      <div className="relative flex flex-col items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.22),_transparent_42%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)]">
         <HomeNavbar />
         <HeroSection />
         <div className="custom-shape-divider-bottom-1779710312">

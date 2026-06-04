@@ -28,7 +28,7 @@ const AboutSection = () => {
         <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
           About Academix
         </h2>
-        <p className="mt-4 text-slate-300">
+        <p className="mt-4 text-purple-50">
           Academix connects every part of school administration into one unified
           system, from enrollment and attendance to assessments, grading, and
           communication.
@@ -38,13 +38,15 @@ const AboutSection = () => {
         {highlights.map((item) => (
           <article
             key={item.title}
-            className="bg-slate-900/50 p-6 border border-slate-800 rounded-xl text-center"
+            className="bg-academixPurpleDeep/65 p-6 border border-purple-200/25 rounded-xl text-center"
           >
             <div className="inline-flex justify-center items-center bg-academixPurple/10 mb-4 rounded-lg w-12 h-12 text-academixPurpleDark">
               <item.icon className="w-5 h-5" />
             </div>
             <h3 className="font-semibold text-xl">{item.title}</h3>
-            <p className="mt-2 text-slate-400 text-sm">{item.description}</p>
+            <p className="mt-2 text-purple-100 text-sm">
+              {item.description}
+            </p>
           </article>
         ))}
       </div>

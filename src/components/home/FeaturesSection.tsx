@@ -54,14 +54,14 @@ const FeaturesSection = () => {
     <RevealSection>
       <section
         id="features"
-        className="bg-slate-900/45 border-slate-800/80 border-y"
+        className="bg-[var(--academix-ink)] border-purple-200/25 border-y"
       >
         <div className="mx-auto px-6 py-20 max-w-6xl">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
               Key Features
             </h2>
-            <p className="mt-4 text-slate-300">
+            <p className="mt-4 text-purple-50">
               Everything your institution needs to run smarter every day.
             </p>
           </div>
@@ -69,13 +69,13 @@ const FeaturesSection = () => {
             {features.map((feature) => (
               <article
                 key={feature.title}
-                className="bg-[#0f1a2e]/80 p-6 border border-slate-800 rounded-xl"
+                className="bg-academixPurpleDeep/65 p-6 border border-purple-200/25 rounded-xl"
               >
                 <div className="inline-flex justify-center items-center bg-academixPurple/10 mb-4 rounded-lg w-11 h-11 text-academixPurpleDark">
                   <feature.icon className="w-5 h-5" />
                 </div>
                 <h3 className="font-semibold text-lg">{feature.title}</h3>
-                <p className="mt-2 text-slate-400 text-sm">
+                <p className="mt-2 text-purple-100 text-sm">
                   {feature.description}
                 </p>
               </article>
