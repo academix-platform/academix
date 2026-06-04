@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import { notifyAssignmentSubmitted, notifyAssignmentFeedback } from "./notification.actions";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
@@ -144,7 +145,32 @@ export async function submitAssignment(
 
     revalidatePath("/list/assignments");
 
-    // ✅ تحديد الرسالة المناسبة
+    // ✅ إشعار المعلم بالتسليم (فقط عند أول تسليم)
+    if (!existing) {
+      try {
+        const assignmentWithLesson = await prisma.assignment.findUnique({
+          where: { id: assignmentId },
+          select: {
+            title: true,
+            lesson: { select: { teacherId: true } },
+          },
+        });
+        const studentData = await prisma.student.findUnique({
+          where: { id: userId },
+          select: { name: true },
+        });
+        if (assignmentWithLesson && studentData) {
+          await notifyAssignmentSubmitted({
+            schoolId: student.schoolId,
+            assignmentId,
+            assignmentTitle: assignmentWithLesson.title,
+            studentName: studentData.name,
+            teacherId: assignmentWithLesson.lesson.teacherId,
+          });
+        }
+      } catch {}
+    }
+
     const isUpdate = !!existing;
     const successMessage = isUpdate
       ? "File replaced successfully!"
@@ -169,10 +195,30 @@ export async function updateTeacherFeedback(
       return { success: false, error: true, message: "Unauthorized" };
     }
 
-    await prisma.assignmentSubmission.update({
+    const submission = await prisma.assignmentSubmission.update({
       where: { id: submissionId },
       data: { teacherFeedback },
+      select: {
+        studentId: true,
+        schoolId: true,
+        assignment: {
+          select: {
+            title: true,
+            lesson: { select: { teacher: { select: { name: true } } } },
+          },
+        },
+      },
     });
+
+    // ✅ إشعار الطالب بالفيدباك
+    try {
+      await notifyAssignmentFeedback({
+        schoolId: submission.schoolId,
+        studentId: submission.studentId,
+        assignmentTitle: submission.assignment.title,
+        teacherName: submission.assignment.lesson.teacher.name,
+      });
+    } catch {}
 
     revalidatePath("/list/assignments");
     return { success: true, error: false, message: "Feedback saved successfully!" };
