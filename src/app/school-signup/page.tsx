@@ -9,12 +9,9 @@ export default function SchoolSignupPage() {
   const router = useRouter();
 
   return (
-    <div className="relative flex justify-center items-center bg-academixPurpleDark/90 p-3 md:p-5 min-h-screen overflow-hidden">
-      <div className="-top-24 -left-20 absolute bg-academixSky/40 blur-3xl rounded-full w-72 h-72" />
-      <div className="-right-24 -bottom-16 absolute bg-academixPurple/40 blur-3xl rounded-full w-80 h-80" />
-
-      <div className="z-10 relative gap-0 grid grid-cols-1 lg:grid-cols-2 bg-white shadow-xl mx-auto rounded-3xl w-full max-w-5xl lg:h-[90dvh] overflow-hidden">
-        <div className="relative flex flex-col bg-gradient-to-br from-academixPurpleDark via-violet-600 to-fuchsia-600 p-7 md:p-8 text-white">
+    <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-3 md:p-5 min-h-screen overflow-hidden">
+      <div className="z-10 relative gap-0 grid grid-cols-1 lg:grid-cols-2 shadow-xl mx-auto rounded-3xl w-full max-w-5xl lg:h-[90dvh] overflow-hidden">
+        <div className="relative flex flex-col bg-[linear-gradient(135deg,#24104f,#4c1d95_58%,#7c3aed)] p-7 md:p-8 text-white">
           <div>
             <button
               onClick={() => router.back()}
@@ -36,10 +33,7 @@ export default function SchoolSignupPage() {
             </div>
             <h1 className="mt-8 font-bold text-white text-3xl leading-tight">
               School{" "}
-              <span className="bg-clip-text bg-gradient-to-r from-fuchsia-600 to-violet-300 text-transparent leading-tight">
-                {" "}
-                Signup
-              </span>
+              <span className="text-academixPurple leading-tight"> Signup</span>
             </h1>
             <p className="mt-4 text-white/85 text-sm leading-6">
               Register your school details and create your primary admin
@@ -60,7 +54,7 @@ export default function SchoolSignupPage() {
           </div>
         </div>
 
-        <div className="p-6 md:p-8 h-full">
+        <div className="bg-white p-6 md:p-8 h-full">
           <SchoolSignupForm />
         </div>
       </div>

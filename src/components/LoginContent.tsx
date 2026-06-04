@@ -57,9 +57,7 @@ const LoginContent = () => {
 
   if (user) {
     return (
-      <div className="relative flex justify-center items-center bg-gradient-to-br from-academixPurpleDark via-violet-600 to-fuchsia-600 p-4 h-screen overflow-hidden">
-        <div className="-top-24 -left-24 absolute bg-academixPurple/35 blur-3xl rounded-full w-72 h-72" />
-        <div className="-right-16 -bottom-20 absolute bg-white/20 blur-3xl rounded-full w-80 h-80" />
+      <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
         <div className="z-10 relative shadow-2xl backdrop-blur-sm px-10 py-9 border border-white/60 rounded-2xl w-[380px] text-gray-600">
           <h1 className="flex items-center gap-2 mb-4 font-bold text-white text-xl">
             <Image
@@ -87,9 +85,7 @@ const LoginContent = () => {
   }
 
   return (
-    <div className="relative flex justify-center items-center bg-gradient-to-br from-academixPurpleDark via-violet-600 to-fuchsia-600 p-4 h-screen overflow-hidden">
-      <div className="-top-24 -left-24 absolute bg-academixPurple/35 blur-3xl rounded-full w-72 h-72" />
-      <div className="-right-16 -bottom-20 absolute bg-white/20 blur-3xl rounded-full w-80 h-80" />
+    <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
       <div className="z-10 relative flex flex-col gap-6 shadow-2xl backdrop-blur-sm p-10 md:p-12 border border-white/60 rounded-2xl w-full max-w-[460px]">
         <div>
           <Link
@@ -123,7 +119,7 @@ const LoginContent = () => {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-fuchsia-600 rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+              className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
               required
               autoComplete="username"
             />
@@ -144,7 +140,7 @@ const LoginContent = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="focus:bg-academixPurpleLight px-4 py-3 pr-20 border-2 border-gray-200 focus:border-fuchsia-600 rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                className="focus:bg-academixPurpleLight px-4 py-3 pr-20 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                 required
                 autoComplete="current-password"
               />
@@ -171,7 +167,7 @@ const LoginContent = () => {
           <button
             type="submit"
             disabled={fetchStatus === "fetching"}
-            className="flex justify-center items-center gap-2 bg-gradient-to-br from-fuchsia-600 to-violet-600 disabled:opacity-80 shadow-md mt-2 py-2.5 rounded-md text-white"
+            className="flex justify-center items-center gap-2 bg-academixPurpleDark hover:bg-academixPurpleMuted disabled:opacity-80 shadow-md mt-2 py-2.5 rounded-md text-white transition"
           >
             {fetchStatus === "fetching" ? (
               <>
