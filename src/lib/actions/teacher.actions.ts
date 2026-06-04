@@ -1,5 +1,5 @@
 "use server";
-
+import { sendAccountEmail } from "../mail";
 import { TeacherSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import { clerkClient } from "@clerk/nextjs/server";
@@ -74,28 +74,35 @@ export const createTeacher = async (
       publicMetadata: { role: "teacher" },
     });
     createdUserId = user.id;
+await prisma.teacher.create({
+  data: {
+    id: createdUserId,
+    schoolId: access.schoolId,
+    username: data.username,
+    name: data.name,
+    email: data.email || null,
+    phone: data.phone || null,
+    address: data.address,
+    img: data.img || null,
+    bloodType: data.bloodType,
+    sex: data.sex,
+    birthday: data.birthday,
+    subjects: {
+      connect: subjectIds.map((subjectId) => ({ id: subjectId })),
+    },
+    classes: {
+      connect: classIds.map((classId) => ({ id: classId })),
+    },
+  },
+});
 
-    await prisma.teacher.create({
-      data: {
-        id: createdUserId,
-        schoolId: access.schoolId,
-        username: data.username,
-        name: data.name,
-        email: data.email || null,
-        phone: data.phone || null,
-        address: data.address,
-        img: data.img || null,
-        bloodType: data.bloodType,
-        sex: data.sex,
-        birthday: data.birthday,
-        subjects: {
-          connect: subjectIds.map((subjectId) => ({ id: subjectId })),
-        },
-        classes: {
-          connect: classIds.map((classId) => ({ id: classId })),
-        },
-      },
-    });
+if (data.email && data.password) {
+  await sendAccountEmail(
+    data.email,
+    data.username,
+    data.password
+  );
+}
 
     return successResult(["/list/teachers"]);
   } catch (err) {

@@ -639,6 +639,19 @@ model Answer {
   @@index([submissionId])
 }
 
+model Feedback {
+  id        String   @id @default(cuid())
+
+  type      String
+  message   String
+  status    String   @default("pending")
+
+  schoolId  Int
+  userId    String?
+
+  createdAt DateTime @default(now())
+}
+
 // ===== ENUMS =====
 
 enum QuestionType {
