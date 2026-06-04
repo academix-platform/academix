@@ -4,7 +4,7 @@ import { gradeAnswer, approveAndFinalizeGrading } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
-import { CheckCircle, ExternalLink, Loader2, AlertCircle, Download, FileText } from "lucide-react";
+import { CheckCircle, Eye, Loader2, AlertCircle, Download, FileText } from "lucide-react";
 import type { Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
 
@@ -80,6 +80,19 @@ const AnswerDisplay = ({
     </div>
   );
 };
+
+const previewableFileExtensions = new Set([
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "txt",
+]);
+
+const getFileExtension = (fileName?: string | null) =>
+  fileName?.split(".").pop()?.toLowerCase() ?? "";
 
 const GradeClient = ({
   submission,
@@ -319,15 +332,34 @@ const GradeClient = ({
                             </p>
                           </div>
                         </div>
-                        <a
-                          href={`/api/exam-files/${answer.id}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-2 text-sm text-academixPurpleDark hover:underline font-medium"
-                        >
-                          <Download className="w-3.5 h-3.5" />
-                          Download File
-                        </a>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {previewableFileExtensions.has(
+                            getFileExtension((answer as any).fileOriginalName),
+                          ) ? (
+                            <a
+                              href={`/api/exam-files/${answer.id}/preview`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-400">
+                              Preview unavailable
+                            </span>
+                          )}
+                          <a
+                            href={`/api/exam-files/${answer.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-sm font-medium text-academixPurpleDark transition hover:brightness-95"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download File
+                          </a>
+                        </div>
                       </div>
                     ) : (
                       <span className="text-gray-400 italic text-sm">No file submitted.</span>
