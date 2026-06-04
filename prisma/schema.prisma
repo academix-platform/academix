@@ -44,6 +44,7 @@ model School {
   schoolSettings        SchoolSettings[]
   schoolDayExceptions   SchoolDayException[]
   results               Result[]
+  aiEvaluations         AiEvaluation[]
 
   // Exam workflow relations
   questions   Question[]
@@ -403,6 +404,7 @@ model AssignmentSubmission {
   gradePublished  Boolean   @default(false)
   gradedAt        DateTime?
   gradedBy        String?
+  aiEvaluation    AiEvaluation?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -654,10 +656,48 @@ model Answer {
   fileOriginalName String?    // Student's original filename
   fileMimeType     String?    // MIME type from Cloudinary
   fileSizeBytes    Int?       // File size in bytes
+  aiEvaluation     AiEvaluation?
 
   @@unique([submissionId, questionId])
   @@index([schoolId])
   @@index([submissionId])
+}
+
+model AiEvaluation {
+  id Int @id @default(autoincrement())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
+
+  answerId Int?    @unique
+  answer   Answer? @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  assignmentSubmissionId Int?                  @unique
+  assignmentSubmission   AssignmentSubmission? @relation(fields: [assignmentSubmissionId], references: [id], onDelete: Cascade)
+
+  provider String @default("gemini")
+  model    String
+  status   AiEvaluationStatus @default(SUGGESTED)
+
+  score       Float?
+  maxScore    Float
+  feedback    String?
+  strengths   Json   @default("[]")
+  weaknesses  Json   @default("[]")
+  needsReview Boolean @default(true)
+  error       String?
+
+  approvedScore    Float?
+  approvedFeedback String?
+  approvedBy       String?
+  approvedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([answerId])
+  @@index([assignmentSubmissionId])
 }
 
 // ===== ENUMS =====
@@ -673,6 +713,12 @@ enum SubmissionStatus {
   IN_PROGRESS
   SUBMITTED
   GRADED
+}
+
+enum AiEvaluationStatus {
+  SUGGESTED
+  APPROVED
+  FAILED
 }
 
 enum UserSex {
