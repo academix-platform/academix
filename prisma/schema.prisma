@@ -9,19 +9,19 @@ datasource db {
 }
 
 model School {
-  id Int @id @default(autoincrement())
-  name String @unique
-  contactEmail String?
-  contactPhone String?
-  website String?
-  country String?
-  city String?
-  address String?
+  id                 Int          @id @default(autoincrement())
+  name               String       @unique
+  contactEmail       String?
+  contactPhone       String?
+  website            String?
+  country            String?
+  city               String?
+  address            String?
   registrationNumber String?
-  status SchoolStatus @default(PENDING)
-  pauseReason String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status             SchoolStatus @default(PENDING)
+  pauseReason        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   academicYears         AcademicYear[]
   admins                Admin[]
@@ -51,6 +51,7 @@ model School {
   answers     Answer[]
 
   subjectPageSettings SubjectPageSettings[]
+  notifications       Notification[]
 }
 
 model Admin {
@@ -64,16 +65,16 @@ model Admin {
 }
 
 model SchoolSettings {
-  id       Int      @id @default(autoincrement())
-  schoolId Int      @unique
-  school   School   @relation(fields: [schoolId], references: [id])
+  id       Int    @id @default(autoincrement())
+  schoolId Int    @unique
+  school   School @relation(fields: [schoolId], references: [id])
 
   workDayStart DateTime @db.Time
   workDayEnd   DateTime @db.Time
 
   lessonDuration Int
   lessonsPerDay  Int
-  workingDays   String[] @default([])
+  workingDays    String[] @default([])
 
   updatedAt DateTime @updatedAt
 
@@ -703,4 +704,40 @@ enum SchoolDayExceptionType {
   HOLIDAY
   OFF_DAY
   WORKING_OVERRIDE
+}
+
+model Notification {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userRole String
+
+  type  NotificationType
+  title String
+  body  String
+  link  String?
+
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([schoolId])
+}
+
+enum NotificationType {
+  NEW_ASSIGNMENT
+  ASSIGNMENT_UPDATED
+  ASSIGNMENT_SUBMITTED
+  ASSIGNMENT_FEEDBACK
+  NEW_EXAM
+  GRADE_POSTED
+  GRADE_UPDATED
+  NEW_ANNOUNCEMENT
+  NEW_EVENT
+  SCHEDULE_UPDATED
+  ATTENDANCE_SAVED
+  SUPERVISOR_ASSIGNED
+  NEW_MESSAGE
 }

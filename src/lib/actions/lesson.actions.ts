@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyScheduleUpdated, notifyStudentsScheduleUpdated } from "./notification.actions";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -317,6 +318,18 @@ export const saveLessonSchedule = async (
         });
       }
     });
+
+    // ✅ إشعار المعلمين المتأثرين بتغيير الجدول
+    await notifyScheduleUpdated({
+      schoolId: access.schoolId,
+      classId: data.classId,
+    }).catch(() => {});
+
+    // ✅ إشعار الطلاب والأولياء بتغيير الجدول
+    await notifyStudentsScheduleUpdated({
+      schoolId: access.schoolId,
+      classId: data.classId,
+    }).catch(() => {});
 
     revalidatePath("/list/lessons");
     return successResult(["/list/lessons"]);

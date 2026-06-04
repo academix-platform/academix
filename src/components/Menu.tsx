@@ -21,6 +21,7 @@ import {
   User,
   UsersRound,
   Archive,
+  Bell,
   type LucideIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
@@ -149,24 +150,32 @@ export const menuItems: MenuSection[] = [
         href: "/list/announcements",
         shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
-      },{
-  icon: Archive,
-  label: "Archive",
-  href: "/archive",
-  visible: ["admin"],
-},
-{
-  icon: MessageSquare,
-  label: "Feedback",
-  href: "/feedback",
-  visible: ["student", "parent"],
-},
-{
-  icon: MessageSquare,
-  label: "Feedbacks",
-  href: "/admin/feedbacks",
-  visible: ["admin"],
-},
+      },
+      {
+        icon: Bell,
+        label: "Notifications",
+        href: "/list/notifications",
+        shouldPrefetch: true,
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: Archive,
+        label: "Archive",
+        href: "/archive",
+        visible: ["admin"],
+      },
+      {
+        icon: MessageSquare,
+        label: "Feedback",
+        href: "/feedback",
+        visible: ["student", "parent"],
+      },
+      {
+        icon: MessageSquare,
+        label: "Feedbacks",
+        href: "/admin/feedbacks",
+        visible: ["admin"],
+      },
     ],
   },
   {

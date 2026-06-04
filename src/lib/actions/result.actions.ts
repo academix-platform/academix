@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyGradePosted, notifyParentGradePosted, notifyGradeUpdated } from "./notification.actions";
 import { ResultSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -39,7 +40,7 @@ export const createResult = async (
       };
     }
 
-    await prisma.result.create({
+    const result = await prisma.result.create({
       data: {
         score: data.score,
         schoolId: access.schoolId,
@@ -49,7 +50,40 @@ export const createResult = async (
           data.assessmentType === "assignment" ? data.assessmentId : null,
         academicYearId,
       },
+      select: {
+        studentId: true,
+        schoolId: true,
+        score: true,
+        exam: { select: { title: true } },
+        assignment: { select: { title: true } },
+      },
     });
+
+    // ✅ إشعار الطالب بالدرجة
+    const assessmentTitle = result.exam?.title ?? result.assignment?.title ?? "Assessment";
+    await notifyGradePosted({
+      schoolId: access.schoolId,
+      studentId: result.studentId,
+      score: result.score,
+      assessmentTitle,
+      assessmentType: data.assessmentType,
+    }).catch(() => {});
+
+    // ✅ إشعار الولي بالدرجة
+    const studentData = await prisma.student.findUnique({
+      where: { id: result.studentId },
+      select: { name: true },
+    });
+    if (studentData) {
+      await notifyParentGradePosted({
+        schoolId: access.schoolId,
+        studentId: result.studentId,
+        studentName: studentData.name,
+        score: result.score,
+        assessmentTitle,
+        assessmentType: data.assessmentType,
+      }).catch(() => {});
+    }
 
     return successResult(["/list/results"]);
   } catch (err) {
@@ -158,6 +192,42 @@ export const updateResult = async (
     });
     if (updated.count === 0) {
       return { success: false, error: true, message: "Result not found." };
+    }
+
+    // ✅ إشعار الطالب والولي بتحديث الدرجة
+    const updatedResult = await prisma.result.findUnique({
+      where: { id: data.id },
+      select: {
+        studentId: true,
+        score: true,
+        exam: { select: { title: true } },
+        assignment: { select: { title: true } },
+      },
+    });
+    if (updatedResult) {
+      const assessmentTitle = updatedResult.exam?.title ?? updatedResult.assignment?.title ?? "Assessment";
+      await notifyGradeUpdated({
+        schoolId: access.schoolId,
+        studentId: updatedResult.studentId,
+        score: updatedResult.score,
+        assessmentTitle,
+        assessmentType: data.assessmentType,
+      }).catch(() => {});
+
+      const studentData = await prisma.student.findUnique({
+        where: { id: updatedResult.studentId },
+        select: { name: true },
+      });
+      if (studentData) {
+        await notifyParentGradePosted({
+          schoolId: access.schoolId,
+          studentId: updatedResult.studentId,
+          studentName: studentData.name,
+          score: updatedResult.score,
+          assessmentTitle,
+          assessmentType: data.assessmentType,
+        }).catch(() => {});
+      }
     }
 
     return successResult(["/list/results"]);
