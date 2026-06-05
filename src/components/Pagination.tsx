@@ -2,10 +2,15 @@
 
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
+import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 
 const Pagination = ({ page, count }: { page: number; count: number }) => {
+  const locale = useLocale();
   const router = useRouter();
+  const isRtl = locale === "ar";
+  const PrevIcon = isRtl ? ArrowRightIcon : ArrowLeftIcon;
+  const NextIcon = isRtl ? ArrowLeftIcon : ArrowRightIcon;
 
   if (count === 0) {
     return null;
@@ -21,13 +26,13 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
   };
 
   return (
-    <div className="flex justify-end items-center gap-2 ml-auto p-4 text-gray-500">
+    <div className="flex justify-end items-center gap-2 ms-auto p-4 text-gray-500">
       <button
         className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}
         disabled={!hasPrev}
       >
-        <ArrowLeftIcon className="w-5 h-5" />
+        <PrevIcon className="w-5 h-5" />
       </button>
       <div className="flex items-center gap-2 text-sm">
         {Array.from({ length: Math.ceil(count / ITEM_PER_PAGE) }, (_, i) => {
@@ -52,7 +57,7 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
         onClick={() => changePage(page + 1)}
         disabled={!hasNext}
       >
-        <ArrowRightIcon className="w-5 h-5" />
+        <NextIcon className="w-5 h-5" />
       </button>
     </div>
   );

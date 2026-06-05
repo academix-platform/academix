@@ -1,9 +1,11 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 const TableSearch = () => {
+  const t = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -33,7 +35,7 @@ const TableSearch = () => {
         name="search"
         type="text"
         defaultValue={searchParams.get("search") ?? ""}
-        placeholder="Search..."
+        placeholder={t("search")}
         className="bg-transparent p-2 outline-none w-[200px]"
       />
     </form>

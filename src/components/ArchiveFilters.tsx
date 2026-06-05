@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type AcademicYear = {
   id: number | string;
@@ -16,6 +17,7 @@ const ArchiveFilters = ({
   selectedType: string;
   selectedYear: string;
 }) => {
+  const t = useTranslations("filters");
   const router = useRouter();
 
   const updateFilters = (type: string, year: string) => {
@@ -27,7 +29,7 @@ const ArchiveFilters = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2">
-            Data Type
+            {t("dataType")}
           </label>
 
           <select
@@ -35,21 +37,21 @@ const ArchiveFilters = ({
             onChange={(e) => updateFilters(e.target.value, selectedYear)}
             className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none"
           >
-            <option value="students">Students</option>
-            <option value="teachers">Teachers</option>
-            <option value="parents">Parents</option>
-            <option value="exams">Exams</option>
-            <option value="assignments">Assignments</option>
-            <option value="results">Results</option>
-            <option value="attendance">Attendance</option>
-            <option value="subjects">Subjects</option>
-            <option value="classes">Classes</option>
+            <option value="students">{t("students")}</option>
+            <option value="teachers">{t("teachers")}</option>
+            <option value="parents">{t("parents")}</option>
+            <option value="exams">{t("exams")}</option>
+            <option value="assignments">{t("assignments")}</option>
+            <option value="results">{t("results")}</option>
+            <option value="attendance">{t("attendance")}</option>
+            <option value="subjects">{t("subjects")}</option>
+            <option value="classes">{t("classes")}</option>
           </select>
         </div>
 
         <div>
           <label className="block text-sm font-medium text-gray-600 mb-2">
-            Academic Year
+            {t("academicYear")}
           </label>
 
           <select

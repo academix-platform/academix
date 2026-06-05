@@ -28,9 +28,12 @@ const Table = ({
   return (
     <table className="mt-4 w-full">
       <thead>
-        <tr className="text-gray-500 text-sm text-left">
+        <tr className="text-gray-500 text-sm">
           {columns.map((col) => (
-            <th key={col.accessor} className={col.className}>
+            <th
+              key={col.accessor}
+              className={`p-4 text-start ${col.className ?? ""}`}
+            >
               {col.header}
             </th>
           ))}
