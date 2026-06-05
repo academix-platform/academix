@@ -4,8 +4,10 @@ import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 
 const AttendanceChartContainer = async () => {
+  const t = await getTranslations("pages");
   const user = requireAuth();
 
   const academicYearId = await getCurrentAcademicYearIdOrNull(
@@ -76,7 +78,7 @@ const AttendanceChartContainer = async () => {
   return (
     <div className="bg-white p-4 rounded-lg w-full h-full">
       <div className="flex justify-between items-center">
-        <h1 className="font-semibold text-lg">Attendance</h1>
+        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
         <MoreHorizontal className="w-5 h-5 text-gray-500" />
       </div>
       <AttendanceChart data={data} />

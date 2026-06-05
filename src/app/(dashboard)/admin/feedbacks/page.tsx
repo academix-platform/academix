@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { updateFeedbackStatus } from "@/lib/actions/feedback";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { getTranslations } from "next-intl/server";
 
 const statusOrder: Record<string, number> = {
   pending: 1,
@@ -24,12 +25,12 @@ const getStatusClass = (status: string) => {
 };
 
 const filters = [
-  { label: "All", href: "/admin/feedbacks" },
-  { label: "Pending", href: "/admin/feedbacks?status=pending" },
-  { label: "Reviewed", href: "/admin/feedbacks?status=reviewed" },
-  { label: "Resolved", href: "/admin/feedbacks?status=resolved" },
-  { label: "Suggestions", href: "/admin/feedbacks?type=suggestion" },
-  { label: "Complaints", href: "/admin/feedbacks?type=complaint" },
+  { labelKey: "all", href: "/admin/feedbacks" },
+  { labelKey: "pending", href: "/admin/feedbacks?status=pending" },
+  { labelKey: "reviewed", href: "/admin/feedbacks?status=reviewed" },
+  { labelKey: "resolved", href: "/admin/feedbacks?status=resolved" },
+  { labelKey: "suggestions", href: "/admin/feedbacks?type=suggestion" },
+  { labelKey: "complaints", href: "/admin/feedbacks?type=complaint" },
 ];
 
 const FeedbacksPage = async ({
@@ -37,6 +38,8 @@ const FeedbacksPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const filtersT = await getTranslations("filters");
   const user = await getAuthUser();
 
   if (!user) {
@@ -87,7 +90,7 @@ const FeedbacksPage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex md:flex-row flex-col md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-semibold text-lg">Feedbacks</h1>
+          <h1 className="font-semibold text-lg">{t("feedbacks")}</h1>
           <p className="text-gray-500 text-sm">
             Manage suggestions and complaints from students and parents.
           </p>
@@ -105,13 +108,13 @@ const FeedbacksPage = async ({
       <div className="flex flex-wrap gap-2 mb-6">
         {filters.map((filter) => {
           const isActive =
-            (!status && !type && filter.label === "All") ||
+            (!status && !type && filter.labelKey === "all") ||
             filter.href.includes(`status=${status}`) ||
             filter.href.includes(`type=${type}`);
 
           return (
             <Link
-              key={filter.label}
+              key={filter.labelKey}
               href={filter.href}
               className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                 isActive
@@ -119,7 +122,7 @@ const FeedbacksPage = async ({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {filter.label}
+              {filtersT(filter.labelKey)}
             </Link>
           );
         })}

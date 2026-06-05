@@ -10,12 +10,16 @@ import EmptyState from "@/components/states/EmptyState";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { getTranslations } from "next-intl/server";
 
 const AttendancePage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
   const { role, userId, schoolId } =
     await enforceRouteAccess("/list/attendance");
 
@@ -54,7 +58,7 @@ const AttendancePage = async ({
   if (role === "teacher" && classes.length === 0) {
     return (
       <div className="flex-1 bg-white m-4 p-6 rounded-md">
-        <h1 className="mb-2 font-semibold text-lg">Attendance</h1>
+        <h1 className="mb-2 font-semibold text-lg">{t("attendance")}</h1>
         <EmptyState
           title="No classes assigned"
           description="You are not assigned to supervise any class yet."
@@ -91,7 +95,7 @@ const AttendancePage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="font-semibold text-lg">Attendance</h1>
+        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
 
         <form className="hidden sm:flex items-center gap-2">
           <input
@@ -124,7 +128,7 @@ const AttendancePage = async ({
                   : "bg-gray-100"
               }`}
             >
-              Students
+              {filtersT("students")}
             </a>
 
             <a
@@ -135,7 +139,7 @@ const AttendancePage = async ({
                   : "bg-gray-100"
               }`}
             >
-              Teachers
+              {filtersT("teachers")}
             </a>
           </div>
         )}
@@ -143,7 +147,7 @@ const AttendancePage = async ({
         {/* CLASS SELECT (ADMIN) */}
         {role === "admin" && scope === "students" && (
           <div className="mb-4">
-            <span className="mr-2">Class:</span>
+            <span className="me-2">{th("class")}:</span>
             <AttendanceClassSelect
               classes={classes}
               value={effectiveClassId}

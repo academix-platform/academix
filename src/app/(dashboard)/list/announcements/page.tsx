@@ -4,6 +4,7 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -16,22 +17,22 @@ type AnnouncementList = Announcement & {
   classes: Pick<Class, "id" | "name">[];
 };
 
-const getColumns = (role: UserRole | null) => [
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
   {
-    header: "Title",
+    header: th("title"),
     accessor: "title",
   },
   {
-    header: "Class",
+    header: th("class"),
     accessor: "class",
   },
   {
-    header: "Date",
+    header: th("date"),
     accessor: "date",
     className: "hidden md:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -40,6 +41,7 @@ const renderRow = (
   item: AnnouncementList,
   role: UserRole | null,
   totalClassesCount: number,
+  allClassesLabel: string,
 ) => (
   <tr
     key={item.id}
@@ -48,7 +50,7 @@ const renderRow = (
     <td className="flex items-center gap-4 p-4">{item.title}</td>
     <td>
       {item.classes.length === totalClassesCount && totalClassesCount > 0
-        ? "All Classes"
+        ? allClassesLabel
         : item.classes.map((cls) => cls.name).join(", ") || "-"}
     </td>
     <td className="hidden md:table-cell">
@@ -72,6 +74,9 @@ const AnnouncementListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
   const { role, userId, schoolId } = await enforceRouteAccess(
     "/list/announcements",
   );
@@ -149,7 +154,7 @@ const AnnouncementListPage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Announcements</h1>
+        <h1 className="font-semibold text-lg">{t("allAnnouncements")}</h1>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-2">
@@ -162,8 +167,10 @@ const AnnouncementListPage = async ({
       </div>
       {/* LIST */}
       <Table
-        columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role, totalClassesCount)}
+        columns={getColumns(role, th)}
+        renderRow={(item) =>
+          renderRow(item, role, totalClassesCount, filtersT("allClasses"))
+        }
         data={data}
         emptyTitle="No announcements found"
         emptyDescription="Try changing your filters or search terms."

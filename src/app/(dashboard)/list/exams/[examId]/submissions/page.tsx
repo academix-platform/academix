@@ -6,6 +6,7 @@ import prisma from "@/lib/prisma";
 import { Class, Submission, Student, SubmissionStatus } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import PublishGradesButton from "./PublishGradesButton";
 
 type SubmissionRow = Submission & {
@@ -36,17 +37,17 @@ const getStatusBadge = (status: SubmissionStatus) => {
   }
 };
 
-const columns = [
-  { header: "Student", accessor: "student", className: "min-w-[190px] p-4" },
-  { header: "Class", accessor: "class", className: "min-w-[120px] p-4" },
-  { header: "Status", accessor: "status", className: "min-w-[120px] p-4" },
-  { header: "Score", accessor: "score", className: "min-w-[140px] p-4" },
+const getColumns = (th: (key: string) => string) => [
+  { header: th("student"), accessor: "student", className: "min-w-[190px] p-4" },
+  { header: th("class"), accessor: "class", className: "min-w-[120px] p-4" },
+  { header: th("status"), accessor: "status", className: "min-w-[120px] p-4" },
+  { header: th("score"), accessor: "score", className: "min-w-[140px] p-4" },
   {
-    header: "Submitted At",
+    header: th("submittedAt"),
     accessor: "submittedAt",
     className: "hidden md:table-cell p-4",
   },
-  { header: "Actions", accessor: "action", className: "min-w-[110px] p-4" },
+  { header: th("actions"), accessor: "action", className: "min-w-[110px] p-4" },
 ];
 
 const formatDateTime = (date: Date) =>
@@ -96,6 +97,9 @@ const ExamSubmissionsPage = async ({
   params: Promise<{ examId: string }>;
   searchParams: PageSearchParams;
 }) => {
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
+  const actionsT = await getTranslations("actions");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
   const { examId: examIdStr } = await params;
   const resolvedSearchParams = await searchParams;
@@ -241,7 +245,7 @@ const ExamSubmissionsPage = async ({
             defaultValue={selectedClassId ?? ""}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-auto"
           >
-            <option value="">All Classes</option>
+            <option value="">{filtersT("allClasses")}</option>
             {classOptions.map((classItem) => (
               <option key={classItem.id} value={classItem.id}>
                 {classItem.name}
@@ -251,21 +255,21 @@ const ExamSubmissionsPage = async ({
           <input
             name="search"
             defaultValue={search}
-            placeholder="Search student..."
+            placeholder={filtersT("searchStudent")}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-[220px]"
           />
           <button
             type="submit"
             className="h-10 rounded-md bg-academixPurpleDark px-4 text-sm font-medium text-white transition hover:brightness-90"
           >
-            Apply
+            {actionsT("apply")}
           </button>
           {(selectedClassId || search) && (
             <Link
               href={`/list/exams/${examId}/submissions`}
               className="h-10 rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
             >
-              Clear
+              {actionsT("clear")}
             </Link>
           )}
         </form>
@@ -274,7 +278,7 @@ const ExamSubmissionsPage = async ({
       <div className="w-full overflow-x-auto">
         <div className="min-w-[760px]">
           <Table
-            columns={columns}
+            columns={getColumns(th)}
             renderRow={(item) => renderRow(item as SubmissionRow, examId, maxScore)}
             data={submissions}
             emptyTitle="No submissions yet"

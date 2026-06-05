@@ -1,12 +1,14 @@
 import EventCalendar from "./EventCalendar";
 import EventList from "./EventList";
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 const EventCalendarContainer = async ({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
+  const t = await getTranslations("pages");
   const params = await searchParams;
   const dateParam = params?.date;
 
@@ -14,7 +16,7 @@ const EventCalendarContainer = async ({
     <div className="bg-white mb-2 px-4 rounded-md h-full">
       <EventCalendar />
       <div className="flex justify-between items-center">
-        <h1 className="my-4 font-semibold text-xl">Events</h1>
+        <h1 className="my-4 font-semibold text-xl">{t("events")}</h1>
         <Link
           href="/list/events"
           className="text-gray-400 text-xs hover:underline transition"

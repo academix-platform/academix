@@ -4,6 +4,7 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildTeacherQuery } from "@/lib/query-builders/teacher-query";
 import prisma from "@/lib/prisma";
@@ -20,30 +21,30 @@ type TeacherList = Teacher & {
   subjects: Subject[];
 };
 
-const getColumns = (role: UserRole | null) => [
-  { header: "Info", accessor: "info" },
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("info"), accessor: "info" },
   {
-    header: "Teacher ID",
+    header: th("teacherId"),
     accessor: "teacherId",
     className: "hidden md:table-cell",
   },
   {
-    header: "Subjects",
+    header: th("subjects"),
     accessor: "subjects",
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
+    header: th("phone"),
     accessor: "phone",
     className: "hidden lg:table-cell",
   },
   {
-    header: "Address",
+    header: th("address"),
     accessor: "address",
     className: "hidden lg:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -98,6 +99,8 @@ const TeacherListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const { role, schoolId } = await enforceRouteAccess("/list/teachers");
 
   const {
@@ -164,7 +167,7 @@ const classes = await prisma.class.findMany({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Teachers</h1>
+        <h1 className="font-semibold text-lg">{t("allTeachers")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
          <SubjectFilter subjects={subjects} />
@@ -188,7 +191,7 @@ const classes = await prisma.class.findMany({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
         emptyTitle="No teachers found"

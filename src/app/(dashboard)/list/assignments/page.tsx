@@ -6,6 +6,7 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildAssignmentQuery } from "@/lib/query-builders/assignment-query";
 import prisma from "@/lib/prisma";
@@ -41,33 +42,33 @@ const formatDateTime = (date: Date) =>
     timeStyle: "short",
   }).format(date);
 
-const getColumns = (role: UserRole | null) => {
+const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   const columns: { header: string; accessor: string; className?: string }[] = [
-    { header: "Title", accessor: "title" },
-    { header: "Subject", accessor: "subject" },
+    { header: th("title"), accessor: "title" },
+    { header: th("subject"), accessor: "subject" },
   ];
 
   if (role !== "student") {
-    columns.push({ header: "Class", accessor: "class" });
+    columns.push({ header: th("class"), accessor: "class" });
   }
 
   if (role !== "teacher") {
-    columns.push({ header: "Teacher", accessor: "teacher", className: "hidden md:table-cell" });
+    columns.push({ header: th("teacher"), accessor: "teacher", className: "hidden md:table-cell" });
   }
 
   if (role === "student") {
-    columns.push({ header: "Submission", accessor: "submission" });
-    columns.push({ header: "Score", accessor: "score" });
+    columns.push({ header: th("submission"), accessor: "submission" });
+    columns.push({ header: th("score"), accessor: "score" });
   }
 
   columns.push({
-    header: "End Date",
+    header: th("endDate"),
     accessor: "endDate",
     className: "hidden md:table-cell min-w-[180px] w-[180px]",
   });
 
   columns.push({
-    header: role === "admin" || role === "teacher" ? "Actions" : "",
+    header: role === "admin" || role === "teacher" ? th("actions") : "",
     accessor: "action",
   });
 
@@ -185,6 +186,8 @@ const AssignmentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
 
   const resolvedSearchParams = await searchParams;
@@ -239,7 +242,7 @@ const AssignmentListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Assignments</h1>
+        <h1 className="font-semibold text-lg">{t("allAssignments")}</h1>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
           <div className="flex items-center self-end gap-2">
@@ -259,7 +262,7 @@ const AssignmentListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
         emptyTitle="No assignments found"

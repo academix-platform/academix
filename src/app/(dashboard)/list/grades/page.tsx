@@ -2,6 +2,7 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
@@ -14,18 +15,18 @@ type GradeList = Grade & {
   classes: Array<{ id: number; name: string }>;
 };
 
-const getColumns = (role: UserRole | null) => [
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
   {
-    header: "Grade Level",
+    header: th("gradeLevel"),
     accessor: "level",
   },
   {
-    header: "Classes",
+    header: th("classes"),
     accessor: "classes",
     className: "hidden md:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -58,6 +59,8 @@ const GradeListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const { role, schoolId } = await enforceRouteAccess("/list/grades");
 
   const resolvedSearchParams = await searchParams;
@@ -108,7 +111,7 @@ const GradeListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Grades</h1>
+        <h1 className="font-semibold text-lg">{t("allGrades")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
@@ -120,7 +123,7 @@ const GradeListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
         emptyTitle="No grades found"

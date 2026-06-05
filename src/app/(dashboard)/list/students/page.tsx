@@ -6,6 +6,7 @@ import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import StudentsFilters from "@/components/StudentsFilters";
+import { getTranslations } from "next-intl/server";
 import {
   getAcademicYears,
   getCurrentAcademicYearOrNull,
@@ -26,30 +27,30 @@ import ClassFilter from "@/components/ClassFilter";
 
 type StudentList = Student & { class: Class };
 
-const getColumns = (role: UserRole | null) => [
-  { header: "Info", accessor: "info" },
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("info"), accessor: "info" },
   {
-    header: "Student ID",
+    header: th("studentId"),
     accessor: "studentId",
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
+    header: th("grade"),
     accessor: "grade",
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
+    header: th("phone"),
     accessor: "phone",
     className: "hidden lg:table-cell",
   },
   {
-    header: "Address",
+    header: th("address"),
     accessor: "address",
     className: "hidden lg:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -100,6 +101,8 @@ const StudentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/students");
 
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
@@ -189,7 +192,7 @@ const StudentListPage = async ({
 
       {/* TOP ROW */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-semibold text-lg">All Students</h1>
+        <h1 className="font-semibold text-lg">{t("allStudents")}</h1>
 
         <div className="flex flex-wrap items-center gap-2">
           <TableSearch />
@@ -230,7 +233,7 @@ const StudentListPage = async ({
 
     {/* TABLE */}
     <Table
-      columns={getColumns(role)}
+      columns={getColumns(role, th)}
       renderRow={(item) => renderRow(item, role)}
       data={data}
       emptyTitle="No students found"

@@ -3,6 +3,7 @@ import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildSubjectQuery } from "@/lib/query-builders/subject-query";
 import prisma from "@/lib/prisma";
@@ -23,6 +24,7 @@ const SubjectListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
 
   const {
@@ -64,7 +66,7 @@ const SubjectListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Subjects</h1>
+        <h1 className="font-semibold text-lg">{t("allSubjects")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />

@@ -2,6 +2,7 @@ import ArchiveFilters from "@/components/ArchiveFilters";
 import ExportButton from "@/components/ExportButton";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 type ArchiveRow = {
   id: string | number;
@@ -20,6 +21,8 @@ const ArchivePage = async ({
     academicYearId?: string;
   }>;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const params = await searchParams;
   const user = await requireAuth();
 
@@ -212,7 +215,7 @@ const ArchivePage = async ({
       <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Archive</h1>
+            <h1 className="text-2xl font-bold text-gray-800">{t("archive")}</h1>
             <p className="text-sm text-gray-500 mt-1">
               Export school data by academic year
             </p>
@@ -243,11 +246,11 @@ const ArchivePage = async ({
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b text-left text-gray-500">
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Username</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Status / Value</th>
+                <th className="py-3 px-4">{th("name")}</th>
+                <th className="py-3 px-4">{th("username")}</th>
+                <th className="py-3 px-4">{th("email")}</th>
+                <th className="py-3 px-4">{th("phone")}</th>
+                <th className="py-3 px-4">{th("statusValue")}</th>
               </tr>
             </thead>
 

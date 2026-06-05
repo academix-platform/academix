@@ -6,6 +6,7 @@ import type { AiEvaluation } from "@prisma/client";
 import { Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import AssignmentSubmissionAiEvaluation from "./AssignmentSubmissionAiEvaluation";
 import AssignmentSubmissionBulkActions from "./AssignmentSubmissionBulkActions";
 import AssignmentSubmissionScoreForm from "./AssignmentSubmissionScoreForm";
@@ -37,14 +38,14 @@ type SubmissionRow = {
   };
 };
 
-const columns = [
-  { header: "Student", accessor: "student", className: "min-w-[190px] p-4" },
-  { header: "Class", accessor: "class", className: "min-w-[120px] p-4" },
-  { header: "File", accessor: "file", className: "hidden md:table-cell min-w-[180px] p-4" },
-  { header: "Status", accessor: "status", className: "min-w-[120px] p-4" },
-  { header: "Score", accessor: "score", className: "min-w-[140px] p-4" },
-  { header: "Submitted", accessor: "submitted", className: "hidden md:table-cell p-4" },
-  { header: "Actions", accessor: "actions", className: "min-w-[130px] p-4" },
+const getColumns = (th: (key: string) => string) => [
+  { header: th("student"), accessor: "student", className: "min-w-[190px] p-4" },
+  { header: th("class"), accessor: "class", className: "min-w-[120px] p-4" },
+  { header: th("file"), accessor: "file", className: "hidden md:table-cell min-w-[180px] p-4" },
+  { header: th("status"), accessor: "status", className: "min-w-[120px] p-4" },
+  { header: th("score"), accessor: "score", className: "min-w-[140px] p-4" },
+  { header: th("submitted"), accessor: "submitted", className: "hidden md:table-cell p-4" },
+  { header: th("actions"), accessor: "actions", className: "min-w-[130px] p-4" },
 ];
 
 const formatDateTime = (date: Date) =>
@@ -177,6 +178,9 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
 };
 
 const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
+  const actionsT = await getTranslations("actions");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
   const { assignmentId: assignmentIdRaw } = await params;
   const resolvedSearchParams = await searchParams;
@@ -312,7 +316,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
             defaultValue={selectedClassId ?? ""}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-auto"
           >
-            <option value="">All Classes</option>
+            <option value="">{filtersT("allClasses")}</option>
             {classOptions.map((classItem) => (
               <option key={classItem.id} value={classItem.id}>
                 {classItem.name}
@@ -322,21 +326,21 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
           <input
             name="search"
             defaultValue={search}
-            placeholder="Search student..."
+            placeholder={filtersT("searchStudent")}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-[220px]"
           />
           <button
             type="submit"
             className="h-10 rounded-md bg-academixPurpleDark px-4 text-sm font-medium text-white transition hover:brightness-90"
           >
-            Apply
+            {actionsT("apply")}
           </button>
           {(selectedClassId || search) && (
             <Link
               href={`/list/assignments/${assignmentId}/submissions`}
               className="h-10 rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
             >
-              Clear
+              {actionsT("clear")}
             </Link>
           )}
         </form>
@@ -353,7 +357,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
       <div className="w-full overflow-x-auto">
         <div className="min-w-[980px]">
           <Table
-            columns={columns}
+            columns={getColumns(th)}
             renderRow={(item) => renderRow(item as SubmissionRow, assignment.maxScore)}
             data={submissions}
             emptyTitle="No submissions found"

@@ -18,6 +18,7 @@ import StudyMaterialList, {
 import SubjectPageEditor from "@/components/SubjectPageEditor";
 import SubjectDetailsTabs from "@/components/SubjectDetailsTabs";
 import FormContainer from "@/components/FormContainer";
+import { getTranslations } from "next-intl/server";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -142,6 +143,7 @@ function AssignmentsSection({
 function ExamsSection({
   exams,
   createAction,
+  tableHeaders,
 }: {
   exams: {
     id: number;
@@ -151,6 +153,12 @@ function ExamsSection({
     class: { name: string } | null;
   }[];
   createAction?: ReactNode;
+  tableHeaders: {
+    title: string;
+    class: string;
+    startTime: string;
+    endTime: string;
+  };
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
@@ -178,11 +186,11 @@ function ExamsSection({
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-left">
-                <th className="px-6 py-3 font-medium">Title</th>
-                <th className="px-6 py-3 font-medium">Class</th>
-                <th className="px-6 py-3 font-medium">Start Time</th>
-                <th className="px-6 py-3 font-medium">End Time</th>
+              <tr className="bg-gray-50 text-gray-500 text-start">
+                <th className="px-6 py-3 font-medium">{tableHeaders.title}</th>
+                <th className="px-6 py-3 font-medium">{tableHeaders.class}</th>
+                <th className="px-6 py-3 font-medium">{tableHeaders.startTime}</th>
+                <th className="px-6 py-3 font-medium">{tableHeaders.endTime}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-50">
@@ -225,6 +233,7 @@ export default async function SubjectDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const th = await getTranslations("tableHeaders");
   const { id } = await params;
   const subjectId = Number(id);
   if (isNaN(subjectId)) notFound();
@@ -331,6 +340,12 @@ export default async function SubjectDetailPage({
     exams: (
       <ExamsSection
         exams={subject.exams}
+        tableHeaders={{
+          title: th("title"),
+          class: th("class"),
+          startTime: th("startTime"),
+          endTime: th("endTime"),
+        }}
         createAction={
           isAuthorized ? (
             <Link

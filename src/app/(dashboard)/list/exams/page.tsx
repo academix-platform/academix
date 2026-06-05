@@ -5,6 +5,7 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import TakeExamConfirmation from "@/components/exam/TakeExamConfirmation";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
@@ -37,32 +38,32 @@ const formatDateTime = (date: Date) =>
     timeStyle: "short",
   }).format(date);
 
-const getColumns = (role: UserRole | null) => {
+const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   const columns: {
     header: string;
     accessor: string;
     className?: string;
   }[] = [
       {
-        header: "Title",
+        header: th("title"),
         accessor: "title",
       },
       {
-        header: "Subject",
+        header: th("subject"),
         accessor: "subject",
       },
     ];
 
   if (role !== "student") {
     columns.push({
-      header: "Class",
+      header: th("class"),
       accessor: "class",
     });
   }
 
   if (role !== "teacher") {
     columns.push({
-      header: "Teacher",
+      header: th("teacher"),
       accessor: "teacher",
       className: "hidden md:table-cell",
     });
@@ -70,12 +71,12 @@ const getColumns = (role: UserRole | null) => {
 
   columns.push(
     {
-      header: "Start Time",
+      header: th("startTime"),
       accessor: "startTime",
       className: "hidden md:table-cell min-w-[180px] w-[180px]",
     },
     {
-      header: "End Time",
+      header: th("endTime"),
       accessor: "endTime",
       className: "hidden md:table-cell min-w-[180px] w-[180px]",
     },
@@ -83,17 +84,17 @@ const getColumns = (role: UserRole | null) => {
 
   if (role === "student") {
     columns.push({
-      header: "Status",
+      header: th("status"),
       accessor: "myStatus",
     });
     columns.push({
-      header: "Score",
+      header: th("score"),
       accessor: "myScore",
     });
   }
 
   columns.push({
-    header: role === "admin" || role === "teacher" ? "Actions" : "",
+    header: role === "admin" || role === "teacher" ? th("actions") : "",
     accessor: "action",
   });
 
@@ -198,6 +199,8 @@ const ExamListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
 
   const resolvedSearchParams = await searchParams;
@@ -328,7 +331,7 @@ const ExamListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Exams</h1>
+        <h1 className="font-semibold text-lg">{t("allExams")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
@@ -356,7 +359,7 @@ const ExamListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
         emptyTitle="No exams found"
