@@ -5,8 +5,11 @@ import {
   getSchoolDayExceptions,
   getSchoolScheduleSettings,
 } from "@/lib/schoolSettings";
+import { getTranslations } from "next-intl/server";
 
 const SettingsPage = async () => {
+  const t = await getTranslations("pages");
+  const settingsT = await getTranslations("settings");
   const user = await requireAuth();
   requireRole(user, ["admin"]);
   await enforceAdminSchoolAccess(user);
@@ -19,10 +22,9 @@ const SettingsPage = async () => {
 
   return (
     <div className="bg-white m-4 mt-0 p-6 rounded-md">
-      <h1 className="font-semibold text-xl">School Settings</h1>
+      <h1 className="font-semibold text-xl">{t("settings")}</h1>
       <p className="mt-2 text-gray-500 text-sm">
-        Configure weekly schedule defaults used by lessons and calendar
-        rendering.
+        {settingsT("description")}
       </p>
 
       <SettingsSectionsPanel

@@ -4,6 +4,7 @@ import { createAcademicYear, updateAcademicYear } from "@/lib/actions";
 import type { AcademicYearItem } from "@/lib/academicYears";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 
@@ -27,6 +28,9 @@ const emptyFormState: FormState = {
 };
 
 const AcademicYearForm = ({ academicYears }: Props) => {
+  const th = useTranslations("tableHeaders");
+  const t = useTranslations("settings.academicYears");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
   const [form, setForm] = useState<FormState>(emptyFormState);
@@ -71,13 +75,13 @@ const AcademicYearForm = ({ academicYears }: Props) => {
         : await createAcademicYear({ success: false, error: false }, payload);
 
       if (result.success) {
-        toast(form.id ? "Academic year updated." : "Academic year created.");
+        toast(form.id ? t("updated") : t("created"));
         onReset();
         router.refresh();
         return;
       }
 
-      toast.error(result.message ?? "Something went wrong!");
+      toast.error(result.message ?? actionsT("somethingWentWrong"));
     });
   };
 
@@ -85,9 +89,9 @@ const AcademicYearForm = ({ academicYears }: Props) => {
     <div className="flex flex-col gap-6">
       <div className="flex justify-between items-center">
         <div className="flex flex-col">
-          <h2 className="font-semibold text-lg">Academic Years</h2>
+          <h2 className="font-semibold text-lg">{t("title")}</h2>
           <p className="mt-2 text-gray-500 text-sm">
-            Create and maintain academic year ranges.
+            {t("description")}
           </p>
         </div>
         <button
@@ -98,25 +102,25 @@ const AcademicYearForm = ({ academicYears }: Props) => {
           }}
           className="bg-academixPurpleDark hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
         >
-          Add Academic Year
+          {t("add")}
         </button>
       </div>
 
       <div className="overflow-x-auto">
         <table className="min-w-full text-sm">
           <thead>
-            <tr className="border-b text-left">
-              <th className="px-2 py-2 font-semibold">Name</th>
-              <th className="px-2 py-2 font-semibold">Range</th>
-              <th className="px-2 py-2 font-semibold">Current</th>
-              <th className="px-2 py-2 font-semibold">Actions</th>
+            <tr className="border-b text-start">
+              <th className="px-2 py-2 font-semibold">{th("name")}</th>
+              <th className="px-2 py-2 font-semibold">{th("range")}</th>
+              <th className="px-2 py-2 font-semibold">{th("current")}</th>
+              <th className="px-2 py-2 font-semibold">{th("actions")}</th>
             </tr>
           </thead>
           <tbody>
             {sortedYears.length === 0 ? (
               <tr>
                 <td className="px-2 py-3 text-gray-500" colSpan={4}>
-                  No academic years yet.
+                  {t("empty")}
                 </td>
               </tr>
             ) : (
@@ -126,14 +130,16 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                   <td className="px-2 py-3">
                     {year.startDate} - {year.endDate}
                   </td>
-                  <td className="px-2 py-3">{year.isCurrent ? "Yes" : "No"}</td>
+                  <td className="px-2 py-3">
+                    {year.isCurrent ? actionsT("yes") : actionsT("no")}
+                  </td>
                   <td className="px-2 py-3">
                     <button
                       className="text-academixPurpleDark hover:underline"
                       type="button"
                       onClick={() => onEdit(year)}
                     >
-                      Edit
+                      {actionsT("edit")}
                     </button>
                   </td>
                 </tr>
@@ -161,13 +167,13 @@ const AcademicYearForm = ({ academicYears }: Props) => {
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-lg">
-                {form.id ? "Edit Academic Year" : "Add Academic Year"}
+                {form.id ? t("editTitle") : t("add")}
               </h3>
               <button
                 type="button"
                 onClick={onReset}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label="Close modal"
+                aria-label={actionsT("close")}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -175,7 +181,9 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
             <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
               <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-medium text-gray-700 text-sm">Name</span>
+                <span className="font-medium text-gray-700 text-sm">
+                  {th("name")}
+                </span>
                 <input
                   type="text"
                   className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
@@ -190,7 +198,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
               <label className="flex flex-col gap-2">
                 <span className="font-medium text-gray-600 text-sm">
-                  Start Date
+                  {t("startDate")}
                 </span>
                 <input
                   type="date"
@@ -205,7 +213,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
               <label className="flex flex-col gap-2">
                 <span className="font-medium text-gray-700 text-sm">
-                  End Date
+                  {t("endDate")}
                 </span>
                 <input
                   type="date"
@@ -228,7 +236,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                 }
                 className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
               />
-              Mark as current academic year
+              {t("markCurrent")}
             </label>
 
             <div className="flex gap-3 mt-5">
@@ -239,11 +247,11 @@ const AcademicYearForm = ({ academicYears }: Props) => {
               >
                 {form.id
                   ? isSubmitting
-                    ? "Updating..."
-                    : "Update Academic Year"
+                    ? actionsT("updating")
+                    : t("update")
                   : isSubmitting
-                    ? "Creating..."
-                    : "Create Academic Year"}
+                    ? actionsT("creating")
+                    : t("create")}
               </button>
             </div>
           </form>

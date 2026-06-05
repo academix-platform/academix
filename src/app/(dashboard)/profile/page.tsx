@@ -1,8 +1,10 @@
 import Image from "next/image";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 const ProfilePage = async () => {
+  const t = await getTranslations("profile");
   const user = await requireAuth();
 
   if (user.role === "admin") {
@@ -11,20 +13,22 @@ const ProfilePage = async () => {
       include: { school: true },
     });
 
-    if (!profile) return <div className="p-6">Profile not found</div>;
+    if (!profile) return <div className="p-6">{t("notFound")}</div>;
 
     return (
-      <ProfileLayout image={null} name={profile.username}>
-        <Info title="Admin Username" value={profile.username} />
-        <Info title="School Name" value={profile.school.name} />
-        <Info title="School ID" value={profile.school.id} />
+      <ProfileLayout image={null} name={profile.username} avatarAlt={t("avatarAlt")}>
+        <Info title={t("fields.adminUsername")} value={profile.username} fallback={t("notProvided")} />
+        <Info title={t("fields.schoolName")} value={profile.school.name} fallback={t("notProvided")} />
+        <Info title={t("fields.schoolId")} value={profile.school.id} fallback={t("notProvided")} />
         <Info
-          title="Created At"
+          title={t("fields.createdAt")}
           value={profile.school.createdAt.toLocaleDateString()}
+          fallback={t("notProvided")}
         />
         <Info
-          title="Updated At"
+          title={t("fields.updatedAt")}
           value={profile.school.updatedAt.toLocaleDateString()}
+          fallback={t("notProvided")}
         />
       </ProfileLayout>
     );
@@ -36,30 +40,33 @@ const ProfilePage = async () => {
       include: { school: true, subjects: true, classes: true },
     });
 
-    if (!profile) return <div className="p-6">Profile not found</div>;
+    if (!profile) return <div className="p-6">{t("notFound")}</div>;
 
     return (
-      <ProfileLayout image={profile.img} name={profile.name}>
-        <Info title="Name" value={profile.name} />
-        <Info title="Username" value={profile.username} />
-        <Info title="Email" value={profile.email} />
-        <Info title="Phone" value={profile.phone} />
-        <Info title="Address" value={profile.address} />
-        <Info title="Blood Type" value={profile.bloodType} />
-        <Info title="Gender" value={profile.sex} />
+      <ProfileLayout image={profile.img} name={profile.name} avatarAlt={t("avatarAlt")}>
+        <Info title={t("fields.name")} value={profile.name} fallback={t("notProvided")} />
+        <Info title={t("fields.username")} value={profile.username} fallback={t("notProvided")} />
+        <Info title={t("fields.email")} value={profile.email} fallback={t("notProvided")} />
+        <Info title={t("fields.phone")} value={profile.phone} fallback={t("notProvided")} />
+        <Info title={t("fields.address")} value={profile.address} fallback={t("notProvided")} />
+        <Info title={t("fields.bloodType")} value={profile.bloodType} fallback={t("notProvided")} />
+        <Info title={t("fields.gender")} value={profile.sex} fallback={t("notProvided")} />
         <Info
-          title="Birthday"
+          title={t("fields.birthday")}
           value={profile.birthday.toLocaleDateString()}
+          fallback={t("notProvided")}
         />
         <Info
-          title="Subjects"
+          title={t("fields.subjects")}
           value={profile.subjects.map((s) => s.name).join(", ")}
+          fallback={t("notProvided")}
         />
         <Info
-          title="Classes"
+          title={t("fields.classes")}
           value={profile.classes.map((c) => c.name).join(", ")}
+          fallback={t("notProvided")}
         />
-        <Info title="School" value={profile.school.name} />
+        <Info title={t("fields.school")} value={profile.school.name} fallback={t("notProvided")} />
       </ProfileLayout>
     );
   }
@@ -70,26 +77,27 @@ const ProfilePage = async () => {
       include: { school: true, grade: true, class: true, parent: true },
     });
 
-    if (!profile) return <div className="p-6">Profile not found</div>;
+    if (!profile) return <div className="p-6">{t("notFound")}</div>;
 
     return (
-      <ProfileLayout image={profile.img} name={profile.name}>
-        <Info title="Name" value={profile.name} />
-        <Info title="Username" value={profile.username} />
-        <Info title="Email" value={profile.email} />
-        <Info title="Phone" value={profile.phone} />
-        <Info title="Address" value={profile.address} />
-        <Info title="Blood Type" value={profile.bloodType} />
-        <Info title="Gender" value={profile.sex} />
+      <ProfileLayout image={profile.img} name={profile.name} avatarAlt={t("avatarAlt")}>
+        <Info title={t("fields.name")} value={profile.name} fallback={t("notProvided")} />
+        <Info title={t("fields.username")} value={profile.username} fallback={t("notProvided")} />
+        <Info title={t("fields.email")} value={profile.email} fallback={t("notProvided")} />
+        <Info title={t("fields.phone")} value={profile.phone} fallback={t("notProvided")} />
+        <Info title={t("fields.address")} value={profile.address} fallback={t("notProvided")} />
+        <Info title={t("fields.bloodType")} value={profile.bloodType} fallback={t("notProvided")} />
+        <Info title={t("fields.gender")} value={profile.sex} fallback={t("notProvided")} />
         <Info
-          title="Birthday"
+          title={t("fields.birthday")}
           value={profile.birthday.toLocaleDateString()}
+          fallback={t("notProvided")}
         />
-        <Info title="Grade" value={profile.grade.level} />
-        <Info title="Class" value={profile.class.name} />
-        <Info title="Status" value={profile.status} />
-        <Info title="Parent" value={profile.parent?.name} />
-        <Info title="School" value={profile.school.name} />
+        <Info title={t("fields.grade")} value={profile.grade.level} fallback={t("notProvided")} />
+        <Info title={t("fields.class")} value={profile.class.name} fallback={t("notProvided")} />
+        <Info title={t("fields.status")} value={profile.status} fallback={t("notProvided")} />
+        <Info title={t("fields.parent")} value={profile.parent?.name} fallback={t("notProvided")} />
+        <Info title={t("fields.school")} value={profile.school.name} fallback={t("notProvided")} />
       </ProfileLayout>
     );
   }
@@ -99,20 +107,21 @@ const ProfilePage = async () => {
     include: { school: true, students: true },
   });
 
-  if (!profile) return <div className="p-6">Profile not found</div>;
+  if (!profile) return <div className="p-6">{t("notFound")}</div>;
 
   return (
-    <ProfileLayout image={null} name={profile.name}>
-      <Info title="Name" value={profile.name} />
-      <Info title="Username" value={profile.username} />
-      <Info title="Email" value={profile.email} />
-      <Info title="Phone" value={profile.phone} />
-      <Info title="Address" value={profile.address} />
+    <ProfileLayout image={null} name={profile.name} avatarAlt={t("avatarAlt")}>
+      <Info title={t("fields.name")} value={profile.name} fallback={t("notProvided")} />
+      <Info title={t("fields.username")} value={profile.username} fallback={t("notProvided")} />
+      <Info title={t("fields.email")} value={profile.email} fallback={t("notProvided")} />
+      <Info title={t("fields.phone")} value={profile.phone} fallback={t("notProvided")} />
+      <Info title={t("fields.address")} value={profile.address} fallback={t("notProvided")} />
       <Info
-        title="Children"
+        title={t("fields.children")}
         value={profile.students.map((s) => s.name).join(", ")}
+        fallback={t("notProvided")}
       />
-      <Info title="School" value={profile.school.name} />
+      <Info title={t("fields.school")} value={profile.school.name} fallback={t("notProvided")} />
     </ProfileLayout>
   );
 };
@@ -120,10 +129,12 @@ const ProfilePage = async () => {
 const ProfileLayout = ({
   image,
   name,
+  avatarAlt,
   children,
 }: {
   image: string | null;
   name: string;
+  avatarAlt: string;
   children: React.ReactNode;
 }) => {
   return (
@@ -138,7 +149,7 @@ const ProfileLayout = ({
 
             <Image
               src={image || "/avatar.png"}
-              alt="Profile"
+              alt={avatarAlt}
               width={170}
               height={170}
               className="
@@ -186,9 +197,11 @@ const ProfileLayout = ({
 const Info = ({
   title,
   value,
+  fallback,
 }: {
   title: string;
   value?: React.ReactNode;
+  fallback: string;
 }) => {
   return (
     <div
@@ -210,7 +223,7 @@ const Info = ({
       </p>
 
       <p className="text-base font-semibold text-gray-800 mt-2 break-words">
-        {value || "Not provided"}
+        {value || fallback}
       </p>
     </div>
   );

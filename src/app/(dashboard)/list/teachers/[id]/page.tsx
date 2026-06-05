@@ -2,7 +2,6 @@ import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import UserActionButtons from "@/components/UserActionButtons";
-import Performance from "@/components/Performance";
 import AttendanceCard from "@/components/AttendanceCard";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
@@ -20,6 +19,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 const SingleTeacherPage = async ({
@@ -27,6 +27,7 @@ const SingleTeacherPage = async ({
 }: {
   params: Promise<{ id: string }>;
 }) => {
+  const t = await getTranslations("profilePages");
   const { id } = await params;
 
   const { role, schoolId } = await enforceRouteAccess(`/list/teachers`);
@@ -62,7 +63,7 @@ const SingleTeacherPage = async ({
         <div className="flex flex-wrap md:flex-nowrap gap-4">
           {/* USER INFO CARD */}
           <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-6 rounded-md w-full md:w-2/3">
-            <div className="top-3 right-3 absolute flex items-center gap-2">
+            <div className="top-3 absolute flex items-center gap-2 end-3">
               {role === "admin" && (
                 <FormContainer table="teacher" type="update" data={teacher} />
               )}
@@ -119,7 +120,9 @@ const SingleTeacherPage = async ({
                   <AttendanceCard id={id} scope="teacher" />
                 </Suspense>
               </div>
-              <span className="text-gray-400 text-sm">Attendance</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.attendance")}
+              </span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
@@ -129,7 +132,9 @@ const SingleTeacherPage = async ({
                   {teacher._count.subjects}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Subjects</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.subjects")}
+              </span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
@@ -139,7 +144,9 @@ const SingleTeacherPage = async ({
                   {teacher._count.lessons}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Lessons</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.lessons")}
+              </span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
@@ -149,48 +156,49 @@ const SingleTeacherPage = async ({
                   {teacher._count.classes}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Classes</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.classes")}
+              </span>
             </div>
           </div>
         </div>
         {/* BOTTOM */}
         <div className="bg-white mt-4 p-4 rounded-md h-[800px]">
-          <h1>Teacher&apos;s Schedule</h1>
+          <h1>{t("teacher.schedule")}</h1>
           <BigCalendarContainer type="teacherId" id={id} />
         </div>
       </div>
       {/* RIGHT */}
       <div className="flex flex-col gap-4 w-full xl:w-1/4">
         <div className="bg-white p-4 rounded-md">
-          <h1 className="font-semibold text-xl">Shortcuts</h1>
+          <h1 className="font-semibold text-xl">{t("shortcuts.title")}</h1>
           <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
             <Link
               className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/classes?teacherId=${id}`}
             >
-              Teacher&apos;s Classes
+              {t("teacher.classes")}
             </Link>
             <Link
               className="bg-academixPurpleLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/students?teacherId=${id}`}
             >
-              Teacher&apos;s Students
+              {t("teacher.students")}
             </Link>
             <Link
               className="bg-pink-50 p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/exams?teacherId=${id}`}
             >
-              Teacher&apos;s Exams
+              {t("teacher.exams")}
             </Link>
             <Link
               className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/assignments?teacherId=${id}`}
             >
-              Teacher&apos;s Assignments
+              {t("teacher.assignments")}
             </Link>
           </div>
         </div>
-        <Performance />
         <Announcements />
       </div>
     </div>

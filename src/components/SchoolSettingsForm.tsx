@@ -2,6 +2,7 @@
 
 import { updateSchoolSettings } from "@/lib/actions";
 import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
@@ -14,6 +15,8 @@ const toTimeValue = (hour: number, minute: number) =>
   `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`;
 
 const SchoolSettingsForm = ({ initialSettings }: Props) => {
+  const t = useTranslations("settings.scheduleForm");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
 
@@ -51,12 +54,12 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
       );
 
       if (result.success) {
-        toast("School settings updated.");
+        toast(t("updated"));
         router.refresh();
         return;
       }
 
-      toast.error(result.message ?? "Something went wrong!");
+      toast.error(result.message ?? actionsT("somethingWentWrong"));
     });
   };
 
@@ -64,12 +67,12 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="block font-semibold text-gray-700 text-sm">
-          Schedule Defaults
+          {t("title")}
         </span>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           <label className="flex flex-col gap-2">
             <span className="font-medium text-gray-700 text-sm">
-              Work Day Start
+              {t("workDayStart")}
             </span>
             <input
               type="time"
@@ -82,7 +85,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
 
           <label className="flex flex-col gap-2">
             <span className="font-medium text-gray-700 text-sm">
-              Work Day End
+              {t("workDayEnd")}
             </span>
             <input
               type="time"
@@ -95,7 +98,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
 
           <label className="flex flex-col gap-2">
             <span className="font-medium text-gray-700 text-sm">
-              Lesson Duration (minutes)
+              {t("lessonDuration")}
             </span>
             <input
               type="number"
@@ -111,7 +114,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
 
           <label className="flex flex-col gap-2">
             <span className="font-medium text-gray-700 text-sm">
-              Lessons Per Day
+              {t("lessonsPerDay")}
             </span>
             <input
               type="number"
@@ -130,7 +133,7 @@ const SchoolSettingsForm = ({ initialSettings }: Props) => {
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Saving..." : "Save Settings"}
+        {isSubmitting ? actionsT("saving") : t("save")}
       </button>
     </form>
   );

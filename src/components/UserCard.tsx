@@ -1,5 +1,6 @@
 import { UserRole } from "@/lib/utils";
 import { ShieldCheck, GraduationCap, Users, UserRound } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
 
@@ -16,7 +17,9 @@ type UserCardProps = {
   currentYearName?: string | null;
 };
 
-const UserCard = ({ type, count, currentYearName }: UserCardProps) => {
+const UserCard = async ({ type, count, currentYearName }: UserCardProps) => {
+  const t = await getTranslations("dashboardCards");
+
   return (
     <div className="even:bg-amber-300 odd:bg-academixPurpleDark/60 p-4 rounded-2xl">
       <div className="flex justify-between items-center">
@@ -25,11 +28,11 @@ const UserCard = ({ type, count, currentYearName }: UserCardProps) => {
             {currentYearName}
           </span>
         )}
-        <div className="ml-auto">{roleIconMap[type]}</div>
+        <div>{roleIconMap[type]}</div>
       </div>
       <div className="flex md:flex-col items-center md:items-start gap-4 mt-4">
         <p className="font-semibold text-2xl">{count}</p>
-        <p className="font-medium text-sm capitalize">{type}s</p>
+        <p className="font-medium text-sm">{t(type)}</p>
       </div>
     </div>
   );
