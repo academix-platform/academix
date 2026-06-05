@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { Bell, X, CheckCheck, ClipboardList, MessageSquare, Megaphone, BookOpen, Mail, BarChart3, Calendar, Users } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -58,6 +59,7 @@ function timeAgo(dateStr: string): string {
 }
 
 export default function NotificationBell() {
+  const t = useTranslations("navbar.notifications");
   const [open, setOpen]               = useState(false);
   const [notifications, setNotifs]    = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -78,10 +80,13 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
-    fetchNotifs();
+    const initialFetch = setTimeout(fetchNotifs, 0);
     // polling كل 30 ثانية
     const interval = setInterval(fetchNotifs, 30000);
-    return () => clearInterval(interval);
+    return () => {
+      clearTimeout(initialFetch);
+      clearInterval(interval);
+    };
   }, [fetchNotifs]);
 
   // ─── Close on outside click ──────────────────────────────────────────────────
@@ -124,11 +129,11 @@ export default function NotificationBell() {
         type="button"
         onClick={() => setOpen((o) => !o)}
         className="relative w-7 h-7 flex items-center justify-center"
-        aria-label="Notifications"
+        aria-label={t("label")}
       >
         <Bell className="w-5 h-5 text-gray-600 hover:scale-[1.05] transition" />
         {unreadCount > 0 && (
-          <span className="absolute -top-2.5 -right-1.5 flex items-center justify-center
+          <span className="absolute -top-2.5 -end-1.5 flex items-center justify-center
                            bg-academixPurpleDark text-white rounded-full w-5 h-5 text-xs font-medium">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
@@ -137,7 +142,7 @@ export default function NotificationBell() {
 
       {/* ─── Dropdown ─── */}
       {open && (
-        <div className="absolute right-0 top-10 z-50 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="absolute end-0 top-10 z-50 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
             <div className="flex items-center gap-2">
@@ -147,11 +152,11 @@ export default function NotificationBell() {
                 onClick={() => setOpen(false)}
                 className="font-semibold text-sm text-gray-800 hover:text-purple-600 transition-colors"
               >
-                Notifications
+                {t("label")}
               </Link>
               {unreadCount > 0 && (
                 <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
-                  {unreadCount} new
+                  {t("newCount", { count: unreadCount })}
                 </span>
               )}
             </div>
@@ -161,10 +166,10 @@ export default function NotificationBell() {
                   type="button"
                   onClick={markAllRead}
                   className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors"
-                  title="Mark all as read"
+                  title={t("markAllRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  All read
+                  {t("allRead")}
                 </button>
               )}
               <button
@@ -186,7 +191,7 @@ export default function NotificationBell() {
             ) : notifications.length === 0 ? (
               <div className="text-center py-10">
                 <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">No notifications yet</p>
+                <p className="text-sm text-gray-400">{t("empty")}</p>
               </div>
             ) : (
               <ul className="divide-y divide-gray-50">
@@ -235,14 +240,14 @@ export default function NotificationBell() {
               onClick={() => setOpen(false)}
               className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
             >
-              View all notifications →
+              {t("viewAll")}
             </Link>
             <button
               type="button"
               onClick={() => setOpen(false)}
               className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Close
+              {t("close")}
             </button>
           </div>
         </div>

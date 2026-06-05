@@ -12,6 +12,8 @@ import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
 import Link from "next/link";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useTranslations } from "next-intl";
 
 type NavbarProps = {
   authUser: AuthUser | null;
@@ -28,6 +30,8 @@ const Navbar = ({
   onMenuClick,
   onMenuCollapseToggle,
 }: NavbarProps) => {
+  const t = useTranslations("navbar");
+  const roleT = useTranslations("roles");
   const { user, isLoaded } = useUser();
   const [messageCount, setMessageCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -52,7 +56,7 @@ const Navbar = ({
     }
   }, [authUser]);
 
-  const fallbackName = "User";
+  const fallbackName = t("userFallback");
   const fallbackRole = authUser?.role ?? null;
 
   const fullName =
@@ -66,9 +70,7 @@ const Navbar = ({
         null)) ||
     fallbackRole;
 
-  const formattedRole = role
-    ? role.charAt(0).toUpperCase() + role.slice(1)
-    : "";
+  const formattedRole = role ? roleT(role) : "";
   const normalizedRole = role?.toLowerCase().replace(/[\s_]/g, "");
   const canViewMessages =
     normalizedRole !== "admin" && normalizedRole !== "superadmin";
@@ -88,7 +90,7 @@ const Navbar = ({
         {onMenuClick && (
           <button
             type="button"
-            aria-label="Open menu"
+            aria-label={t("openMenu")}
             onClick={onMenuClick}
             className="lg:hidden flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/80 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
           >
@@ -98,7 +100,7 @@ const Navbar = ({
         {onMenuCollapseToggle && (
           <button
             type="button"
-            aria-label={isMenuCollapsed ? "Expand menu" : "Collapse menu"}
+            aria-label={isMenuCollapsed ? t("expandMenu") : t("collapseMenu")}
             onClick={onMenuCollapseToggle}
             className="hidden lg:flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/70 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
           >
@@ -109,7 +111,7 @@ const Navbar = ({
             )}
           </button>
         )}
-        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ml-2 px-4 py-3 rounded-md text-xs">
+        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ms-2 px-4 py-3 rounded-md text-xs">
           {schoolName && (
             <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
               {schoolName}
@@ -121,15 +123,17 @@ const Navbar = ({
       {/* RIGHT */}
       <div className="flex justify-end items-center gap-6 w-full">
         <div className="flex items-center gap-3">
+          <LanguageSwitcher />
+
           {canViewMessages && (
             <Link
               href="/list/messages"
-              aria-label="Messages"
+              aria-label={t("messages")}
               className="relative w-7 h-7"
             >
               <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
               {messageCount > 0 && (
-                <div className="-top-2.5 -right-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+                <div className="-top-2.5 -end-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
                   {messageCount > 99 ? "99+" : messageCount}
                 </div>
               )}
@@ -142,7 +146,7 @@ const Navbar = ({
         {/* USER INFO */}
         <div className="hidden sm:flex flex-col">
           <span className="font-medium text-xs leading-3">{fullName}</span>
-          <span className="text-[10px] text-gray-500 text-right">
+          <span className="text-[10px] text-gray-500 text-end">
             {formattedRole}
           </span>
         </div>
