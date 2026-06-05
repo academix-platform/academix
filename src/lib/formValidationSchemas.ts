@@ -358,6 +358,7 @@ export const examSchema = z
     startTime: z.coerce.date({ message: "Start time is required!" }),
     endTime: z.coerce.date({ message: "End time is required!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    teacherId: z.string().optional().nullable(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
@@ -369,27 +370,30 @@ export const examSchema = z
 
 export type ExamSchema = z.infer<typeof examSchema>;
 
-// ضع هذا مكان assignmentSchema الموجود في formValidationSchemas.ts
- 
 export const assignmentSchema = z
   .object({
     id: z.coerce.number().optional(),
     title: z.string().min(1, { message: "Assignment title is required!" }),
+    rubric: z.string().optional().nullable(),
     startDate: z.coerce.date({ message: "Start date is required!" }),
     endDate: z.coerce.date({ message: "End date is required!" }),
+    maxScore: z.coerce
+      .number()
+      .positive({ message: "Marks must be greater than 0!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
+    teacherId: z.string().optional().nullable(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
-    allowLateSubmission: z.coerce.boolean().default(false), // ✅ حقل جديد
+    allowLateSubmission: z.coerce.boolean().default(false),
   })
   .refine((data) => data.endDate > data.startDate, {
     message: "End date must be after start date!",
     path: ["endDate"],
   });
- 
+
 export type AssignmentSchema = z.infer<typeof assignmentSchema>;
- 
+
 export const resultSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, { message: "Student is required!" }),
@@ -409,13 +413,10 @@ export type ResultSchema = z.infer<typeof resultSchema>;
 ////////////////////////////////////////////////////////////////////////////////////
 export const attendanceBulkSchema = z.object({
   date: z.coerce.date({ message: "Date is required!" }),
-
   scope: z.enum(["students", "teachers"], {
     message: "Attendance scope is required!",
   }),
-
   classId: z.coerce.number().optional(),
-
   records: z
     .array(
       z.object({
@@ -477,8 +478,8 @@ export const messageSchema = z
   .refine(
     (data) =>
       (data.studentIds?.length ?? 0) +
-        (data.parentIds?.length ?? 0) +
-        (data.teacherIds?.length ?? 0) >
+      (data.parentIds?.length ?? 0) +
+      (data.teacherIds?.length ?? 0) >
       0,
     {
       message: "Select at least one recipient.",
@@ -492,37 +493,147 @@ export type MessageSchema = z.infer<typeof messageSchema>;
 // EXAM WORKFLOW SCHEMAS
 ////////////////////////////////////////////////////////////////////////////////////
 
+export const EXAM_FILE_MAX_SIZE_MB = 10;
+
+export const BLOCKED_EXTENSIONS = new Set([
+  "exe", "sh", "bat", "cmd", "ps1", "vbs", "js", "mjs", "cjs",
+  "py", "rb", "php", "pl", "java", "class", "jar", "dll", "so",
+  "dylib", "bin", "com", "scr", "pif", "reg",
+]);
+
+export type FileConfig = {
+  allowedExtensions: string[];
+  minFileSizeMb: number;
+  maxFileSizeMb: number;
+  instructions: string;
+};
+
+export const isFileConfig = (options: unknown): options is FileConfig => {
+  if (!options || typeof options !== "object" || Array.isArray(options)) return false;
+  const o = options as Record<string, unknown>;
+  return (
+    Array.isArray(o.allowedExtensions) &&
+    typeof o.minFileSizeMb === "number" &&
+    typeof o.maxFileSizeMb === "number" &&
+    typeof o.instructions === "string"
+  );
+};
+
+export const fileConfigSchema = z.object({
+  allowedExtensions: z.array(z.string()).default([]),
+  minFileSizeMb: z.coerce.number().min(0).default(0),
+  maxFileSizeMb: z.coerce.number().min(1).max(EXAM_FILE_MAX_SIZE_MB).default(EXAM_FILE_MAX_SIZE_MB),
+  instructions: z.string().default(""),
+});
+
 export const questionSchema = z.object({
   text: z.string().min(1, "Question text is required"),
   type: z.enum(["TRUE_FALSE", "MCQ", "TEXT", "FILE"]),
   points: z.coerce.number().min(1).default(1),
   order: z.coerce.number().min(1),
-  options: z.array(z.string().min(1, "Option text is required")).optional(),
+  options: z.preprocess(
+    (val) => {
+      if (Array.isArray(val)) {
+        return val.map((item) => {
+          if (item && typeof item === "object" && "text" in item) {
+            return item.text;
+          }
+          return item;
+        });
+      }
+      return val;
+    },
+    z.array(z.string()).optional() // أزلنا الشرط الداخلي لكي نقوم بفحصه بشكل مخصص ومتقدم بالأسفل بالرسالة المطلوبة
+  ),
   correctAnswer: z
-    .array(z.string().min(1, "Correct answer is required"))
-    .optional(),
+    .array(z.string())
+    .optional(), // أزلنا الشرط الداخلي هنا للتحكم المتقدم بالأسفل لكل نوع سؤال
   allowMultiple: z.boolean().default(false),
+  textAnswer: z.string().optional().nullable(),
+  fileConfig: fileConfigSchema.optional(),
 }).superRefine((data, ctx) => {
+
+  // 1️⃣ الشروط الخاصة بسؤال الخيارات المتعددة (MCQ)
   if (data.type === "MCQ") {
+    // أ- التحقق من وجود خيارين على الأقل
     if (!data.options || data.options.length < 2) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "MCQ must have at least 2 options", path: ["options"] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "MCQ must have at least 2 options",
+        path: ["options"]
+      });
+    } else {
+      // ب- التحقق من أن جميع الخيارات المضافة تحتوي على نصوص وليست فارغة
+      const hasEmptyOption = data.options.some((opt) => !opt || !opt.trim());
+      if (hasEmptyOption) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "All options must have text. Please fill in all choices.",
+          path: ["options"],
+        });
+      }
     }
+
+    // جـ- التحقق من تحديد الإجابة الصحيحة
     if (!data.correctAnswer || data.correctAnswer.length < 1) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, message: "MCQ must have a correct answer", path: ["correctAnswer"] });
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select the correct answer for this question",
+        path: ["correctAnswer"]
+      });
     }
   }
-  if (data.type === "TRUE_FALSE" && (!data.correctAnswer || data.correctAnswer.length !== 1)) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: "TRUE/FALSE must have exactly one correct answer", path: ["correctAnswer"] });
+
+  // 2️⃣ الشروط الخاصة بسؤال صح أو خطأ (TRUE_FALSE)
+  if (data.type === "TRUE_FALSE") {
+    if (!data.correctAnswer || data.correctAnswer.length !== 1 || !["TRUE", "FALSE"].includes(data.correctAnswer[0])) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please select whether the statement is True or False",
+        path: ["correctAnswer"]
+      });
+    }
+  }
+
+  // 3️⃣ الشروط الخاصة بالسؤال المقالي (TEXT)
+  if (data.type === "TEXT") {
+    if (!data.textAnswer || !data.textAnswer.trim()) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please provide a model answer for this text question",
+        path: ["textAnswer"],
+      });
+    }
+  }
+
+  // 4️⃣ الشروط الخاصة بسؤال رفع الملفات (FILE)
+  if (data.type === "FILE") {
+    if (!data.fileConfig?.allowedExtensions || data.fileConfig.allowedExtensions.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Please specify at least one required file extension (e.g. pdf, docx)",
+        path: ["fileConfig", "allowedExtensions"],
+      });
+    }
+    if (data.fileConfig && data.fileConfig.minFileSizeMb > data.fileConfig.maxFileSizeMb) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Min file size cannot exceed max file size",
+        path: ["fileConfig"]
+      });
+    }
   }
 });
 
 export const createExamWorkflowSchema = z.object({
   title: z.string().min(1, "Title is required"),
+  instructions: z.string().optional().nullable(),
+  teacherId: z.string().optional().nullable(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   subjectId: z.coerce.number().min(1, "Subject is required"),
   classIds: z.array(z.coerce.number()).min(1, "At least one class is required"),
-  
+
   // Settings
   enableTimer: z.boolean().default(true),
   duration: z.coerce.number().optional(),
@@ -531,7 +642,7 @@ export const createExamWorkflowSchema = z.object({
   autoSaveInterval: z.coerce.number().min(10).default(30),
   enableAutoSubmit: z.boolean().default(true),
   questionsPerPage: z.coerce.number().min(1).default(1),
-  
+
   questions: z.array(questionSchema).min(1, "At least one question is required"),
 }).superRefine((data, ctx) => {
   if (data.endTime <= data.startTime) {
@@ -549,6 +660,10 @@ export const saveAnswerSchema = z.object({
   questionId: z.coerce.number().min(1),
   textAnswer: z.string().nullable().optional(),
   fileUrl: z.string().nullable().optional(),
+  filePublicId: z.string().nullable().optional(),
+  fileOriginalName: z.string().nullable().optional(),
+  fileMimeType: z.string().nullable().optional(),
+  fileSizeBytes: z.coerce.number().nullable().optional(),
 });
 
 export type SaveAnswerSchema = z.infer<typeof saveAnswerSchema>;

@@ -20,29 +20,58 @@ const GradeSubmissionPage = async ({
   if (isNaN(examId) || isNaN(submissionId)) redirect("/list/exams");
 
   // Check that the teacher owns the exam
-  const exam = await prisma.exam.findFirst({
+  const urlExam = await prisma.exam.findFirst({
     where: {
       id: examId,
       schoolId,
       ...(role === "teacher"
-        ? { lesson: { teacherId: userId } }
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
         : {}),
     },
-    select: { id: true, title: true },
+    select: {
+      id: true,
+      title: true,
+      startTime: true,
+      endTime: true,
+      subjectId: true,
+      academicYearId: true,
+    },
   });
 
-  if (!exam) redirect("/list/exams");
+  if (!urlExam) redirect("/list/exams");
+
+  // Find all exams in the same group
+  const groupExams = await prisma.exam.findMany({
+    where: {
+      title: urlExam.title,
+      startTime: urlExam.startTime,
+      endTime: urlExam.endTime,
+      subjectId: urlExam.subjectId,
+      schoolId,
+      academicYearId: urlExam.academicYearId,
+      ...(role === "teacher"
+        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+        : {}),
+    },
+    select: { id: true },
+  });
+  const allowedExamIds = groupExams.map((e) => e.id);
 
   await syncAutoGrades(submissionId);
 
   // Load the submission with its answers
   const submission = await prisma.submission.findFirst({
-    where: { id: submissionId, examId, schoolId },
+    where: {
+      id: submissionId,
+      examId: { in: allowedExamIds },
+      schoolId,
+    },
     include: {
       student: { select: { name: true, username: true } },
       answers: {
         include: {
           question: true,
+          aiEvaluation: true,
         },
       },
     },
@@ -58,7 +87,7 @@ const GradeSubmissionPage = async ({
     <GradeClient
       submission={submission}
       answers={submission.answers}
-      examTitle={exam.title}
+      examTitle={urlExam.title}
       examId={examId}
     />
   );

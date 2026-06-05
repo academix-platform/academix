@@ -213,6 +213,54 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         if (!schoolId) break;
         const assignmentRole = authUser?.role;
         const assignmentUserId = authUser?.userId;
+        const assignmentSubjects = await prisma.subject.findMany({
+          where: {
+            schoolId,
+            ...(assignmentRole === "teacher"
+              ? {
+                  OR: [
+                    { teachers: { some: { id: assignmentUserId! } } },
+                    {
+                      lessons: {
+                        some: {
+                          teacherId: assignmentUserId!,
+                          academicYearId: academicYearId!,
+                        },
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, name: true, gradeId: true },
+          orderBy: { name: "asc" },
+        });
+        const assignmentSubjectGradeIds = Array.from(
+          new Set(assignmentSubjects.map((subject) => subject.gradeId)),
+        );
+        const assignmentClasses = await prisma.class.findMany({
+          where: {
+            schoolId,
+            ...(assignmentRole === "teacher"
+              ? {
+                  OR: [
+                    { gradeId: { in: assignmentSubjectGradeIds } },
+                    { teachers: { some: { id: assignmentUserId! } } },
+                    {
+                      lessons: {
+                        some: {
+                          teacherId: assignmentUserId!,
+                          academicYearId: academicYearId!,
+                        },
+                      },
+                    },
+                  ],
+                }
+              : {}),
+          },
+          select: { id: true, name: true, gradeId: true },
+          orderBy: { name: "asc" },
+        });
         const assignmentLessons = await prisma.lesson.findMany({
           where: {
             schoolId,
@@ -225,33 +273,46 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             id: true,
             subjectId: true,
             classId: true,
-            subject: { select: { id: true, name: true } },
-            class: { select: { id: true, name: true } },
           },
         });
+        const assignmentTeachers =
+          assignmentRole === "admin"
+            ? await prisma.teacher.findMany({
+                where: { schoolId },
+                select: { id: true, name: true },
+                orderBy: { name: "asc" },
+              })
+            : [];
 
-        const assignmentSubjectsMap = new Map<
-          number,
-          { id: number; name: string }
+        const assignmentPairsMap = new Map<
+          string,
+          { subjectId: number; classId: number }
         >();
-        const assignmentClassesMap = new Map<
-          number,
-          { id: number; name: string }
-        >();
+
+        for (const subject of assignmentSubjects) {
+          for (const classItem of assignmentClasses) {
+            if (classItem.gradeId === subject.gradeId) {
+              assignmentPairsMap.set(`${subject.id}:${classItem.id}`, {
+                subjectId: subject.id,
+                classId: classItem.id,
+              });
+            }
+          }
+        }
 
         for (const lesson of assignmentLessons) {
-          assignmentSubjectsMap.set(lesson.subject.id, lesson.subject);
-          assignmentClassesMap.set(lesson.class.id, lesson.class);
+          assignmentPairsMap.set(`${lesson.subjectId}:${lesson.classId}`, {
+            subjectId: lesson.subjectId,
+            classId: lesson.classId,
+          });
         }
 
         relatedData = {
-          subjects: Array.from(assignmentSubjectsMap.values()),
-          classes: Array.from(assignmentClassesMap.values()),
-          lessons: assignmentLessons.map((lesson) => ({
-            id: lesson.id,
-            subjectId: lesson.subjectId,
-            classId: lesson.classId,
-          })),
+          subjects: assignmentSubjects,
+          classes: assignmentClasses,
+          lessons: Array.from(assignmentPairsMap.values()),
+          teachers: assignmentTeachers,
+          role: assignmentRole,
         };
         break;
       case "result":
@@ -284,12 +345,19 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             schoolId,
             academicYearId: academicYearId!,
             ...(resultRole === "teacher"
-              ? { lesson: { teacherId: resultUserId! } }
+              ? {
+                  OR: [
+                    { teacherId: resultUserId! },
+                    { lesson: { teacherId: resultUserId! } },
+                  ],
+                }
               : {}),
           },
           select: {
             id: true,
             title: true,
+            subject: { select: { name: true } },
+            class: { select: { name: true } },
             lesson: {
               select: {
                 subject: { select: { name: true } },
@@ -305,12 +373,19 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
             schoolId,
             academicYearId: academicYearId!,
             ...(resultRole === "teacher"
-              ? { lesson: { teacherId: resultUserId! } }
+              ? {
+                  OR: [
+                    { teacherId: resultUserId! },
+                    { lesson: { teacherId: resultUserId! } },
+                  ],
+                }
               : {}),
           },
           select: {
             id: true,
             title: true,
+            subject: { select: { name: true } },
+            class: { select: { name: true } },
             lesson: {
               select: {
                 subject: { select: { name: true } },
@@ -326,14 +401,16 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           exams: resultExams.map((exam) => ({
             id: exam.id,
             title: exam.title,
-            subjectName: exam.lesson.subject.name,
-            className: exam.lesson.class.name,
+            subjectName: exam.subject?.name ?? exam.lesson?.subject.name ?? "-",
+            className: exam.class?.name ?? exam.lesson?.class.name ?? "-",
           })),
           assignments: resultAssignments.map((assignment) => ({
             id: assignment.id,
             title: assignment.title,
-            subjectName: assignment.lesson.subject.name,
-            className: assignment.lesson.class.name,
+            subjectName:
+              assignment.subject?.name ?? assignment.lesson?.subject.name ?? "-",
+            className:
+              assignment.class?.name ?? assignment.lesson?.class.name ?? "-",
           })),
         };
         break;

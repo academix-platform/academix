@@ -53,8 +53,17 @@ export const createExam = async (
       };
     }
 
+    const uniqueClassLessons = Array.from(
+      lessons.reduce((map, lesson) => {
+        if (!map.has(lesson.classId)) {
+          map.set(lesson.classId, lesson);
+        }
+        return map;
+      }, new Map<number, (typeof lessons)[number]>()).values(),
+    );
+
     const createdExams = await prisma.$transaction(
-      lessons.map((lesson) =>
+      uniqueClassLessons.map((lesson) =>
         prisma.exam.create({
           data: {
             title: data.title,

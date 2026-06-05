@@ -88,8 +88,16 @@ export async function buildResultQuery({
     case "teacher":
       conditions.push({
         OR: [
-          { exam: { lesson: { teacherId: userId } } },
-          { assignment: { lesson: { teacherId: userId } } },
+          {
+            exam: {
+              OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+            },
+          },
+          {
+            assignment: {
+              OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+            },
+          },
         ],
       });
       break;
@@ -97,6 +105,32 @@ export async function buildResultQuery({
     case "student":
       conditions.push({
         studentId: userId,
+        OR: [
+          // Assignment results — only visible after grades are published
+          {
+            assignmentId: { not: null },
+            assignment: {
+              assignmentSubmissions: {
+                some: {
+                  studentId: userId,
+                  gradePublished: true,
+                },
+              },
+            },
+          },
+          // Exam results — only visible after grades are published
+          {
+            examId: { not: null },
+            exam: {
+              submissions: {
+                some: {
+                  studentId: userId,
+                  gradePublished: true,
+                },
+              },
+            },
+          },
+        ],
       });
       break;
 

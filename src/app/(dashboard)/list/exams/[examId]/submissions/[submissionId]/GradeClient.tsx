@@ -1,14 +1,18 @@
 "use client";
 
-import { gradeAnswer } from "@/lib/actions";
+import { gradeAnswer, approveAndFinalizeGrading } from "@/lib/actions";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { toast } from "react-toastify";
-import { CheckCircle, ExternalLink } from "lucide-react";
-import type { Answer, Question, Submission, Student } from "@prisma/client";
+import { CheckCircle, Eye, Loader2, AlertCircle, Download, FileText } from "lucide-react";
+import type { AiEvaluation, Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
+import GradeAnswerAiEvaluation from "./GradeAnswerAiEvaluation";
 
-type AnswerWithQuestion = Answer & { question: Question };
+type AnswerWithQuestion = Answer & {
+  question: Question;
+  aiEvaluation: AiEvaluation | null;
+};
 
 type GradeClientProps = {
   submission: Submission & { student: Pick<Student, "name" | "username"> };
@@ -81,6 +85,19 @@ const AnswerDisplay = ({
   );
 };
 
+const previewableFileExtensions = new Set([
+  "pdf",
+  "jpg",
+  "jpeg",
+  "png",
+  "gif",
+  "webp",
+  "txt",
+]);
+
+const getFileExtension = (fileName?: string | null) =>
+  fileName?.split(".").pop()?.toLowerCase() ?? "";
+
 const GradeClient = ({
   submission,
   answers,
@@ -99,6 +116,67 @@ const GradeClient = ({
     return map;
   });
 
+  const [savingStatus, setSavingStatus] = useState<
+    Record<number, "idle" | "saving" | "saved" | "error">
+  >({});
+  const [isFinalizing, setIsFinalizing] = useState(false);
+
+  useEffect(() => {
+    setScores((prev) => {
+      const next = { ...prev };
+      for (const answer of answers) {
+        if (answer.score !== null && answer.score !== undefined) {
+          next[answer.id] = String(answer.score);
+        }
+      }
+      return next;
+    });
+  }, [answers]);
+
+  const handleAutoSave = async (answerId: number, maxPoints: number) => {
+    const scoreStr = scores[answerId];
+    if (scoreStr === undefined || scoreStr === "") {
+      return;
+    }
+
+    const score = parseFloat(scoreStr);
+    if (isNaN(score) || score < 0) {
+      toast.error("Score must be a positive number.");
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      return;
+    }
+
+    if (score > maxPoints) {
+      toast.error(`Score cannot exceed ${maxPoints} points.`);
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      return;
+    }
+
+    const originalAnswer = answers.find((a) => a.id === answerId);
+    if (originalAnswer && originalAnswer.score === score) {
+      return; // No change, skip calling server action
+    }
+
+    setSavingStatus((prev) => ({ ...prev, [answerId]: "saving" }));
+
+    try {
+      const result = await gradeAnswer(
+        { success: false, error: false },
+        { answerId, score }
+      );
+      if (result.success) {
+        setSavingStatus((prev) => ({ ...prev, [answerId]: "saved" }));
+        router.refresh();
+      } else {
+        toast.error(result.message ?? "Something went wrong.");
+        setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+      }
+    } catch (err) {
+      toast.error("Failed to auto-save score.");
+      setSavingStatus((prev) => ({ ...prev, [answerId]: "error" }));
+    }
+  };
+
   const handleGrade = (answerId: number) => {
     const scoreStr = scores[answerId];
     if (scoreStr === undefined || scoreStr === "") {
@@ -109,6 +187,12 @@ const GradeClient = ({
     const score = parseFloat(scoreStr);
     if (isNaN(score) || score < 0) {
       toast.error("Score must be a positive number.");
+      return;
+    }
+
+    const answer = answers.find((a) => a.id === answerId);
+    if (answer && score > answer.question.points) {
+      toast.error(`Score cannot exceed ${answer.question.points} points.`);
       return;
     }
 
@@ -124,6 +208,25 @@ const GradeClient = ({
         toast.error(result.message ?? "Something went wrong.");
       }
     });
+  };
+
+  const handleFinalize = async () => {
+    setIsFinalizing(true);
+    try {
+      const result = await approveAndFinalizeGrading(submission.id);
+      if (result.success) {
+        toast.success("Grading approved and finalized successfully!");
+        router.push(`/list/exams/${examId}/submissions`);
+      } else if ("warning" in result && result.warning) {
+        toast.warning(result.warning, { autoClose: 6000 });
+      } else {
+        toast.error("message" in result ? result.message : "Something went wrong.");
+      }
+    } catch (err) {
+      toast.error("An error occurred while finalizing grading.");
+    } finally {
+      setIsFinalizing(false);
+    }
   };
 
   const totalMax = answers.reduce((sum, a) => sum + a.question.points, 0);
@@ -188,6 +291,15 @@ const GradeClient = ({
               answer.question.type === "MCQ" && answer.question.allowMultiple;
             const isGraded =
               answer.score !== null && answer.score !== undefined;
+            const isPdfFileAnswer =
+              answer.question.type === "FILE" &&
+              getFileExtension((answer as any).fileOriginalName) === "pdf";
+            const canAiEvaluate =
+              answer.question.type === "TEXT" || isPdfFileAnswer;
+            const aiDisabledMessage =
+              answer.question.type === "FILE" && !isPdfFileAnswer
+                ? "AI evaluation supports PDF file answers only."
+                : undefined;
 
             return (
               <div
@@ -223,16 +335,60 @@ const GradeClient = ({
                   <p className="text-xs text-gray-400 mb-1">Student Answer:</p>
 
                   {/* FILE */}
-                  {answer.question.type === "FILE" && answer.fileUrl ? (
-                    <a
-                      href={answer.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-2 text-sm text-academixPurpleDark hover:underline"
-                    >
-                      View uploaded file
-                      <ExternalLink className="w-3 h-3" />
-                    </a>
+                  {answer.question.type === "FILE" ? (
+                    answer.fileUrl && (answer as any).filePublicId ? (
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <FileText className="w-4 h-4 text-gray-500 shrink-0" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-700">
+                              {(answer as any).fileOriginalName ?? "Uploaded file"}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {(answer as any).fileSizeBytes
+                                ? `${((answer as any).fileSizeBytes / (1024 * 1024)).toFixed(2)} MB`
+                                : ""}
+                              {(answer as any).fileSizeBytes && (answer as any).fileMimeType ? " · " : ""}
+                              {(answer as any).fileMimeType?.split("/")?.[1]?.toUpperCase() ?? "FILE"}
+                              {(answer as any).fileSizeBytes || (answer as any).fileMimeType ? " · " : ""}
+                              Uploaded {answer.savedAt
+                                ? new Intl.DateTimeFormat("en-US", { dateStyle: "short", timeStyle: "short" }).format(answer.savedAt)
+                                : ""}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {previewableFileExtensions.has(
+                            getFileExtension((answer as any).fileOriginalName),
+                          ) ? (
+                            <a
+                              href={`/api/exam-files/${answer.id}/preview`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-700 transition hover:bg-gray-100"
+                            >
+                              <Eye className="w-3.5 h-3.5" />
+                              View
+                            </a>
+                          ) : (
+                            <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-sm font-medium text-gray-400">
+                              Preview unavailable
+                            </span>
+                          )}
+                          <a
+                            href={`/api/exam-files/${answer.id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-sm font-medium text-academixPurpleDark transition hover:brightness-95"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            Download File
+                          </a>
+                        </div>
+                      </div>
+                    ) : (
+                      <span className="text-gray-400 italic text-sm">No file submitted.</span>
+                    )
                   ) : (
                     <div className="text-sm text-gray-700 whitespace-pre-wrap">
                       <AnswerDisplay
@@ -256,6 +412,25 @@ const GradeClient = ({
                   </div>
                 )}
 
+                {/* Correct Answer - for TEXT */}
+                {answer.question.type === "TEXT" && answer.question.textAnswer && (
+                  <div className="bg-blue-50 border border-blue-100 rounded-md p-3">
+                    <p className="text-xs text-gray-400 mb-1">Correct Answer:</p>
+                    <div className="text-sm text-blue-700 whitespace-pre-wrap">
+                      {answer.question.textAnswer}
+                    </div>
+                  </div>
+                )}
+
+                {canAiEvaluate || aiDisabledMessage ? (
+                  <GradeAnswerAiEvaluation
+                    answerId={answer.id}
+                    maxScore={answer.question.points}
+                    evaluation={answer.aiEvaluation}
+                    disabledMessage={aiDisabledMessage}
+                  />
+                ) : null}
+
                 {/* Score Input */}
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
@@ -272,30 +447,45 @@ const GradeClient = ({
                           [answer.id]: e.target.value,
                         }))
                       }
-                      disabled={isAutoGraded || isPending}
-                      className={`w-20 p-1.5 rounded-md ring-[1.5px] ring-gray-300 text-sm text-center
-                        focus:outline-none focus:ring-academixPurpleDark
-                        ${isAutoGraded ? "bg-gray-50 text-gray-400 cursor-not-allowed" : ""}`}
+                      onBlur={() => handleAutoSave(answer.id, answer.question.points)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.currentTarget.blur();
+                        }
+                      }}
+                      disabled={isPending || savingStatus[answer.id] === "saving"}
+                      className="w-20 p-1.5 rounded-md ring-[1.5px] ring-gray-300 text-sm text-center
+                        focus:outline-none focus:ring-academixPurpleDark"
                     />
                     <span className="text-sm text-gray-400">
                       / {answer.question.points}
                     </span>
                   </div>
 
-                  {/* Save button - for TEXT and FILE only */}
-                  {!isAutoGraded && (
-                    <button
-                      onClick={() => handleGrade(answer.id)}
-                      disabled={isPending}
-                      className="px-3 py-1.5 bg-academixPurpleDark text-white text-xs
-                        rounded-md hover:opacity-90 disabled:opacity-50 transition"
-                    >
-                      {isPending ? "Saving..." : "Save"}
-                    </button>
+                  {/* Localized Status Indicator */}
+                  {savingStatus[answer.id] === "saving" && (
+                    <span className="flex items-center gap-1 text-xs text-blue-500 animate-pulse font-medium">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      Saving...
+                    </span>
+                  )}
+                  {savingStatus[answer.id] === "saved" && (
+                    <span className="flex items-center gap-1 text-xs text-green-600 font-medium">
+                      <CheckCircle className="w-3.5 h-3.5" />
+                      Saved
+                    </span>
+                  )}
+                  {savingStatus[answer.id] === "error" && (
+                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+                      <AlertCircle className="w-3.5 h-3.5" />
+                      Error
+                    </span>
                   )}
 
+
+
                   {/* Graded indicator */}
-                  {isGraded && (
+                  {isGraded && !savingStatus[answer.id] && (
                     <CheckCircle className="w-4 h-4 text-green-500" />
                   )}
                 </div>
@@ -304,16 +494,43 @@ const GradeClient = ({
           })}
       </div>
 
-      {/* Back button */}
-      <div className="mt-6">
+      {/* Action buttons */}
+      <div className="mt-6 flex items-center gap-3 justify-between border-t pt-6">
         <button
           onClick={() =>
             router.push(`/list/exams/${examId}/submissions`)
           }
-          className="px-4 py-2 border border-gray-200 rounded-md text-sm
-            hover:bg-gray-50 transition"
+          className="px-4 py-2 border border-gray-200 rounded-md text-sm text-gray-700
+            hover:bg-gray-50 transition font-medium"
         >
           ← Back to Submissions
+        </button>
+
+        <button
+          onClick={handleFinalize}
+          disabled={isFinalizing}
+          className={`px-5 py-2 rounded-md text-sm font-semibold transition flex items-center gap-2 text-white
+            ${submission.status === "GRADED"
+              ? "bg-green-600 hover:bg-green-700"
+              : "bg-academixPurpleDark hover:opacity-90"}
+            disabled:opacity-50`}
+        >
+          {isFinalizing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Finalizing...
+            </>
+          ) : submission.status === "GRADED" ? (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              Grading Finalized (Re-Approve)
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              Approve & Finalize Grading
+            </>
+          )}
         </button>
       </div>
     </div>

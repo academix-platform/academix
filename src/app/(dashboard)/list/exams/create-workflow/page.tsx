@@ -27,9 +27,16 @@ export default async function CreateExamWorkflowPage({
   const subjects = await prisma.subject.findMany({
     where: {
       schoolId,
-      ...(role === "teacher" ? { teachers: { some: { id: userId } } } : {}),
+      ...(role === "teacher"
+        ? {
+            OR: [
+              { teachers: { some: { id: userId } } },
+              { lessons: { some: { teacherId: userId, academicYearId } } },
+            ],
+          }
+        : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, gradeId: true },
   });
 
   const exam = Number.isNaN(examId)
@@ -39,7 +46,9 @@ export default async function CreateExamWorkflowPage({
           id: examId,
           schoolId,
           academicYearId,
-          ...(role === "teacher" ? { lesson: { teacherId: userId } } : {}),
+          ...(role === "teacher"
+            ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+            : {}),
         },
         include: {
           questions: {
@@ -57,7 +66,9 @@ export default async function CreateExamWorkflowPage({
           subjectId: exam.subjectId,
           academicYearId,
           schoolId,
-          ...(role === "teacher" ? { lesson: { teacherId: userId } } : {}),
+          ...(role === "teacher"
+            ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
+            : {}),
         },
         select: { classId: true },
       })
@@ -74,6 +85,8 @@ export default async function CreateExamWorkflowPage({
   const initialData = exam
     ? {
         title: exam.title,
+        instructions: exam.instructions ?? "",
+        teacherId: exam.teacherId ?? "",
         startTime: exam.startTime,
         endTime: exam.endTime,
         subjectId: exam.subjectId ?? undefined,
@@ -95,6 +108,7 @@ export default async function CreateExamWorkflowPage({
             ? (question.options as string[])
             : [],
           correctAnswer: question.correctAnswer ?? [],
+          textAnswer: question.textAnswer ?? "",
         })),
       }
     : Number.isNaN(preselectedSubjectId) ||
@@ -102,22 +116,77 @@ export default async function CreateExamWorkflowPage({
       ? undefined
       : { subjectId: preselectedSubjectId };
 
+  const subjectGradeIds = Array.from(
+    new Set(subjects.map((subject) => subject.gradeId)),
+  );
+
   const classes = await prisma.class.findMany({
     where: {
       schoolId,
-      ...(role === "teacher" ? { teachers: { some: { id: userId } } } : {}),
+      ...(role === "teacher"
+        ? {
+            OR: [
+              { gradeId: { in: subjectGradeIds } },
+              { teachers: { some: { id: userId } } },
+              { lessons: { some: { teacherId: userId, academicYearId } } },
+            ],
+          }
+        : {}),
     },
-    select: { id: true, name: true },
+    select: { id: true, name: true, gradeId: true },
   });
+
+  const teachers =
+    role === "admin"
+      ? await prisma.teacher.findMany({
+          where: { schoolId },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        })
+      : [];
+
+  const lessonPairs = await prisma.lesson.findMany({
+    where: {
+      schoolId,
+      academicYearId,
+      ...(role === "teacher" ? { teacherId: userId } : {}),
+    },
+    select: { subjectId: true, classId: true },
+  });
+
+  const subjectClassPairsMap = new Map<
+    string,
+    { subjectId: number; classId: number }
+  >();
+
+  for (const subject of subjects) {
+    for (const classItem of classes) {
+      if (classItem.gradeId === subject.gradeId) {
+        subjectClassPairsMap.set(`${subject.id}:${classItem.id}`, {
+          subjectId: subject.id,
+          classId: classItem.id,
+        });
+      }
+    }
+  }
+
+  for (const pair of lessonPairs) {
+    subjectClassPairsMap.set(`${pair.subjectId}:${pair.classId}`, pair);
+  }
+
+  const subjectClassPairs = Array.from(subjectClassPairsMap.values());
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
       <h1 className="mb-6 font-bold text-gray-900 text-2xl">
-        {exam ? "Update Exam Workflow" : "Create New Exam Workflow"}
+        {exam ? "Update Exam" : "Create New Exam"}
       </h1>
       <ExamWorkflowForm
         subjects={subjects}
         classes={classes}
+        teachers={teachers}
+        canSelectTeacher={role === "admin"}
+        teacherLessons={subjectClassPairs}
         mode={exam ? "update" : "create"}
         examId={exam?.id}
         initialData={initialData}
