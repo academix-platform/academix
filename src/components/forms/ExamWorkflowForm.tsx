@@ -12,14 +12,19 @@ import {
   createExamWorkflow,
   updateExamWorkflow,
 } from "@/lib/actions/examWorkflow.actions";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useRef } from "react";
 import InputField from "../InputField";
+import { FileText } from "lucide-react";
+import TeacherSearchInput from "./TeacherSearchInput";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
   classes: { id: number; name: string }[];
+  teachers?: { id: string; name: string }[];
+  canSelectTeacher?: boolean;
   mode?: "create" | "update";
   examId?: number;
+  teacherLessons: { subjectId: number; classId: number }[];
   initialData?: Omit<
     Partial<CreateExamWorkflowSchema>,
     "startTime" | "endTime"
@@ -43,6 +48,7 @@ function QuestionEditor({
   register,
   setValue,
   errors,
+  isSubmitted,
   removeQuestion,
 }: {
   index: number;
@@ -50,63 +56,116 @@ function QuestionEditor({
   register: any;
   setValue: any;
   errors: any;
+  isSubmitted: boolean;
   removeQuestion: () => void;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
   const optionsPath = `questions.${index}.options` as const;
   const correctPath = `questions.${index}.correctAnswer` as const;
   const allowMultiplePath = `questions.${index}.allowMultiple` as const;
   const typePath = `questions.${index}.type` as const;
+  const fileConfigPath = `questions.${index}.fileConfig` as const;
+
   const qType = useWatch({ control, name: typePath }) ?? "TEXT";
   const typeField = register(typePath);
   const allowMultiple =
     useWatch({ control, name: `questions.${index}.allowMultiple` }) ?? false;
-  const correctAnswers = useWatch({
-    control,
-    name: correctPath,
-    defaultValue: [],
+  const correctAnswers: string[] =
+    useWatch({
+      control,
+      name: correctPath,
+      defaultValue: [],
+    } as any) ?? [];
+  const currentOptions: string[] =
+    useWatch({
+      control,
+      name: optionsPath,
+      defaultValue: [],
+    } as any) ?? [];
+
+  const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
+    if (!currentOptions.length || !correctAnswers.length) return [];
+    return currentOptions
+      .map((opt: string, i: number) => (correctAnswers.includes(opt) ? i : -1))
+      .filter((i: number) => i >= 0);
   });
-  const currentOptions = useWatch({
-    control,
-    name: optionsPath,
-    defaultValue: [],
-  });
-  const selectedOptionIndexes = useMemo<number[]>(
-    () =>
-      (currentOptions ?? [])
-        .map((option: string, indexValue: number) =>
-          (correctAnswers ?? []).includes(option) ? indexValue : -1,
-        )
-        .filter((indexValue: number) => indexValue >= 0),
-    [currentOptions, correctAnswers],
-  );
+
   const selectedTrueFalse = useMemo<"TRUE" | "FALSE" | null>(() => {
     if ((correctAnswers ?? [])[0] === "FALSE") return "FALSE";
     if ((correctAnswers ?? [])[0] === "TRUE") return "TRUE";
     return null;
   }, [correctAnswers]);
-  const {
-    fields: optionFields,
-    append: appendOption,
-    remove: removeOption,
-    replace: replaceOptions,
-  } = useFieldArray({
-    control,
-    name: optionsPath,
-  });
+
+  const lockScroll = () => {
+    const currentScrollY = window.scrollY;
+    const mainContentContainer =
+      containerRef.current?.closest(".overflow-auto");
+    const containerScrollTop = mainContentContainer
+      ? mainContentContainer.scrollTop
+      : 0;
+
+    window.scrollTo(0, currentScrollY);
+    if (mainContentContainer) {
+      mainContentContainer.scrollTop = containerScrollTop;
+    }
+
+    requestAnimationFrame(() => {
+      window.scrollTo(0, currentScrollY);
+      if (mainContentContainer) {
+        mainContentContainer.scrollTop = containerScrollTop;
+      }
+      containerRef.current?.scrollIntoView({
+        behavior: "auto",
+        block: "nearest",
+      });
+    });
+  };
+
+  const setOptions = (next: string[]) => {
+    setValue(optionsPath, next, { shouldDirty: true });
+  };
+
+  const appendOption = () => {
+    lockScroll();
+    setOptions([...currentOptions, ""]);
+  };
+
+  const removeOptionAt = (idx: number) => {
+    lockScroll();
+
+    const nextSelected = selectedIndexes
+      .filter((si) => si !== idx)
+      .map((si) => (si > idx ? si - 1 : si));
+    setSelectedIndexes(nextSelected);
+
+    const next = currentOptions.filter((_: string, i: number) => i !== idx);
+    setOptions(next);
+
+    const nextCorrect = nextSelected
+      .map((si) => next[si])
+      .filter((v): v is string => Boolean(v?.trim()));
+    setValue(correctPath, nextCorrect, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
 
   const handleQuestionTypeChange = (nextType: string) => {
+    lockScroll();
+
     if (nextType === "MCQ") {
-      replaceOptions(["", "", "", ""]);
+      setOptions(["", "", "", ""]);
+      setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
         shouldValidate: true,
       });
-      return;
-    }
-
-    if (nextType === "TRUE_FALSE") {
-      replaceOptions(["True", "False"]);
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
+    } else if (nextType === "TRUE_FALSE") {
+      setOptions(["True", "False"]);
+      setSelectedIndexes([]);
       setValue(correctPath, ["TRUE"], {
         shouldDirty: true,
         shouldValidate: true,
@@ -115,26 +174,46 @@ function QuestionEditor({
         shouldDirty: true,
         shouldValidate: true,
       });
-      return;
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
+    } else if (nextType === "FILE") {
+      setOptions([]);
+      setSelectedIndexes([]);
+      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue(
+        fileConfigPath,
+        {
+          allowedExtensions: [],
+          minFileSizeMb: 0,
+          maxFileSizeMb: 10,
+          instructions: "",
+        },
+        { shouldDirty: true },
+      );
+    } else {
+      setOptions([]);
+      setSelectedIndexes([]);
+      setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
+      setValue(allowMultiplePath, false, {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue(fileConfigPath, undefined, { shouldDirty: true });
     }
-
-    replaceOptions([]);
-    setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
-    setValue(allowMultiplePath, false, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
   };
 
   useEffect(() => {
-    if (qType !== "MCQ") return;
+    if (qType !== "MCQ" || selectedIndexes.length === 0) return;
 
-    const nextCorrectAnswers = selectedOptionIndexes
-      .map((optionIndex) => currentOptions[optionIndex])
-      .filter((value): value is string => Boolean(value?.trim()));
+    const nextCorrect = selectedIndexes
+      .map((si) => currentOptions[si])
+      .filter((v): v is string => Boolean(v?.trim()));
 
-    if (JSON.stringify(nextCorrectAnswers) !== JSON.stringify(correctAnswers)) {
-      setValue(correctPath, nextCorrectAnswers, {
+    if (JSON.stringify(nextCorrect) !== JSON.stringify(correctAnswers)) {
+      setValue(correctPath, nextCorrect, {
         shouldDirty: true,
         shouldValidate: true,
       });
@@ -144,58 +223,56 @@ function QuestionEditor({
     correctPath,
     currentOptions,
     qType,
-    selectedOptionIndexes,
+    selectedIndexes,
     setValue,
   ]);
 
-  const syncSelectionAfterRemoval = (removedIndex: number) => {
-    const removedOption = currentOptions[removedIndex];
-    const nextCorrectAnswers = correctAnswers
-      .filter((answer: string) => answer !== removedOption)
-      .map((value: string) => value.trim())
-      .filter(Boolean);
+  const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
+    const optionValue = currentOptions[optionIndex];
+    if (checked && (!optionValue || !optionValue.trim())) {
+      toast.error("Please write the option text before marking it as correct!");
+      return;
+    }
 
-    setValue(correctPath, nextCorrectAnswers, {
+    lockScroll();
+
+    let nextSelected: number[];
+
+    if (allowMultiple) {
+      nextSelected = checked
+        ? Array.from(new Set([...selectedIndexes, optionIndex])).sort(
+            (a, b) => a - b,
+          )
+        : selectedIndexes.filter((i) => i !== optionIndex);
+    } else {
+      nextSelected = checked ? [optionIndex] : [];
+    }
+
+    setSelectedIndexes(nextSelected);
+
+    const nextCorrect = nextSelected
+      .map((si) => currentOptions[si])
+      .filter((v): v is string => Boolean(v?.trim()));
+
+    setValue(correctPath, nextCorrect, {
       shouldDirty: true,
       shouldValidate: true,
     });
   };
 
-  const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
-    if (allowMultiple) {
-      const nextSelectedIndexes = checked
-        ? Array.from(new Set([...selectedOptionIndexes, optionIndex])).sort(
-            (a, b) => a - b,
-          )
-        : selectedOptionIndexes.filter(
-            (indexValue) => indexValue !== optionIndex,
-          );
-
-      setValue(
-        correctPath,
-        nextSelectedIndexes
-          .map((indexValue) => currentOptions[indexValue])
-          .filter((value): value is string => Boolean(value?.trim())),
-        { shouldDirty: true, shouldValidate: true },
-      );
-      return;
-    }
-
-    setValue(
-      correctPath,
-      checked && currentOptions[optionIndex]
-        ? [currentOptions[optionIndex]]
-        : [],
-      { shouldDirty: true, shouldValidate: true },
-    );
-  };
-
   const toggleTrueFalse = (value: "TRUE" | "FALSE") => {
+    lockScroll();
     setValue(correctPath, [value], { shouldDirty: true, shouldValidate: true });
   };
 
+  // فحص ما إذا كان هناك أي خيار فارغ داخل السؤال الحالي
+  const hasEmptyOption = currentOptions.some((opt) => !opt || !opt.trim());
+
   return (
-    <div className="relative space-y-4 bg-white p-4 border rounded-md">
+    <div
+      ref={containerRef}
+      className="relative space-y-4 bg-white p-4 border rounded-md"
+    >
       <button
         type="button"
         onClick={removeQuestion}
@@ -252,18 +329,18 @@ function QuestionEditor({
               <h3 className="font-medium text-gray-700 text-sm">Options</h3>
               <button
                 type="button"
-                onClick={() => appendOption("")}
+                onClick={() => appendOption()}
                 className="text-blue-600 text-sm hover:underline"
               >
                 + Add Option
               </button>
             </div>
 
-            {optionFields.map((field, optionIndex) => {
-              const isSelected = selectedOptionIndexes.includes(optionIndex);
+            {currentOptions.map((_optValue: string, optionIndex: number) => {
+              const isSelected = selectedIndexes.includes(optionIndex);
 
               return (
-                <div key={field.id} className="flex items-center gap-3">
+                <div key={optionIndex} className="flex items-center gap-3">
                   <input
                     {...register(`questions.${index}.options.${optionIndex}`)}
                     className="flex-1 p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
@@ -282,10 +359,7 @@ function QuestionEditor({
                   </label>
                   <button
                     type="button"
-                    onClick={() => {
-                      syncSelectionAfterRemoval(optionIndex);
-                      removeOption(optionIndex);
-                    }}
+                    onClick={() => removeOptionAt(optionIndex)}
                     className="text-red-500 text-sm hover:underline"
                   >
                     Remove
@@ -294,9 +368,12 @@ function QuestionEditor({
               );
             })}
 
-            {errors?.questions?.[index]?.options?.message && (
-              <p className="font-medium text-red-500 text-xs">
-                {errors.questions[index]?.options?.message?.toString()}
+            {/* إظهار الخطأ فوراً في حال حاول المعلم إنشاء الاختبار وهناك خيارات فارغة */}
+            {(errors?.questions?.[index]?.options?.message ||
+              (isSubmitted && hasEmptyOption)) && (
+              <p className="mt-1 font-medium text-red-500 text-xs">
+                {errors?.questions?.[index]?.options?.message?.toString() ||
+                  "⚠️ All option fields must be filled. Please do not leave empty options."}
               </p>
             )}
           </div>
@@ -335,6 +412,139 @@ function QuestionEditor({
           )}
         </div>
       )}
+
+      {(qType === "TEXT" || qType === "FILE") && (
+        <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
+          <h3 className="font-medium text-gray-700 text-sm">
+            Model Answer / Rubric
+          </h3>
+          <textarea
+            {...register(`questions.${index}.textAnswer`)}
+            className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[100px] text-sm transition-all"
+            placeholder="Write the expected answer or explain how marks should be awarded..."
+          />
+          <p className="text-gray-400 text-xs">
+            Used to guide manual grading and AI evaluation.
+          </p>
+          {errors?.questions?.[index]?.textAnswer?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.questions[index]?.textAnswer?.message?.toString()}
+            </p>
+          )}
+        </div>
+      )}
+
+      {qType === "FILE" && (
+        <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-academixPurpleDark" />
+            <h3 className="font-medium text-gray-700 text-sm">
+              File Upload Settings
+            </h3>
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-medium text-gray-700 text-xs">
+              Allowed File Extensions
+            </label>
+            <input
+              type="text"
+              className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
+              placeholder="e.g. pdf, docx, jpg"
+              {...register(`questions.${index}.fileConfig.allowedExtensions`, {
+                setValueAs: (v: any) => {
+                  if (Array.isArray(v)) return v;
+                  if (typeof v === "string") {
+                    if (!v.trim()) return [];
+                    return v
+                      .split(",")
+                      .map((s) => s.trim().toLowerCase().replace(/^\./, ""))
+                      .filter(Boolean);
+                  }
+                  return [];
+                },
+              })}
+              defaultValue={(() => {
+                const currentVal =
+                  control._formValues.questions?.[index]?.fileConfig
+                    ?.allowedExtensions;
+                return Array.isArray(currentVal)
+                  ? currentVal.join(", ")
+                  : (currentVal ?? "");
+              })()}
+              onBlur={(e) => {
+                setValue(
+                  `questions.${index}.fileConfig.allowedExtensions`,
+                  e.target.value,
+                  {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  },
+                );
+              }}
+            />
+            <p className="text-gray-400 text-xs">
+              Leave empty to accept all file types (Optional)
+            </p>
+          </div>
+
+          <div className="gap-4 grid grid-cols-2">
+            <div className="space-y-2">
+              <label className="font-medium text-gray-700 text-xs">
+                Min File Size (MB)
+              </label>
+              <input
+                type="number"
+                min={0}
+                step={0.1}
+                {...register(`questions.${index}.fileConfig.minFileSizeMb`, {
+                  valueAsNumber: true,
+                })}
+                className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="font-medium text-gray-700 text-xs">
+                Max File Size (MB)
+              </label>
+              <input
+                type="number"
+                min={1}
+                max={10}
+                step={0.1}
+                {...register(`questions.${index}.fileConfig.maxFileSizeMb`, {
+                  valueAsNumber: true,
+                })}
+                className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
+              />
+              <p className="text-gray-400 text-xs">System max: 10 MB</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="font-medium text-gray-700 text-xs">
+              Instructions for Student (optional)
+            </label>
+            <textarea
+              rows={3}
+              {...register(`questions.${index}.fileConfig.instructions`)}
+              className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[60px] text-sm transition-all"
+              placeholder="e.g. Upload your essay as a PDF file..."
+            />
+          </div>
+
+          <p className="text-gray-400 text-xs italic">
+            PDF submissions can be evaluated with AI using the model answer /
+            rubric above.
+          </p>
+
+          {errors?.questions?.[index]?.fileConfig?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.questions[index]?.fileConfig?.message?.toString()}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -342,12 +552,16 @@ function QuestionEditor({
 export default function ExamWorkflowForm({
   subjects,
   classes,
+  teachers = [],
+  canSelectTeacher = false,
   mode = "create",
   examId,
   initialData,
+  teacherLessons,
 }: ExamWorkflowFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const createDateTimeDefault = toDateTimeLocalValue(new Date());
 
   const {
     register,
@@ -355,13 +569,17 @@ export default function ExamWorkflowForm({
     handleSubmit,
     setValue,
     watch,
-    formState: { errors },
+    formState: { errors, isSubmitted },
   } = useForm<CreateExamWorkflowSchema>({
     resolver: zodResolver(createExamWorkflowSchema),
     defaultValues: {
       title: initialData?.title ?? "",
-      startTime: toDateTimeLocalValue(initialData?.startTime) as any,
-      endTime: toDateTimeLocalValue(initialData?.endTime) as any,
+      instructions: initialData?.instructions ?? "",
+      teacherId: initialData?.teacherId ?? "",
+      startTime: (toDateTimeLocalValue(initialData?.startTime) ||
+        (mode === "create" ? createDateTimeDefault : "")) as any,
+      endTime: (toDateTimeLocalValue(initialData?.endTime) ||
+        (mode === "create" ? createDateTimeDefault : "")) as any,
       subjectId: initialData?.subjectId,
       classIds: (initialData?.classIds ?? []).map(String) as any,
       enableTimer: initialData?.enableTimer ?? true,
@@ -371,17 +589,23 @@ export default function ExamWorkflowForm({
       autoSaveInterval: initialData?.autoSaveInterval ?? 30,
       enableAutoSubmit: initialData?.enableAutoSubmit ?? true,
       questionsPerPage: initialData?.questionsPerPage ?? 1,
-      questions: initialData?.questions ?? [
-        {
-          type: "TEXT",
-          text: "",
-          points: 1,
-          order: 1,
-          allowMultiple: false,
-          options: [],
-          correctAnswer: [],
-        },
-      ],
+      questions: (
+        initialData?.questions ?? [
+          {
+            type: "TEXT",
+            text: "",
+            points: 1,
+            order: 1,
+            allowMultiple: false,
+            options: [],
+            correctAnswer: [],
+            textAnswer: "",
+          },
+        ]
+      ).map((q) => ({
+        ...q,
+        textAnswer: q.textAnswer ?? "",
+      })),
     },
   });
 
@@ -391,8 +615,45 @@ export default function ExamWorkflowForm({
   });
 
   const watchEnableTimer = watch("enableTimer");
+  const watchSubjectId = watch("subjectId");
+  const watchTeacherId = watch("teacherId");
+
+  const filteredClasses = useMemo(() => {
+    if (!watchSubjectId) {
+      return [];
+    }
+
+    const subjectId = Number(watchSubjectId);
+    const validClassIds = new Set(
+      teacherLessons
+        .filter((l) => l.subjectId === subjectId)
+        .map((l) => l.classId),
+    );
+    return classes.filter((c) => validClassIds.has(c.id));
+  }, [classes, teacherLessons, watchSubjectId]);
 
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
+    if (data.questions && data.questions.length > 0) {
+      for (let i = 0; i < data.questions.length; i++) {
+        const q = data.questions[i];
+        if (q.type === "MCQ") {
+          const hasEmptyOption = q.options?.some((opt) => !opt || !opt.trim());
+          if (hasEmptyOption) {
+            toast.error(
+              `Question #${i + 1} has empty options! Please fill in all option fields.`,
+            );
+            return;
+          }
+          if (!q.correctAnswer || q.correctAnswer.length === 0) {
+            toast.error(
+              `Please select at least one correct answer for Question #${i + 1}.`,
+            );
+            return;
+          }
+        }
+      }
+    }
+
     setIsSubmitting(true);
     try {
       const res =
@@ -422,130 +683,176 @@ export default function ExamWorkflowForm({
 
   return (
     <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-bold text-gray-900 text-2xl">1. Basic Information</h2>
-        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <InputField
-            label="Exam Title"
-            name="title"
-            register={register}
-            error={errors.title}
-          />
-          <InputField
-            label="Start Time"
-            name="startTime"
-            type="datetime-local"
-            register={register}
-            error={errors.startTime}
-          />
-          <InputField
-            label="End Time"
-            name="endTime"
-            type="datetime-local"
-            register={register}
-            error={errors.endTime}
-          />
-
-          <div className="flex flex-col gap-2 w-full">
-            <label className="font-medium text-gray-700 text-sm">Subject</label>
-            <select
-              {...register("subjectId")}
-              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-            >
-              <option value="">Select a subject...</option>
-              {subjects.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-            {errors.subjectId?.message && (
-              <p className="font-medium text-red-500 text-xs">{errors.subjectId.message}</p>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-2 md:col-span-2 w-full">
-            <label className="font-medium text-gray-700 text-sm">Classes</label>
-            <div className="flex flex-wrap gap-4">
-              {classes.map((c) => (
-                <label key={c.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    value={String(c.id)}
-                    {...register("classIds")}
-                  />
-                  <span>{c.name}</span>
-                </label>
-              ))}
-            </div>
-            {errors.classIds?.message && (
-              <p className="font-medium text-red-500 text-xs">{errors.classIds.message}</p>
-            )}
-          </div>
-        </div>
-      </section>
-
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
-        <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
-        <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableTimer")} />
-            <span>Enable Timer</span>
-          </label>
-
-          {watchEnableTimer && (
+      <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
+        <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+          <h2 className="font-bold text-gray-900 text-2xl">
+            1. Basic Information
+          </h2>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <InputField
-              label="Duration (minutes)"
-              name="duration"
-              type="number"
+              label="Exam Title"
+              name="title"
               register={register}
-              error={errors.duration}
+              error={errors.title}
             />
-          )}
+            <InputField
+              label="Start Time"
+              name="startTime"
+              type="datetime-local"
+              register={register}
+              error={errors.startTime}
+            />
+            <InputField
+              label="End Time"
+              name="endTime"
+              type="datetime-local"
+              register={register}
+              error={errors.endTime}
+            />
 
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableNavigation")} />
-            <span>Allow Previous Page Navigation</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableAutoSave")} />
-            <span>Enable Auto-Save</span>
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" {...register("enableAutoSubmit")} />
-            <span>Enable Auto-Submit when time is up</span>
-          </label>
+            {canSelectTeacher && (
+              <div className="md:col-span-2">
+                <input type="hidden" {...register("teacherId")} />
+                <TeacherSearchInput
+                  label="Assigned Teacher"
+                  teachers={teachers}
+                  value={watchTeacherId}
+                  onChange={(teacherId) =>
+                    setValue("teacherId", teacherId ?? "", {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+                <p className="mt-1 text-gray-400 text-xs">
+                  This teacher will be able to access and evaluate submissions.
+                </p>
+              </div>
+            )}
 
-          <InputField
-            label="Questions Per Page"
-            name="questionsPerPage"
-            type="number"
-            register={register}
-            error={errors.questionsPerPage}
+            <div className="flex flex-col gap-2 w-full">
+              <label className="font-medium text-gray-700 text-sm">
+                Subject
+              </label>
+              <select
+                {...register("subjectId")}
+                className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+              >
+                <option value="">Select a subject...</option>
+                {subjects.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+              {errors.subjectId?.message && (
+                <p className="font-medium text-red-500 text-xs">
+                  {errors.subjectId.message}
+                </p>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 md:col-span-2 w-full">
+              <label className="font-medium text-gray-700 text-sm">
+                Classes
+              </label>
+              <div className="flex flex-wrap gap-4">
+                {filteredClasses.length > 0 ? (
+                  filteredClasses.map((c) => (
+                    <label key={c.id} className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        value={String(c.id)}
+                        {...register("classIds")}
+                      />
+                      <span>{c.name}</span>
+                    </label>
+                  ))
+                ) : (
+                  <p className="text-gray-400 text-sm italic">
+                    {watchSubjectId
+                      ? "No classes found for this subject."
+                      : "Select a subject first to see available classes."}
+                  </p>
+                )}
+              </div>
+              {errors.classIds?.message && (
+                <p className="font-medium text-red-500 text-xs">
+                  {errors.classIds.message}
+                </p>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+          <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
+          <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableTimer")} />
+              <span>Show Timer</span>
+            </label>
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableAutoSave")} />
+              <span>Auto-Save</span>
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableNavigation")} />
+              <span>Previous Page Navigation</span>
+            </label>
+
+            <label className="flex items-center gap-2">
+              <input type="checkbox" {...register("enableAutoSubmit")} />
+              <span>Auto-Submit when time is up</span>
+            </label>
+            <div className="space-y-2">
+              {watchEnableTimer && (
+                <InputField
+                  label="Duration (minutes)"
+                  name="duration"
+                  type="number"
+                  register={register}
+                  error={errors.duration}
+                />
+              )}
+
+              <InputField
+                label="Questions Per Page"
+                name="questionsPerPage"
+                type="number"
+                register={register}
+                error={errors.questionsPerPage}
+              />
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
+        <h2 className="font-bold text-gray-900 text-2xl">3. Instructions</h2>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            Student Instructions
+            <span className="ml-1 font-normal text-gray-400">(optional)</span>
+          </label>
+          <textarea
+            {...register("instructions")}
+            rows={4}
+            placeholder="Add anything students should read before starting..."
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all resize-none placeholder-gray-400"
           />
+          {errors.instructions?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.instructions.message}
+            </p>
+          )}
         </div>
       </section>
 
-      <section className="space-y-4 bg-gray-50 p-4 border rounded-md">
+      <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold text-gray-900 text-2xl">3. Questions</h2>
-          <button
-            type="button"
-            onClick={() =>
-              append({
-                type: "TEXT",
-                text: "",
-                points: 1,
-                order: fields.length + 1,
-                allowMultiple: false,
-                options: [],
-                correctAnswer: [],
-              })
-            }
-            className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md w-fit text-white transition-all"
-          >
-            + Add Question
-          </button>
+          <h2 className="font-bold text-gray-900 text-2xl">4. Questions</h2>
         </div>
 
         {fields.map((field, index) => {
@@ -557,6 +864,7 @@ export default function ExamWorkflowForm({
               register={register}
               setValue={setValue}
               errors={errors}
+              isSubmitted={isSubmitted}
               removeQuestion={() => remove(index)}
             />
           );
@@ -564,6 +872,24 @@ export default function ExamWorkflowForm({
         {errors.questions?.root?.message && (
           <p className="text-red-500">{errors.questions.root.message}</p>
         )}
+        <button
+          type="button"
+          onClick={() =>
+            append({
+              type: "TEXT",
+              text: "",
+              points: 1,
+              order: fields.length + 1,
+              allowMultiple: false,
+              options: [],
+              correctAnswer: [],
+              textAnswer: "",
+            })
+          }
+          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 ml-auto px-4 py-2 rounded-md w-fit text-white transition-all"
+        >
+          + Add Question
+        </button>
       </section>
 
       <button
@@ -582,5 +908,3 @@ export default function ExamWorkflowForm({
     </form>
   );
 }
-
-

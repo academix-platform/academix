@@ -56,7 +56,8 @@ function AssignmentsSection({
     description: string | null;
     endDate: Date;
     fileUrl: string | null;
-    lesson: { class: { name: string } };
+    class: { name: string } | null;
+    lesson: { class: { name: string } } | null;
   }[];
   createAction?: ReactNode;
 }) {
@@ -103,7 +104,7 @@ function AssignmentsSection({
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-1 text-gray-400 text-xs">
-                    <span>Class: {a.lesson.class.name}</span>
+                    <span>Class: {a.class?.name ?? a.lesson?.class.name ?? "-"}</span>
                     <span>·</span>
                     <span>
                       Due:{" "}
@@ -254,6 +255,7 @@ export default async function SubjectDetailPage({
           endDate: true,
           fileUrl: true,
           fileName: true,
+          class: { select: { name: true } },
           lesson: {
             select: { class: { select: { name: true } } },
           },
@@ -281,7 +283,9 @@ export default async function SubjectDetailPage({
   if (!subject) notFound();
 
   const classCount = new Set([
-    ...subject.assignments.map((assignment) => assignment.lesson.class.name),
+    ...subject.assignments
+      .map((assignment) => assignment.class?.name ?? assignment.lesson?.class.name)
+      .filter((className): className is string => !!className),
     ...subject.exams
       .map((exam) => exam.class?.name)
       .filter((className): className is string => !!className),

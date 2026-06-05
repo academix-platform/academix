@@ -28,7 +28,10 @@ export async function GET(req: NextRequest) {
     } else {
       // المعلم يرى فقط واجباته
       assignment = await prisma.assignment.findFirst({
-        where: { id: assignmentId, lesson: { teacherId: userId } },
+        where: {
+          id: assignmentId,
+          OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+        },
         select: { id: true },
       });
     }

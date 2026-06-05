@@ -9,19 +9,19 @@ datasource db {
 }
 
 model School {
-  id Int @id @default(autoincrement())
-  name String @unique
-  contactEmail String?
-  contactPhone String?
-  website String?
-  country String?
-  city String?
-  address String?
+  id                 Int          @id @default(autoincrement())
+  name               String       @unique
+  contactEmail       String?
+  contactPhone       String?
+  website            String?
+  country            String?
+  city               String?
+  address            String?
   registrationNumber String?
-  status SchoolStatus @default(PENDING)
-  pauseReason String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  status             SchoolStatus @default(PENDING)
+  pauseReason        String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
 
   academicYears         AcademicYear[]
   admins                Admin[]
@@ -44,6 +44,7 @@ model School {
   schoolSettings        SchoolSettings[]
   schoolDayExceptions   SchoolDayException[]
   results               Result[]
+  aiEvaluations         AiEvaluation[]
 
   // Exam workflow relations
   questions   Question[]
@@ -51,6 +52,7 @@ model School {
   answers     Answer[]
 
   subjectPageSettings SubjectPageSettings[]
+  notifications       Notification[]
 }
 
 model Admin {
@@ -64,16 +66,16 @@ model Admin {
 }
 
 model SchoolSettings {
-  id       Int      @id @default(autoincrement())
-  schoolId Int      @unique
-  school   School   @relation(fields: [schoolId], references: [id])
+  id       Int    @id @default(autoincrement())
+  schoolId Int    @unique
+  school   School @relation(fields: [schoolId], references: [id])
 
   workDayStart DateTime @db.Time
   workDayEnd   DateTime @db.Time
 
   lessonDuration Int
   lessonsPerDay  Int
-  workingDays   String[] @default([])
+  workingDays    String[] @default([])
 
   updatedAt DateTime @updatedAt
 
@@ -179,6 +181,8 @@ model Teacher {
   messages            Message[]
   studyMaterials      StudyMaterial[]
   birthday            DateTime
+  exams               Exam[]
+  assignments         Assignment[]
   subjectPageSettings SubjectPageSettings[]
 
   @@unique([schoolId, username])
@@ -317,18 +321,22 @@ model Lesson {
 model Exam {
   id        Int      @id @default(autoincrement())
   schoolId  Int
-  school    School   @relation(fields: [schoolId], references: [id])
-  title     String
-  startTime DateTime
-  endTime   DateTime
+    school    School   @relation(fields: [schoolId], references: [id])
+    title     String
+    instructions String?
+    startTime DateTime
+    endTime   DateTime
 
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])
   subjectId Int?
   subject   Subject? @relation(fields: [subjectId], references: [id])
 
-  lessonId Int
-  lesson   Lesson @relation(fields: [lessonId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+
+  lessonId Int?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id])
 
   academicYearId Int
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -349,6 +357,7 @@ model Exam {
   submissions Submission[]
 
   @@index([schoolId])
+  @@index([teacherId])
 }
 
 model Assignment {
@@ -357,10 +366,12 @@ model Assignment {
   school              School   @relation(fields: [schoolId], references: [id])
   title               String
   description         String?
+  rubric              String?
   startDate           DateTime
   endDate             DateTime
   fileUrl             String?
   fileName            String?
+  maxScore            Float    @default(10)
   allowLateSubmission Boolean  @default(false) // ✅ أضف هذا السطر
 
   classId   Int?
@@ -368,8 +379,11 @@ model Assignment {
   subjectId Int?
   subject   Subject? @relation(fields: [subjectId], references: [id])
 
-  lessonId Int
-  lesson   Lesson @relation(fields: [lessonId], references: [id])
+  teacherId String?
+  teacher   Teacher? @relation(fields: [teacherId], references: [id])
+
+  lessonId Int?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id])
 
   academicYearId Int
   academicYear   AcademicYear @relation(fields: [academicYearId], references: [id])
@@ -378,6 +392,7 @@ model Assignment {
   assignmentSubmissions AssignmentSubmission[]
 
   @@index([schoolId])
+  @@index([teacherId])
 }
 
 // Assignment file submission (from stash)
@@ -388,6 +403,11 @@ model AssignmentSubmission {
   fileType        String
   note            String?
   teacherFeedback String?
+  score           Float?
+  gradePublished  Boolean   @default(false)
+  gradedAt        DateTime?
+  gradedBy        String?
+  aiEvaluation    AiEvaluation?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -580,6 +600,7 @@ model Question {
   options       Json?
   correctAnswer String[]
   allowMultiple Boolean      @default(false)
+  textAnswer    String?      // Optional model answer for TEXT questions
   answers       Answer[]
 
   @@index([schoolId])
@@ -601,6 +622,7 @@ model Submission {
   autoSubmitted    Boolean          @default(false)
   lastSyncedAt     DateTime?
   totalScore       Float?
+  gradePublished   Boolean          @default(false)
   extraTime        Int?
   extendedBy       String?
   extendedAt       DateTime?
@@ -620,22 +642,78 @@ model Submission {
 }
 
 model Answer {
-  id           Int        @id @default(autoincrement())
-  schoolId     Int
-  school       School     @relation(fields: [schoolId], references: [id])
-  submissionId Int
-  submission   Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
-  questionId   Int
-  question     Question   @relation(fields: [questionId], references: [id])
-  textAnswer   String?
-  fileUrl      String?
-  isDraft      Boolean    @default(true)
-  savedAt      DateTime   @default(now())
-  score        Float?
+  id               Int        @id @default(autoincrement())
+  schoolId         Int
+  school           School     @relation(fields: [schoolId], references: [id])
+  submissionId     Int
+  submission       Submission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  questionId       Int
+  question         Question   @relation(fields: [questionId], references: [id])
+  textAnswer       String?    // T/F, MCQ (comma-separated for multi-select), TEXT
+  fileUrl          String?    // FILE — Cloudinary secure_url
+  isDraft          Boolean    @default(true)   // false after submitExam finalizes it
+  savedAt          DateTime   @default(now())  // ALWAYS set by server — never accepted from client
+  score            Float?     // null until graded
+  isOverridden     Boolean    @default(false)
+  filePublicId     String?    // Cloudinary public_id for deletion
+  fileOriginalName String?    // Student's original filename
+  fileMimeType     String?    // MIME type from Cloudinary
+  fileSizeBytes    Int?       // File size in bytes
+  aiEvaluation     AiEvaluation?
 
   @@unique([submissionId, questionId])
   @@index([schoolId])
   @@index([submissionId])
+}
+
+model AiEvaluation {
+  id Int @id @default(autoincrement())
+
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id])
+
+  answerId Int?    @unique
+  answer   Answer? @relation(fields: [answerId], references: [id], onDelete: Cascade)
+
+  assignmentSubmissionId Int?                  @unique
+  assignmentSubmission   AssignmentSubmission? @relation(fields: [assignmentSubmissionId], references: [id], onDelete: Cascade)
+
+  provider String @default("gemini")
+  model    String
+  status   AiEvaluationStatus @default(SUGGESTED)
+
+  score       Float?
+  maxScore    Float
+  feedback    String?
+  strengths   Json   @default("[]")
+  weaknesses  Json   @default("[]")
+  needsReview Boolean @default(true)
+  error       String?
+
+  approvedScore    Float?
+  approvedFeedback String?
+  approvedBy       String?
+  approvedAt       DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([schoolId])
+  @@index([answerId])
+  @@index([assignmentSubmissionId])
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+
+  type      String
+  message   String
+  status    String   @default("pending")
+
+  schoolId  Int
+  userId    String?
+
+  createdAt DateTime @default(now())
 }
 
 // ===== ENUMS =====
@@ -651,6 +729,12 @@ enum SubmissionStatus {
   IN_PROGRESS
   SUBMITTED
   GRADED
+}
+
+enum AiEvaluationStatus {
+  SUGGESTED
+  APPROVED
+  FAILED
 }
 
 enum UserSex {
@@ -690,4 +774,40 @@ enum SchoolDayExceptionType {
   HOLIDAY
   OFF_DAY
   WORKING_OVERRIDE
+}
+
+model Notification {
+  id       Int    @id @default(autoincrement())
+  schoolId Int
+  school   School @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+
+  userId   String
+  userRole String
+
+  type  NotificationType
+  title String
+  body  String
+  link  String?
+
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, isRead])
+  @@index([schoolId])
+}
+
+enum NotificationType {
+  NEW_ASSIGNMENT
+  ASSIGNMENT_UPDATED
+  ASSIGNMENT_SUBMITTED
+  ASSIGNMENT_FEEDBACK
+  NEW_EXAM
+  GRADE_POSTED
+  GRADE_UPDATED
+  NEW_ANNOUNCEMENT
+  NEW_EVENT
+  SCHEDULE_UPDATED
+  ATTENDANCE_SAVED
+  SUPERVISOR_ASSIGNED
+  NEW_MESSAGE
 }

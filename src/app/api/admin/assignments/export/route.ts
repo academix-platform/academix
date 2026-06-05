@@ -59,6 +59,11 @@ const { academicYearId, query, orderBy } =
           },
         },
       },
+      teacher: {
+        select: {
+          name: true,
+        },
+      },
     },
     orderBy,
   });
@@ -79,7 +84,7 @@ const { academicYearId, query, orderBy } =
       },
       {
         header: "Teacher",
-        value: (row) => row.lesson.teacher.name,
+        value: (row) => row.teacher?.name ?? row.lesson?.teacher.name ?? "-",
       },
       {
         header: "Start Date",

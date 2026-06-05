@@ -1,9 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Download, Users, FileText, CheckCircle, Clock, MessageSquare, Send, Loader2 } from "lucide-react";
+import { X, Download, Users, FileText, CheckCircle, Clock, MessageSquare, Send, Loader2, Award } from "lucide-react";
 import { toast } from "react-toastify";
-import { updateTeacherFeedback } from "@/lib/actions/submission.actions";
+import {
+  gradeAssignmentSubmission,
+  publishAssignmentGrades,
+  updateTeacherFeedback,
+} from "@/lib/actions/submission.actions";
 
 type Submission = {
   id: number;
@@ -12,6 +16,8 @@ type Submission = {
   fileType: string;
   note: string | null;
   teacherFeedback: string | null;
+  score: number | null;
+  gradePublished: boolean;
   createdAt: Date;
   updatedAt: Date;
   student: {
@@ -24,6 +30,7 @@ type Submission = {
 type Props = {
   assignmentId: number;
   assignmentTitle: string;
+  maxScore: number;
   totalStudents: number;
   endDate: Date; // ✅ لحساب التسليم المتأخر
 };
@@ -44,6 +51,7 @@ function getTimeDiff(from: Date, to: Date): string {
 export default function SubmissionsModal({
   assignmentId,
   assignmentTitle,
+  maxScore,
   totalStudents,
   endDate,
 }: Props) {
@@ -55,7 +63,13 @@ export default function SubmissionsModal({
     studentName: string;
   } | null>(null);
   const [feedbackText, setFeedbackText] = useState("");
+  const [gradeModal, setGradeModal] = useState<{
+    submissionId: number;
+    studentName: string;
+  } | null>(null);
+  const [scoreInput, setScoreInput] = useState("");
   const [saving, setSaving] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -68,6 +82,11 @@ export default function SubmissionsModal({
 
   const submitted = submissions.length;
   const notSubmitted = totalStudents - submitted;
+  const graded = submissions.filter((submission) => submission.score !== null).length;
+  const published = submissions.filter((submission) => submission.gradePublished).length;
+  const hasUnpublishedGrades = submissions.some(
+    (submission) => submission.score !== null && !submission.gradePublished,
+  );
   const isDeadlinePassed = new Date() > new Date(endDate);
 
   async function handleSaveFeedback() {
@@ -90,13 +109,65 @@ export default function SubmissionsModal({
     }
   }
 
+  async function handleSaveGrade() {
+    if (!gradeModal) return;
+    const trimmedScore = scoreInput.trim();
+    if (!trimmedScore) {
+      toast.error("Score is required");
+      return;
+    }
+
+    const score = Number(trimmedScore);
+
+    setSaving(true);
+    const result = await gradeAssignmentSubmission(gradeModal.submissionId, score);
+    setSaving(false);
+
+    if (result.success) {
+      toast.success(result.message);
+      setSubmissions((prev) =>
+        prev.map((submission) =>
+          submission.id === gradeModal.submissionId
+            ? {
+                ...submission,
+                score,
+                gradePublished: false,
+              }
+            : submission,
+        ),
+      );
+      setGradeModal(null);
+    } else {
+      toast.error(result.message);
+    }
+  }
+
+  async function handlePublishGrades() {
+    setPublishing(true);
+    const result = await publishAssignmentGrades(assignmentId);
+    setPublishing(false);
+
+    if (result.success) {
+      toast.success(result.message ?? "Grades published successfully!");
+      setSubmissions((prev) =>
+        prev.map((submission) =>
+          submission.score !== null
+            ? { ...submission, gradePublished: true }
+            : submission,
+        ),
+      );
+    } else {
+      toast.error(result.message);
+    }
+  }
+
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
         className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg
-                   bg-indigo-50 text-indigo-700 hover:bg-indigo-100
+                   bg-academixPurpleLight text-academixPurpleDark hover:brightness-95
                    transition-colors text-xs font-medium"
       >
         <Users className="w-3.5 h-3.5" />
@@ -139,7 +210,7 @@ export default function SubmissionsModal({
             )}
 
             {/* Stats */}
-            <div className="flex gap-3 px-6 py-3 border-b border-gray-100">
+            <div className="flex flex-wrap gap-3 px-6 py-3 border-b border-gray-100">
               <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-medium text-green-700">
@@ -152,13 +223,19 @@ export default function SubmissionsModal({
                   {notSubmitted} Pending
                 </span>
               </div>
+              <div className="flex items-center gap-2 px-3 py-1.5 bg-academixPurpleLight rounded-lg">
+                <Award className="w-4 h-4 text-academixPurpleDark" />
+                <span className="text-sm font-medium text-academixPurpleDark">
+                  {graded} Graded
+                </span>
+              </div>
             </div>
 
             {/* List */}
             <div className="flex-1 overflow-y-auto px-6 py-3">
               {loading ? (
                 <div className="flex items-center justify-center py-10">
-                  <div className="w-6 h-6 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+                  <div className="w-6 h-6 border-2 border-academixPurpleDark border-t-transparent rounded-full animate-spin" />
                 </div>
               ) : submissions.length === 0 ? (
                 <div className="text-center py-10">
@@ -182,8 +259,8 @@ export default function SubmissionsModal({
                           className="w-8 h-8 rounded-full object-cover flex-shrink-0 mt-0.5"
                         />
                       ) : (
-                        <div className="w-8 h-8 rounded-full bg-indigo-100 flex items-center justify-center
-                                        text-indigo-700 font-semibold text-xs flex-shrink-0 mt-0.5">
+                        <div className="w-8 h-8 rounded-full bg-academixPurpleLight flex items-center justify-center
+                                        text-academixPurpleDark font-semibold text-xs flex-shrink-0 mt-0.5">
                           {s.student.name[0]}
                         </div>
                       )}
@@ -212,6 +289,28 @@ export default function SubmissionsModal({
                             {s.fileName}
                           </span>
                         </div>
+                        <div className="flex items-center gap-1.5 mt-1">
+                          {s.score !== null ? (
+                            <>
+                              <span className="text-xs font-medium text-academixPurpleDark">
+                                {s.score}/{maxScore}
+                              </span>
+                              <span
+                                className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                                  s.gradePublished
+                                    ? "bg-green-100 text-green-700"
+                                    : "bg-amber-100 text-amber-700"
+                                }`}
+                              >
+                                {s.gradePublished ? "Published" : "Draft"}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-400">
+                              Ungraded
+                            </span>
+                          )}
+                        </div>
                         {s.note && (
                           <p className="text-xs text-gray-400 mt-1 line-clamp-2 italic">
                             "{s.note}"
@@ -232,13 +331,32 @@ export default function SubmissionsModal({
                         target="_blank"
                         rel="noopener noreferrer"
                         className="flex-shrink-0 p-1.5 rounded-lg text-gray-400
-                                   hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                                   hover:text-academixPurpleDark hover:bg-academixPurpleLight transition-colors"
                         title="Download submission"
                       >
                         <Download className="w-4 h-4" />
                       </a>
 
-                      {/* زر Feedback */}
+                      {/* Grade */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGradeModal({
+                            submissionId: s.id,
+                            studentName: s.student.name,
+                          });
+                          setScoreInput(s.score?.toString() ?? "");
+                        }}
+                        className="relative flex-shrink-0 p-1.5 rounded-lg text-gray-400
+                                   hover:text-academixPurpleDark hover:bg-academixPurpleLight transition-colors"
+                        title={s.score !== null ? "Edit grade" : "Add grade"}
+                      >
+                        <Award className="w-4 h-4" />
+                        {s.score !== null && (
+                          <span className="absolute top-0.5 right-0.5 w-1.5 h-1.5 rounded-full bg-academixPurpleDark" />
+                        )}
+                      </button>
+
                       <button
                         type="button"
                         onClick={() => {
@@ -267,11 +385,107 @@ export default function SubmissionsModal({
             <div className="px-6 py-3 border-t border-gray-100">
               <button
                 type="button"
+                onClick={handlePublishGrades}
+                disabled={publishing || !hasUnpublishedGrades}
+                className="mb-2 w-full flex items-center justify-center gap-2 py-2 rounded-lg
+                           bg-academixPurpleDark text-white disabled:opacity-50
+                           disabled:cursor-not-allowed hover:brightness-90 text-sm font-medium transition-colors"
+              >
+                {publishing ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Publishing...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Publish Grades ({published}/{graded})
+                  </>
+                )}
+              </button>
+              <button
+                type="button"
                 onClick={() => setOpen(false)}
                 className="w-full py-2 rounded-lg border border-gray-200
                            text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
               >
                 Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Grade Modal */}
+      {gradeModal && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/40">
+          <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-gray-800 text-base">
+                Grade Submission
+              </h3>
+              <button
+                type="button"
+                onClick={() => setGradeModal(null)}
+                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-500 mb-3">
+              Student:{" "}
+              <span className="font-medium text-gray-700">
+                {gradeModal.studentName}
+              </span>
+            </p>
+
+            <label className="block mb-1 font-medium text-gray-700 text-sm">
+              Score
+            </label>
+            <input
+              type="number"
+              min={0}
+              max={maxScore}
+              step={0.5}
+              value={scoreInput}
+              onChange={(e) => setScoreInput(e.target.value)}
+              placeholder={`0 - ${maxScore}`}
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+            />
+
+            <p className="mt-2 text-xs text-gray-400">
+              Saving a grade keeps it hidden until you publish grades.
+            </p>
+
+            <div className="flex gap-3 mt-4">
+              <button
+                type="button"
+                onClick={() => setGradeModal(null)}
+                className="flex-1 py-2 border rounded-lg text-gray-600
+                           hover:bg-gray-50 text-sm font-medium transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveGrade}
+                disabled={saving}
+                className="flex-1 flex items-center justify-center gap-2
+                           bg-academixPurpleDark hover:brightness-90 disabled:opacity-60
+                           text-white font-medium py-2 rounded-lg text-sm transition-colors"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  <>
+                    <Award className="w-4 h-4" />
+                    Save Grade
+                  </>
+                )}
               </button>
             </div>
           </div>
@@ -307,8 +521,7 @@ export default function SubmissionsModal({
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
               placeholder="Write your feedback for this student..."
-              className="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none
-                         focus:ring-2 focus:ring-indigo-300 resize-none"
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400 resize-none"
             />
 
             <div className="flex gap-3 mt-4">
@@ -325,7 +538,7 @@ export default function SubmissionsModal({
                 onClick={handleSaveFeedback}
                 disabled={saving}
                 className="flex-1 flex items-center justify-center gap-2
-                           bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300
+                           bg-academixPurpleDark hover:brightness-90 disabled:opacity-60
                            text-white font-medium py-2 rounded-lg text-sm transition-colors"
               >
                 {saving ? (

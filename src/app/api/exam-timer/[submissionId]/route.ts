@@ -22,6 +22,7 @@ export async function GET(
   const stream = new ReadableStream({
     async start(controller) {
       let intervalId: NodeJS.Timeout;
+      let lastDbUpdate = 0;
 
       const sendTime = async () => {
         try {
@@ -38,6 +39,15 @@ export async function GET(
             controller.close();
             if (intervalId) clearInterval(intervalId);
             return;
+          }
+
+          // Update lastSyncedAt every 20 seconds to keep the session alive
+          if (Date.now() - lastDbUpdate > 20000) {
+            await prisma.submission.update({
+              where: { id: submissionId },
+              data: { lastSyncedAt: new Date() },
+            });
+            lastDbUpdate = Date.now();
           }
 
           const examEndsAt = new Date(

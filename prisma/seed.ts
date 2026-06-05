@@ -36,6 +36,9 @@ const safeDeleteMany = async (run: () => Promise<unknown>) => {
 };
 
 const clearDatabase = async () => {
+  await prisma.answer.deleteMany();
+  await prisma.submission.deleteMany();
+  await prisma.question.deleteMany();
   await safeDeleteMany(() => prisma.answer.deleteMany());
   await safeDeleteMany(() => prisma.submission.deleteMany());
   await safeDeleteMany(() => prisma.question.deleteMany());
@@ -193,19 +196,19 @@ const seedSchool = async ({
     },
   });
 
-  const lesson = await prisma.lesson.create({
-    data: {
-      name: "Lesson 1",
-      day: Day.MONDAY,
-      startTime: new Date("1970-01-01T08:00:00.000Z"),
-      endTime: new Date("1970-01-01T08:45:00.000Z"),
-      schoolId: school.id,
-      subjectId: subject.id,
-      classId: classA.id,
-      teacherId: teacher.id,
-      academicYearId: currentYear.id,
-    },
-  });
+  // const lesson = await prisma.lesson.create({
+  //   data: {
+  //     name: "Lesson 1",
+  //     day: Day.MONDAY,
+  //     startTime: new Date("1970-01-01T08:00:00.000Z"),
+  //     endTime: new Date("1970-01-01T08:45:00.000Z"),
+  //     schoolId: school.id,
+  //     subjectId: subject.id,
+  //     classId: classA.id,
+  //     teacherId: teacher.id,
+  //     academicYearId: currentYear.id,
+  //   },
+  // });
 
   const parent = await prisma.parent.create({
     data: {
@@ -219,27 +222,27 @@ const seedSchool = async ({
     },
   });
 
-const student = await prisma.student.create({
-  data: {
-    id: studentId,
-    username: studentUsername,
-    name: studentName,
-    email: `${studentUsername}@example.com`,
-    phone: `${school.id}33333333`,
-    address: `${schoolName} City`,
-    bloodType: "A+",
+  const student = await prisma.student.create({
+    data: {
+      id: studentId,
+      username: studentUsername,
+      name: studentName,
+      email: `${studentUsername}@example.com`,
+      phone: `${school.id}33333333`,
+      address: `${schoolName} City`,
+      bloodType: "A+",
 
-    sex: UserSex.MALE,
-    birthday: new Date("2010-01-01"),
+      sex: UserSex.MALE,
+      birthday: new Date("2010-01-01"),
 
-    schoolId: school.id,
-    parentId: parent.id,
-    classId: classA.id,
-    gradeId: grade1.id,
+      schoolId: school.id,
+      parentId: parent.id,
+      classId: classA.id,
+      gradeId: grade1.id,
 
-    status: StudentStatus.ACTIVE,
-  },
-});
+      status: StudentStatus.ACTIVE,
+    },
+  });
 
   await prisma.studentAcademicYear.create({
     data: {
@@ -263,51 +266,51 @@ const student = await prisma.student.create({
     },
   });
 
-  const exam = await prisma.exam.create({
-    data: {
-      title: `${subjectName} Midterm`,
-      startTime: new Date("2026-01-15T08:00:00.000Z"),
-      endTime: new Date("2026-01-15T09:00:00.000Z"),
-      schoolId: school.id,
-      classId: classA.id,
-      subjectId: subject.id,
-      lessonId: lesson.id,
-      academicYearId: currentYear.id,
-    },
-  });
+  // const exam = await prisma.exam.create({
+  //   data: {
+  //     title: `${subjectName} Midterm`,
+  //     startTime: new Date("2026-01-15T08:00:00.000Z"),
+  //     endTime: new Date("2026-01-15T09:00:00.000Z"),
+  //     schoolId: school.id,
+  //     classId: classA.id,
+  //     subjectId: subject.id,
+  //     lessonId: lesson.id,
+  //     academicYearId: currentYear.id,
+  //   },
+  // });
 
-  const assignment = await prisma.assignment.create({
-    data: {
-      title: `${subjectName} Homework 1`,
-      startDate: new Date("2026-01-10T08:00:00.000Z"),
-      endDate: new Date("2026-01-20T23:59:00.000Z"),
-      schoolId: school.id,
-      classId: classA.id,
-      subjectId: subject.id,
-      lessonId: lesson.id,
-      academicYearId: currentYear.id,
-    },
-  });
+  // const assignment = await prisma.assignment.create({
+  //   data: {
+  //     title: `${subjectName} Homework 1`,
+  //     startDate: new Date("2026-01-10T08:00:00.000Z"),
+  //     endDate: new Date("2026-01-20T23:59:00.000Z"),
+  //     schoolId: school.id,
+  //     classId: classA.id,
+  //     subjectId: subject.id,
+  //     lessonId: lesson.id,
+  //     academicYearId: currentYear.id,
+  //   },
+  // });
 
-  await prisma.result.create({
-    data: {
-      score: 88,
-      schoolId: school.id,
-      examId: exam.id,
-      studentId: student.id,
-      academicYearId: currentYear.id,
-    },
-  });
+  // await prisma.result.create({
+  //   data: {
+  //     score: 88,
+  //     schoolId: school.id,
+  //     examId: exam.id,
+  //     studentId: student.id,
+  //     academicYearId: currentYear.id,
+  //   },
+  // });
 
-  await prisma.result.create({
-    data: {
-      score: 92,
-      schoolId: school.id,
-      assignmentId: assignment.id,
-      studentId: student.id,
-      academicYearId: currentYear.id,
-    },
-  });
+  // await prisma.result.create({
+  //   data: {
+  //     score: 92,
+  //     schoolId: school.id,
+  //     assignmentId: assignment.id,
+  //     studentId: student.id,
+  //     academicYearId: currentYear.id,
+  //   },
+  // });
 
   const today = normalizeDay(new Date());
 
@@ -371,8 +374,6 @@ const student = await prisma.student.create({
 
 async function main() {
   await clearDatabase();
-  
-  
 
   await seedSchool({
     schoolName: "Alpha School",

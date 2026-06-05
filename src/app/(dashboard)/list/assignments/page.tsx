@@ -13,14 +13,15 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Assignment, Class, Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
-import { Download } from "lucide-react";
+import { Download, Users } from "lucide-react";
+import Link from "next/link";
 import AssignmentSubmit from "@/components/AssignmentSubmit";
-import SubmissionsModal from "@/components/SubmissionsModal";
 
 type AssignmentList = Assignment & {
   subject: Pick<Subject, "name"> | null;
   class: Pick<Class, "name"> | null;
-  lesson: { teacher: Pick<Teacher, "name"> };
+  teacher: Pick<Teacher, "name"> | null;
+  lesson: { teacher: Pick<Teacher, "name"> } | null;
   assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
     id: number;
     fileUrl: string;
@@ -28,6 +29,8 @@ type AssignmentList = Assignment & {
     createdAt: Date;
     note: string | null;
     teacherFeedback: string | null;
+    score: number | null;
+    gradePublished: boolean;
   }[];
   _count?: { assignmentSubmissions: number };
 };
@@ -50,6 +53,11 @@ const getColumns = (role: UserRole | null) => {
 
   if (role !== "teacher") {
     columns.push({ header: "Teacher", accessor: "teacher", className: "hidden md:table-cell" });
+  }
+
+  if (role === "student") {
+    columns.push({ header: "Submission", accessor: "submission" });
+    columns.push({ header: "Score", accessor: "score" });
   }
 
   columns.push({
@@ -80,7 +88,41 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
       <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
       {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
       {role !== "teacher" && (
-        <td className="hidden md:table-cell">{item.lesson.teacher.name}</td>
+        <td className="hidden md:table-cell">
+          {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+        </td>
+      )}
+      {role === "student" && (
+        <td>
+          {mySubmission ? (
+            <span
+              className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+                mySubmission.gradePublished
+                  ? "bg-academixPurpleLight text-academixPurpleDark"
+                  : mySubmission.teacherFeedback
+                    ? "bg-blue-50 text-blue-700"
+                    : "bg-green-50 text-green-700"
+              }`}
+            >
+              {mySubmission.gradePublished
+                ? "Grade published"
+                : mySubmission.teacherFeedback
+                  ? "Feedback ready"
+                  : "Submitted"}
+            </span>
+          ) : (
+            <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-500">
+              Not submitted
+            </span>
+          )}
+        </td>
+      )}
+      {role === "student" && (
+        <td>
+          {mySubmission?.gradePublished && mySubmission.score !== null
+            ? `${mySubmission.score}/${item.maxScore}`
+            : "-"}
+        </td>
       )}
       <td className="hidden md:table-cell w-[180px] min-w-[180px]">
         {formatDateTime(item.endDate)}
@@ -102,6 +144,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               key={mySubmission?.id ?? 'no-submission'}
               assignmentId={item.id}
               assignmentTitle={item.title}
+              maxScore={item.maxScore}
               endDate={item.endDate}
               allowLateSubmission={item.allowLateSubmission} // ✅
               existingSubmission={mySubmission ? {
@@ -111,16 +154,19 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
                 createdAt: mySubmission.createdAt,
                 note: mySubmission.note,
                 teacherFeedback: mySubmission.teacherFeedback,
+                score: mySubmission.score,
+                gradePublished: mySubmission.gradePublished,
               } : null}
             />
           )}
           {canManage && (
-            <SubmissionsModal
-              assignmentId={item.id}
-              assignmentTitle={item.title}
-              totalStudents={item._count?.assignmentSubmissions ?? 0}
-              endDate={item.endDate}
-            />
+            <Link
+              href={`/list/assignments/${item.id}/submissions`}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-academixPurpleLight text-academixPurpleDark hover:brightness-95 transition-colors text-xs font-medium"
+            >
+              <Users className="w-3.5 h-3.5" />
+              Submissions
+            </Link>
           )}
           {(role === "admin" || role === "teacher") && (
             <>
@@ -177,8 +223,9 @@ const AssignmentListPage = async ({
         subject: { select: { name: true } },
         class: { select: { name: true } },
         lesson: { select: { teacher: { select: { name: true } } } },
+        teacher: { select: { name: true } },
         assignmentSubmissions: role === "student" && userId
-          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true } }
+          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true, score: true, gradePublished: true } }
           : false,
         _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },
