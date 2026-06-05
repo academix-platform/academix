@@ -33,7 +33,7 @@ export default function SchoolSignupPage() {
             </div>
             <h1 className="mt-8 font-bold text-white text-3xl leading-tight">
               School{" "}
-              <span className="text-academixPurple leading-tight"> Signup</span>
+              <span className="text-academixYellow leading-tight"> Signup</span>
             </h1>
             <p className="mt-4 text-white/85 text-sm leading-6">
               Register your school details and create your primary admin
