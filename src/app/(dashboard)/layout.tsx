@@ -1,7 +1,4 @@
-import Menu from "@/components/Menu";
-import Navbar from "@/components/Navbar";
-import Image from "next/image";
-import Link from "next/link";
+import DashboardShell from "@/components/DashboardShell";
 import { getAuthUser } from "@/lib/auth";
 import { getSchoolName } from "@/lib/school";
 
@@ -17,33 +14,8 @@ export default async function DashboardLayout({
     : null;
 
   return (
-    <div className="flex bg-academixPurpleLight h-screen overflow-auto">
-      {/* LEFT */}
-      <div className="academix-menu-scroll bg-academixPurpleLight p-4 w-[14%] md:w-[8%] lg:w-[16%] xl:w-[14%] overflow-auto">
-        <Link
-          href="/"
-          className="flex justify-center lg:justify-start items-center gap-1"
-        >
-          <Image
-            src="/logo-purple.png"
-            alt="logo"
-            className="w-[32px] h-[32px] rotate-[-15deg]"
-            width={32}
-            height={32}
-            style={{ height: "auto" }}
-          />
-          <span className="hidden lg:block font-bold text-academixPurpleDark">
-            ACADEMIX
-          </span>
-        </Link>
-        <Menu authUser={authUser} />
-      </div>
-
-      {/* RIGHT */}
-      <div className="flex flex-col bg-academixPurpleLight w-[86%] md:w-[92%] lg:w-[84%] xl:w-[86%]">
-        <Navbar authUser={authUser} schoolName={schoolName} />
-        <div className="flex-1 overflow-auto">{children}</div>
-      </div>
-    </div>
+    <DashboardShell authUser={authUser} schoolName={schoolName}>
+      {children}
+    </DashboardShell>
   );
 }

@@ -1,9 +1,10 @@
 "use client";
 
 import Link, { LinkProps } from "next/link";
-import { ReactNode } from "react";
+import { AnchorHTMLAttributes, ReactNode } from "react";
 
-type NavigationLinkProps = LinkProps & {
+type NavigationLinkProps = LinkProps &
+  Omit<AnchorHTMLAttributes<HTMLAnchorElement>, keyof LinkProps> & {
   children: ReactNode;
   className?: string;
   prefetch?: boolean;

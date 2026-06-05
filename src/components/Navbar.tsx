@@ -1,6 +1,12 @@
 "use client";
 
-import { Search, Bell, MessageCircle } from "lucide-react";
+import {
+  Bell,
+  Menu,
+  MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+} from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
@@ -10,9 +16,18 @@ import Link from "next/link";
 type NavbarProps = {
   authUser: AuthUser | null;
   schoolName: string | null;
+  isMenuCollapsed?: boolean;
+  onMenuClick?: () => void;
+  onMenuCollapseToggle?: () => void;
 };
 
-const Navbar = ({ authUser, schoolName }: NavbarProps) => {
+const Navbar = ({
+  authUser,
+  schoolName,
+  isMenuCollapsed = false,
+  onMenuClick,
+  onMenuCollapseToggle,
+}: NavbarProps) => {
   const { user, isLoaded } = useUser();
   const [messageCount, setMessageCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
@@ -69,12 +84,38 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
   return (
     <div className="flex justify-between items-center p-4">
       {/* SEARCH */}
-      <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ml-2 px-4 py-3 rounded-md text-xs">
-        {schoolName && (
-          <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
-            {schoolName}
-          </span>
+      <div className="flex items-center gap-3 min-w-0">
+        {onMenuClick && (
+          <button
+            type="button"
+            aria-label="Open menu"
+            onClick={onMenuClick}
+            className="lg:hidden flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/80 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         )}
+        {onMenuCollapseToggle && (
+          <button
+            type="button"
+            aria-label={isMenuCollapsed ? "Expand menu" : "Collapse menu"}
+            onClick={onMenuCollapseToggle}
+            className="hidden lg:flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/70 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+          >
+            {isMenuCollapsed ? (
+              <PanelLeftOpen className="w-5 h-5" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
+          </button>
+        )}
+        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ml-2 px-4 py-3 rounded-md text-xs">
+          {schoolName && (
+            <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
+              {schoolName}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* RIGHT */}

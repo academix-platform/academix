@@ -181,7 +181,15 @@ type AuthUser = {
   schoolId: number;
 } | null;
 
-const Menu = ({ authUser }: { authUser: AuthUser }) => {
+const Menu = ({
+  authUser,
+  collapsed = false,
+  onNavigate,
+}: {
+  authUser: AuthUser;
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) => {
   const { signOut } = useClerk();
   const { user, isLoaded } = useUser();
   const pathname = usePathname();
@@ -257,7 +265,11 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
     <div className="mt-4 text-sm">
       {resolvedMenuItems.map((section) => (
         <div key={section.title} className="flex flex-col gap-2">
-          <span className="hidden lg:block my-4 font-light text-gray-400">
+          <span
+            className={`block my-4 font-light text-gray-400 ${
+              collapsed ? "lg:hidden" : ""
+            }`}
+          >
             {section.title}
           </span>
 
@@ -271,14 +283,21 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                   type="button"
                   onClick={handleSignOut}
                   disabled={isSigningOut}
-                  className="group relative flex justify-center lg:justify-start items-center gap-4 hover:bg-academixPurple/35 disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-left transition-all duration-200 hover:translate-x-0.5 active:scale-[0.98]"
+                  title={collapsed ? item.label : undefined}
+                  className={`group relative flex justify-start ${
+                    collapsed ? "lg:justify-center" : "lg:justify-start"
+                  } items-center gap-4 hover:bg-academixPurple/35 disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-left transition-all duration-200 hover:translate-x-0.5 active:scale-[0.98]`}
                 >
                   <item.icon
                     size={20}
-                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark transition-all duration-200 group-hover:scale-105"
+                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark group-hover:scale-105 transition-all duration-200"
                   />
 
-                  <span className="hidden lg:block text-gray-500 group-hover:text-academixPurpleDark transition-colors duration-200">
+                  <span
+                    className={`block text-gray-500 group-hover:text-academixPurpleDark transition-colors duration-200 ${
+                      collapsed ? "lg:hidden" : ""
+                    }`}
+                  >
                     {isSigningOut ? "Signing out..." : item.label}
                   </span>
                 </button>
@@ -295,8 +314,10 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                 href={item.href}
                 key={item.label}
                 prefetch={item.shouldPrefetch ?? true}
+                onClick={onNavigate}
+                title={collapsed ? item.label : undefined}
                 className={`
-                  relative group flex items-center justify-center lg:justify-start gap-4 py-2 md:px-2 rounded-md
+                  relative group flex items-center justify-start ${collapsed ? "lg:justify-center" : "lg:justify-start"} gap-4 py-2 px-2 rounded-md
                   transition-all duration-200 active:scale-[0.98]
                   ${
                     isActive
@@ -306,7 +327,7 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
                 `}
               >
                 {isActive && (
-                  <span className="top-1 bottom-1 left-0 absolute bg-academixPurpleDark rounded-r w-1" />
+                  <span className="hidden lg:block top-1 bottom-1 left-0 absolute bg-academixPurpleDark rounded-r w-1" />
                 )}
 
                 <item.icon
@@ -323,7 +344,8 @@ const Menu = ({ authUser }: { authUser: AuthUser }) => {
 
                 <span
                   className={`
-                    hidden lg:block transition-colors duration-200
+                    block transition-colors duration-200
+                    ${collapsed ? "lg:hidden" : ""}
                     ${
                       isActive
                         ? "text-academixPurpleDark font-medium"
