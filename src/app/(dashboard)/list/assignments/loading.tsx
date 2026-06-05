@@ -1,5 +1,5 @@
-import { ListPageSkeleton } from "@/components/loaders/DashboardSkeletons";
+import LoadingIndicator from "@/components/loaders/LoadingIndicator";
 
-export default function loading() {
-  return <ListPageSkeleton />;
+export default function Loading() {
+  return <LoadingIndicator />;
 }

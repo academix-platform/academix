@@ -1,5 +1,5 @@
-import { AdminPageSkeleton } from "@/components/loaders/DashboardSkeletons";
+import LoadingIndicator from "@/components/loaders/LoadingIndicator";
 
-export default function loading() {
-  return <AdminPageSkeleton />;
+export default function Loading() {
+  return <LoadingIndicator />;
 }
