@@ -337,13 +337,13 @@ const SchoolSignupForm = () => {
                 </div>
               </div>
 
-              <div className="right-0 bottom-5 absolute">
+              <div className="end-0 bottom-5 absolute">
                 <button
                   type="button"
                   onClick={goToAdminStep}
                   className="text-academixPurpleDark hover:underline transition"
                 >
-                  <ArrowRight />
+                  <ArrowRight className="rtl:rotate-180" />
                 </button>
               </div>
             </div>
@@ -429,18 +429,18 @@ const SchoolSignupForm = () => {
                 <p className="text-red-600 text-sm">{state.message}</p>
               )}
 
-              <div className="right-0 bottom-0 left-0 absolute bg-white/95 py-3 min-h-[64px]">
+              <div className="inset-x-0 bottom-0 absolute bg-white/95 py-3 min-h-[64px]">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="top-1/2 left-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2"
-                >
-                  <ArrowLeft />
+                className="top-1/2 start-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2"
+              >
+                  <ArrowLeft className="rtl:rotate-180" />
                 </button>
                 <button
                   type="submit"
                   disabled={pending}
-                  className="top-1/2 right-0 absolute bg-academixPurpleDark disabled:opacity-70 px-6 py-2.5 rounded-md text-white -translate-y-1/2"
+                  className="top-1/2 end-0 absolute bg-academixPurpleDark disabled:opacity-70 px-6 py-2.5 rounded-md text-white -translate-y-1/2"
                 >
                   {pending ? t("submitting") : t("submit")}
                 </button>

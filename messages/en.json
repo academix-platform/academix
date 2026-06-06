@@ -575,7 +575,46 @@
       "adminPasswordRequired": "Admin password is required."
     },
     "submitting": "Submitting...",
-    "submit": "Submit"
+    "submit": "Submit",
+    "page": {
+      "goBack": "Go back",
+      "titleStart": "School",
+      "titleHighlight": "Signup",
+      "description": "Register your school details and create your primary admin account. After review, the school will be activated by Academix.",
+      "steps": {
+        "profile": "Submit complete school profile",
+        "verification": "Verification by Academix",
+        "access": "Access granted to dashboard"
+      }
+    }
+  },
+  "auth": {
+    "login": {
+      "welcomeBack": "Welcome back",
+      "redirecting": "Redirecting to your dashboard...",
+      "goHome": "Go home",
+      "title": "Sign in to your account",
+      "identifier": "Username or Email",
+      "password": "Password",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password",
+      "signingIn": "Signing in...",
+      "signIn": "Sign In",
+      "newSchool": "New school?",
+      "signupRequest": "Submit signup request"
+    },
+    "signOut": {
+      "signingOut": "Signing out...",
+      "backToSignIn": "Back to sign-in"
+    },
+    "schoolAccess": {
+      "title": "School Access Status",
+      "pending": "Your school is pending approval. Academix team will review your request and activate your account once verification is complete.",
+      "paused": "Your school is currently paused.",
+      "reason": "Reason:",
+      "noReason": "No reason provided.",
+      "active": "Your school account is active."
+    }
   },
   "schoolStatus": {
     "alreadyActive": "This school is already active.",

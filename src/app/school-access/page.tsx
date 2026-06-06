@@ -6,6 +6,7 @@ import { getTranslations } from "next-intl/server";
 export default async function SchoolAccessPage() {
   const user = await requireAuth();
   const commonT = await getTranslations("common");
+  const t = await getTranslations("auth.schoolAccess");
   requireRole(user, ["admin", "teacher", "student", "parent"]);
 
   const isPending = user.schoolStatus === "PENDING";
@@ -25,30 +26,29 @@ export default async function SchoolAccessPage() {
           {commonT("brand")}
         </h1>
 
-        <h2 className="mb-4 font-semibold text-2xl">School Access Status</h2>
+        <h2 className="mb-4 font-semibold text-2xl">{t("title")}</h2>
         {isPending && (
           <p className="text-sm leading-6">
-            Your school is pending approval. Academix team will review your
-            request and activate your account once verification is complete.
+            {t("pending")}
           </p>
         )}
         {isPaused && (
           <div className="space-y-2">
             <p className="text-sm leading-6">
-              Your school is currently paused.
+              {t("paused")}
             </p>
             {user.role === "admin" && (
               <p className="text-sm">
-                Reason:{" "}
+                {t("reason")}{" "}
                 <span className="font-medium">
-                  {user.schoolPauseReason || "No reason provided."}
+                  {user.schoolPauseReason || t("noReason")}
                 </span>
               </p>
             )}
           </div>
         )}
         {!isPending && !isPaused && (
-          <p className="text-sm leading-6">Your school account is active.</p>
+          <p className="text-sm leading-6">{t("active")}</p>
         )}
 
         <div className="mt-6">

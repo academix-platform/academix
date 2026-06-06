@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 
 const LoginContent = () => {
   const commonT = useTranslations("common");
+  const t = useTranslations("auth.login");
   const { isLoaded: isUserLoaded, user } = useUser();
   const { signIn, errors, fetchStatus } = useSignIn();
   const router = useRouter();
@@ -77,8 +78,8 @@ const LoginContent = () => {
               aria-hidden="true"
             />
             <div className="text-white">
-              <p className="font-medium text-sm">Welcome back</p>
-              <p className="text-xs">Redirecting to your dashboard...</p>
+              <p className="font-medium text-sm">{t("welcomeBack")}</p>
+              <p className="text-xs">{t("redirecting")}</p>
             </div>
           </div>
         </div>
@@ -94,8 +95,8 @@ const LoginContent = () => {
             href="/"
             className="inline-flex items-center gap-2 mb-4 text-gray-200 hover:text-white text-sm transition-colors"
           >
-            <ArrowLeft className="w-4 h-4" />
-            Go home
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            {t("goHome")}
           </Link>
           <div>
             <h1 className="flex items-center gap-2 mb-2 font-bold text-white text-2xl">
@@ -108,13 +109,13 @@ const LoginContent = () => {
               />
               {commonT("brand")}
             </h1>
-            <h2 className="ml-4 text-gray-300">Sign in to your account</h2>
+            <h2 className="ms-4 text-gray-300">{t("title")}</h2>
           </div>
         </div>
         <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1">
             <label className="text-white text-xs" htmlFor="identifier">
-              Username or Email
+              {t("identifier")}
             </label>
             <input
               id="identifier"
@@ -134,7 +135,7 @@ const LoginContent = () => {
 
           <div className="flex flex-col gap-1">
             <label className="text-white text-xs" htmlFor="password">
-              Password
+              {t("password")}
             </label>
             <div className="relative">
               <input
@@ -142,15 +143,17 @@ const LoginContent = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="focus:bg-academixPurpleLight px-4 py-3 pr-20 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                className="focus:bg-academixPurpleLight px-4 py-3 pe-20 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                 required
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="right-2 absolute inset-y-0 text-gray-500 text-xs"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="end-2 absolute inset-y-0 text-gray-500 text-xs"
+                aria-label={
+                  showPassword ? t("hidePassword") : t("showPassword")
+                }
               >
                 {showPassword ? (
                   <EyeOff className="w-5 h-5" />
@@ -177,17 +180,17 @@ const LoginContent = () => {
                   className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin"
                   aria-hidden="true"
                 />
-                Signing in...
+                {t("signingIn")}
               </>
             ) : (
-              "Sign In"
+              t("signIn")
             )}
           </button>
         </form>
         <p className="text-white text-xs">
-          New school?{" "}
+          {t("newSchool")}{" "}
           <Link href="/school-signup" className="text-gray-300 hover:underline">
-            Submit signup request
+            {t("signupRequest")}
           </Link>
         </p>
       </div>

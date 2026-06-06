@@ -9,6 +9,7 @@ import { useTranslations } from "next-intl";
 export default function SchoolSignupPage() {
   const router = useRouter();
   const commonT = useTranslations("common");
+  const t = useTranslations("schoolSignup.page");
 
   return (
     <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-3 md:p-5 min-h-screen overflow-hidden">
@@ -19,8 +20,8 @@ export default function SchoolSignupPage() {
               onClick={() => router.back()}
               className="inline-flex items-center gap-2 mb-4 text-white/80 hover:text-white text-sm transition-colors"
             >
-              <ArrowLeft className="w-4 h-4" />
-              Go back
+              <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+              {t("goBack")}
             </button>
             <div className="flex items-center gap-2">
               <Image
@@ -36,24 +37,25 @@ export default function SchoolSignupPage() {
               </span>
             </div>
             <h1 className="mt-8 font-bold text-white text-3xl leading-tight">
-              School{" "}
-              <span className="text-academixYellow leading-tight"> Signup</span>
+              {t("titleStart")}{" "}
+              <span className="text-academixYellow leading-tight">
+                {t("titleHighlight")}
+              </span>
             </h1>
             <p className="mt-4 text-white/85 text-sm leading-6">
-              Register your school details and create your primary admin
-              account. After review, the school will be activated by Academix.
+              {t("description")}
             </p>
           </div>
 
           <div className="space-y-3 mt-6 text-sm">
             <p className="bg-white/10 px-4 py-3 rounded-xl">
-              1. Submit complete school profile
+              1. {t("steps.profile")}
             </p>
             <p className="bg-white/10 px-4 py-3 rounded-xl">
-              2. Verification by Academix
+              2. {t("steps.verification")}
             </p>
             <p className="bg-white/10 px-4 py-3 rounded-xl">
-              3. Access granted to dashboard
+              3. {t("steps.access")}
             </p>
           </div>
         </div>
