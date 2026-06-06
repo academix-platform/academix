@@ -75,7 +75,11 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   return columns;
 };
 
-const renderRow = (item: AssignmentList, role: UserRole | null) => {
+const renderRow = (
+  item: AssignmentList,
+  role: UserRole | null,
+  assignmentsT: (key: string) => string,
+) => {
   // ✅ استخدام assignmentSubmissions بدلاً من submissions
   const mySubmission = item.assignmentSubmissions?.[0] ?? null;
   const canManage = role === "teacher" || role === "admin";
@@ -106,14 +110,14 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               }`}
             >
               {mySubmission.gradePublished
-                ? "Grade published"
+                ? assignmentsT("status.gradePublished")
                 : mySubmission.teacherFeedback
-                  ? "Feedback ready"
-                  : "Submitted"}
+                  ? assignmentsT("status.feedbackReady")
+                  : assignmentsT("status.submitted")}
             </span>
           ) : (
             <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-500">
-              Not submitted
+              {assignmentsT("status.notSubmitted")}
             </span>
           )}
         </td>
@@ -137,7 +141,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-xs font-medium"
             >
               <Download className="w-3.5 h-3.5" />
-              Download
+              {assignmentsT("actions.download")}
             </a>
           )}
           {role === "student" && (
@@ -166,7 +170,7 @@ const renderRow = (item: AssignmentList, role: UserRole | null) => {
               className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-academixPurpleLight text-academixPurpleDark hover:brightness-95 transition-colors text-xs font-medium"
             >
               <Users className="w-3.5 h-3.5" />
-              Submissions
+              {assignmentsT("actions.submissions")}
             </Link>
           )}
           {(role === "admin" || role === "teacher") && (
@@ -188,6 +192,7 @@ const AssignmentListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const assignmentsT = await getTranslations("assignmentsPage");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
 
   const resolvedSearchParams = await searchParams;
@@ -263,10 +268,10 @@ const AssignmentListPage = async ({
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, assignmentsT)}
         data={data}
-        emptyTitle="No assignments found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={assignmentsT("empty.title")}
+        emptyDescription={assignmentsT("empty.description")}
       />
 
       <Pagination page={p} count={count} />

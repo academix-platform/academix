@@ -44,7 +44,7 @@ const FeedbacksPage = async ({
   const user = await getAuthUser();
 
   if (!user) {
-    return <div>Unauthorized</div>;
+    return <div>{feedbackT("unauthorized")}</div>;
   }
 
   const params = await searchParams;
@@ -149,8 +149,8 @@ const FeedbacksPage = async ({
                 <div className="flex md:flex-row flex-col md:justify-between md:items-start gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-gray-900 capitalize">
-                        {feedback.type}
+                      <span className="font-semibold text-gray-900">
+                        {feedbackT(`types.${feedback.type}`)}
                       </span>
 
                       <span

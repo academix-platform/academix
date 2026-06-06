@@ -232,21 +232,84 @@
     "resolvedLocked": "تم حل هذه الملاحظة وهي مقفلة.",
     "markReviewed": "تعليم كمراجع",
     "markResolved": "تعليم كمحلول",
-    "markPending": "تعليم كقيد الانتظار"
+    "markPending": "تعليم كقيد الانتظار",
+    "historyTitle": "سجل ملاحظاتي",
+    "historyDescription": "تابع اقتراحاتك وشكاويك السابقة.",
+    "submittedCount": "{count} مرسلة",
+    "emptyHistory": "لم ترسل أي ملاحظات بعد.",
+    "submit": "إرسال ملاحظة",
+    "description": "أرسل اقتراحا أو شكوى إلى إدارة المدرسة.",
+    "type": "النوع",
+    "message": "الرسالة",
+    "messagePlaceholder": "اكتب رسالتك...",
+    "cancel": "إلغاء",
+    "send": "إرسال الملاحظة",
+    "sending": "جار الإرسال...",
+    "close": "إغلاق",
+    "unauthorized": "غير مصرح",
+    "unexpectedError": "حدث خطأ ما!",
+    "types": {
+      "suggestion": "اقتراح",
+      "complaint": "شكوى"
+    },
+    "statuses": {
+      "pending": "قيد الانتظار",
+      "reviewed": "تمت المراجعة",
+      "resolved": "تم الحل"
+    }
   },
   "examList": {
     "addExam": "إضافة امتحان",
     "submissions": "التسليمات",
+    "takeExam": "بدء الامتحان",
     "continue": "متابعة",
     "editWorkflow": "تعديل مسار الامتحان",
     "noExams": "لم يتم العثور على امتحانات",
     "emptyDescription": "جرّب تغيير عوامل التصفية أو كلمات البحث.",
+    "readyToStart": "هل أنت جاهز للبدء؟",
+    "instructions": "التعليمات",
+    "noInstructions": "لم تتم إضافة تعليمات خاصة لهذا الامتحان.",
+    "continueNotice": "عند المتابعة سيتم فتح جلسة الامتحان.",
+    "cancel": "إلغاء",
+    "startExam": "ابدأ الامتحان",
+    "starting": "جار البدء...",
+    "close": "إغلاق",
     "statuses": {
       "notStarted": "لم يبدأ",
       "inProgress": "قيد التنفيذ",
       "submitted": "تم التسليم",
       "graded": "تم التقييم",
       "published": "منشور"
+    }
+  },
+  "examTaking": {
+    "pageLabel": "صفحة {current} من {total}",
+    "submitExam": "تسليم الامتحان",
+    "submitting": "جار التسليم...",
+    "saving": "جار الحفظ...",
+    "saved": "تم الحفظ",
+    "error": "خطأ",
+    "point": "{count} نقطة",
+    "fileUpload": "رفع ملف",
+    "previous": "السابق",
+    "next": "التالي",
+    "confirmEyebrow": "تسليم الامتحان",
+    "confirmTitle": "هل أنت متأكد؟",
+    "confirmBody": "بعد التسليم لن تتمكن من تعديل إجاباتك لهذا الامتحان.",
+    "confirmNotice": "سيتم تسليم إجاباتك المحفوظة للتقييم.",
+    "cancel": "إلغاء",
+    "close": "إغلاق",
+    "true": "صحيح",
+    "false": "خطأ",
+    "multiAnswerHint": "يمكنك اختيار أكثر من إجابة.",
+    "textPlaceholder": "اكتب إجابتك هنا...",
+    "toast": {
+      "saveFailed": "فشل حفظ الإجابة.",
+      "previousDisabled": "التنقل إلى الصفحات السابقة معطل.",
+      "answerBeforeProceeding": "يرجى الإجابة عن جميع الأسئلة في هذه الصفحة قبل المتابعة.",
+      "answerBeforeSubmitting": "يرجى الإجابة عن جميع الأسئلة في هذه الصفحة قبل التسليم.",
+      "submitted": "تم تسليم الامتحان بنجاح!",
+      "timeUp": "انتهى وقت الامتحان! جار التسليم التلقائي..."
     }
   },
   "promotion": {
@@ -875,6 +938,54 @@
     },
     "ai": {
       "pdfOnly": "يدعم التقييم الذكي إجابات ملفات PDF فقط."
+    }
+  },
+  "assignmentsPage": {
+    "actions": {
+      "submit": "تسليم",
+      "submitLate": "تسليم متأخر",
+      "submitLateShort": "تسليم متأخر",
+      "replaceFile": "استبدال الملف",
+      "viewSubmission": "عرض التسليم",
+      "deadlinePassed": "انتهى الموعد",
+      "download": "تنزيل",
+      "submissions": "التسليمات",
+      "cancel": "إلغاء",
+      "close": "إغلاق",
+      "processing": "جار المعالجة..."
+    },
+    "status": {
+      "gradePublished": "تم نشر الدرجة",
+      "feedbackReady": "الملاحظات جاهزة",
+      "submitted": "تم التسليم",
+      "notSubmitted": "لم يتم التسليم",
+      "assignmentSubmitted": "تم تسليم الواجب",
+      "gradePublishedMessage": "تم نشر درجتك أدناه.",
+      "waitingReview": "بانتظار مراجعة المعلم."
+    },
+    "modal": {
+      "mySubmission": "تسليمي",
+      "replaceSubmittedFile": "استبدال الملف المسلّم",
+      "submitAssignment": "تسليم الواجب",
+      "due": "الموعد: {date}",
+      "lateWarning": "أنت تسلّم بعد الموعد النهائي. التسليم المتأخر مسموح لهذا الواجب.",
+      "submittedFile": "الملف المسلّم",
+      "submittedDate": "تم التسليم: {date}",
+      "replaceWarning": "رفع ملف جديد سيستبدل الملف الحالي نهائيا.",
+      "publishedGrade": "الدرجة المنشورة",
+      "newFile": "ملف جديد",
+      "file": "ملف",
+      "maxFileSize": "(الحد الأقصى 20MB)",
+      "chooseFile": "اختر ملفا",
+      "noFileChosen": "لم يتم اختيار ملف",
+      "pdfHint": "ارفع ملف PDF إن أمكن للحصول على أفضل تجربة مراجعة.",
+      "note": "ملاحظة",
+      "optional": "(اختياري)",
+      "notePlaceholder": "أضف ملاحظة للمعلم..."
+    },
+    "empty": {
+      "title": "لم يتم العثور على واجبات",
+      "description": "جرّب تغيير عوامل التصفية أو كلمات البحث."
     }
   },
   "emptyStates": {

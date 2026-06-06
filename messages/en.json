@@ -232,21 +232,84 @@
     "resolvedLocked": "This feedback is resolved and locked.",
     "markReviewed": "Mark Reviewed",
     "markResolved": "Mark Resolved",
-    "markPending": "Mark Pending"
+    "markPending": "Mark Pending",
+    "historyTitle": "My Feedback History",
+    "historyDescription": "Track your previous suggestions and complaints.",
+    "submittedCount": "{count} submitted",
+    "emptyHistory": "You have not submitted any feedback yet.",
+    "submit": "Submit Feedback",
+    "description": "Send a suggestion or complaint to the school administration.",
+    "type": "Type",
+    "message": "Message",
+    "messagePlaceholder": "Write your message...",
+    "cancel": "Cancel",
+    "send": "Send Feedback",
+    "sending": "Sending...",
+    "close": "Close",
+    "unauthorized": "Unauthorized",
+    "unexpectedError": "Something went wrong!",
+    "types": {
+      "suggestion": "Suggestion",
+      "complaint": "Complaint"
+    },
+    "statuses": {
+      "pending": "Pending",
+      "reviewed": "Reviewed",
+      "resolved": "Resolved"
+    }
   },
   "examList": {
     "addExam": "Add Exam",
     "submissions": "Submissions",
+    "takeExam": "Take Exam",
     "continue": "Continue",
     "editWorkflow": "Edit exam workflow",
     "noExams": "No exams found",
     "emptyDescription": "Try changing your filters or search terms.",
+    "readyToStart": "Ready to start?",
+    "instructions": "Instructions",
+    "noInstructions": "No special instructions were added for this exam.",
+    "continueNotice": "Once you continue, the exam session will open.",
+    "cancel": "Cancel",
+    "startExam": "Start Exam",
+    "starting": "Starting...",
+    "close": "Close",
     "statuses": {
       "notStarted": "Not Started",
       "inProgress": "In Progress",
       "submitted": "Submitted",
       "graded": "Graded",
       "published": "Published"
+    }
+  },
+  "examTaking": {
+    "pageLabel": "Page {current} of {total}",
+    "submitExam": "Submit Exam",
+    "submitting": "Submitting...",
+    "saving": "Saving...",
+    "saved": "Saved",
+    "error": "Error",
+    "point": "{count, plural, one {# point} other {# points}}",
+    "fileUpload": "File upload",
+    "previous": "Previous",
+    "next": "Next",
+    "confirmEyebrow": "Submit exam",
+    "confirmTitle": "Are you sure?",
+    "confirmBody": "Once you submit, you cannot change your answers for this exam.",
+    "confirmNotice": "Your saved answers will be submitted for grading.",
+    "cancel": "Cancel",
+    "close": "Close",
+    "true": "True",
+    "false": "False",
+    "multiAnswerHint": "You may select more than one answer.",
+    "textPlaceholder": "Write your answer here...",
+    "toast": {
+      "saveFailed": "Failed to save answer.",
+      "previousDisabled": "Navigation to previous pages is disabled.",
+      "answerBeforeProceeding": "Please answer all questions on this page before proceeding.",
+      "answerBeforeSubmitting": "Please answer all questions on this page before submitting.",
+      "submitted": "Exam submitted successfully!",
+      "timeUp": "Exam time is up! Auto-submitting..."
     }
   },
   "promotion": {
@@ -875,6 +938,54 @@
     },
     "ai": {
       "pdfOnly": "AI evaluation supports PDF file answers only."
+    }
+  },
+  "assignmentsPage": {
+    "actions": {
+      "submit": "Submit",
+      "submitLate": "Submit Late",
+      "submitLateShort": "Submit (Late)",
+      "replaceFile": "Replace File",
+      "viewSubmission": "View Submission",
+      "deadlinePassed": "Deadline Passed",
+      "download": "Download",
+      "submissions": "Submissions",
+      "cancel": "Cancel",
+      "close": "Close",
+      "processing": "Processing..."
+    },
+    "status": {
+      "gradePublished": "Grade published",
+      "feedbackReady": "Feedback ready",
+      "submitted": "Submitted",
+      "notSubmitted": "Not submitted",
+      "assignmentSubmitted": "Assignment submitted",
+      "gradePublishedMessage": "Your grade is published below.",
+      "waitingReview": "Waiting for your teacher to review it."
+    },
+    "modal": {
+      "mySubmission": "My Submission",
+      "replaceSubmittedFile": "Replace Submitted File",
+      "submitAssignment": "Submit Assignment",
+      "due": "Due: {date}",
+      "lateWarning": "You are submitting after the deadline. Late submission is allowed for this assignment.",
+      "submittedFile": "Submitted file",
+      "submittedDate": "Submitted: {date}",
+      "replaceWarning": "Uploading a new file will permanently replace the current one.",
+      "publishedGrade": "Published Grade",
+      "newFile": "New File",
+      "file": "File",
+      "maxFileSize": "(Max 20MB)",
+      "chooseFile": "Choose File",
+      "noFileChosen": "No file chosen",
+      "pdfHint": "Upload a PDF if possible for the best review experience.",
+      "note": "Note",
+      "optional": "(optional)",
+      "notePlaceholder": "Add a note for your teacher..."
+    },
+    "empty": {
+      "title": "No assignments found",
+      "description": "Try changing your filters or search terms."
     }
   },
   "emptyStates": {

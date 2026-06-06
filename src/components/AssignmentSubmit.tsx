@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import {
   Upload,
@@ -40,7 +41,9 @@ export default function AssignmentSubmit({
   allowLateSubmission,
   existingSubmission,
 }: Props) {
+  const t = useTranslations("assignmentsPage");
   const [open, setOpen] = useState(false);
+  const [selectedFileName, setSelectedFileName] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -63,6 +66,7 @@ export default function AssignmentSubmit({
       if (result.success) {
         toast.success(result.message);
         formRef.current?.reset();
+        setSelectedFileName("");
         setOpen(false);
         router.refresh();
       } else {
@@ -82,7 +86,7 @@ export default function AssignmentSubmit({
           className="flex items-center gap-1.5 bg-academixPurpleLight hover:brightness-95 px-2.5 py-1.5 rounded-lg font-medium text-academixPurpleDark text-xs transition-colors"
         >
           <CheckCircle className="w-3.5 h-3.5" />
-          View Submission
+          {t("actions.viewSubmission")}
         </button>
       );
     }
@@ -96,7 +100,7 @@ export default function AssignmentSubmit({
           className="flex items-center gap-1.5 bg-academixPurpleLight hover:brightness-95 px-2.5 py-1.5 rounded-lg font-medium text-academixPurpleDark text-xs transition-colors"
         >
           <RefreshCw className="w-3.5 h-3.5" />
-          Replace File
+          {t("actions.replaceFile")}
           {isLate && <Clock className="w-3 h-3 text-amber-500" />}
         </button>
       );
@@ -113,7 +117,7 @@ export default function AssignmentSubmit({
             className="flex items-center gap-1.5 bg-red-50 px-2.5 py-1.5 rounded-lg font-medium text-red-400 text-xs cursor-not-allowed"
           >
             <Upload className="w-3.5 h-3.5" />
-            Deadline Passed
+            {t("actions.deadlinePassed")}
           </button>
         );
       }
@@ -126,7 +130,7 @@ export default function AssignmentSubmit({
           className="flex items-center gap-1.5 bg-academixPurpleLight hover:brightness-95 px-2.5 py-1.5 rounded-lg font-medium text-academixPurpleDark text-xs transition-colors"
         >
           <Upload className="w-3.5 h-3.5" />
-          {isLate ? "Submit (Late)" : "Submit"}
+          {isLate ? t("actions.submitLateShort") : t("actions.submit")}
           {isLate && <Clock className="w-3 h-3 text-amber-500" />}
         </button>
       );
@@ -153,10 +157,10 @@ export default function AssignmentSubmit({
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800 text-base">
                 {isViewOnly
-                  ? "My Submission"
+                  ? t("modal.mySubmission")
                   : existingSubmission
-                    ? "Replace Submitted File"
-                    : "Submit Assignment"}
+                    ? t("modal.replaceSubmittedFile")
+                    : t("modal.submitAssignment")}
               </h3>
               <button
                 onClick={() => setOpen(false)}
@@ -170,7 +174,9 @@ export default function AssignmentSubmit({
               {assignmentTitle}
             </p>
             <p className="mb-1 text-gray-400 text-xs">
-              Due: {new Date(endDate).toLocaleDateString("en-GB")}
+              {t("modal.due", {
+                date: new Date(endDate).toLocaleDateString("en-GB"),
+              })}
             </p>
 
             {/* تنبيه التسليم المتأخر */}
@@ -178,8 +184,7 @@ export default function AssignmentSubmit({
               <div className="flex items-center gap-2 bg-amber-50 mb-4 px-3 py-2 border border-amber-200 rounded-lg">
                 <Clock className="flex-shrink-0 w-3.5 h-3.5 text-amber-600" />
                 <p className="font-medium text-amber-700 text-xs">
-                  You are submitting after the deadline. Late submission is
-                  allowed for this assignment.
+                  {t("modal.lateWarning")}
                 </p>
               </div>
             )}
@@ -189,12 +194,12 @@ export default function AssignmentSubmit({
                 <CheckCircle className="flex-shrink-0 mt-0.5 w-3.5 h-3.5 text-green-600" />
                 <div>
                   <p className="font-medium text-green-700 text-xs">
-                    Assignment submitted
+                    {t("status.assignmentSubmitted")}
                   </p>
                   <p className="mt-0.5 text-green-600 text-xs">
                     {existingSubmission.gradePublished
-                      ? "Your grade is published below."
-                      : "Waiting for your teacher to review it."}
+                      ? t("status.gradePublishedMessage")
+                      : t("status.waitingReview")}
                   </p>
                 </div>
               </div>
@@ -204,7 +209,7 @@ export default function AssignmentSubmit({
             {existingSubmission && (
               <div className="bg-gray-50 mb-4 p-3 border rounded-lg">
                 <p className="mb-2 font-medium text-gray-700 text-sm">
-                  Submitted file
+                  {t("modal.submittedFile")}
                 </p>
                 <div className="flex justify-between items-center">
                   <span className="max-w-[200px] text-gray-600 text-sm truncate">
@@ -220,15 +225,15 @@ export default function AssignmentSubmit({
                   </a>
                 </div>
                 <p className="mt-1 text-gray-400 text-xs">
-                  Submitted:{" "}
-                  {new Date(existingSubmission.createdAt).toLocaleDateString(
-                    "en-GB",
-                  )}
+                  {t("modal.submittedDate", {
+                    date: new Date(existingSubmission.createdAt).toLocaleDateString(
+                      "en-GB",
+                    ),
+                  })}
                 </p>
                 {!isViewOnly && (
                   <p className="mt-2 text-amber-600 text-xs">
-                    ⚠️ Uploading a new file will permanently replace the current
-                    one.
+                    {t("modal.replaceWarning")}
                   </p>
                 )}
               </div>
@@ -239,7 +244,7 @@ export default function AssignmentSubmit({
               <div className="bg-academixPurpleLight mb-4 p-3 border border-academixPurpleDark/20 rounded-lg">
                 <div className="flex items-center justify-between gap-3">
                   <p className="font-medium text-academixPurpleDark text-xs">
-                    Published Grade
+                    {t("modal.publishedGrade")}
                   </p>
                   <p className="font-semibold text-academixPurpleDark text-sm">
                     {existingSubmission.score}/{maxScore}
@@ -255,34 +260,49 @@ export default function AssignmentSubmit({
 
                 <div>
                   <label className="block mb-1 font-medium text-gray-700 text-sm">
-                    {existingSubmission ? "New File" : "File"}{" "}
+                    {existingSubmission ? t("modal.newFile") : t("modal.file")}{" "}
                     <span className="text-red-500">*</span>
-                    <span className="ml-1 text-gray-400 text-xs">
-                      (Max 20MB)
+                    <span className="ms-1 text-gray-400 text-xs">
+                      {t("modal.maxFileSize")}
                     </span>
                   </label>
                   <input
+                    id={`assignment-file-${assignmentId}`}
                     type="file"
                     name="file"
                     required
                     accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
-                    className="file:bg-academixPurpleLight hover:file:brightness-95 file:mr-3 file:px-3 file:py-1.5 file:border-0 file:rounded-lg w-full file:font-medium text-gray-500 file:text-academixPurpleDark text-sm file:text-sm"
+                    onChange={(event) =>
+                      setSelectedFileName(event.target.files?.[0]?.name ?? "")
+                    }
+                    className="sr-only"
                   />
+                  <div className="flex items-center gap-3">
+                    <label
+                      htmlFor={`assignment-file-${assignmentId}`}
+                      className="cursor-pointer rounded-lg bg-academixPurpleLight px-3 py-1.5 text-sm font-medium text-academixPurpleDark hover:brightness-95"
+                    >
+                      {t("modal.chooseFile")}
+                    </label>
+                    <span className="truncate text-sm text-gray-500">
+                      {selectedFileName || t("modal.noFileChosen")}
+                    </span>
+                  </div>
                   <p className="mt-1 text-gray-400 text-xs">
-                    Upload a PDF if possible for the best review experience.
+                    {t("modal.pdfHint")}
                   </p>
                 </div>
 
                 <div>
                   <label className="block mb-1 font-medium text-gray-700 text-sm">
-                    Note{" "}
+                    {t("modal.note")}{" "}
                     <span className="font-normal text-gray-400">
-                      (optional)
+                      {t("modal.optional")}
                     </span>
                   </label>
                   <textarea
                     name="note"
-                    placeholder="Add a note for your teacher..."
+                    placeholder={t("modal.notePlaceholder")}
                     rows={2}
                     defaultValue={existingSubmission?.note ?? ""}
                     className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400 resize-none"
@@ -295,7 +315,7 @@ export default function AssignmentSubmit({
                     onClick={() => setOpen(false)}
                     className="flex-1 hover:bg-gray-50 py-2 border rounded-lg text-gray-600 text-sm"
                   >
-                    Cancel
+                    {t("actions.cancel")}
                   </button>
                   <button
                     type="submit"
@@ -305,16 +325,16 @@ export default function AssignmentSubmit({
                     {isPending ? (
                       <>
                         <Loader2 className="w-4 h-4 animate-spin" />{" "}
-                        Processing...
+                        {t("actions.processing")}
                       </>
                     ) : existingSubmission ? (
                       <>
-                        <RefreshCw className="w-4 h-4" /> Replace File
+                        <RefreshCw className="w-4 h-4" /> {t("actions.replaceFile")}
                       </>
                     ) : (
                       <>
                         <Upload className="w-4 h-4" />{" "}
-                        {isLate ? "Submit Late" : "Submit"}
+                        {isLate ? t("actions.submitLate") : t("actions.submit")}
                       </>
                     )}
                   </button>
@@ -329,7 +349,7 @@ export default function AssignmentSubmit({
                 onClick={() => setOpen(false)}
                 className="hover:bg-gray-50 mt-2 py-2 border rounded-lg w-full font-medium text-gray-600 text-sm"
               >
-                Close
+                {t("actions.close")}
               </button>
             )}
           </div>

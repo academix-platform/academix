@@ -17,6 +17,7 @@ interface QuestionRendererProps {
   examId: number;
   onChange: (questionId: number, value: string) => void;
   disabled?: boolean;
+  t: (key: string, values?: Record<string, string | number>) => string;
   onUploadStart?: () => void;
   onUploadEnd?: () => void;
 }
@@ -31,6 +32,7 @@ export default function QuestionRenderer({
   examId,
   onChange,
   disabled = false,
+  t,
   onUploadStart,
   onUploadEnd,
 }: QuestionRendererProps) {
@@ -72,7 +74,7 @@ export default function QuestionRenderer({
               disabled={disabled}
               className="w-4 h-4 text-academixPurpleDark"
             />
-            <span className="text-gray-700">True</span>
+            <span className="text-gray-700">{t("true")}</span>
           </label>
           <label className="flex items-center gap-2 cursor-pointer">
             <input
@@ -84,7 +86,7 @@ export default function QuestionRenderer({
               disabled={disabled}
               className="w-4 h-4 text-academixPurpleDark"
             />
-            <span className="text-gray-700">False</span>
+            <span className="text-gray-700">{t("false")}</span>
           </label>
         </div>
       )}
@@ -131,7 +133,7 @@ export default function QuestionRenderer({
           })()}
           {question.allowMultiple && (
             <p className="mt-1 text-gray-400 text-xs">
-              * You may select more than one answer.
+              {t("multiAnswerHint")}
             </p>
           )}
         </div>
@@ -141,7 +143,7 @@ export default function QuestionRenderer({
       {question.type === "TEXT" && (
         <textarea
           rows={5}
-          placeholder="Write your answer here..."
+          placeholder={t("textPlaceholder")}
           value={savedAnswer ?? ""}
           onChange={(e) => onChange(question.id, e.target.value)}
           disabled={disabled}
