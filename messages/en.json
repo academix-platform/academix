@@ -772,6 +772,111 @@
       }
     }
   },
+  "assignmentSubmissions": {
+    "breadcrumb": "Assignments",
+    "title": "Assignment Submissions",
+    "subjectFallback": "No subject",
+    "marks": "{count} marks",
+    "stats": {
+      "visibleSubmissions": "Visible Submissions",
+      "graded": "Graded",
+      "draftGrades": "Draft Grades",
+      "published": "Published"
+    },
+    "status": {
+      "published": "Published",
+      "draftGrade": "Draft Grade",
+      "submitted": "Submitted"
+    },
+    "actions": {
+      "publishGrades": "Publish Grades",
+      "gradesPublished": "Grades Published",
+      "increaseAll": "Increase All",
+      "decreaseAll": "Decrease All",
+      "view": "View",
+      "download": "Download"
+    },
+    "fields": {
+      "marks": "marks",
+      "scoreAdjustmentAmount": "Score adjustment amount"
+    },
+    "empty": {
+      "title": "No submissions found",
+      "description": "No student submissions match the current filters.",
+      "previewUnavailable": "Preview unavailable"
+    },
+    "validation": {
+      "positiveAmount": "Enter a positive adjustment amount.",
+      "maxAmount": "Amount cannot be greater than {maxScore}."
+    }
+  },
+  "examSubmissions": {
+    "breadcrumb": "Exams",
+    "title": "Exam Submissions",
+    "gradeTitle": "Grade Submission",
+    "subjectFallback": "No subject",
+    "marks": "{count} marks",
+    "gradedCount": "{graded} of {total} graded",
+    "stats": {
+      "visible": "Visible",
+      "submitted": "Submitted",
+      "graded": "Graded",
+      "inProgress": "In Progress",
+      "published": "Published"
+    },
+    "status": {
+      "inProgress": "In Progress",
+      "submitted": "Submitted",
+      "graded": "Graded",
+      "saving": "Saving...",
+      "saved": "Saved",
+      "error": "Error",
+      "allGraded": "All graded",
+      "autoGraded": "Auto-graded"
+    },
+    "actions": {
+      "publishGrades": "Publish Grades",
+      "gradesPublished": "Grades Published",
+      "view": "View",
+      "grade": "Grade",
+      "downloadFile": "Download File",
+      "backToSubmissions": "Back to Submissions",
+      "finalizing": "Finalizing...",
+      "finalizedReapprove": "Grading Finalized (Re-Approve)",
+      "approveFinalize": "Approve & Finalize Grading"
+    },
+    "answers": {
+      "noAnswer": "No answer provided",
+      "studentAnswer": "Student Answer:",
+      "correctAnswer": "Correct Answer:",
+      "score": "Score:",
+      "uploadedFile": "Uploaded file",
+      "file": "FILE",
+      "uploaded": "Uploaded",
+      "noFile": "No file submitted.",
+      "previewUnavailable": "Preview unavailable"
+    },
+    "empty": {
+      "title": "No submissions yet",
+      "description": "Students have not submitted this exam yet."
+    },
+    "toast": {
+      "publishedSynced": "Published grades synced to results.",
+      "gradesPublished": "Grades published to students.",
+      "publishFailed": "Could not publish grades.",
+      "scorePositive": "Score must be a positive number.",
+      "scoreMax": "Score cannot exceed {maxPoints} points.",
+      "somethingWrong": "Something went wrong.",
+      "autoSaveFailed": "Failed to auto-save score.",
+      "scoreRequired": "Please enter a score.",
+      "scoreSaved": "Score saved!",
+      "finalized": "Grading approved and finalized successfully!",
+      "finalizeError": "An error occurred while finalizing grading."
+    },
+    "ai": {
+      "pdfOnly": "AI evaluation supports PDF file answers only."
+    }
+  },
   "emptyStates": {
     "defaultTitle": "No data found",
     "defaultDescription": "There is nothing to display right now.",

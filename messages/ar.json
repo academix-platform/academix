@@ -772,6 +772,111 @@
       }
     }
   },
+  "assignmentSubmissions": {
+    "breadcrumb": "الواجبات",
+    "title": "تسليمات الواجب",
+    "subjectFallback": "لا توجد مادة",
+    "marks": "{count} علامة",
+    "stats": {
+      "visibleSubmissions": "التسليمات المعروضة",
+      "graded": "مقيّمة",
+      "draftGrades": "درجات مسودة",
+      "published": "منشورة"
+    },
+    "status": {
+      "published": "منشور",
+      "draftGrade": "درجة مسودة",
+      "submitted": "تم التسليم"
+    },
+    "actions": {
+      "publishGrades": "نشر الدرجات",
+      "gradesPublished": "تم نشر الدرجات",
+      "increaseAll": "زيادة الكل",
+      "decreaseAll": "إنقاص الكل",
+      "view": "عرض",
+      "download": "تنزيل"
+    },
+    "fields": {
+      "marks": "علامات",
+      "scoreAdjustmentAmount": "قيمة تعديل الدرجة"
+    },
+    "empty": {
+      "title": "لم يتم العثور على تسليمات",
+      "description": "لا توجد تسليمات طلاب تطابق عوامل التصفية الحالية.",
+      "previewUnavailable": "المعاينة غير متاحة"
+    },
+    "validation": {
+      "positiveAmount": "أدخل قيمة تعديل موجبة.",
+      "maxAmount": "لا يمكن أن تكون القيمة أكبر من {maxScore}."
+    }
+  },
+  "examSubmissions": {
+    "breadcrumb": "الامتحانات",
+    "title": "تسليمات الامتحان",
+    "gradeTitle": "تقييم التسليم",
+    "subjectFallback": "لا توجد مادة",
+    "marks": "{count} علامة",
+    "gradedCount": "{graded} من {total} مقيّمة",
+    "stats": {
+      "visible": "المعروضة",
+      "submitted": "تم التسليم",
+      "graded": "مقيّمة",
+      "inProgress": "قيد الحل",
+      "published": "منشورة"
+    },
+    "status": {
+      "inProgress": "قيد الحل",
+      "submitted": "تم التسليم",
+      "graded": "مقيّم",
+      "saving": "جار الحفظ...",
+      "saved": "تم الحفظ",
+      "error": "خطأ",
+      "allGraded": "تم تقييم الكل",
+      "autoGraded": "مقيّم تلقائيا"
+    },
+    "actions": {
+      "publishGrades": "نشر الدرجات",
+      "gradesPublished": "تم نشر الدرجات",
+      "view": "عرض",
+      "grade": "تقييم",
+      "downloadFile": "تنزيل الملف",
+      "backToSubmissions": "العودة إلى التسليمات",
+      "finalizing": "جار الإنهاء...",
+      "finalizedReapprove": "تم إنهاء التقييم (إعادة اعتماد)",
+      "approveFinalize": "اعتماد وإنهاء التقييم"
+    },
+    "answers": {
+      "noAnswer": "لم يتم تقديم إجابة",
+      "studentAnswer": "إجابة الطالب:",
+      "correctAnswer": "الإجابة الصحيحة:",
+      "score": "الدرجة:",
+      "uploadedFile": "ملف مرفوع",
+      "file": "ملف",
+      "uploaded": "تم الرفع",
+      "noFile": "لم يتم تسليم ملف.",
+      "previewUnavailable": "المعاينة غير متاحة"
+    },
+    "empty": {
+      "title": "لا توجد تسليمات بعد",
+      "description": "لم يقم الطلاب بتسليم هذا الامتحان بعد."
+    },
+    "toast": {
+      "publishedSynced": "تمت مزامنة الدرجات المنشورة مع النتائج.",
+      "gradesPublished": "تم نشر الدرجات للطلاب.",
+      "publishFailed": "تعذر نشر الدرجات.",
+      "scorePositive": "يجب أن تكون الدرجة رقما موجبا.",
+      "scoreMax": "لا يمكن أن تتجاوز الدرجة {maxPoints} نقطة.",
+      "somethingWrong": "حدث خطأ ما.",
+      "autoSaveFailed": "فشل الحفظ التلقائي للدرجة.",
+      "scoreRequired": "يرجى إدخال درجة.",
+      "scoreSaved": "تم حفظ الدرجة!",
+      "finalized": "تم اعتماد التقييم وإنهاؤه بنجاح!",
+      "finalizeError": "حدث خطأ أثناء إنهاء التقييم."
+    },
+    "ai": {
+      "pdfOnly": "يدعم التقييم الذكي إجابات ملفات PDF فقط."
+    }
+  },
   "emptyStates": {
     "defaultTitle": "لا توجد بيانات",
     "defaultDescription": "لا يوجد شيء لعرضه الآن.",
