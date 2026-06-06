@@ -1,51 +1,48 @@
 import { BarChart3, Globe2, Shield } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
 const highlights = [
   {
-    title: "Multilingual Support",
-    description:
-      "Optimized for English and Arabic with RTL-friendly layouts and localized content.",
+    key: "multilingual",
     icon: Globe2,
   },
   {
-    title: "Role-Based Access",
-    description:
-      "Secure dashboards and permissions for school admins, teachers, students, and guardians.",
+    key: "roleAccess",
     icon: Shield,
   },
   {
-    title: "Real-Time Insights",
-    description:
-      "Track performance, attendance, and engagement with live dashboards and exports.",
+    key: "insights",
     icon: BarChart3,
   },
 ];
 
-const AboutSection = () => {
+const AboutSection = async () => {
+  const t = await getTranslations("home.about");
+
   return (
     <section id="about" className="mx-auto px-6 py-20 max-w-6xl">
       <div className="mx-auto max-w-3xl text-center">
         <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
-          About Academix
+          {t("title")}
         </h2>
         <p className="mt-4 text-purple-50">
-          Academix connects every part of school administration into one unified
-          system, from enrollment and attendance to assessments, grading, and
-          communication.
+          {t("description")}
         </p>
       </div>
       <div className="gap-6 grid md:grid-cols-3 mt-14">
         {highlights.map((item) => (
           <article
-            key={item.title}
+            key={item.key}
             className="bg-academixPurpleDeep/65 p-6 border border-purple-200/25 rounded-xl text-center"
           >
             <div className="inline-flex justify-center items-center bg-academixPurple/10 mb-4 rounded-lg w-12 h-12 text-academixPurpleDark">
               <item.icon className="w-5 h-5" />
             </div>
-            <h3 className="font-semibold text-xl">{item.title}</h3>
+            <h3 className="font-semibold text-xl">
+              {t(`highlights.${item.key}.title`)}
+            </h3>
             <p className="mt-2 text-purple-100 text-sm">
-              {item.description}
+              {t(`highlights.${item.key}.description`)}
             </p>
           </article>
         ))}

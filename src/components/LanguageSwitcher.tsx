@@ -1,17 +1,19 @@
 "use client";
 
 import { Check, ChevronDown, Languages } from "lucide-react";
-import Image from "next/image";
 import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
 const locales = ["en", "ar"] as const;
 
-const LanguageSwitcher = () => {
+type LanguageSwitcherProps = {
+  variant?: "default" | "compact";
+};
+
+const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
   const locale = useLocale();
   const t = useTranslations("navbar.language");
-  const commonT = useTranslations("common");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -53,6 +55,28 @@ const LanguageSwitcher = () => {
       router.refresh();
     });
   };
+
+  const toggleLocale = () => {
+    handleChange(currentLocale === "en" ? "ar" : "en");
+  };
+
+  if (variant === "compact") {
+    return (
+      <button
+        type="button"
+        onClick={toggleLocale}
+        disabled={isPending}
+        aria-label={t("label")}
+        title={t(currentLocale === "en" ? "ar" : "en")}
+        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 disabled:opacity-60 shadow-sm backdrop-blur-sm px-2.5 border border-white/20 hover:border-white/35 rounded-md min-w-16 h-8 font-semibold text-white text-xs uppercase transition disabled:cursor-not-allowed"
+      >
+        <Languages className="w-3.5 h-3.5" aria-hidden="true" />
+        <span className="w-5 text-center">
+          {currentLocale === "ar" ? "EN" : "AR"}
+        </span>
+      </button>
+    );
+  }
 
   return (
     <div ref={rootRef} className="relative">

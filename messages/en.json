@@ -84,6 +84,141 @@
       "close": "Close"
     }
   },
+  "home": {
+    "nav": {
+      "home": "Home",
+      "about": "About",
+      "features": "Features",
+      "users": "Users",
+      "howItWorks": "How It Works",
+      "signIn": "Sign In",
+      "signUp": "Sign Up",
+      "openMenu": "Open menu",
+      "closeMenu": "Close menu"
+    },
+    "hero": {
+      "badge": "Powered with new AI features",
+      "title": "Welcome to Academix",
+      "highlight": "Academix",
+      "description": "A modern school management platform designed to streamline academic workflows for administrators, teachers, students, and parents.",
+      "signIn": "Sign In",
+      "signUp": "Sign Up"
+    },
+    "about": {
+      "title": "About Academix",
+      "description": "Academix connects every part of school administration into one unified system, from enrollment and attendance to assessments, grading, and communication.",
+      "highlights": {
+        "multilingual": {
+          "title": "Multilingual Support",
+          "description": "Optimized for English and Arabic with RTL-friendly layouts and localized content."
+        },
+        "roleAccess": {
+          "title": "Role-Based Access",
+          "description": "Secure dashboards and permissions for school admins, teachers, students, and guardians."
+        },
+        "insights": {
+          "title": "Real-Time Insights",
+          "description": "Track performance, attendance, and engagement with live dashboards and exports."
+        }
+      }
+    },
+    "features": {
+      "title": "Key Features",
+      "description": "Everything your institution needs to run smarter every day.",
+      "items": {
+        "students": {
+          "title": "Student Management",
+          "description": "Keep student profiles, enrollment history, and academic records organized in one place."
+        },
+        "courses": {
+          "title": "Course Management",
+          "description": "Plan subjects, assign teachers, and structure class schedules for every grade level."
+        },
+        "assessments": {
+          "title": "Assessments",
+          "description": "Create assignments and exams, then monitor submissions and grading progress."
+        },
+        "attendance": {
+          "title": "Attendance Tracking",
+          "description": "Digitize daily attendance with automated summaries and actionable reports."
+        },
+        "reports": {
+          "title": "Grades & Reports",
+          "description": "Generate report cards and analytics to support better academic decisions."
+        },
+        "learning": {
+          "title": "Virtual Learning Space",
+          "description": "Share resources, announcements, and course content in a unified student experience."
+        }
+      }
+    },
+    "roles": {
+      "title": "Designed for Every Role",
+      "description": "Tailored experiences for administrators, teachers, and students.",
+      "items": {
+        "administrator": {
+          "title": "Administrator",
+          "description": "Manage teachers, classes, subjects, and school-wide operations from one dashboard.",
+          "actions": {
+            "users": "Manage all users",
+            "settings": "Configure school settings",
+            "reports": "Generate reports",
+            "operations": "Oversee operations"
+          }
+        },
+        "teacher": {
+          "title": "Teacher",
+          "description": "Plan lessons, create assessments, track submissions, and monitor classroom progress.",
+          "actions": {
+            "assessments": "Create assessments",
+            "attendance": "Take attendance",
+            "grading": "Grade submissions",
+            "resources": "Manage class resources"
+          }
+        },
+        "student": {
+          "title": "Student",
+          "description": "Access courses, complete assignments, track grades, and stay updated with announcements.",
+          "actions": {
+            "courses": "View enrolled courses",
+            "assignments": "Submit assignments",
+            "grades": "Track grades",
+            "attendance": "Review attendance"
+          }
+        }
+      }
+    },
+    "howItWorks": {
+      "title": "How It Works",
+      "description": "Launch your school workspace in a few guided steps.",
+      "steps": {
+        "account": {
+          "title": "Create Account",
+          "description": "Sign up your school and invite your team in minutes."
+        },
+        "setup": {
+          "title": "Set Up School",
+          "description": "Configure classes, subjects, roles, and academic terms."
+        },
+        "operations": {
+          "title": "Run Operations",
+          "description": "Handle attendance, exams, communication, and daily workflows."
+        },
+        "outcomes": {
+          "title": "Improve Outcomes",
+          "description": "Use reports and analytics to drive smarter decisions."
+        }
+      }
+    },
+    "cta": {
+      "title": "Ready to Transform Your School?",
+      "description": "Join Academix and simplify school operations with one platform for learning, assessment, and administration.",
+      "button": "Get Started Free"
+    },
+    "footer": {
+      "copyright": "© 2026 Academix. All rights reserved."
+    }
+  },
   "roles": {
     "admin": "Admin",
     "teacher": "Teacher",

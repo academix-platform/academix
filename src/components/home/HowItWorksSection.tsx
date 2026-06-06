@@ -2,27 +2,25 @@
 
 const steps = [
   {
-    title: "Create Account",
-    description: "Sign up your school and invite your team in minutes.",
+    key: "account",
   },
   {
-    title: "Set Up School",
-    description: "Configure classes, subjects, roles, and academic terms.",
+    key: "setup",
   },
   {
-    title: "Run Operations",
-    description:
-      "Handle attendance, exams, communication, and daily workflows.",
+    key: "operations",
   },
   {
-    title: "Improve Outcomes",
-    description: "Use reports and analytics to drive smarter decisions.",
+    key: "outcomes",
   },
 ];
 
 import RevealSection from "./RevealSection";
+import { useTranslations } from "next-intl";
 
 const HowItWorksSection = () => {
+  const t = useTranslations("home.howItWorks");
+
   return (
     <RevealSection>
       <section
@@ -32,21 +30,23 @@ const HowItWorksSection = () => {
         <div className="mx-auto px-6 py-20 max-w-6xl">
           <div className="mx-auto max-w-3xl text-center">
             <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
-              How It Works
+              {t("title")}
             </h2>
             <p className="mt-4 text-purple-50">
-              Launch your school workspace in a few guided steps.
+              {t("description")}
             </p>
           </div>
           <div className="gap-8 grid sm:grid-cols-2 lg:grid-cols-4 mt-14">
             {steps.map((step, index) => (
-              <article key={step.title} className="text-center">
+              <article key={step.key} className="text-center">
                 <div className="inline-flex justify-center items-center bg-white mb-4 rounded-full w-10 h-10 font-semibold text-academixPurpleDeep">
                   {index + 1}
                 </div>
-                <h3 className="font-semibold text-lg">{step.title}</h3>
+                <h3 className="font-semibold text-lg">
+                  {t(`steps.${step.key}.title`)}
+                </h3>
                 <p className="mt-2 text-purple-100 text-sm">
-                  {step.description}
+                  {t(`steps.${step.key}.description`)}
                 </p>
               </article>
             ))}

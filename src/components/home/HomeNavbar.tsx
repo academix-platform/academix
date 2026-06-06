@@ -4,18 +4,22 @@ import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const HomeNavbar = () => {
+  const locale = useLocale();
   const commonT = useTranslations("common");
+  const t = useTranslations("home.nav");
   const [isOpen, setIsOpen] = useState(false);
+  const isArabic = locale === "ar";
 
   const navLinks = [
-    { label: "Home", href: "#" },
-    { label: "About", href: "#about" },
-    { label: "Features", href: "#features" },
-    { label: "Users", href: "#roles" },
-    { label: "How It Works", href: "#how-it-works" },
+    { label: t("home"), href: "#" },
+    { label: t("about"), href: "#about" },
+    { label: t("features"), href: "#features" },
+    { label: t("users"), href: "#roles" },
+    { label: t("howItWorks"), href: "#how-it-works" },
   ];
 
   const toggleMenu = () => setIsOpen(!isOpen);
@@ -26,10 +30,10 @@ const HomeNavbar = () => {
       {/* Navbar */}
       <nav className="top-0 right-0 left-0 z-50 fixed backdrop-blur-sm">
         <div className="mx-auto px-12 lg:px-24 py-5">
-          <div className="flex justify-between items-center">
+          <div className="relative flex justify-between items-center">
             <a
               href="#"
-              className="inline-flex justify-center items-center font-bold text-xl"
+              className="relative inline-flex shrink-0 justify-center items-center font-bold text-xl"
             >
               <h1 className="flex items-center gap-2 font-bold text-white text-xl">
                 <Image
@@ -41,6 +45,15 @@ const HomeNavbar = () => {
                 />
                 {commonT("brand")}
               </h1>
+              <div
+                className={`hidden xl:block absolute top-1/2 -translate-y-1/2 ${
+                  isArabic
+                    ? "right-[calc(100%+18px)]"
+                    : "left-[calc(100%+18px)]"
+                }`}
+              >
+                <LanguageSwitcher variant="compact" />
+              </div>
             </a>
 
             <div className="hidden lg:flex items-center gap-8">
@@ -59,23 +72,26 @@ const HomeNavbar = () => {
                 href="/sign-in"
                 className="text-slate-300 hover:text-white transition-colors duration-200"
               >
-                Sign In
+                {t("signIn")}
               </Link>
               <Link
                 href="/school-signup"
                 className="bg-academixInk hover:bg-academixPurpleMuted hover:shadow-[0_10px_25px_rgba(124,58,237,0.35)] px-4 py-2 rounded-md font-medium text-white transition-all duration-300"
               >
-                Sign Up
+                {t("signUp")}
               </Link>
             </div>
 
             {/* Mobile menu button */}
-            <button
-              onClick={toggleMenu}
-              className="lg:hidden text-white hover:text-slate-300 transition-colors"
-            >
-              <Menu className="w-6 h-6" />
-            </button>
+            <div className="relative flex items-center gap-3 lg:hidden">
+              <button
+                onClick={toggleMenu}
+                aria-label={t("openMenu")}
+                className="text-white hover:text-slate-300 transition-colors"
+              >
+                <Menu className="w-6 h-6" />
+              </button>
+            </div>
           </div>
         </div>
       </nav>
@@ -97,6 +113,7 @@ const HomeNavbar = () => {
         {/* Close button */}
         <button
           onClick={closeMenu}
+          aria-label={t("closeMenu")}
           className="top-4 right-4 absolute text-slate-300 hover:text-white transition-colors"
         >
           <X className="w-6 h-6" />
@@ -116,19 +133,22 @@ const HomeNavbar = () => {
           ))}
 
           <div className="space-y-3 pt-4 border-amber-400 border-t">
+            <div className="px-4">
+              <LanguageSwitcher variant="compact" />
+            </div>
             <Link
               href="/sign-in"
               onClick={closeMenu}
               className="block hover:bg-slate-800/50 px-4 py-3 rounded-lg text-slate-300 hover:text-white transition-colors duration-200"
             >
-              Sign In
+              {t("signIn")}
             </Link>
             <Link
               href="/school-signup"
               onClick={closeMenu}
               className="block hover:bg-slate-800/50 px-4 py-3 rounded-lg text-slate-300 hover:text-white transition-colors duration-200"
             >
-              Sign Up
+              {t("signUp")}
             </Link>
           </div>
         </div>
