@@ -24,6 +24,7 @@ import {
   deleteExamFileFromCloudinary,
   generateExamUploadSignature,
 } from "../cloudinary";
+import { Prisma } from "@prisma/client";
 
 // ============================================================
 // HELPERS
@@ -38,6 +39,45 @@ const getExamEndsAt = (submission: {
     submission.startedAt.getTime() +
     ((submission.exam.duration ?? 0) + (submission.extraTime ?? 0)) * 60000
   );
+};
+
+const fillUnansweredQuestions = async (
+  tx: Prisma.TransactionClient,
+  submissionId: number,
+  examId: number,
+  schoolId: number
+) => {
+  const allQuestions = await tx.question.findMany({
+    where: { examId },
+    select: { id: true },
+  });
+
+  const existingAnswers = await tx.answer.findMany({
+    where: { submissionId },
+    select: { questionId: true },
+  });
+
+  const answeredQuestionIds = new Set(
+    existingAnswers.map((a) => a.questionId)
+  );
+
+  const unanswered = allQuestions.filter(
+    (q) => !answeredQuestionIds.has(q.id)
+  );
+
+  if (unanswered.length > 0) {
+    await tx.answer.createMany({
+      data: unanswered.map((q) => ({
+        submissionId,
+        questionId: q.id,
+        schoolId,
+        textAnswer: null,
+        fileUrl: null,
+        score: 0,
+        isDraft: false,
+      })),
+    });
+  }
 };
 
 const validateSubmissionOwnership = async (
@@ -840,6 +880,13 @@ export const submitExam = async (submissionId: number) => {
 
     // Submit
     await prisma.$transaction(async (tx) => {
+      await fillUnansweredQuestions(
+        tx,
+        submissionId,
+        submission.examId,
+        access.schoolId
+      );
+
       await tx.answer.updateMany({
         where: { submissionId, isDraft: true },
         data: { isDraft: false },
@@ -1380,20 +1427,35 @@ export const deleteOldExamFileOnReplace = async (
 // 15. autoSubmitExpiredSubmissions
 // ============================================================
 
-export const autoSubmitExpiredSubmissions = async (examId: number) => {
+export const autoSubmitExpiredSubmissions = async (
+  examId?: number
+): Promise<{ processed: number; submitted: number }> => {
   try {
     const now = new Date();
 
+    const whereClause: Prisma.SubmissionWhereInput = {
+      status: "IN_PROGRESS",
+    };
+    if (examId !== undefined) {
+      whereClause.examId = examId;
+    }
+
     const submissions = await prisma.submission.findMany({
-      where: {
-        examId,
-        status: "IN_PROGRESS",
-      },
+      where: whereClause,
       include: {
         exam: { select: { duration: true, endTime: true } },
-        answers: { select: { textAnswer: true, fileUrl: true, id: true, filePublicId: true } },
+        answers: {
+          select: {
+            textAnswer: true,
+            fileUrl: true,
+            id: true,
+            filePublicId: true,
+          },
+        },
       },
     });
+
+    let submitted = 0;
 
     for (const submission of submissions) {
       const examEndsAt = new Date(
@@ -1409,6 +1471,13 @@ export const autoSubmitExpiredSubmissions = async (examId: number) => {
 
       if (hasContent) {
         await prisma.$transaction(async (tx) => {
+          await fillUnansweredQuestions(
+            tx,
+            submission.id,
+            submission.examId,
+            submission.schoolId
+          );
+
           await tx.answer.updateMany({
             where: { submissionId: submission.id, isDraft: true },
             data: { isDraft: false },
@@ -1429,6 +1498,8 @@ export const autoSubmitExpiredSubmissions = async (examId: number) => {
         } catch {
           // Non-critical — grade what we can
         }
+
+        submitted++;
       } else {
         // Empty abandoned submission: clean up Cloudinary files
         for (const answer of submission.answers) {
@@ -1437,21 +1508,44 @@ export const autoSubmitExpiredSubmissions = async (examId: number) => {
           }
         }
 
-        await prisma.answer.updateMany({
-          where: { submissionId: submission.id },
-          data: {
-            fileUrl: null,
-            filePublicId: null,
-            fileOriginalName: null,
-            fileMimeType: null,
-            fileSizeBytes: null,
-          },
+        await prisma.$transaction(async (tx) => {
+          await tx.answer.updateMany({
+            where: { submissionId: submission.id },
+            data: {
+              fileUrl: null,
+              filePublicId: null,
+              fileOriginalName: null,
+              fileMimeType: null,
+              fileSizeBytes: null,
+            },
+          });
+
+          await fillUnansweredQuestions(
+            tx,
+            submission.id,
+            submission.examId,
+            submission.schoolId
+          );
+
+          await tx.submission.update({
+            where: { id: submission.id },
+            data: {
+              status: "SUBMITTED",
+              submittedAt: now,
+              autoSubmitted: true,
+              totalScore: 0,
+            },
+          });
         });
+
+        submitted++;
       }
     }
+
+    return { processed: submissions.length, submitted };
   } catch (err) {
     console.error("[autoSubmitExpiredSubmissions]", err);
-    // Silently catch — must never throw (page must still render)
+    return { processed: 0, submitted: 0 };
   }
 };
 
