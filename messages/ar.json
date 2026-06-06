@@ -940,6 +940,19 @@
       "pdfOnly": "يدعم التقييم الذكي إجابات ملفات PDF فقط."
     }
   },
+  "aiEvaluation": {
+    "title": "التقييم الذكي",
+    "evaluate": "قيّم بالذكاء الاصطناعي",
+    "saved": "تم حفظ التقييم الذكي.",
+    "failed": "فشل التقييم الذكي.",
+    "manualFallback": "فشل التقييم الذكي. لا يزال التقييم اليدوي متاحا.",
+    "appliedDraftScore": "درجة المسودة المطبقة: {score} / {maxScore}",
+    "needsReview": "تحتاج مراجعة",
+    "noFeedback": "لم يتم تقديم ملاحظات.",
+    "strengths": "نقاط القوة",
+    "weaknesses": "نقاط الضعف",
+    "pdfSubmissionsOnly": "يدعم التقييم الذكي تسليمات PDF فقط."
+  },
   "assignmentsPage": {
     "actions": {
       "submit": "تسليم",

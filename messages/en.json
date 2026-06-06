@@ -940,6 +940,19 @@
       "pdfOnly": "AI evaluation supports PDF file answers only."
     }
   },
+  "aiEvaluation": {
+    "title": "AI Evaluation",
+    "evaluate": "Evaluate with AI",
+    "saved": "AI evaluation saved.",
+    "failed": "AI evaluation failed.",
+    "manualFallback": "AI evaluation failed. Manual grading still works.",
+    "appliedDraftScore": "Applied draft score: {score} / {maxScore}",
+    "needsReview": "Needs review",
+    "noFeedback": "No feedback provided.",
+    "strengths": "Strengths",
+    "weaknesses": "Weaknesses",
+    "pdfSubmissionsOnly": "AI evaluation supports PDF submissions only."
+  },
   "assignmentsPage": {
     "actions": {
       "submit": "Submit",
