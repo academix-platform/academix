@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 
 export default async function UnauthorizedPage() {
   const t = await getTranslations("states");
+  const commonT = await getTranslations("common");
 
   return (
     <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 min-h-screen overflow-hidden">
@@ -16,7 +17,7 @@ export default async function UnauthorizedPage() {
             width={40}
             height={40}
           />
-          ACADEMIX
+          {commonT("brand")}
         </h1>
 
         <h2 className="mb-3 font-semibold text-2xl">

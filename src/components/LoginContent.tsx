@@ -7,8 +7,10 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getRoleHome, type UserRole } from "@/lib/utils";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const LoginContent = () => {
+  const commonT = useTranslations("common");
   const { isLoaded: isUserLoaded, user } = useUser();
   const { signIn, errors, fetchStatus } = useSignIn();
   const router = useRouter();
@@ -67,7 +69,7 @@ const LoginContent = () => {
               width={40}
               height={40}
             />
-            ACADEMIX
+            {commonT("brand")}
           </h1>
           <div className="flex items-center gap-3 bg-academixPurpleLight/40 px-4 py-3 rounded-xl">
             <span
@@ -104,7 +106,7 @@ const LoginContent = () => {
                 width={40}
                 height={40}
               />
-              ACADEMIX
+              {commonT("brand")}
             </h1>
             <h2 className="ml-4 text-gray-300">Sign in to your account</h2>
           </div>

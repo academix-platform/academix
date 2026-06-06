@@ -4,8 +4,10 @@ import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 const HomeNavbar = () => {
+  const commonT = useTranslations("common");
   const [isOpen, setIsOpen] = useState(false);
 
   const navLinks = [
@@ -37,7 +39,7 @@ const HomeNavbar = () => {
                   width={40}
                   height={40}
                 />
-                ACADEMIX
+                {commonT("brand")}
               </h1>
             </a>
 

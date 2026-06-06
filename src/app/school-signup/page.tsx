@@ -4,9 +4,11 @@ import SchoolSignupForm from "@/components/SchoolSignupForm";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 export default function SchoolSignupPage() {
   const router = useRouter();
+  const commonT = useTranslations("common");
 
   return (
     <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-3 md:p-5 min-h-screen overflow-hidden">
@@ -29,7 +31,9 @@ export default function SchoolSignupPage() {
                 height={40}
               />
 
-              <span className="font-bold text-xl tracking-wide">ACADEMIX</span>
+              <span className="font-bold text-xl tracking-wide">
+                {commonT("brand")}
+              </span>
             </div>
             <h1 className="mt-8 font-bold text-white text-3xl leading-tight">
               School{" "}

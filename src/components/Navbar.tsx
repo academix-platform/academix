@@ -5,6 +5,8 @@ import {
   MessageCircle,
   PanelLeftClose,
   PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import { useUser } from "@clerk/nextjs";
@@ -13,7 +15,7 @@ import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
 import Link from "next/link";
 import LanguageSwitcher from "./LanguageSwitcher";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 
 type NavbarProps = {
   authUser: AuthUser | null;
@@ -30,6 +32,7 @@ const Navbar = ({
   onMenuClick,
   onMenuCollapseToggle,
 }: NavbarProps) => {
+  const locale = useLocale();
   const t = useTranslations("navbar");
   const roleT = useTranslations("roles");
   const { user, isLoaded } = useUser();
@@ -74,6 +77,7 @@ const Navbar = ({
   const normalizedRole = role?.toLowerCase().replace(/[\s_]/g, "");
   const canViewMessages =
     normalizedRole !== "admin" && normalizedRole !== "superadmin";
+  const isRtl = locale === "ar";
 
   const initials =
     fullName
@@ -104,7 +108,13 @@ const Navbar = ({
             onClick={onMenuCollapseToggle}
             className="hidden lg:flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/70 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
           >
-            {isMenuCollapsed ? (
+            {isRtl ? (
+              isMenuCollapsed ? (
+                <PanelRightOpen className="w-5 h-5" />
+              ) : (
+                <PanelRightClose className="w-5 h-5" />
+              )
+            ) : isMenuCollapsed ? (
               <PanelLeftOpen className="w-5 h-5" />
             ) : (
               <PanelLeftClose className="w-5 h-5" />

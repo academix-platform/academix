@@ -1,9 +1,11 @@
 import { requireAuth, requireRole } from "@/lib/auth";
 import SignOutToSignInButton from "@/components/SignOutToSignInButton";
 import Image from "next/image";
+import { getTranslations } from "next-intl/server";
 
 export default async function SchoolAccessPage() {
   const user = await requireAuth();
+  const commonT = await getTranslations("common");
   requireRole(user, ["admin", "teacher", "student", "parent"]);
 
   const isPending = user.schoolStatus === "PENDING";
@@ -20,7 +22,7 @@ export default async function SchoolAccessPage() {
             width={40}
             height={40}
           />
-          ACADEMIX
+          {commonT("brand")}
         </h1>
 
         <h2 className="mb-4 font-semibold text-2xl">School Access Status</h2>

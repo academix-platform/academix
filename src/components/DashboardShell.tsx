@@ -8,6 +8,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { useState } from "react";
+import { useTranslations } from "next-intl";
 
 type DashboardShellProps = {
   authUser: AuthUser | null;
@@ -20,6 +21,7 @@ const DashboardShell = ({
   schoolName,
   children,
 }: DashboardShellProps) => {
+  const t = useTranslations("common");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
 
@@ -70,7 +72,7 @@ const DashboardShell = ({
                 isMenuCollapsed ? "lg:hidden" : ""
               }`}
             >
-              ACADEMIX
+              {t("brand")}
             </span>
           </Link>
 
