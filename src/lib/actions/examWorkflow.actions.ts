@@ -608,7 +608,6 @@ export const startExam = async (examId: number) => {
 
     const now = new Date();
     if (now < exam.startTime) return { error: "Exam has not started yet." };
-    if (now > exam.endTime) return { error: "Exam has already ended." };
 
     // Find an existing submission or create a new one
     let submission = await prisma.submission.findUnique({
@@ -623,6 +622,8 @@ export const startExam = async (examId: number) => {
     }
 
     if (!submission) {
+      if (now > exam.endTime) return { error: "Exam has already ended." };
+
       submission = await prisma.submission.create({
         data: {
           examId,
@@ -1089,7 +1090,7 @@ export const extendTime = async (
     await prisma.submission.update({
       where: { id: data.submissionId },
       data: {
-        extraTime: { increment: data.extraMinutes },
+        extraTime: (submission.extraTime ?? 0) + data.extraMinutes,
         extendedBy: access.userId,
         extendedAt: new Date(),
       },
@@ -1580,7 +1581,7 @@ export const getExamUploadSignature = async (
       return { error: "Submission does not belong to this exam" };
     }
 
-    if (new Date() > submission.exam.endTime) {
+    if (new Date() > getExamEndsAt(submission)) {
       return { error: "Exam time has expired" };
     }
 
