@@ -23,6 +23,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type ParentFormState = {
   success: boolean;
@@ -41,6 +42,8 @@ const ParentForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.parent");
+  const commonT = useTranslations("forms.common");
   const {
     register,
     handleSubmit,
@@ -65,8 +68,8 @@ const ParentForm = ({
 
   const onSubmit = handleSubmit((data) => {
     if (type === "create" && selectedStudentIds.length === 0) {
-      setStudentsError("Select at least one student.");
-      toast.error("Select at least one student before creating a parent.");
+      setStudentsError(t("selectStudentRequired"));
+      toast.error(t("selectStudentBeforeCreate"));
       return;
     }
 
@@ -79,15 +82,13 @@ const ParentForm = ({
         } as any);
 
         if (result.success) {
-          toast(
-            `Parent has been ${type === "create" ? "created" : "updated"}!`,
-          );
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message || "Something went wrong!");
+        toast.error(result.message || commonT("somethingWentWrong"));
       })();
     });
   });
@@ -110,41 +111,47 @@ const ParentForm = ({
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <h1 className="font-bold text-gray-900 text-2xl">
-        {type === "create" ? "Create a new Parent" : "Update the Parent"}
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
           <ShieldCheck size={16} />
-          Authentication Information
+          {commonT("authenticationInfo")}
         </span>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
-          label="Username"
+          label={commonT("username")}
           name="username"
           defaultValue={data?.username}
           register={register}
           error={errors?.username}
         />
         <InputField
-          label="Email"
+          label={commonT("email")}
           name="email"
           defaultValue={data?.email}
           register={register}
           error={errors?.email}
         />
         <div className="flex flex-col gap-2 w-full">
-          <label className="font-medium text-gray-700 text-sm">Password</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {commonT("password")}
+          </label>
           <div className="relative">
             <input
               type={showPassword ? "text" : "password"}
               {...register("password")}
-              className="focus:bg-academixPurpleLight px-4 py-3 pr-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+              className="focus:bg-academixPurpleLight px-4 py-3 pe-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
             />
             <button
               type="button"
               onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              className="top-1/2 right-3 absolute text-gray-500 hover:text-gray-700 -translate-y-1/2"
+              aria-label={
+                showPassword
+                  ? commonT("hidePassword")
+                  : commonT("showPassword")
+              }
+              className="top-1/2 end-3 absolute text-gray-500 hover:text-gray-700 -translate-y-1/2"
             >
               {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -161,25 +168,25 @@ const ParentForm = ({
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
           <UserRound size={16} />
-          Personal Information
+          {commonT("personalInfo")}
         </span>
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
-          label="Full Name"
+          label={commonT("fullName")}
           name="name"
           defaultValue={data?.name}
           register={register}
           error={errors.name}
         />
         <InputField
-          label="Phone"
+          label={commonT("phone")}
           name="phone"
           defaultValue={data?.phone}
           register={register}
           error={errors.phone}
         />
         <InputField
-          label="Address"
+          label={commonT("address")}
           name="address"
           defaultValue={data?.address}
           register={register}
@@ -195,13 +202,13 @@ const ParentForm = ({
         <div className="flex flex-col gap-2 w-full student-search">
         <label className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
           <Users size={16} />
-          Students
+          {t("students")}
         </label>
         <div className="relative">
           <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg focus-within:ring-0 transition-all">
             <input
               type="text"
-              placeholder="Search students..."
+              placeholder={commonT("searchStudents")}
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               className="bg-transparent outline-none w-full text-sm"
@@ -225,7 +232,7 @@ const ParentForm = ({
             </button>
           </div>
           {showDropdown && (
-            <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
+            <div className="top-full inset-x-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
               {filteredStudents.length > 0 ? (
                 filteredStudents.map(
                   (student: { id: string; name: string }) => (
@@ -241,7 +248,7 @@ const ParentForm = ({
                         setShowDropdown(false);
                         setFilteredStudents([]);
                       }}
-                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-left transition-colors cursor-pointer"
+                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-start transition-colors cursor-pointer"
                     >
                       {student.name}
                     </div>
@@ -249,7 +256,7 @@ const ParentForm = ({
                 )
               ) : (
                 <div className="px-3 py-2 text-gray-500 text-sm">
-                  No students found
+                  {commonT("noStudentsFound")}
                 </div>
               )}
             </div>
@@ -299,10 +306,10 @@ const ParentForm = ({
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
       >
         {isSubmitting
-          ? "Submitting..."
+          ? commonT("submitting")
           : type === "create"
-            ? "Create Parent"
-            : "Update Parent"}
+            ? t("create")
+            : t("update")}
       </button>
     </form>
   );

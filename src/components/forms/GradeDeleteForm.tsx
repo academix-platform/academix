@@ -4,6 +4,7 @@ import { Dispatch, SetStateAction, useState, useTransition } from "react";
 import { deleteGrade } from "@/lib/actions/grade.actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
+import { useTranslations } from "next-intl";
 
 type GradeDeleteFormProps = {
   data: {
@@ -29,6 +30,9 @@ type FormState = {
 };
 
 const GradeDeleteForm = ({ data, relatedData, setOpen }: GradeDeleteFormProps) => {
+  const t = useTranslations("forms.gradeDelete");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [state, setState] = useState<FormState>({ success: false, error: false });
   const [isSubmitting, startTransition] = useTransition();
@@ -48,11 +52,11 @@ const GradeDeleteForm = ({ data, relatedData, setOpen }: GradeDeleteFormProps) =
         setState(result);
 
         if (result.success) {
-          toast.success("Grade deleted successfully!");
+          toast.success(t("deleted"));
           setOpen(false);
           router.refresh();
         } else {
-          toast.error(result.message ?? "Something went wrong!");
+          toast.error(result.message ?? commonT("somethingWentWrong"));
         }
       })();
     });
@@ -61,35 +65,37 @@ const GradeDeleteForm = ({ data, relatedData, setOpen }: GradeDeleteFormProps) =
   return (
     <form onSubmit={handleDelete} className="flex flex-col gap-4 p-4">
 
-      <h1 className="font-bold text-gray-900 text-2xl">Delete grade</h1>
+      <h1 className="font-bold text-gray-900 text-2xl">{t("title")}</h1>
 
       {classCount > 0 ? (
         <div className="bg-red-50 p-3 border border-red-200 rounded-md text-sm">
           <p className="font-medium text-red-700">
-            Warning: This grade has {classCount} class{classCount === 1 ? "" : "es"} attached.
+            {t("warning", { count: classCount })}
           </p>
           <p className="mt-1 text-red-600">
-            Deleting this grade will also delete those classes and their schedule-related records.
+            {t("cascadeWarning")}
           </p>
           {relatedData?.classes && relatedData.classes.length > 0 && (
             <p className="mt-2 text-red-700">
-              Classes: {relatedData.classes.map((item) => item.name).join(", ")}
+              {t("classes", {
+                classes: relatedData.classes.map((item) => item.name).join(", "),
+              })}
             </p>
           )}
         </div>
       ) : (
         <p className="text-gray-600 text-sm">
-          Grade {data.level} has no classes attached and can be deleted.
+          {t("noClasses", { level: data.level })}
         </p>
       )}
 
       <p className="font-medium text-center">
-        Are you sure you want to delete Grade {data.level}?
+        {t("confirm", { level: data.level })}
       </p>
 
       {state.error && (
         <p className="text-red-500 text-sm">
-          {state.message ?? "Something went wrong!"}
+          {state.message ?? commonT("somethingWentWrong")}
         </p>
       )}
 
@@ -100,14 +106,14 @@ const GradeDeleteForm = ({ data, relatedData, setOpen }: GradeDeleteFormProps) =
           onClick={() => setOpen(false)}
           className="hover:bg-gray-50 disabled:opacity-60 px-4 py-2 border border-gray-300 rounded-md text-sm"
         >
-          Cancel
+          {actionsT("close")}
         </button>
         <button
           type="submit"
           disabled={isSubmitting}
           className="bg-red-700 disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md text-white text-sm transition-all"
         >
-          {isSubmitting ? "Deleting..." : "Delete grade"}
+          {isSubmitting ? actionsT("deleting") : t("delete")}
         </button>
       </div>
     </form>

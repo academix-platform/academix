@@ -101,7 +101,11 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   return columns;
 };
 
-const renderRow = (item: ExamList, role: UserRole | null) => (
+const renderRow = (
+  item: ExamList,
+  role: UserRole | null,
+  examT: (key: string) => string,
+) => (
   <tr
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
@@ -129,24 +133,24 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
     </td>
 
     {role === "student" && (
-      <td className="p-4 text-left">
+      <td className="p-4 text-start">
         {(() => {
           const sub = item.studentSubmission;
-          if (!sub) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">Not Started</span>;
+          if (!sub) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">{examT("statuses.notStarted")}</span>;
           if (sub.status === "IN_PROGRESS")
-            return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">In Progress</span>;
+            return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.inProgress")}</span>;
           if (sub.status === "SUBMITTED")
-            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">Submitted</span>;
+            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.submitted")}</span>;
           if (sub.status === "GRADED" && !sub.gradePublished)
-            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">Graded</span>;
+            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.graded")}</span>;
           if (sub.status === "GRADED" && sub.gradePublished)
-            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">Published</span>;
+            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.published")}</span>;
         })()}
       </td>
     )}
 
     {role === "student" && (
-      <td className="p-4 text-left font-semibold text-academixPurpleDark">
+      <td className="p-4 text-start font-semibold text-academixPurpleDark">
         {item.studentSubmission?.gradePublished && item.studentSubmission.totalScore !== null
           ? item.studentSubmission.totalScore
           : <span className="text-gray-300 font-normal">—</span>}
@@ -160,7 +164,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
             <Link
               href={`/list/exams/create-workflow?examId=${item.id}`}
               className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
-              aria-label="Edit exam workflow"
+              aria-label={examT("editWorkflow")}
             >
               <Pencil className="w-4 h-4" />
             </Link>
@@ -172,7 +176,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
             href={`/list/exams/${item.id}/submissions`}
             className="bg-academixYellow hover:opacity-90 px-3 py-2 rounded-md text-xs hover:scale-[1.05] transition"
           >
-            Submissions
+            {examT("submissions")}
           </Link>
         )}
         {role === "student" && !item.studentSubmission && (
@@ -185,7 +189,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => (
         {role === "student" && item.studentSubmission?.status === "IN_PROGRESS" && (
           <Link href={`/list/exams/${item.id}/take`}>
             <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
-              Continue
+              {examT("continue")}
             </button>
           </Link>
         )}
@@ -201,6 +205,7 @@ const ExamListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const examT = await getTranslations("examList");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
 
   const resolvedSearchParams = await searchParams;
@@ -350,7 +355,7 @@ const ExamListPage = async ({
                   href="/list/exams/create-workflow"
                   className="bg-academixPurpleDark hover:opacity-90 px-4 py-2 rounded-md font-medium text-white text-sm transition-colors"
                 >
-                  Add Exam
+                  {examT("addExam")}
                 </Link>
               </>
             )}
@@ -360,10 +365,10 @@ const ExamListPage = async ({
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, examT)}
         data={dataWithClassDisplay}
-        emptyTitle="No exams found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={examT("noExams")}
+        emptyDescription={examT("emptyDescription")}
       />
 
       <Pagination page={p} count={count} />

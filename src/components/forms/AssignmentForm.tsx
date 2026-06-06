@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { Download, Upload, X, Clock, Search } from "lucide-react";
 import TeacherSearchInput from "./TeacherSearchInput";
+import { useTranslations } from "next-intl";
 
 // دالة مساعدة لتحويل التاريخ إلى صيغة datetime-local
 const toDatetimeLocalValue = (value: unknown) => {
@@ -41,6 +42,7 @@ function FileUploadSection({
   onFileSelect: (file: File | null) => void;
   onRemoveExisting: () => void;
 }) {
+  const t = useTranslations("forms.assignment");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [removeCurrent, setRemoveCurrent] = useState(false);
 
@@ -67,14 +69,14 @@ function FileUploadSection({
   return (
     <div className="border rounded-lg p-4 space-y-3">
       <label className="block text-sm font-medium text-gray-700">
-        Assignment File (optional)
+        {t("fileOptional")}
       </label>
 
       {/* الملف الحالي (في حالة التعديل) */}
       {currentFileUrl && !removeCurrent && !selectedFile && (
         <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
           <span className="text-sm truncate">
-            {currentFileName || "Current file"}
+            {currentFileName || t("currentFile")}
           </span>
           <div className="flex gap-2">
             {assignmentId && (
@@ -83,7 +85,7 @@ function FileUploadSection({
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-500 hover:text-blue-700"
-                title="Download current file"
+                title={t("downloadCurrentFile")}
               >
                 <Download className="w-4 h-4" />
               </a>
@@ -92,7 +94,7 @@ function FileUploadSection({
               type="button"
               onClick={handleRemoveCurrent}
               className="text-red-500 hover:text-red-700"
-              title="Remove current file"
+              title={t("removeCurrentFile")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -105,10 +107,10 @@ function FileUploadSection({
         <label className="cursor-pointer bg-purple-50 text-purple-700 px-3 py-2 rounded-lg text-sm font-medium flex items-center gap-2">
           <Upload className="w-4 h-4" />
           {selectedFile
-            ? "Change File"
+            ? t("changeFile")
             : currentFileUrl && !removeCurrent
-            ? "Replace File"
-            : "Upload File"}
+            ? t("replaceFile")
+            : t("uploadFile")}
           <input type="file" onChange={handleFileChange} className="hidden" />
         </label>
         {selectedFile && (
@@ -122,15 +124,17 @@ function FileUploadSection({
           onClick={handleRemoveSelected}
           className="text-xs text-red-500 hover:underline"
         >
-          Remove selected
+          {t("removeSelected")}
         </button>
       )}
 
       {!currentFileUrl && !selectedFile && (
-        <p className="text-xs text-gray-400">No file attached yet. Upload one if needed.</p>
+        <p className="text-xs text-gray-400">{t("noFileAttached")}</p>
       )}
       {(removeCurrent || (currentFileUrl && selectedFile)) && (
-        <p className="text-xs text-amber-600">The current file will be replaced.</p>
+        <p className="text-xs text-amber-600">
+          {t("currentFileWillBeReplaced")}
+        </p>
       )}
     </div>
   );
@@ -148,6 +152,9 @@ const AssignmentForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.assignment");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const {
     register,
     handleSubmit,
@@ -201,15 +208,15 @@ const AssignmentForm = ({
       try {
         const result = await action({ success: false, error: false }, formData);
         if (result.success) {
-          toast(`Assignment has been ${type === "create" ? "created" : "updated"}!`);
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
         } else {
-          toast.error(result.message ?? "Something went wrong!");
+          toast.error(result.message ?? commonT("somethingWentWrong"));
         }
       } catch (error) {
         console.error(error);
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -305,20 +312,20 @@ const AssignmentForm = ({
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <h1 className="font-bold text-gray-900 text-2xl">
-        {type === "create" ? "Create a new assignment" : "Update the assignment"}
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
-          label="Assignment Title"
+          label={t("title")}
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
-          inputProps={{ placeholder: "e.g. Chapter 4 Homework" }}
+          inputProps={{ placeholder: t("titlePlaceholder") }}
         />
         <InputField
-          label="Start Date"
+          label={commonT("startDate")}
           name="startDate"
           type="datetime-local"
           defaultValue={startDefaultValue}
@@ -326,7 +333,7 @@ const AssignmentForm = ({
           error={errors?.startDate}
         />
         <InputField
-          label="End Date"
+          label={commonT("endDate")}
           name="endDate"
           type="datetime-local"
           defaultValue={endDefaultValue}
@@ -334,7 +341,7 @@ const AssignmentForm = ({
           error={errors?.endDate}
         />
         <InputField
-          label="Marks"
+          label={t("marks")}
           name="maxScore"
           type="number"
           defaultValue={data?.maxScore ?? 10}
@@ -346,7 +353,7 @@ const AssignmentForm = ({
           <div className="xl:col-span-2">
             <input type="hidden" {...register("teacherId")} />
             <TeacherSearchInput
-              label="Assigned Teacher"
+              label={t("assignedTeacher")}
               teachers={teachers}
               value={selectedTeacherId}
               onChange={(teacherId) =>
@@ -357,7 +364,7 @@ const AssignmentForm = ({
               }
             />
             <p className="mt-1 text-gray-400 text-xs">
-              This teacher will be able to access and evaluate submissions.
+              {t("assignedTeacherHelp")}
             </p>
           </div>
         )}
@@ -366,12 +373,14 @@ const AssignmentForm = ({
         )}
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="font-medium text-gray-700 text-sm">Subject</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {t("subject")}
+          </label>
           {isSubjectLocked ? (
             <>
               <input type="hidden" {...register("subjectId")} value={data.subjectId} />
               <div className="bg-gray-50 px-4 py-3 border-2 border-gray-200 rounded-lg text-gray-700 text-sm">
-                {data?.subjectName ?? `Subject #${data.subjectId}`}
+                {data?.subjectName ?? t("subjectFallback", { id: data.subjectId })}
               </div>
             </>
           ) : (
@@ -382,7 +391,7 @@ const AssignmentForm = ({
                 <input
                   type="text"
                   value={subjectSearch}
-                  placeholder="Search subject..."
+                  placeholder={t("searchSubject")}
                   onFocus={() => setShowSubjectDropdown(true)}
                   onBlur={() => {
                     window.setTimeout(() => setShowSubjectDropdown(false), 120);
@@ -419,14 +428,14 @@ const AssignmentForm = ({
                       setShowSubjectDropdown(true);
                     }}
                     className="text-gray-400 hover:text-gray-600"
-                    aria-label="Clear subject"
+                    aria-label={t("clearSubject")}
                   >
                     <X className="w-4 h-4" />
                   </button>
                 )}
               </div>
               {showSubjectDropdown && (
-                <div className="top-full right-0 left-0 z-20 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+                <div className="top-full inset-x-0 z-20 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
                   {filteredSubjects.length > 0 ? (
                     filteredSubjects.map(
                       (subject: { id: number; name: string }) => {
@@ -450,7 +459,7 @@ const AssignmentForm = ({
                               setSubjectSearch(subject.name);
                               setShowSubjectDropdown(false);
                             }}
-                            className={`px-4 py-3 w-full text-sm text-left transition-colors ${
+                            className={`px-4 py-3 w-full text-sm text-start transition-colors ${
                               isSelected
                                 ? "bg-academixPurpleLight text-academixPurpleDark font-medium"
                                 : "hover:bg-academixPurpleLight hover:text-academixPurpleDark"
@@ -463,7 +472,7 @@ const AssignmentForm = ({
                     )
                   ) : (
                     <div className="px-4 py-3 text-gray-500 text-sm">
-                      No subjects found.
+                      {commonT("noSubjectsFound")}
                     </div>
                   )}
                 </div>
@@ -478,7 +487,9 @@ const AssignmentForm = ({
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="font-medium text-gray-700 text-sm">Classes</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {commonT("classes")}
+          </label>
           <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[220px] overflow-y-auto">
             <label className="flex items-center gap-2 mb-4 text-gray-700 text-sm">
               <input
@@ -488,7 +499,7 @@ const AssignmentForm = ({
                 disabled={filteredClassIds.length === 0}
                 className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
               />
-              <span className="font-medium">Select all</span>
+              <span className="font-medium">{commonT("selectAll")}</span>
             </label>
             {filteredClasses.map((cls: { id: number; name: string }) => (
               <label key={cls.id} className="flex items-center gap-2 text-gray-700 text-sm">
@@ -506,14 +517,16 @@ const AssignmentForm = ({
             {filteredClasses.length === 0 && (
               <p className="text-gray-400 text-xs">
                 {selectedSubjectId
-                  ? "No classes found for this subject."
-                  : "Select a subject first to see available classes."}
+                  ? t("noClassesForSubject")
+                  : t("selectSubjectFirst")}
               </p>
             )}
           </div>
           {selectedClassIds.length > 0 && (
             <p className="text-gray-400 text-xs">
-              {selectedClassIds.length} class{selectedClassIds.length === 1 ? " is" : "es are"} selected
+              {commonT("selectedClasses", {
+                count: selectedClassIds.length,
+              })}
             </p>
           )}
           {errors.classIds?.message && (
@@ -527,16 +540,16 @@ const AssignmentForm = ({
       {/* ── قسم رفع الملفات ── */}
       <div className="flex flex-col gap-2">
         <label className="font-medium text-gray-700 text-sm">
-          Model Answer / Rubric
+          {t("rubric")}
         </label>
         <textarea
           {...register("rubric")}
           defaultValue={data?.rubric ?? ""}
-          placeholder="Write the expected answer or explain how marks should be awarded..."
+          placeholder={t("rubricPlaceholder")}
           className="w-full min-h-[110px] rounded-lg border-2 border-gray-200 p-3 text-sm outline-none transition-all focus:border-academixPurpleDark focus:bg-academixPurpleLight"
         />
         <p className="text-xs text-gray-400">
-          Used to guide assignment grading and AI evaluation.
+          {t("rubricHelp")}
         </p>
         {errors.rubric?.message && (
           <p className="font-medium text-red-500 text-xs">
@@ -562,11 +575,13 @@ const AssignmentForm = ({
             <Clock className={`w-4 h-4 ${allowLateSubmission ? "text-amber-600" : "text-gray-400"}`} />
           </div>
           <div>
-            <p className="text-sm font-medium text-gray-700">Allow Late Submission</p>
+            <p className="text-sm font-medium text-gray-700">
+              {t("allowLateSubmission")}
+            </p>
             <p className="text-xs text-gray-400">
               {allowLateSubmission
-                ? "Students can submit after the deadline"
-                : "Students cannot submit after the deadline"}
+                ? t("lateAllowed")
+                : t("lateNotAllowed")}
             </p>
           </div>
         </div>
@@ -590,7 +605,11 @@ const AssignmentForm = ({
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Submitting..." : type === "create" ? "Create" : "Update"}
+        {isSubmitting
+          ? commonT("submitting")
+          : type === "create"
+            ? actionsT("create")
+            : actionsT("update")}
       </button>
     </form>
   );

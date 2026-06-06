@@ -40,6 +40,7 @@ const FeedbacksPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const filtersT = await getTranslations("filters");
+  const feedbackT = await getTranslations("feedbackPage");
   const user = await getAuthUser();
 
   if (!user) {
@@ -91,17 +92,16 @@ const FeedbacksPage = async ({
       <div className="flex md:flex-row flex-col md:justify-between md:items-center gap-4 mb-6">
         <div>
           <h1 className="font-semibold text-lg">{t("feedbacks")}</h1>
-          <p className="text-gray-500 text-sm">
-            Manage suggestions and complaints from students and parents.
-          </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="bg-yellow-100 px-4 py-2 rounded-full font-medium text-yellow-700 text-sm">
-            {pendingCount} pending
+            {feedbackT("pendingCount", { count: pendingCount })}
           </span>
 
-          <span className="text-gray-500 text-sm">{count} shown</span>
+          <span className="text-gray-500 text-sm">
+            {feedbackT("shownCount", { count })}
+          </span>
         </div>
       </div>
 
@@ -131,7 +131,7 @@ const FeedbacksPage = async ({
       <div className="space-y-4">
         {sortedFeedbacks.length === 0 ? (
           <div className="p-10 border border-gray-300 border-dashed rounded-xl text-center">
-            <p className="text-gray-500">No feedbacks found.</p>
+            <p className="text-gray-500">{feedbackT("noFeedbacks")}</p>
           </div>
         ) : (
           sortedFeedbacks.map((feedback) => {
@@ -158,7 +158,7 @@ const FeedbacksPage = async ({
                           feedback.status,
                         )}`}
                       >
-                        {feedback.status}
+                    {filtersT(feedback.status)}
                       </span>
                     </div>
 
@@ -174,10 +174,10 @@ const FeedbacksPage = async ({
 
                 {isResolved ? (
                   <p className="mt-5 text-green-700 text-sm">
-                    This feedback is resolved and locked.
+                    {feedbackT("resolvedLocked")}
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2 mt-5 ml-auto">
+                  <div className="flex flex-wrap gap-2 mt-5 ms-auto">
                     {feedback.status !== "reviewed" && (
                       <form action={updateFeedbackStatus}>
                         <input type="hidden" name="id" value={feedback.id} />
@@ -187,7 +187,7 @@ const FeedbacksPage = async ({
                           type="submit"
                           className="bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md font-medium text-blue-700 text-sm transition"
                         >
-                          Mark Reviewed
+                          {feedbackT("markReviewed")}
                         </button>
                       </form>
                     )}
@@ -200,7 +200,7 @@ const FeedbacksPage = async ({
                         type="submit"
                         className="bg-green-100 hover:bg-green-200 px-4 py-2 rounded-md font-medium text-green-700 text-sm transition"
                       >
-                        Mark Resolved
+                        {feedbackT("markResolved")}
                       </button>
                     </form>
 
@@ -213,7 +213,7 @@ const FeedbacksPage = async ({
                           type="submit"
                           className="bg-yellow-100 hover:bg-yellow-200 px-4 py-2 rounded-md font-medium text-yellow-700 text-sm transition"
                         >
-                          Mark Pending
+                          {feedbackT("markPending")}
                         </button>
                       </form>
                     )}

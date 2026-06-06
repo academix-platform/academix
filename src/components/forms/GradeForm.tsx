@@ -8,6 +8,7 @@ import { Dispatch, SetStateAction, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import InputField from "../InputField";
+import { useTranslations } from "next-intl";
 
 const GradeForm = ({
   setOpen,
@@ -17,6 +18,9 @@ const GradeForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.grade");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const {
     register,
     handleSubmit,
@@ -37,24 +41,24 @@ const GradeForm = ({
         const result = await createGrade({ success: false, error: false }, formData);
 
         if (result.success) {
-          toast("Grade created successfully!");
+          toast(t("created"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       })();
     });
   });
 
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
-      <h1 className="font-bold text-gray-900 text-2xl">Create a new grade</h1>
+      <h1 className="font-bold text-gray-900 text-2xl">{t("createTitle")}</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
-          label="Grade Level"
+          label={t("level")}
           name="level"
           type="number"
           register={register}
@@ -67,7 +71,7 @@ const GradeForm = ({
         disabled={isSubmitting}
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
       >
-        {isSubmitting ? "Submitting..." : "Create"}
+        {isSubmitting ? commonT("submitting") : actionsT("create")}
       </button>
     </form>
   );

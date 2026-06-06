@@ -18,6 +18,7 @@ const AttendancePage = async ({
   searchParams: PageSearchParams;
 }) => {
   const t = await getTranslations("pages");
+  const attendanceT = await getTranslations("attendance");
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
   const { role, userId, schoolId } =
@@ -60,8 +61,8 @@ const AttendancePage = async ({
       <div className="flex-1 bg-white m-4 p-6 rounded-md">
         <h1 className="mb-2 font-semibold text-lg">{t("attendance")}</h1>
         <EmptyState
-          title="No classes assigned"
-          description="You are not assigned to supervise any class yet."
+          title={attendanceT("noClassesAssigned")}
+          description={attendanceT("noClassesAssignedDescription")}
           className="py-6"
         />
       </div>
@@ -111,7 +112,7 @@ const AttendancePage = async ({
           )}
 
           <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">
-            Filter
+            {attendanceT("filter")}
           </button>
         </form>
       </div>

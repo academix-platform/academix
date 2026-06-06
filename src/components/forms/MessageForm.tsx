@@ -10,6 +10,7 @@ import { messageSchema, MessageSchema } from "@/lib/formValidationSchemas";
 import InputField from "../InputField";
 import MessageClassSelector from "./message/MessageClassSelector";
 import RecipientPicker from "./message/RecipientPicker";
+import { useTranslations } from "next-intl";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 const EMPTY_CLASS_ARRAY: Array<string | number> = [];
@@ -25,6 +26,9 @@ const MessageForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.message");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const {
     register,
     handleSubmit,
@@ -64,17 +68,15 @@ const MessageForm = ({
         );
 
         if (result.success) {
-          toast(
-            `Message has been ${type === "create" ? "created" : "updated"}!`,
-          );
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       } catch {
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -148,7 +150,7 @@ const MessageForm = ({
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <h1 className="font-bold text-gray-900 text-2xl">
-        {type === "create" ? "Create a new message" : "Update the message"}
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
 
       {type === "update" && (
@@ -160,7 +162,7 @@ const MessageForm = ({
           <>
             <input type="hidden" {...register("classIds")} />
             <span className="block font-semibold text-gray-700 text-sm">
-              Recipients
+              {t("recipients")}
             </span>
 
             <div className="gap-4 grid grid-cols-1 lg:grid-cols-3">
@@ -178,7 +180,7 @@ const MessageForm = ({
               </div>
 
               <RecipientPicker
-                label="Student recipients"
+                label={t("studentRecipients")}
                 items={eligibleStudents}
                 selectedIds={selectedStudentIds}
                 onChange={(nextIds) =>
@@ -190,7 +192,7 @@ const MessageForm = ({
               />
 
               <RecipientPicker
-                label="Parent recipients"
+                label={t("parentRecipients")}
                 items={eligibleParents}
                 selectedIds={selectedParentIds}
                 onChange={(nextIds) =>
@@ -202,7 +204,7 @@ const MessageForm = ({
               />
 
               <RecipientPicker
-                label="Teacher recipients"
+                label={t("teacherRecipients")}
                 items={eligibleTeachers}
                 selectedIds={selectedTeacherIds}
                 onChange={(nextIds) =>
@@ -226,30 +228,30 @@ const MessageForm = ({
         )}
 
         <span className="block font-semibold text-gray-700 text-sm">
-          Message Content
+          {t("content")}
         </span>
         <div className="flex items-center gap-4">
           <div className="lg:col-span-1">
             <InputField
-              label="Message Title"
+              label={t("title")}
               name="title"
               defaultValue={data?.title}
               register={register}
               error={errors?.title}
-              inputProps={{ placeholder: "e.g. Reminder" }}
+              inputProps={{ placeholder: t("titlePlaceholder") }}
             />
           </div>
 
           <div className="flex flex-col gap-2 lg:col-span-2 w-full">
             <label className="font-medium text-gray-700 text-sm">
-              Description
+              {commonT("description")}
             </label>
             <textarea
               {...register("description")}
               defaultValue={data?.description}
               rows={4}
               className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
-              placeholder="Message details"
+              placeholder={t("descriptionPlaceholder")}
             />
             {errors.description?.message && (
               <p className="font-medium text-red-500 text-xs">
@@ -271,10 +273,10 @@ const MessageForm = ({
           disabled={isSubmitting}
         >
           {isSubmitting
-            ? "Submitting..."
+            ? commonT("submitting")
             : type === "create"
-              ? "Create"
-              : "Update"}
+              ? actionsT("create")
+              : actionsT("update")}
         </button>
       </div>
     </form>
