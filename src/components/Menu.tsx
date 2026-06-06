@@ -23,6 +23,7 @@ import {
   Archive,
   Bell,
   type LucideIcon,
+  Percent,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
@@ -123,6 +124,13 @@ export const menuItems: MenuSection[] = [
         icon: BarChart3,
         labelKey: "results",
         href: "/list/results",
+        shouldPrefetch: true,
+        visible: ["admin", "teacher", "student", "parent"],
+      },
+      {
+        icon: Percent,
+        labelKey: "finalResults",
+        href: "/list/final-results",
         shouldPrefetch: true,
         visible: ["admin", "teacher", "student", "parent"],
       },
@@ -360,7 +368,7 @@ const Menu = ({
                 `}
               >
                 {isActive && (
-                  <span className="hidden lg:block top-1 bottom-1 start-0 absolute bg-academixPurpleDark rounded-e w-1" />
+                  <span className="hidden lg:block top-1 bottom-1 absolute bg-academixPurpleDark rounded-e w-1 start-0" />
                 )}
 
                 <item.icon

@@ -54,7 +54,8 @@
       "feedbacks": "الملاحظات",
       "profile": "الملف الشخصي",
       "settings": "الإعدادات",
-      "logout": "تسجيل الخروج"
+      "logout": "تسجيل الخروج",
+      "finalResults": "المعدلات النهائية"
     }
   },
   "navbar": {
@@ -315,7 +316,9 @@
     "statusValue": "الحالة / القيمة",
     "range": "النطاق",
     "current": "الحالي",
-    "type": "النوع"
+    "type": "النوع",
+    "assessmentCount": "التقييمات",
+    "averageScore": "المعدل %"
   },
   "filters": {
     "all": "الكل",
@@ -646,7 +649,7 @@
     "completed": "اكتملت الترقية",
     "failed": "تعذّر إكمال الترقية",
     "notFinishedBody": "تنتهي السنة الأكاديمية {year} في {date}. يمكنك تحديث الطلاب بعد مرور آخر يوم.",
-    "confirmBody": "انتهت السنة الأكاديمية {year}. أكّد هذا الإجراء لتحديث الطلاب بناء على نتائج أدائهم النهائية.",
+    "confirmBody": "The academic year {year} has finished. Confirm this action to update students based on their final average. Students with 60% or higher pass.",
     "promoted": "تمت الترقية",
     "graduated": "متخرجون",
     "repeated": "معادون",
@@ -686,7 +689,9 @@
     "allNotifications": "كل الإشعارات",
     "attendance": "الحضور",
     "messages": "الرسائل",
-    "notifications": "الإشعارات"
+    "notifications": "الإشعارات",
+    "finalResults": "المعدلات النهائية",
+    "finalAverages": "المعدلات النهائية"
   },
   "dashboardCards": {
     "admin": "المديرون",
@@ -1353,6 +1358,14 @@
     "uploadMaterial": "رفع مادة",
     "uploadStudyMaterial": "رفع مادة دراسية",
     "assignments": "لا توجد واجبات بعد.",
-    "teachersAssigned": "لا يوجد معلمون معينون بعد."
+    "teachersAssigned": "لا يوجد معلمون معينون بعد.",
+    "finalResults": "لا توجد معدلات نهائية",
+    "finalAverages": "لا توجد معدلات نهائية"
+  },
+  "finalResultStatus": {
+    "PASS": "ناجح",
+    "FAIL": "راسب",
+    "NO_RESULTS": "لا توجد نتائج",
+    "NOT_UPDATED": "لم يتم التحديث"
   }
 }
