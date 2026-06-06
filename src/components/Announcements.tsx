@@ -8,6 +8,7 @@ import { getTranslations } from "next-intl/server";
 
 const Announcements = async () => {
   const t = await getTranslations("pages");
+  const widgetsT = await getTranslations("widgets");
   const user = await requireAuth();
   const { role, userId, schoolId } = user;
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
@@ -47,7 +48,7 @@ const Announcements = async () => {
           href="/list/announcements"
           className="text-gray-400 text-xs hover:underline transition"
         >
-          View All
+          {widgetsT("viewAll")}
         </Link>
       </div>
       <div className="flex flex-col gap-4 mt-4">

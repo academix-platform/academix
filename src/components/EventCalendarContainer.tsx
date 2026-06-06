@@ -9,6 +9,7 @@ const EventCalendarContainer = async ({
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
   const t = await getTranslations("pages");
+  const widgetsT = await getTranslations("widgets");
   const params = await searchParams;
   const dateParam = params?.date;
 
@@ -21,7 +22,7 @@ const EventCalendarContainer = async ({
           href="/list/events"
           className="text-gray-400 text-xs hover:underline transition"
         >
-          View All
+          {widgetsT("viewAll")}
         </Link>
       </div>
       <div className="flex flex-col gap-4">

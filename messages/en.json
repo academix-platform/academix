@@ -1326,6 +1326,10 @@
       "description": "Try changing your filters or search terms."
     }
   },
+  "widgets": {
+    "viewAll": "View All",
+    "noEventsForDay": "No events for this day."
+  },
   "emptyStates": {
     "defaultTitle": "No data found",
     "defaultDescription": "There is nothing to display right now.",

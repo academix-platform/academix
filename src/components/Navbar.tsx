@@ -121,7 +121,7 @@ const Navbar = ({
             )}
           </button>
         )}
-        <div className="flex items-center gap-4 bg-gradient-to-r from-sky-300 via-blue-300 to-cyan-100 ms-2 px-4 py-3 rounded-md text-xs">
+        <div className="flex items-center gap-4 bg-gradient-to-r from-academixYellow via-academixYellow/50 to-academixYellow/30 ms-2 px-4 py-3 rounded-md text-xs">
           {schoolName && (
             <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
               {schoolName}
@@ -143,7 +143,7 @@ const Navbar = ({
             >
               <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
               {messageCount > 0 && (
-                <div className="-top-2.5 -end-1.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
+                <div className="-top-2.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs -end-1.5">
                   {messageCount > 99 ? "99+" : messageCount}
                 </div>
               )}
