@@ -90,6 +90,7 @@ export default function NotificationsClient({
   const commonT = useTranslations("common");
   const filtersT = useTranslations("filters");
   const actionsT = useTranslations("actions");
+  const emptyT = useTranslations("emptyStates");
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
@@ -237,8 +238,12 @@ export default function NotificationsClient({
       ) : notifications.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Bell className="w-12 h-12 text-gray-200 mb-3" />
-          <p className="text-gray-500 font-medium text-sm">No notifications found</p>
-          <p className="text-gray-400 text-xs mt-1">Try changing your filters or search terms.</p>
+          <p className="text-gray-500 font-medium text-sm">
+            {emptyT("notifications")}
+          </p>
+          <p className="text-gray-400 text-xs mt-1">
+            {emptyT("filterDescription")}
+          </p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-100">

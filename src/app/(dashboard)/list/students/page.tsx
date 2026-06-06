@@ -103,6 +103,7 @@ const StudentListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/students");
 
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
@@ -236,8 +237,8 @@ const StudentListPage = async ({
       columns={getColumns(role, th)}
       renderRow={(item) => renderRow(item, role)}
       data={data}
-      emptyTitle="No students found"
-      emptyDescription="Try changing your filters or search terms."
+      emptyTitle={emptyT("students")}
+      emptyDescription={emptyT("filterDescription")}
     />
 
     {/* PAGINATION */}

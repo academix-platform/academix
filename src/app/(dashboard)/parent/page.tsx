@@ -5,12 +5,14 @@ import EventCalendarContainer from "@/components/EventCalendarContainer";
 import StudentSelector from "@/components/StudentSelector";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 const ParentPage = async ({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
+  const statesT = await getTranslations("states");
   const params = await searchParams;
   const user = requireAuth();
 
@@ -30,8 +32,8 @@ const ParentPage = async ({
     return (
       <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
         <EmptyState
-          title="No students found"
-          description="There are no linked students on this parent account yet."
+          title={statesT("noStudentsLinked")}
+          description={statesT("noStudentsLinkedDescription")}
         />
       </div>
     );
@@ -54,8 +56,8 @@ const ParentPage = async ({
             <BigCalendarContainer type="classId" id={classId} />
           ) : (
             <EmptyState
-              title="No class assigned"
-              description="The selected student is not assigned to a class yet."
+              title={statesT("noClassAssigned")}
+              description={statesT("selectedStudentNoClass")}
               className="py-8"
             />
           )}

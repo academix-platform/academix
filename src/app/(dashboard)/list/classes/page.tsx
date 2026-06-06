@@ -78,6 +78,7 @@ const ClassListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
@@ -149,8 +150,8 @@ const ClassListPage = async ({
         columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No classes found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("classes")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

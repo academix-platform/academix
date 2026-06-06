@@ -28,6 +28,7 @@ const SingleTeacherPage = async ({
   params: Promise<{ id: string }>;
 }) => {
   const t = await getTranslations("profilePages");
+  const statesT = await getTranslations("states");
   const { id } = await params;
 
   const { role, schoolId } = await enforceRouteAccess(`/list/teachers`);
@@ -116,7 +117,7 @@ const SingleTeacherPage = async ({
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
                 <CalendarCheck2 className="w-6 h-6 text-academixPurpleDark" />
-                <Suspense fallback="Loading...">
+                <Suspense fallback={statesT("loading")}>
                   <AttendanceCard id={id} scope="teacher" />
                 </Suspense>
               </div>

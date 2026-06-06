@@ -1,12 +1,19 @@
+"use client";
+
+import { useTranslations } from "next-intl";
+
 type LoadingIndicatorProps = {
   label?: string;
   className?: string;
 };
 
 const LoadingIndicator = ({
-  label = "Loading...",
+  label,
   className = "",
 }: LoadingIndicatorProps) => {
+  const t = useTranslations("states");
+  const resolvedLabel = label ?? t("loading");
+
   return (
     <div
       className={`flex min-h-[calc(100vh-96px)] items-center justify-center p-6 ${className}`}
@@ -19,7 +26,7 @@ const LoadingIndicator = ({
           aria-hidden="true"
         />
         <span className="font-medium text-gray-600 text-lg">
-          {label}
+          {resolvedLabel}
         </span>
       </div>
     </div>

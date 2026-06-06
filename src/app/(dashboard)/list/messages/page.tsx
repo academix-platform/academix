@@ -159,6 +159,7 @@ const MessageListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/messages");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
@@ -286,8 +287,8 @@ const MessageListPage = async ({
           renderRow(item, role, totalClassesCount, filtersT("allClasses"))
         }
         data={data}
-        emptyTitle="No messages found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("messages")}
+        emptyDescription={emptyT("filterDescription")}
       />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />

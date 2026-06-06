@@ -77,6 +77,7 @@ const AnnouncementListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess(
     "/list/announcements",
   );
@@ -172,8 +173,8 @@ const AnnouncementListPage = async ({
           renderRow(item, role, totalClassesCount, filtersT("allClasses"))
         }
         data={data}
-        emptyTitle="No announcements found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("announcements")}
+        emptyDescription={emptyT("filterDescription")}
       />
       {/* PAGINATION */}
       <Pagination page={p} count={count} />

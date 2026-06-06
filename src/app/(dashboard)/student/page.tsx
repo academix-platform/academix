@@ -4,6 +4,7 @@ import EmptyState from "@/components/states/EmptyState";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 const StudentPage = async ({
   searchParams,
@@ -11,6 +12,8 @@ const StudentPage = async ({
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
   const user = requireAuth();
+  const t = await getTranslations("sidebar.items");
+  const statesT = await getTranslations("states");
 
   const studentClass = await prisma.class.findFirst({
     where: {
@@ -31,14 +34,14 @@ const StudentPage = async ({
       {/* LEFT */}
       <div className="w-full xl:w-2/3">
         <div className="bg-white p-4 rounded-md h-full">
-          <h1 className="font-semibold text-xl">Schedule</h1>
+          <h1 className="font-semibold text-xl">{t("schedules")}</h1>
 
           {classId ? (
             <BigCalendarContainer type="classId" id={classId} />
           ) : (
             <EmptyState
-              title="No class assigned"
-              description="You are not assigned to a class yet."
+              title={statesT("noClassAssigned")}
+              description={statesT("selectedStudentNoClass")}
               className="py-8"
             />
           )}

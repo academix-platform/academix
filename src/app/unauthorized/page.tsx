@@ -1,7 +1,10 @@
 import Image from "next/image";
 import SignOutToSignInButton from "@/components/SignOutToSignInButton";
+import { getTranslations } from "next-intl/server";
 
-export default function UnauthorizedPage() {
+export default async function UnauthorizedPage() {
+  const t = await getTranslations("states");
+
   return (
     <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 min-h-screen overflow-hidden">
       <div className="z-10 relative shadow-2xl backdrop-blur-sm p-8 border border-white/60 rounded-2xl w-full max-w-lg text-white">
@@ -16,10 +19,11 @@ export default function UnauthorizedPage() {
           ACADEMIX
         </h1>
 
-        <h2 className="mb-3 font-semibold text-2xl">Unauthorized Access</h2>
+        <h2 className="mb-3 font-semibold text-2xl">
+          {t("unauthorizedTitle")}
+        </h2>
         <p className="text-sm leading-6">
-          You do not have permission to access this page with your current role
-          or account status.
+          {t("unauthorizedDescription")}
         </p>
 
         <div className="mt-6">

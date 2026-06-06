@@ -61,6 +61,7 @@ const GradeListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, schoolId } = await enforceRouteAccess("/list/grades");
 
   const resolvedSearchParams = await searchParams;
@@ -126,8 +127,8 @@ const GradeListPage = async ({
         columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No grades found"
-        emptyDescription="Try changing your search terms."
+        emptyTitle={emptyT("grades")}
+        emptyDescription={emptyT("searchDescription")}
       />
 
       <Pagination page={p} count={count} />

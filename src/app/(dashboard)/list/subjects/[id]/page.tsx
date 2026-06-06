@@ -50,6 +50,7 @@ function StatCard({
 function AssignmentsSection({
   assignments,
   createAction,
+  emptyLabel,
 }: {
   assignments: {
     id: number;
@@ -61,6 +62,7 @@ function AssignmentsSection({
     lesson: { class: { name: string } } | null;
   }[];
   createAction?: ReactNode;
+  emptyLabel: string;
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
@@ -84,7 +86,7 @@ function AssignmentsSection({
       </div>
       {assignments.length === 0 ? (
         <div className="px-6 py-8 text-center">
-          <p className="text-gray-400 text-sm">No assignments yet.</p>
+          <p className="text-gray-400 text-sm">{emptyLabel}</p>
         </div>
       ) : (
         <ul className="divide-y divide-gray-50">
@@ -234,6 +236,7 @@ export default async function SubjectDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { id } = await params;
   const subjectId = Number(id);
   if (isNaN(subjectId)) notFound();
@@ -322,6 +325,7 @@ export default async function SubjectDetailPage({
     assignments: (
       <AssignmentsSection
         assignments={subject.assignments}
+        emptyLabel={emptyT("assignments")}
         createAction={
           isAuthorized ? (
             <FormContainer
@@ -535,7 +539,7 @@ export default async function SubjectDetailPage({
               </h2>
               {subject.teachers.length === 0 ? (
                 <p className="text-gray-400 text-sm">
-                  No teachers assigned yet.
+                  {emptyT("teachersAssigned")}
                 </p>
               ) : (
                 <ul className="flex flex-wrap gap-3">

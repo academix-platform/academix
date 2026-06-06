@@ -86,6 +86,7 @@ const ResultListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/results");
 
   const resolvedSearchParams = await searchParams;
@@ -175,8 +176,8 @@ const ResultListPage = async ({
         columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No results found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("results")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

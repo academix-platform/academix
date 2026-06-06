@@ -18,6 +18,7 @@ import {
   StudyMaterialState,
 } from "@/lib/actions/studyMaterial.actions";
 import StudyMaterialUpload from "@/components/StudyMaterialUpload";
+import { useTranslations } from "next-intl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -105,6 +106,7 @@ export default function StudyMaterialList({
   currentUserId,
   role,
 }: Props) {
+  const emptyT = useTranslations("emptyStates");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const canUpload = role === "teacher" || role === "admin";
 
@@ -112,11 +114,11 @@ export default function StudyMaterialList({
     return (
       <div className="bg-white shadow-sm p-10 border border-gray-100 rounded-xl text-center">
         <BookOpen className="mx-auto mb-3 w-10 h-10 text-gray-200" />
-        <p className="font-medium text-gray-500">No study materials yet</p>
+        <p className="font-medium text-gray-500">{emptyT("studyMaterials")}</p>
         <p className="mt-1 text-gray-400 text-sm">
           {role === "teacher"
-            ? "Upload the first material using the upload button."
-            : "Your teacher hasn't uploaded any materials yet."}
+            ? emptyT("uploadFirstMaterial")
+            : emptyT("noStudyMaterialsForStudent")}
         </p>
         {canUpload && (
           <button
@@ -125,7 +127,7 @@ export default function StudyMaterialList({
             className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-md text-white text-sm transition-colors"
           >
             <Upload className="w-4 h-4" />
-            Upload Material
+            {emptyT("uploadMaterial")}
           </button>
         )}
         {isUploadOpen && (
@@ -137,7 +139,7 @@ export default function StudyMaterialList({
             <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-gray-800 text-base">
-                  Upload Study Material
+                  {emptyT("uploadStudyMaterial")}
                 </h3>
                 <button
                   type="button"

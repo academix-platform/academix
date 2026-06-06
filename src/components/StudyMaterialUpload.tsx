@@ -7,6 +7,7 @@ import {
   createStudyMaterial,
   StudyMaterialState,
 } from "@/lib/actions/studyMaterial.actions";
+import { useTranslations } from "next-intl";
 
 const initialState: StudyMaterialState = {
   success: false,
@@ -25,6 +26,7 @@ export default function StudyMaterialUpload({
   compact = false,
   onSuccess,
 }: Props) {
+  const actionsT = useTranslations("actions");
   const formRef = useRef<HTMLFormElement>(null);
 
   const [state, formAction, isPending] = useActionState(
@@ -111,7 +113,7 @@ export default function StudyMaterialUpload({
           {isPending ? (
             <>
               <Loader2 className="w-4 h-4 animate-spin" />
-              Uploading...
+              {actionsT("uploading")}
             </>
           ) : (
             <>

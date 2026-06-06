@@ -77,6 +77,7 @@ const ParentListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/parents");
 
   const {
@@ -145,8 +146,8 @@ const ParentListPage = async ({
         columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No parents found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("parents")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

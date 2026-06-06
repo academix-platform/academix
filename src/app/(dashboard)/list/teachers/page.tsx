@@ -101,6 +101,7 @@ const TeacherListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, schoolId } = await enforceRouteAccess("/list/teachers");
 
   const {
@@ -194,8 +195,8 @@ const classes = await prisma.class.findMany({
         columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No teachers found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("teachers")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

@@ -32,6 +32,11 @@ import AssignmentForm from "./forms/AssignmentForm";
 import ClassDeleteForm from "./forms/ClassDeleteForm";
 import { useTranslations } from "next-intl";
 
+const DynamicFormLoading = () => {
+  const t = useTranslations("states");
+  return <h1>{t("loading")}</h1>;
+};
+
 const deleteActionMap = {
   grade: deleteGrade,
   subject: deleteSubject,
@@ -56,46 +61,46 @@ const iconMap = {
 };
 
 const TeacherForm = dynamic(() => import("./forms/TeacherForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const StudentForm = dynamic(() => import("./forms/StudentForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const ParentForm = dynamic(() => import("./forms/ParentForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const SubjectForm = dynamic(() => import("./forms/SubjectForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const ClassForm = dynamic(() => import("./forms/ClassForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const GradeForm = dynamic(() => import("./forms/GradeForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const LessonForm = dynamic(() => import("./forms/LessonForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const ExamForm = dynamic(() => import("./forms/ExamForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const ResultForm = dynamic(() => import("./forms/ResultForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const EventForm = dynamic(() => import("./forms/EventForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const AnnouncementForm = dynamic(() => import("./forms/AnnouncementForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const MessageForm = dynamic(() => import("@/components/forms/MessageForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const StudentDeleteForm = dynamic(() => import("./forms/StudentDeleteForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 const GradeDeleteForm = dynamic(() => import("./forms/GradeDeleteForm"), {
-  loading: () => <h1>Loading...</h1>,
+  loading: () => <DynamicFormLoading />,
 });
 
 const forms: {

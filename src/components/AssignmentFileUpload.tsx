@@ -7,6 +7,7 @@ import {
   uploadAssignmentFile,
   AssignmentFileState,
 } from "@/lib/actions/assignmentFile.actions";
+import { useTranslations } from "next-intl";
 
 const initialState: AssignmentFileState = {
   success: false,
@@ -27,6 +28,7 @@ export default function AssignmentFileUpload({
   currentFileUrl,
   currentFileName,
 }: Props) {
+  const actionsT = useTranslations("actions");
   const [open, setOpen] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -133,7 +135,7 @@ export default function AssignmentFileUpload({
                   {isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Uploading...
+                      {actionsT("uploading")}
                     </>
                   ) : (
                     <>

@@ -25,6 +25,7 @@ const SubjectListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const t = await getTranslations("pages");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
 
   const {
@@ -89,10 +90,10 @@ const SubjectListPage = async ({
       {data.length === 0 ? (
         <div className="flex flex-col justify-center items-center bg-gray-50 mt-6 p-10 rounded-xl text-center">
           <h3 className="font-semibold text-gray-700 text-base">
-            No subjects found
+            {emptyT("subjects")}
           </h3>
           <p className="mt-1 text-gray-400 text-sm">
-            Try changing your filters or search terms.
+            {emptyT("filterDescription")}
           </p>
         </div>
       ) : (
