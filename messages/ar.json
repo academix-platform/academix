@@ -378,7 +378,8 @@
     "noRecordsDate": "لا توجد سجلات حضور للتاريخ المحدد.",
     "tryAnotherPage": "جرّب الانتقال إلى صفحة أخرى.",
     "noClassesAssigned": "لا توجد صفوف معينة",
-    "noClassesAssignedDescription": "لم يتم تعيينك للإشراف على أي صف بعد."
+    "noClassesAssignedDescription": "لم يتم تعيينك للإشراف على أي صف بعد.",
+    "dateOutsideAcademicYear": "هذا التاريخ خارج نطاق السنة الأكاديمية الحالية ({start} إلى {end})."
   },
   "archivePage": {
     "previewData": "معاينة البيانات",

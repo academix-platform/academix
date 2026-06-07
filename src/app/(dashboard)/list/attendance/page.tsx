@@ -13,6 +13,10 @@ import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getTranslations } from "next-intl/server";
 import { getQueryParam } from "@/lib/pageParams";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+
+const isDateWithinRange = (date: string, startDate: string, endDate: string) =>
+  date >= startDate && date <= endDate;
 
 const AttendancePage = async ({
   searchParams,
@@ -25,6 +29,11 @@ const AttendancePage = async ({
   const filtersT = await getTranslations("filters");
   const { role, userId, schoolId } =
     await enforceRouteAccess("/list/attendance");
+  const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
+
+  if (!currentAcademicYear) {
+    return <NoCurrentAcademicYearMessage />;
+  }
 
   const resolved = await searchParams;
   const gradeIdParam = getQueryParam(resolved.gradeId);
@@ -44,6 +53,11 @@ const AttendancePage = async ({
 
   const scope: "students" | "teachers" =
     rawScope === "teachers" ? "teachers" : "students";
+  const isSelectedDateInAcademicYear = isDateWithinRange(
+    selectedDate,
+    currentAcademicYear.startDate,
+    currentAcademicYear.endDate,
+  );
 
   // CLASSES
   const classes =
@@ -94,15 +108,17 @@ const AttendancePage = async ({
     classId && validClassIds.has(classId) ? classId : classes[0]?.id;
 
   // DATA
-  const { data, hasAttendance, noCurrentYear } = await getAttendanceData({
-    role,
-    userId,
-    schoolId: schoolId,
-    scope,
-    classId: effectiveClassId,
-    gradeId: selectedGradeId,
-    day,
-  });
+  const { data, hasAttendance, noCurrentYear } = isSelectedDateInAcademicYear
+    ? await getAttendanceData({
+        role,
+        userId,
+        schoolId: schoolId,
+        scope,
+        classId: effectiveClassId,
+        gradeId: selectedGradeId,
+        day,
+      })
+    : { data: [], hasAttendance: false, noCurrentYear: false };
 
   if (noCurrentYear) {
     return <NoCurrentAcademicYearMessage />;
@@ -123,6 +139,8 @@ const AttendancePage = async ({
             type="date"
             name="date"
             defaultValue={selectedDate}
+            min={currentAcademicYear.startDate}
+            max={currentAcademicYear.endDate}
             className="p-2 border rounded-md text-sm"
           />
 
@@ -198,6 +216,15 @@ const AttendancePage = async ({
               {cls.name}
             </a>
           ))}
+        </div>
+      )}
+
+      {!isSelectedDateInAcademicYear && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {attendanceT("dateOutsideAcademicYear", {
+            start: currentAcademicYear.startDate,
+            end: currentAcademicYear.endDate,
+          })}
         </div>
       )}
 

@@ -384,7 +384,8 @@
     "noRecordsDate": "There are no attendance records for the selected date.",
     "tryAnotherPage": "Try moving to another page.",
     "noClassesAssigned": "No classes assigned",
-    "noClassesAssignedDescription": "You are not assigned to supervise any class yet."
+    "noClassesAssignedDescription": "You are not assigned to supervise any class yet.",
+    "dateOutsideAcademicYear": "This date is outside the current academic year ({start} to {end})."
   },
   "archivePage": {
     "previewData": "Preview Data",
