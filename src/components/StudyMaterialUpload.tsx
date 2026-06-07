@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
 import { Upload, Loader2 } from "lucide-react";
 import {
@@ -27,7 +27,10 @@ export default function StudyMaterialUpload({
   onSuccess,
 }: Props) {
   const actionsT = useTranslations("actions");
+  const t = useTranslations("subjectDetails.materialUpload");
   const formRef = useRef<HTMLFormElement>(null);
+  const fileInputId = `study-material-file-${subjectId}`;
+  const [selectedFileName, setSelectedFileName] = useState("");
 
   const [state, formAction, isPending] = useActionState(
     createStudyMaterial,
@@ -38,6 +41,7 @@ export default function StudyMaterialUpload({
     if (state.success) {
       toast.success(state.message);
       formRef.current?.reset();
+      setSelectedFileName("");
       onSuccess?.();
     } else if (state.error) {
       toast.error(state.message);
@@ -55,7 +59,7 @@ export default function StudyMaterialUpload({
       {!compact && (
         <h2 className="flex items-center gap-2 mb-4 font-semibold text-gray-800 text-base">
           <Upload className="w-4 h-4 text-purple-500" />
-          Upload Study Material
+          {t("title")}
         </h2>
       )}
 
@@ -65,12 +69,12 @@ export default function StudyMaterialUpload({
         {/* Title */}
         <div>
           <label className="block mb-1 font-medium text-gray-700 text-sm">
-            Title <span className="text-red-500">*</span>
+            {t("fields.title")} <span className="text-red-500">*</span>
           </label>
           <input
             type="text"
             name="title"
-            placeholder="e.g. Chapter 3 Notes"
+            placeholder={t("placeholders.title")}
             required
             className="px-3 py-2 border border-gray-200 focus:border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 w-full text-sm"
           />
@@ -79,11 +83,11 @@ export default function StudyMaterialUpload({
         {/* Description */}
         <div>
           <label className="block mb-1 font-medium text-gray-700 text-sm">
-            Description
+            {t("fields.description")}
           </label>
           <textarea
             name="description"
-            placeholder="Optional description..."
+            placeholder={t("placeholders.description")}
             rows={2}
             className="px-3 py-2 border border-gray-200 focus:border-transparent rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-300 w-full text-sm resize-none"
           />
@@ -92,16 +96,31 @@ export default function StudyMaterialUpload({
         {/* File */}
         <div>
           <label className="block mb-1 font-medium text-gray-700 text-sm">
-            File <span className="text-red-500">*</span>
-            <span className="ml-1 text-gray-400 text-xs">(Max 20MB)</span>
+            {t("fields.file")} <span className="text-red-500">*</span>
+            <span className="ml-1 text-gray-400 text-xs">{t("maxSize")}</span>
           </label>
           <input
+            id={fileInputId}
             type="file"
             name="file"
             required
             accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.png,.jpg,.jpeg,.zip"
-            className="hover:file:bg-purple-100 file:bg-purple-50 file:mr-3 file:px-3 file:py-1.5 file:border-0 file:rounded-lg w-full file:font-medium text-gray-500 file:text-purple-700 text-sm file:text-sm cursor-pointer"
+            className="sr-only"
+            onChange={(event) =>
+              setSelectedFileName(event.target.files?.[0]?.name ?? "")
+            }
           />
+          <div className="flex items-center gap-3">
+            <label
+              htmlFor={fileInputId}
+              className="bg-purple-50 hover:bg-purple-100 px-3 py-1.5 rounded-lg font-medium text-purple-700 text-sm cursor-pointer"
+            >
+              {t("chooseFile")}
+            </label>
+            <span className="min-w-0 text-gray-500 text-sm truncate">
+              {selectedFileName || t("noFileChosen")}
+            </span>
+          </div>
         </div>
 
         {/* Submit */}
@@ -118,7 +137,7 @@ export default function StudyMaterialUpload({
           ) : (
             <>
               <Upload className="w-4 h-4" />
-              Upload Material
+              {t("submit")}
             </>
           )}
         </button>

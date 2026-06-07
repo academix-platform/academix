@@ -51,6 +51,7 @@ function AssignmentsSection({
   assignments,
   createAction,
   emptyLabel,
+  labels,
 }: {
   assignments: {
     id: number;
@@ -63,13 +64,24 @@ function AssignmentsSection({
   }[];
   createAction?: ReactNode;
   emptyLabel: string;
+  labels: {
+    assignments: string;
+    manageAssignments: string;
+    class: string;
+    due: string;
+    overdue: string;
+    download: string;
+    downloadAssignmentFile: string;
+  };
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
       <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
         <div className="flex items-center gap-2">
           <ClipboardList className="w-4 h-4 text-orange-500" />
-          <h2 className="font-semibold text-gray-800 text-base">Assignments</h2>
+          <h2 className="font-semibold text-gray-800 text-base">
+            {labels.assignments}
+          </h2>
           <span className="ml-1 text-gray-400 text-sm">
             ({assignments.length})
           </span>
@@ -79,7 +91,7 @@ function AssignmentsSection({
             href="/list/assignments"
             className="bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
           >
-            Manage Assignments
+            {labels.manageAssignments}
           </Link>
           {createAction}
         </div>
@@ -107,17 +119,21 @@ function AssignmentsSection({
                     </p>
                   )}
                   <div className="flex items-center gap-2 mt-1 text-gray-400 text-xs">
-                    <span>Class: {a.class?.name ?? a.lesson?.class.name ?? "-"}</span>
+                    <span>
+                      {labels.class}: {a.class?.name ?? a.lesson?.class.name ?? "-"}
+                    </span>
                     <span>·</span>
                     <span>
-                      Due:{" "}
+                      {labels.due}:{" "}
                       {new Date(a.endDate).toLocaleDateString("en-GB", {
                         day: "numeric",
                         month: "short",
                       })}
                     </span>
                     {isOverdue && (
-                      <span className="font-medium text-red-500">Overdue</span>
+                      <span className="font-medium text-red-500">
+                        {labels.overdue}
+                      </span>
                     )}
                   </div>
                 </div>
@@ -126,11 +142,11 @@ function AssignmentsSection({
                     href={`/api/download/${a.id}?type=assignment`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    title="Download assignment file"
+                    title={labels.downloadAssignmentFile}
                     className="flex flex-shrink-0 items-center gap-1.5 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-medium text-orange-700 text-xs transition-colors"
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    Download
+                    {labels.download}
                   </a>
                 )}
               </li>
@@ -146,6 +162,7 @@ function ExamsSection({
   exams,
   createAction,
   tableHeaders,
+  labels,
 }: {
   exams: {
     id: number;
@@ -161,13 +178,20 @@ function ExamsSection({
     startTime: string;
     endTime: string;
   };
+  labels: {
+    exams: string;
+    manageExams: string;
+    noExams: string;
+  };
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
       <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
         <div className="flex items-center gap-2">
           <FileText className="w-4 h-4 text-yellow-500" />
-          <h2 className="font-semibold text-gray-800 text-base">Exams</h2>
+          <h2 className="font-semibold text-gray-800 text-base">
+            {labels.exams}
+          </h2>
           <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
         </div>
         <div className="flex items-center gap-2">
@@ -175,14 +199,14 @@ function ExamsSection({
             href="/list/exams"
             className="bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
           >
-            Manage Exams
+            {labels.manageExams}
           </Link>
           {createAction}
         </div>
       </div>
       {exams.length === 0 ? (
         <div className="px-6 py-8 text-center">
-          <p className="text-gray-400 text-sm">No exams scheduled.</p>
+          <p className="text-gray-400 text-sm">{labels.noExams}</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -237,6 +261,7 @@ export default async function SubjectDetailPage({
 }) {
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
+  const subjectT = await getTranslations("subjectDetails");
   const { id } = await params;
   const subjectId = Number(id);
   if (isNaN(subjectId)) notFound();
@@ -326,6 +351,15 @@ export default async function SubjectDetailPage({
       <AssignmentsSection
         assignments={subject.assignments}
         emptyLabel={emptyT("assignments")}
+        labels={{
+          assignments: subjectT("assignments"),
+          manageAssignments: subjectT("manageAssignments"),
+          class: subjectT("class"),
+          due: subjectT("due"),
+          overdue: subjectT("overdue"),
+          download: subjectT("download"),
+          downloadAssignmentFile: subjectT("downloadAssignmentFile"),
+        }}
         createAction={
           isAuthorized ? (
             <FormContainer
@@ -344,6 +378,11 @@ export default async function SubjectDetailPage({
     exams: (
       <ExamsSection
         exams={subject.exams}
+        labels={{
+          exams: subjectT("exams"),
+          manageExams: subjectT("manageExams"),
+          noExams: subjectT("noExams"),
+        }}
         tableHeaders={{
           title: th("title"),
           class: th("class"),
@@ -356,7 +395,7 @@ export default async function SubjectDetailPage({
               href={`/list/exams/create-workflow?subjectId=${subjectId}`}
               className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
             >
-              Create Exam
+              {subjectT("createExam")}
             </Link>
           ) : undefined
         }
@@ -380,7 +419,7 @@ export default async function SubjectDetailPage({
           href="/list/subjects"
           className="hover:text-purple-600 transition-colors"
         >
-          Subjects
+          {subjectT("subjects")}
         </Link>
         <ChevronRight className="w-4 h-4" />
         <span className="font-medium text-gray-800">{subject.name}</span>
@@ -419,8 +458,8 @@ export default async function SubjectDetailPage({
               {subject.name}
             </h1>
             <p className="mt-1 text-gray-500 text-sm">
-              Grade {subject.grade.level} · {subject.teachers.length} teacher
-              {subject.teachers.length !== 1 ? "s" : ""}
+              {subjectT("gradeLevel", { level: subject.grade.level })} ·{" "}
+              {subjectT("teacherCount", { count: subject.teachers.length })}
             </p>
             {/* Course description */}
             {pageSettings?.description && (
@@ -457,25 +496,25 @@ export default async function SubjectDetailPage({
       <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
         <StatCard
           icon={Users}
-          label="Teachers"
+          label={subjectT("teachers")}
           value={subject.teachers.length}
           color="bg-blue-500"
         />
         <StatCard
           icon={GraduationCap}
-          label="Classes"
+          label={subjectT("classes")}
           value={classCount}
           color="bg-green-500"
         />
         <StatCard
           icon={ClipboardList}
-          label="Assignments"
+          label={subjectT("assignments")}
           value={subject.assignments.length}
           color="bg-orange-500"
         />
         <StatCard
           icon={FileText}
-          label="Exams"
+          label={subjectT("exams")}
           value={subject.exams.length}
           color="bg-yellow-500"
         />
@@ -497,33 +536,33 @@ export default async function SubjectDetailPage({
           {/* Subject info card */}
           <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
             <h3 className="mb-3 font-semibold text-gray-700 text-sm">
-              Subject Info
+              {subjectT("subjectInfo")}
             </h3>
             <dl className="space-y-2.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-gray-500">Grade</dt>
+                <dt className="text-gray-500">{subjectT("grade")}</dt>
                 <dd className="font-medium text-gray-700">
-                  Grade {subject.grade.level}
+                  {subjectT("gradeLevel", { level: subject.grade.level })}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Classes</dt>
+                <dt className="text-gray-500">{subjectT("classes")}</dt>
                 <dd className="font-medium text-gray-700">{classCount}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Assignments</dt>
+                <dt className="text-gray-500">{subjectT("assignments")}</dt>
                 <dd className="font-medium text-gray-700">
                   {subject.assignments.length}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Materials</dt>
+                <dt className="text-gray-500">{subjectT("materials")}</dt>
                 <dd className="font-medium text-gray-700">
                   {subject.studyMaterials.length}
                 </dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-gray-500">Exams</dt>
+                <dt className="text-gray-500">{subjectT("exams")}</dt>
                 <dd className="font-medium text-gray-700">
                   {subject.exams.length}
                 </dd>
@@ -535,7 +574,7 @@ export default async function SubjectDetailPage({
             <div className="bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
               <h2 className="flex items-center gap-2 mb-4 font-semibold text-gray-800 text-base">
                 <Users className="w-4 h-4 text-blue-500" />
-                Teachers
+                {subjectT("teachers")}
               </h2>
               {subject.teachers.length === 0 ? (
                 <p className="text-gray-400 text-sm">
@@ -576,7 +615,7 @@ export default async function SubjectDetailPage({
             <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
               <h3 className="flex items-center gap-2 mb-4 font-semibold text-gray-700 text-sm">
                 <Users className="w-4 h-4 text-blue-500" />
-                Your Teacher{subject.teachers.length > 1 ? "s" : ""}
+                {subjectT("yourTeachers", { count: subject.teachers.length })}
               </h3>
               <ul className="space-y-3">
                 {subject.teachers.map((t) => (
@@ -598,7 +637,9 @@ export default async function SubjectDetailPage({
                       <p className="font-medium text-gray-800 text-sm">
                         {t.name}
                       </p>
-                      <p className="text-gray-400 text-xs">Subject Teacher</p>
+                      <p className="text-gray-400 text-xs">
+                        {subjectT("subjectTeacher")}
+                      </p>
                     </div>
                   </li>
                 ))}

@@ -1,14 +1,9 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { useTranslations } from "next-intl";
 
 type SectionId = "assignments" | "exams" | "materials";
-
-const SECTION_LABELS: Record<SectionId, string> = {
-  materials: "Materials",
-  assignments: "Assignments",
-  exams: "Exams",
-};
 
 interface Props {
   sectionsOrder: string[];
@@ -23,6 +18,7 @@ export default function SubjectDetailsTabs({
   examsContent,
   materialsContent,
 }: Props) {
+  const t = useTranslations("subjectDetails");
   const availableSections = useMemo(
     () =>
       sectionsOrder.filter(
@@ -63,7 +59,7 @@ export default function SubjectDetailsTabs({
                   : "bg-gray-50 text-gray-600 hover:bg-purple-50 hover:text-purple-700"
               }`}
             >
-              {SECTION_LABELS[section]}
+              {t(`tabs.${section}`)}
             </button>
           ))}
         </div>

@@ -1368,5 +1368,74 @@
     "FAIL": "راسب",
     "NO_RESULTS": "لا توجد نتائج",
     "NOT_UPDATED": "لم يتم التحديث"
+  },
+  "subjectDetails": {
+    "subjects": "المواد",
+    "grade": "الصف",
+    "gradeLevel": "الصف {level}",
+    "teacherCount": "{count, plural, one {# معلم} other {# معلمين}}",
+    "teachers": "المعلمون",
+    "classes": "الصفوف",
+    "assignments": "الواجبات",
+    "materials": "المواد الدراسية",
+    "exams": "الامتحانات",
+    "subjectInfo": "معلومات المادة",
+    "subjectTeacher": "معلم المادة",
+    "yourTeachers": "{count, plural, one {معلمك} other {معلموك}}",
+    "createExam": "إنشاء امتحان",
+    "manageAssignments": "إدارة الواجبات",
+    "manageExams": "إدارة الامتحانات",
+    "class": "الصف",
+    "due": "الموعد",
+    "overdue": "متأخر",
+    "download": "تنزيل",
+    "downloadAssignmentFile": "تنزيل ملف الواجب",
+    "noExams": "لا توجد امتحانات مجدولة.",
+    "studyMaterials": "المواد الدراسية",
+    "upload": "رفع",
+    "delete": "حذف",
+    "tabs": {
+      "materials": "المواد",
+      "assignments": "الواجبات",
+      "exams": "الامتحانات"
+    },
+    "editor": {
+      "trigger": "تعديل الصفحة",
+      "title": "تعديل صفحة المادة",
+      "bannerImage": "صورة الغلاف",
+      "bannerPreviewAlt": "معاينة الغلاف",
+      "uploadBanner": "اضغط لرفع صورة الغلاف",
+      "bannerHint": "الحد الأقصى 5MB - JPG, PNG, WebP",
+      "height": "الارتفاع:",
+      "heights": {
+        "sm": "صغير",
+        "md": "متوسط",
+        "lg": "كبير"
+      },
+      "announcement": "إعلان",
+      "announcementHint": "(يظهر أعلى الصفحة للطلاب)",
+      "announcementPlaceholder": "مثال: \"مرحبا بكم في الرياضيات!\"",
+      "courseDescription": "وصف المادة",
+      "descriptionPlaceholder": "وصف مختصر لهذه المادة...",
+      "wordCount": "{count}/{max} كلمة",
+      "cancel": "إلغاء",
+      "saveChanges": "حفظ التغييرات"
+    },
+    "materialUpload": {
+      "title": "رفع مادة دراسية",
+      "submit": "رفع المادة",
+      "maxSize": "(الحد الأقصى 20MB)",
+      "fields": {
+        "title": "العنوان",
+        "description": "الوصف",
+        "file": "الملف"
+      },
+      "placeholders": {
+        "title": "مثال: ملاحظات الفصل 3",
+        "description": "وصف اختياري..."
+      },
+      "chooseFile": "اختر ملفا",
+      "noFileChosen": "لم يتم اختيار ملف"
+    }
   }
 }

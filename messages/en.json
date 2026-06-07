@@ -1368,5 +1368,74 @@
     "uploadStudyMaterial": "Upload Study Material",
     "assignments": "No assignments yet.",
     "teachersAssigned": "No teachers assigned yet."
+  },
+  "subjectDetails": {
+    "subjects": "Subjects",
+    "grade": "Grade",
+    "gradeLevel": "Grade {level}",
+    "teacherCount": "{count, plural, one {# teacher} other {# teachers}}",
+    "teachers": "Teachers",
+    "classes": "Classes",
+    "assignments": "Assignments",
+    "materials": "Materials",
+    "exams": "Exams",
+    "subjectInfo": "Subject Info",
+    "subjectTeacher": "Subject Teacher",
+    "yourTeachers": "{count, plural, one {Your Teacher} other {Your Teachers}}",
+    "createExam": "Create Exam",
+    "manageAssignments": "Manage Assignments",
+    "manageExams": "Manage Exams",
+    "class": "Class",
+    "due": "Due",
+    "overdue": "Overdue",
+    "download": "Download",
+    "downloadAssignmentFile": "Download assignment file",
+    "noExams": "No exams scheduled.",
+    "studyMaterials": "Study Materials",
+    "upload": "Upload",
+    "delete": "Delete",
+    "tabs": {
+      "materials": "Materials",
+      "assignments": "Assignments",
+      "exams": "Exams"
+    },
+    "editor": {
+      "trigger": "Edit Page",
+      "title": "Edit Subject Page",
+      "bannerImage": "Banner Image",
+      "bannerPreviewAlt": "Banner preview",
+      "uploadBanner": "Click to upload banner",
+      "bannerHint": "Max 5MB - JPG, PNG, WebP",
+      "height": "Height:",
+      "heights": {
+        "sm": "Small",
+        "md": "Medium",
+        "lg": "Large"
+      },
+      "announcement": "Announcement",
+      "announcementHint": "(shown at top for students)",
+      "announcementPlaceholder": "e.g. \"Welcome to Mathematics! Please review chapter 3 before Monday.\"",
+      "courseDescription": "Course Description",
+      "descriptionPlaceholder": "Brief description of this subject...",
+      "wordCount": "{count}/{max} words",
+      "cancel": "Cancel",
+      "saveChanges": "Save Changes"
+    },
+    "materialUpload": {
+      "title": "Upload Study Material",
+      "submit": "Upload Material",
+      "maxSize": "(Max 20MB)",
+      "fields": {
+        "title": "Title",
+        "description": "Description",
+        "file": "File"
+      },
+      "placeholders": {
+        "title": "e.g. Chapter 3 Notes",
+        "description": "Optional description..."
+      },
+      "chooseFile": "Choose File",
+      "noFileChosen": "No file chosen"
+    }
   }
 }
