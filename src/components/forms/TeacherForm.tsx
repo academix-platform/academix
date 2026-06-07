@@ -3,16 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
 import { useEffect, useTransition, useState } from "react";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
 import {
   BookOpen,
-  Camera,
   Eye,
   EyeOff,
   Search,
@@ -21,6 +18,7 @@ import {
   X,
 } from "lucide-react";
 import { useTranslations } from "next-intl";
+import ProfileImageUpload from "./ProfileImageUpload";
 
 type TeacherFormState = {
   success: boolean;
@@ -96,6 +94,7 @@ const TeacherForm = ({
   const onSubmit = handleSubmit((formValues) => {
     const payload = {
       ...formValues,
+      img: img || formValues.img || "",
       password:
         formValues.password === PASSWORD_MASK ? "" : formValues.password,
     };
@@ -395,67 +394,21 @@ const TeacherForm = ({
 
         <div className="pt-6 border-gray-200 border-t">
           <input type="hidden" {...register("img")} defaultValue={img} />
-          <CldUploadWidget
-            uploadPreset="school"
-            onSuccess={(result, widget) => {
-              const secureUrl =
-                (result.info as { secure_url?: string })?.secure_url ?? "";
+          <ProfileImageUpload
+            value={img}
+            uploadLabel={t("uploadPhoto")}
+            previewAlt={t("previewAlt")}
+            photoUploadedLabel={commonT("photoUploaded")}
+            removePhotoLabel={commonT("removePhoto")}
+            errorMessage={commonT("somethingWentWrong")}
+            onChange={(secureUrl) => {
               setImg(secureUrl);
-              setValue("img", secureUrl, { shouldDirty: true });
-              widget.close();
+              setValue("img", secureUrl, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
             }}
-          >
-            {({ open }) => {
-              return (
-                <div className="flex flex-col gap-4">
-                  <div
-                    onClick={() => open()}
-                    className="group flex items-center gap-3 hover:bg-academixPurpleLight p-4 border-2 border-gray-300 hover:border-academixPurpleDark border-dashed rounded-lg transition-all cursor-pointer"
-                  >
-                    <Image
-                      src="/upload.png"
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="group-hover:scale-110 transition-transform"
-                    />
-                    <div>
-                      <span className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
-                        <Camera size={16} />
-                        {t("uploadPhoto")}
-                      </span>
-                    </div>
-                  </div>
-                  {img && (
-                    <div className="flex items-start gap-4 bg-white p-4 border border-gray-200 rounded-lg">
-                      <Image
-                        src={img}
-                        alt={t("previewAlt")}
-                        width={80}
-                        height={80}
-                        className="border border-gray-200 rounded-lg w-20 h-20 object-cover"
-                      />
-                      <div className="flex-1">
-                        <p className="mb-2 font-medium text-gray-700 text-sm">
-                          {commonT("photoUploaded")}
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImg("");
-                            setValue("img", "", { shouldDirty: true });
-                          }}
-                          className="font-medium text-red-500 hover:text-red-700 text-sm transition-colors"
-                        >
-                          {commonT("removePhoto")}
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }}
-          </CldUploadWidget>
+          />
         </div>
       </div>
 

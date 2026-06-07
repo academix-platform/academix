@@ -65,7 +65,9 @@ const Navbar = ({
   const fullName =
     (isLoaded && user?.fullName) ||
     (isLoaded && [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
+    authUser?.displayName ||
     fallbackName;
+  const imageUrl = authUser?.profileImageUrl || (isLoaded ? user?.imageUrl : undefined);
 
   const role =
     (isLoaded &&
@@ -165,7 +167,7 @@ const Navbar = ({
           fullName={fullName}
           role={formattedRole}
           initials={initials}
-          imageUrl={isLoaded ? user?.imageUrl : undefined}
+          imageUrl={imageUrl}
         />
       </div>
     </div>
