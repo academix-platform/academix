@@ -51,6 +51,26 @@ export async function buildResultQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
+      case "classId": {
+        const classId = Number.parseInt(value, 10);
+        if (!Number.isNaN(classId)) {
+          conditions.push({
+            student: { classId },
+          });
+        }
+        break;
+      }
+
+      case "gradeId": {
+        const gradeId = Number.parseInt(value, 10);
+        if (!Number.isNaN(gradeId)) {
+          conditions.push({
+            student: { class: { gradeId } },
+          });
+        }
+        break;
+      }
+
       case "studentId":
         conditions.push({
           studentId: value,

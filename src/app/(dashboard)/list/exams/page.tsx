@@ -1,6 +1,8 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ClassFilter from "@/components/ClassFilter";
+import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -273,6 +275,21 @@ const ExamListPage = async ({
       where: query,
     }),
   ]);
+  const [classes, grades] =
+    role === "admin"
+      ? await prisma.$transaction([
+          prisma.class.findMany({
+            where: { schoolId },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          }),
+          prisma.grade.findMany({
+            where: { schoolId },
+            select: { id: true, level: true },
+            orderBy: { level: "asc" },
+          }),
+        ])
+      : [[], []];
 
   const classGroups = new Map<string, Set<string>>();
   const uniqueExamsMap = new Map<string, typeof data[0]>();
@@ -340,6 +357,12 @@ const ExamListPage = async ({
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && (
+            <>
+              <GradeFilter grades={grades} />
+              <ClassFilter classes={classes} />
+            </>
+          )}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />

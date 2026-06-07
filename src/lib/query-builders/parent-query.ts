@@ -30,6 +30,26 @@ export async function buildParentQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
+      case "classId": {
+        const classId = Number.parseInt(value, 10);
+        if (!Number.isNaN(classId)) {
+          conditions.push({
+            students: { some: { classId } },
+          });
+        }
+        break;
+      }
+
+      case "gradeId": {
+        const gradeId = Number.parseInt(value, 10);
+        if (!Number.isNaN(gradeId)) {
+          conditions.push({
+            students: { some: { class: { gradeId } } },
+          });
+        }
+        break;
+      }
+
       case "search":
         conditions.push({
           OR: [

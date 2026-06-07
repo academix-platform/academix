@@ -4,6 +4,7 @@ import { getAttendanceData } from "@/lib/attendance";
 
 import AttendanceClient from "@/components/AttendanceClient";
 import AttendanceClassSelect from "@/components/AttendanceClassSelect";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import EmptyState from "@/components/states/EmptyState";
@@ -11,6 +12,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getTranslations } from "next-intl/server";
+import { getQueryParam } from "@/lib/pageParams";
 
 const AttendancePage = async ({
   searchParams,
@@ -25,6 +27,10 @@ const AttendancePage = async ({
     await enforceRouteAccess("/list/attendance");
 
   const resolved = await searchParams;
+  const gradeIdParam = getQueryParam(resolved.gradeId);
+  const gradeId = gradeIdParam ? Number.parseInt(gradeIdParam, 10) : undefined;
+  const selectedGradeId =
+    gradeId && !Number.isNaN(gradeId) && gradeId > 0 ? gradeId : undefined;
 
   // PARAMS
   const {
@@ -43,7 +49,12 @@ const AttendancePage = async ({
   const classes =
     role === "admin"
       ? await prisma.class.findMany({
-          where: { schoolId: schoolId },
+          where: {
+            schoolId: schoolId,
+            ...(scope === "students" && selectedGradeId
+              ? { gradeId: selectedGradeId }
+              : {}),
+          },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })
@@ -54,6 +65,14 @@ const AttendancePage = async ({
           },
           select: { id: true, name: true },
         });
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
 
   // Teacher with no classes
   if (role === "teacher" && classes.length === 0) {
@@ -81,6 +100,7 @@ const AttendancePage = async ({
     schoolId: schoolId,
     scope,
     classId: effectiveClassId,
+    gradeId: selectedGradeId,
     day,
   });
 
@@ -109,6 +129,9 @@ const AttendancePage = async ({
           <input type="hidden" name="scope" value={scope} />
           {effectiveClassId && (
             <input type="hidden" name="classId" value={effectiveClassId} />
+          )}
+          {selectedGradeId && (
+            <input type="hidden" name="gradeId" value={selectedGradeId} />
           )}
 
           <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">
@@ -147,7 +170,8 @@ const AttendancePage = async ({
 
         {/* CLASS SELECT (ADMIN) */}
         {role === "admin" && scope === "students" && (
-          <div className="mb-4">
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <GradeFilter grades={grades} />
             <span className="me-2">{th("class")}:</span>
             <AttendanceClassSelect
               classes={classes}

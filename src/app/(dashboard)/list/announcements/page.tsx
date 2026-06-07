@@ -1,5 +1,7 @@
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ClassFilter from "@/components/ClassFilter";
+import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -104,6 +106,24 @@ const AnnouncementListPage = async ({
             });
             break;
           }
+          case "classId": {
+            const classId = Number.parseInt(value, 10);
+            if (!Number.isNaN(classId)) {
+              conditions.push({
+                classes: { some: { id: classId } },
+              });
+            }
+            break;
+          }
+          case "gradeId": {
+            const gradeId = Number.parseInt(value, 10);
+            if (!Number.isNaN(gradeId)) {
+              conditions.push({
+                classes: { some: { gradeId } },
+              });
+            }
+            break;
+          }
           default:
             break;
         }
@@ -137,7 +157,7 @@ const AnnouncementListPage = async ({
   const orderBy: Prisma.AnnouncementOrderByWithRelationInput =
     sortParam === "asc" ? { date: "asc" } : { date: "desc" };
 
-  const [data, count, totalClassesCount] = await prisma.$transaction([
+  const [data, count, totalClassesCount, classes, grades] = await prisma.$transaction([
     prisma.announcement.findMany({
       where: query,
       include: {
@@ -149,6 +169,16 @@ const AnnouncementListPage = async ({
     }),
     prisma.announcement.count({ where: query }),
     prisma.class.count({ where: { schoolId } }),
+    prisma.class.findMany({
+      where: { schoolId },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    }),
+    prisma.grade.findMany({
+      where: { schoolId },
+      select: { id: true, level: true },
+      orderBy: { level: "asc" },
+    }),
   ]);
 
   return (
@@ -158,6 +188,12 @@ const AnnouncementListPage = async ({
         <h1 className="font-semibold text-lg">{t("allAnnouncements")}</h1>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && (
+            <>
+              <GradeFilter grades={grades} />
+              <ClassFilter classes={classes} />
+            </>
+          )}
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
             {role === "admin" && (

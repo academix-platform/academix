@@ -1,6 +1,7 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -121,6 +122,14 @@ const ClassListPage = async ({
       where: query,
     }),
   ]);
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
@@ -129,6 +138,7 @@ const ClassListPage = async ({
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && <GradeFilter grades={grades} />}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />

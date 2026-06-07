@@ -63,6 +63,18 @@ export async function buildAssignmentQuery({
         break;
       }
 
+      case "gradeId": {
+        const gradeId = Number.parseInt(value, 10);
+
+        if (!Number.isNaN(gradeId)) {
+          conditions.push({
+            class: { gradeId },
+          });
+        }
+
+        break;
+      }
+
       case "teacherId":
         conditions.push({
           OR: [{ teacherId: value }, { lesson: { teacherId: value } }],

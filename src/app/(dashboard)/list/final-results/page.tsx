@@ -1,6 +1,7 @@
 import AcademicYearFilter from "@/components/AcademicYearFilter";
 import ClassFilter from "@/components/ClassFilter";
 import FinalGradeEditButton from "@/components/FinalGradeEditButton";
+import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -121,10 +122,12 @@ export default async function FinalResultsPage({
   const pageParam = getQueryParam(resolvedSearchParams.page);
   const search = getQueryParam(resolvedSearchParams.search);
   const classIdParam = getQueryParam(resolvedSearchParams.classId);
+  const gradeIdParam = getQueryParam(resolvedSearchParams.gradeId);
   const academicYearParam = getQueryParam(resolvedSearchParams.academicYearId);
   const page = pageParam ? Number.parseInt(pageParam, 10) : 1;
   const currentPage = Number.isNaN(page) || page < 1 ? 1 : page;
   const classId = classIdParam ? Number.parseInt(classIdParam, 10) : null;
+  const gradeId = gradeIdParam ? Number.parseInt(gradeIdParam, 10) : null;
   const currentAcademicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
   if (!currentAcademicYearId) return <NoCurrentAcademicYearMessage />;
@@ -150,6 +153,9 @@ export default async function FinalResultsPage({
     });
   }
   if (classId && !Number.isNaN(classId)) conditions.push({ classId });
+  if (gradeId && !Number.isNaN(gradeId)) {
+    conditions.push({ class: { gradeId } });
+  }
 
   if (role === "teacher") {
     conditions.push({
@@ -174,7 +180,7 @@ export default async function FinalResultsPage({
     classWhere.supervisorId = userId;
   }
 
-  const [students, count, classes] = await prisma.$transaction([
+  const [students, count, classes, grades] = await prisma.$transaction([
     prisma.student.findMany({
       where: studentWhere,
       select: { id: true, name: true, class: { select: { name: true } } },
@@ -187,6 +193,11 @@ export default async function FinalResultsPage({
       where: classWhere,
       select: { id: true, name: true },
       orderBy: { name: "asc" },
+    }),
+    prisma.grade.findMany({
+      where: { schoolId },
+      select: { id: true, level: true },
+      orderBy: { level: "asc" },
     }),
   ]);
 
@@ -291,8 +302,11 @@ export default async function FinalResultsPage({
               currentAcademicYearId={currentAcademicYearId}
             />
           )}
-          {(role === "admin" || role === "teacher") && (
-            <ClassFilter classes={classes} />
+          {role === "admin" && (
+            <>
+              <GradeFilter grades={grades} />
+              <ClassFilter classes={classes} />
+            </>
           )}
         </div>
       </div>
