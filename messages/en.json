@@ -1437,5 +1437,14 @@
       "chooseFile": "Choose File",
       "noFileChosen": "No file chosen"
     }
+  },
+  "finalGradeEdit": {
+    "edit": "Edit final grade",
+    "title": "Edit Final Grade",
+    "finalGrade": "Final Grade (%)",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saving": "Saving...",
+    "updated": "Final grade updated."
   }
 }

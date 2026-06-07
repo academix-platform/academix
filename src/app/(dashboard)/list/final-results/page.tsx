@@ -1,5 +1,6 @@
 import AcademicYearFilter from "@/components/AcademicYearFilter";
 import ClassFilter from "@/components/ClassFilter";
+import FinalGradeEditButton from "@/components/FinalGradeEditButton";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
@@ -27,23 +28,38 @@ type FinalResultRow = {
   averageScore: number | null;
   assessmentCount: number;
   status: FinalResultStatus;
+  storedAverageScore: number | null;
 };
 
 type StoredFinalResult = {
   studentId: string;
+  averageScore: number;
+  assessmentCount: number;
   status: string | null;
 };
 
 const formatValue = (value: number | null, suffix = "") =>
   value === null ? "-" : `${value.toFixed(2)}${suffix}`;
 
-const columns = (th: (key: string) => string) => [
-  { header: th("student"), accessor: "student" },
-  { header: th("class"), accessor: "class", className: "hidden md:table-cell" },
-  { header: th("assessmentCount"), accessor: "assessmentCount" },
-  { header: th("averageScore"), accessor: "averageScore" },
-  { header: th("status"), accessor: "status" },
-];
+const columns = (th: (key: string) => string, canEdit: boolean) => {
+  const baseColumns = [
+    { header: th("student"), accessor: "student" },
+    {
+      header: th("class"),
+      accessor: "class",
+      className: "hidden md:table-cell",
+    },
+    { header: th("assessmentCount"), accessor: "assessmentCount" },
+    { header: th("averageScore"), accessor: "averageScore" },
+    { header: th("status"), accessor: "status" },
+  ];
+
+  if (canEdit) {
+    baseColumns.push({ header: th("actions"), accessor: "actions" });
+  }
+
+  return baseColumns;
+};
 
 const statusClassName: Record<FinalResultStatus, string> = {
   PASS: "bg-emerald-50 text-emerald-700",
@@ -55,6 +71,8 @@ const statusClassName: Record<FinalResultStatus, string> = {
 const renderRow = (
   item: FinalResultRow,
   statusT: (key: FinalResultStatus) => string,
+  academicYearId: number,
+  canEdit: boolean,
 ) => (
   <tr
     key={item.id}
@@ -75,6 +93,16 @@ const renderRow = (
         {statusT(item.status)}
       </span>
     </td>
+    {canEdit && (
+      <td>
+        <FinalGradeEditButton
+          studentId={item.id}
+          studentName={item.name}
+          academicYearId={academicYearId}
+          averageScore={item.storedAverageScore ?? item.averageScore}
+        />
+      </td>
+    )}
   </tr>
 );
 
@@ -126,11 +154,7 @@ export default async function FinalResultsPage({
   if (role === "teacher") {
     conditions.push({
       class: {
-        OR: [
-          { lessons: { some: { teacherId: userId } } },
-          { teachers: { some: { id: userId } } },
-          { supervisorId: userId },
-        ],
+        supervisorId: userId,
       },
     });
   } else if (role === "student") {
@@ -147,11 +171,7 @@ export default async function FinalResultsPage({
   };
   const classWhere: Prisma.ClassWhereInput = { schoolId };
   if (role === "teacher") {
-    classWhere.OR = [
-      { lessons: { some: { teacherId: userId } } },
-      { teachers: { some: { id: userId } } },
-      { supervisorId: userId },
-    ];
+    classWhere.supervisorId = userId;
   }
 
   const [students, count, classes] = await prisma.$transaction([
@@ -194,6 +214,8 @@ export default async function FinalResultsPage({
               };
               select: {
                 studentId: boolean;
+                averageScore: boolean;
+                assessmentCount: boolean;
                 status: boolean;
               };
             }) => Promise<StoredFinalResult[]>;
@@ -201,7 +223,12 @@ export default async function FinalResultsPage({
         }
       ).studentFinalResult.findMany({
         where: { schoolId, academicYearId, studentId: { in: studentIds } },
-        select: { studentId: true, status: true },
+        select: {
+          studentId: true,
+          averageScore: true,
+          assessmentCount: true,
+          status: true,
+        },
       })
     : [];
   const scoresByStudent = new Map<string, AssessmentScore[]>();
@@ -212,6 +239,9 @@ export default async function FinalResultsPage({
         ? result.status
         : "NOT_UPDATED",
     ]),
+  );
+  const storedFinalResultByStudent = new Map(
+    storedFinalResults.map((result) => [result.studentId, result]),
   );
 
   for (const result of results) {
@@ -228,19 +258,26 @@ export default async function FinalResultsPage({
     const summary = calculateFinalResultSummary(
       scoresByStudent.get(student.id) ?? [],
     );
+    const storedFinalResult = storedFinalResultByStudent.get(student.id);
+    const hasStoredFinalResult = !!storedFinalResult;
+    const averageScore = storedFinalResult?.averageScore ?? summary.averageScore;
+    const assessmentCount =
+      storedFinalResult?.assessmentCount ?? summary.assessmentCount;
 
     return {
       id: student.id,
       name: student.name,
       className: student.class.name,
-      averageScore: summary.averageScore,
-      assessmentCount: summary.assessmentCount,
+      averageScore,
+      assessmentCount,
+      storedAverageScore: storedFinalResult?.averageScore ?? null,
       status:
-        summary.assessmentCount === 0
+        !hasStoredFinalResult && summary.assessmentCount === 0
           ? "NO_RESULTS"
           : storedStatusByStudent.get(student.id) ?? "NOT_UPDATED",
     };
   });
+  const canEdit = role === "admin" || role === "teacher";
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
@@ -260,8 +297,8 @@ export default async function FinalResultsPage({
         </div>
       </div>
       <Table
-        columns={columns(th)}
-        renderRow={(item) => renderRow(item, statusT)}
+        columns={columns(th, canEdit)}
+        renderRow={(item) => renderRow(item, statusT, academicYearId, canEdit)}
         data={data}
         emptyTitle={emptyT("finalAverages")}
         emptyDescription={emptyT("filterDescription")}

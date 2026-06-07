@@ -30,6 +30,7 @@ export {
 
 // Result actions
 export { createResult, updateResult, deleteResult } from "./result.actions";
+export { updateStudentFinalGrade } from "./finalResult.actions";
 
 // Attendance actions
 export { saveDailyAttendance } from "./attendance.actions";
