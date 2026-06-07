@@ -2,16 +2,17 @@ import EventCalendar from "./EventCalendar";
 import EventList from "./EventList";
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 const EventCalendarContainer = async ({
   searchParams,
 }: {
-  searchParams: Promise<{ [key: string]: string }>;
+  searchParams: PageSearchParams;
 }) => {
   const t = await getTranslations("pages");
   const widgetsT = await getTranslations("widgets");
   const params = await searchParams;
-  const dateParam = params?.date;
+  const dateParam = getQueryParam(params.date);
 
   return (
     <div className="bg-white mb-2 px-4 rounded-md h-full">

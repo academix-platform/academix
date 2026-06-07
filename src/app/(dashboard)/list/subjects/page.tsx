@@ -109,12 +109,17 @@ const SubjectListPage = async ({
       ) : (
         <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
           {data.map((item: SubjectList) => (
-            <Link
-              href={`/list/subjects/${item.id}`}
+            <article
               key={item.id}
-              className="group flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 rounded-xl min-h-[150px] transition-shadow"
+              className="group relative flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 rounded-xl min-h-[150px] transition-shadow"
             >
-              <div className="space-y-8">
+              <Link
+                href={`/list/subjects/${item.id}`}
+                aria-label={item.name}
+                className="absolute inset-0 z-0 rounded-xl"
+              />
+
+              <div className="z-10 relative space-y-8 pointer-events-none">
                 <div className="flex justify-between items-start">
                   {" "}
                   <div className="flex items-center gap-1 font-semibold text-white group-hover:text-purple-600 text-lg transition-colors">
@@ -122,7 +127,7 @@ const SubjectListPage = async ({
                     {item.name}
                   </div>
                   {role === "admin" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pointer-events-auto">
                       <FormContainer
                         table="subject"
                         type="update"
@@ -157,7 +162,7 @@ const SubjectListPage = async ({
                   </p>
                 </div>
               </div>
-            </Link>
+            </article>
           ))}
         </div>
       )}
