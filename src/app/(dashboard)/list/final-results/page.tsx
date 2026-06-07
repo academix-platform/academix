@@ -1,9 +1,13 @@
+import AcademicYearFilter from "@/components/AcademicYearFilter";
 import ClassFilter from "@/components/ClassFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getAcademicYears,
+  getCurrentAcademicYearIdOrNull,
+} from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import {
   calculateFinalResultSummary,
@@ -89,12 +93,23 @@ export default async function FinalResultsPage({
   const pageParam = getQueryParam(resolvedSearchParams.page);
   const search = getQueryParam(resolvedSearchParams.search);
   const classIdParam = getQueryParam(resolvedSearchParams.classId);
+  const academicYearParam = getQueryParam(resolvedSearchParams.academicYearId);
   const page = pageParam ? Number.parseInt(pageParam, 10) : 1;
   const currentPage = Number.isNaN(page) || page < 1 ? 1 : page;
   const classId = classIdParam ? Number.parseInt(classIdParam, 10) : null;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const currentAcademicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
-  if (!academicYearId) return <NoCurrentAcademicYearMessage />;
+  if (!currentAcademicYearId) return <NoCurrentAcademicYearMessage />;
+
+  const academicYears =
+    role === "student" || role === "parent" ? await getAcademicYears(schoolId) : [];
+  const selectedAcademicYearId = academicYearParam
+    ? Number.parseInt(academicYearParam, 10)
+    : currentAcademicYearId;
+  const academicYearId =
+    Number.isNaN(selectedAcademicYearId) || selectedAcademicYearId < 1
+      ? currentAcademicYearId
+      : selectedAcademicYearId;
 
   const conditions: Prisma.StudentWhereInput[] = [];
   if (search) {
@@ -233,6 +248,12 @@ export default async function FinalResultsPage({
         <h1 className="font-semibold text-lg">{t("finalAverages")}</h1>
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {(role === "student" || role === "parent") && (
+            <AcademicYearFilter
+              academicYears={academicYears}
+              currentAcademicYearId={currentAcademicYearId}
+            />
+          )}
           {(role === "admin" || role === "teacher") && (
             <ClassFilter classes={classes} />
           )}

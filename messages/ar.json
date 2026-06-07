@@ -318,7 +318,8 @@
     "current": "الحالي",
     "type": "النوع",
     "assessmentCount": "التقييمات",
-    "averageScore": "المعدل %"
+    "averageScore": "المعدل %",
+    "finalGrade": "الدرجة النهائية"
   },
   "filters": {
     "all": "الكل",

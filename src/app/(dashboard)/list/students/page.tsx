@@ -5,12 +5,8 @@ import PromoteStudentsButton from "@/components/PromoteStudentsButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import StudentsFilters from "@/components/StudentsFilters";
 import { getTranslations } from "next-intl/server";
-import {
-  getAcademicYears,
-  getCurrentAcademicYearOrNull,
-} from "@/lib/academicYears";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildStudentQuery } from "@/lib/query-builders/student-query";
 import prisma from "@/lib/prisma";
@@ -109,9 +105,6 @@ const StudentListPage = async ({
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
   const academicYearId = currentAcademicYear?.id ?? null;
 
-  const academicYears =
-    role === "admin" ? await getAcademicYears(schoolId) : [];
-
   if (!academicYearId || !currentAcademicYear) {
     return <NoCurrentAcademicYearMessage role={role} />;
   }
@@ -140,9 +133,7 @@ const StudentListPage = async ({
     }),
   );
 
-  if (!exportQuery.get("academicYearId")) {
-    exportQuery.set("academicYearId", String(academicYearId));
-  }
+  exportQuery.set("academicYearId", String(academicYearId));
 
   const classes = await prisma.class.findMany({
     where: {
@@ -214,16 +205,6 @@ const StudentListPage = async ({
 
       {/* FILTERS */}
       <div className="flex flex-wrap items-end gap-2">
-
-  {role === "admin" && (
-    <StudentsFilters
-      academicYears={academicYears}
-      currentAcademicYearId={academicYearId}
-    />
-  )}
-
-  {/* SPACE */}
-  <div className="w-64" />
 
   <GradeFilter grades={grades} />
 

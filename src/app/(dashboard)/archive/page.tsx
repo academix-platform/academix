@@ -11,6 +11,12 @@ type ArchiveRow = {
   email?: string | null;
   phone?: string | null;
   status?: string | null;
+  finalGrade?: string | null;
+};
+
+type StoredFinalResult = {
+  studentId: string;
+  averageScore: number;
 };
 
 const ArchivePage = async ({
@@ -34,7 +40,9 @@ const ArchivePage = async ({
   if (!admin) return null;
 
   const academicYears = await prisma.academicYear.findMany({
-    distinct: ["name"],
+    where: {
+      schoolId: admin.schoolId,
+    },
     orderBy: { startDate: "desc" },
   });
 
@@ -45,7 +53,7 @@ const ArchivePage = async ({
   let rows: ArchiveRow[] = [];
 
   if (selectedType === "students") {
-    rows = await prisma.student.findMany({
+    const students = await prisma.student.findMany({
       where: {
         schoolId: admin.schoolId,
         academicYears: {
@@ -63,6 +71,48 @@ const ArchivePage = async ({
         status: true,
       },
     });
+
+    const studentIds = students.map((student) => student.id);
+    const finalResults: StoredFinalResult[] = studentIds.length
+      ? await (
+          prisma as unknown as {
+            studentFinalResult: {
+              findMany: (args: {
+                where: {
+                  schoolId: number;
+                  academicYearId: number;
+                  studentId: { in: string[] };
+                };
+                select: {
+                  studentId: boolean;
+                  averageScore: boolean;
+                };
+              }) => Promise<StoredFinalResult[]>;
+            };
+          }
+        ).studentFinalResult.findMany({
+          where: {
+            schoolId: admin.schoolId,
+            academicYearId: Number(selectedYear),
+            studentId: { in: studentIds },
+          },
+          select: {
+            studentId: true,
+            averageScore: true,
+          },
+        })
+      : [];
+    const finalGradeByStudent = new Map(
+      finalResults.map((result) => [
+        result.studentId,
+        `${result.averageScore.toFixed(2)}%`,
+      ]),
+    );
+
+    rows = students.map((student) => ({
+      ...student,
+      finalGrade: finalGradeByStudent.get(student.id) ?? "-",
+    }));
   }
 
   if (selectedType === "teachers") {
@@ -256,6 +306,9 @@ const ArchivePage = async ({
                 <th className="px-4 py-3">{th("username")}</th>
                 <th className="px-4 py-3">{th("email")}</th>
                 <th className="px-4 py-3">{th("phone")}</th>
+                {selectedType === "students" && (
+                  <th className="px-4 py-3">{th("finalGrade")}</th>
+                )}
                 <th className="px-4 py-3">{th("statusValue")}</th>
               </tr>
             </thead>
@@ -267,13 +320,19 @@ const ArchivePage = async ({
                   <td className="px-4 py-3">{row.username || "-"}</td>
                   <td className="px-4 py-3">{row.email || "-"}</td>
                   <td className="px-4 py-3">{row.phone || "-"}</td>
+                  {selectedType === "students" && (
+                    <td className="px-4 py-3">{row.finalGrade || "-"}</td>
+                  )}
                   <td className="px-4 py-3">{row.status || "-"}</td>
                 </tr>
               ))}
 
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-gray-400 text-center">
+                  <td
+                    colSpan={selectedType === "students" ? 6 : 5}
+                    className="py-8 text-gray-400 text-center"
+                  >
                     {archiveT("noData")}
                   </td>
                 </tr>
