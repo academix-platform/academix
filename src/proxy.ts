@@ -22,6 +22,13 @@ const matchers = (
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
+  // تحديد أن مسارات الـ API والـ Cron لا تحتاج لفحص Clerk
+  const isCronRoute = createRouteMatcher(['/api/cron(.*)']);
+
+  // إذا كان الطلب لمسار الكرون، اتركه يمر دون أي تدخل من Clerk
+  if (isCronRoute(req)) {
+    return;
+  }
   const role =
     (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
 
