@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Download, Users, FileText, CheckCircle, Clock, MessageSquare, Send, Loader2, Award } from "lucide-react";
 import { toast } from "react-toastify";
+import { useTranslations } from "next-intl";
 import {
   gradeAssignmentSubmission,
   publishAssignmentGrades,
@@ -37,15 +38,19 @@ type Props = {
 
 
 // ─── دالة حساب الفرق بين وقتين ─────────────────────────────────────────────
-function getTimeDiff(from: Date, to: Date): string {
+function getTimeDiff(
+  from: Date,
+  to: Date,
+  t: (key: "day" | "hour" | "minute", values: { count: number }) => string,
+): string {
   const diffMs = to.getTime() - from.getTime();
   const absDiff = Math.abs(diffMs);
   const mins = Math.floor(absDiff / 60000);
   const hours = Math.floor(absDiff / 3600000);
   const days = Math.floor(absDiff / 86400000);
-  if (days >= 1) return `${days} day${days > 1 ? "s" : ""}`;
-  if (hours >= 1) return `${hours} hour${hours > 1 ? "s" : ""}`;
-  return `${mins} minute${mins > 1 ? "s" : ""}`;
+  if (days >= 1) return t("day", { count: days });
+  if (hours >= 1) return t("hour", { count: hours });
+  return t("minute", { count: mins });
 }
 
 export default function SubmissionsModal({
@@ -55,6 +60,7 @@ export default function SubmissionsModal({
   totalStudents,
   endDate,
 }: Props) {
+  const t = useTranslations("submissionsModal");
   const [open, setOpen] = useState(false);
   const [submissions, setSubmissions] =  useState<Submission[]>([]);
   const [loading, setLoading] = useState(false);
@@ -113,7 +119,7 @@ export default function SubmissionsModal({
     if (!gradeModal) return;
     const trimmedScore = scoreInput.trim();
     if (!trimmedScore) {
-      toast.error("Score is required");
+      toast.error(t("scoreRequired"));
       return;
     }
 
@@ -148,7 +154,7 @@ export default function SubmissionsModal({
     setPublishing(false);
 
     if (result.success) {
-      toast.success(result.message ?? "Grades published successfully!");
+      toast.success(result.message ?? t("gradesPublished"));
       setSubmissions((prev) =>
         prev.map((submission) =>
           submission.score !== null
@@ -171,7 +177,7 @@ export default function SubmissionsModal({
                    transition-colors text-xs font-medium"
       >
         <Users className="w-3.5 h-3.5" />
-        Submissions
+        {t("open")}
       </button>
 
       {open && (
@@ -181,7 +187,7 @@ export default function SubmissionsModal({
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
               <div>
                 <h3 className="font-semibold text-gray-800 text-base">
-                  Student Submissions
+                  {t("title")}
                 </h3>
                 <p className="text-xs text-gray-400 mt-0.5 truncate max-w-[280px]">
                   {assignmentTitle}
@@ -201,7 +207,7 @@ export default function SubmissionsModal({
               <div className="flex items-center gap-2 px-6 py-2 bg-red-50 border-b border-red-100">
                 <Clock className="w-3.5 h-3.5 text-red-500 flex-shrink-0" />
                 <p className="text-xs text-red-600 font-medium">
-                  Deadline passed — ready for grading
+                  {t("deadlinePassed")}
                 </p>
                 <span className="ml-auto text-xs text-red-400">
                   {new Date(endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
@@ -214,19 +220,19 @@ export default function SubmissionsModal({
               <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 rounded-lg">
                 <CheckCircle className="w-4 h-4 text-green-600" />
                 <span className="text-sm font-medium text-green-700">
-                  {submitted} Submitted
+                  {t("submitted", { count: submitted })}
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg">
                 <Clock className="w-4 h-4 text-gray-400" />
                 <span className="text-sm font-medium text-gray-500">
-                  {notSubmitted} Pending
+                  {t("pending", { count: notSubmitted })}
                 </span>
               </div>
               <div className="flex items-center gap-2 px-3 py-1.5 bg-academixPurpleLight rounded-lg">
                 <Award className="w-4 h-4 text-academixPurpleDark" />
                 <span className="text-sm font-medium text-academixPurpleDark">
-                  {graded} Graded
+                  {t("graded", { count: graded })}
                 </span>
               </div>
             </div>
@@ -241,10 +247,10 @@ export default function SubmissionsModal({
                 <div className="text-center py-10">
                   <Users className="w-10 h-10 text-gray-200 mx-auto mb-3" />
                   <p className="text-gray-500 text-sm font-medium">
-                    No submissions yet
+                    {t("emptyTitle")}
                   </p>
                   <p className="text-gray-400 text-xs mt-1">
-                    Students haven't submitted anything for this assignment.
+                    {t("emptyDescription")}
                   </p>
                 </div>
               ) : (
@@ -274,12 +280,24 @@ export default function SubmissionsModal({
                           {new Date(s.updatedAt) > new Date(endDate) ? (
                             <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-red-100 text-red-600 rounded text-[10px] font-medium">
                               <Clock className="w-2.5 h-2.5" />
-                              Late (+{getTimeDiff(new Date(endDate), new Date(s.updatedAt))})
+                              {t("late", {
+                                time: getTimeDiff(
+                                  new Date(endDate),
+                                  new Date(s.updatedAt),
+                                  t,
+                                ),
+                              })}
                             </span>
                           ) : (
                             <span className="flex items-center gap-0.5 px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-[10px] font-medium">
                               <CheckCircle className="w-2.5 h-2.5" />
-                              {getTimeDiff(new Date(s.updatedAt), new Date(endDate))} early
+                              {t("early", {
+                                time: getTimeDiff(
+                                  new Date(s.updatedAt),
+                                  new Date(endDate),
+                                  t,
+                                ),
+                              })}
                             </span>
                           )}
                         </div>
@@ -302,12 +320,12 @@ export default function SubmissionsModal({
                                     : "bg-amber-100 text-amber-700"
                                 }`}
                               >
-                                {s.gradePublished ? "Published" : "Draft"}
+                                {s.gradePublished ? t("published") : t("draft")}
                               </span>
                             </>
                           ) : (
                             <span className="text-xs text-gray-400">
-                              Ungraded
+                              {t("ungraded")}
                             </span>
                           )}
                         </div>
@@ -332,7 +350,7 @@ export default function SubmissionsModal({
                         rel="noopener noreferrer"
                         className="flex-shrink-0 p-1.5 rounded-lg text-gray-400
                                    hover:text-academixPurpleDark hover:bg-academixPurpleLight transition-colors"
-                        title="Download submission"
+                        title={t("downloadSubmission")}
                       >
                         <Download className="w-4 h-4" />
                       </a>
@@ -349,7 +367,7 @@ export default function SubmissionsModal({
                         }}
                         className="relative flex-shrink-0 p-1.5 rounded-lg text-gray-400
                                    hover:text-academixPurpleDark hover:bg-academixPurpleLight transition-colors"
-                        title={s.score !== null ? "Edit grade" : "Add grade"}
+                        title={s.score !== null ? t("editGrade") : t("addGrade")}
                       >
                         <Award className="w-4 h-4" />
                         {s.score !== null && (
@@ -368,7 +386,7 @@ export default function SubmissionsModal({
                         }}
                         className="relative flex-shrink-0 p-1.5 rounded-lg text-gray-400
                                    hover:text-green-600 hover:bg-green-50 transition-colors"
-                        title={s.teacherFeedback ? "Edit feedback" : "Add feedback"}
+                        title={s.teacherFeedback ? t("editFeedback") : t("addFeedback")}
                       >
                         <MessageSquare className="w-4 h-4" />
                         {s.teacherFeedback && (
@@ -394,12 +412,12 @@ export default function SubmissionsModal({
                 {publishing ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Publishing...
+                    {t("publishing")}
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    Publish Grades ({published}/{graded})
+                    {t("publishGrades", { published, graded })}
                   </>
                 )}
               </button>
@@ -409,7 +427,7 @@ export default function SubmissionsModal({
                 className="w-full py-2 rounded-lg border border-gray-200
                            text-gray-600 hover:bg-gray-50 text-sm font-medium transition-colors"
               >
-                Close
+                {t("close")}
               </button>
             </div>
           </div>
@@ -422,7 +440,7 @@ export default function SubmissionsModal({
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800 text-base">
-                Grade Submission
+                {t("gradeTitle")}
               </h3>
               <button
                 type="button"
@@ -434,14 +452,14 @@ export default function SubmissionsModal({
             </div>
 
             <p className="text-sm text-gray-500 mb-3">
-              Student:{" "}
+              {t("student")}{" "}
               <span className="font-medium text-gray-700">
                 {gradeModal.studentName}
               </span>
             </p>
 
             <label className="block mb-1 font-medium text-gray-700 text-sm">
-              Score
+              {t("score")}
             </label>
             <input
               type="number"
@@ -455,7 +473,7 @@ export default function SubmissionsModal({
             />
 
             <p className="mt-2 text-xs text-gray-400">
-              Saving a grade keeps it hidden until you publish grades.
+              {t("gradeHelp")}
             </p>
 
             <div className="flex gap-3 mt-4">
@@ -465,7 +483,7 @@ export default function SubmissionsModal({
                 className="flex-1 py-2 border rounded-lg text-gray-600
                            hover:bg-gray-50 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -478,12 +496,12 @@ export default function SubmissionsModal({
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
+                    {t("saving")}
                   </>
                 ) : (
                   <>
                     <Award className="w-4 h-4" />
-                    Save Grade
+                    {t("saveGrade")}
                   </>
                 )}
               </button>
@@ -498,7 +516,7 @@ export default function SubmissionsModal({
           <div className="bg-white rounded-xl shadow-xl p-6 w-full max-w-md mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800 text-base">
-                Teacher Feedback
+                {t("feedbackTitle")}
               </h3>
               <button
                 type="button"
@@ -510,7 +528,7 @@ export default function SubmissionsModal({
             </div>
 
             <p className="text-sm text-gray-500 mb-3">
-              Student:{" "}
+              {t("student")}{" "}
               <span className="font-medium text-gray-700">
                 {feedbackModal.studentName}
               </span>
@@ -520,7 +538,7 @@ export default function SubmissionsModal({
               value={feedbackText}
               onChange={(e) => setFeedbackText(e.target.value)}
               rows={4}
-              placeholder="Write your feedback for this student..."
+              placeholder={t("feedbackPlaceholder")}
               className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400 resize-none"
             />
 
@@ -531,7 +549,7 @@ export default function SubmissionsModal({
                 className="flex-1 py-2 border rounded-lg text-gray-600
                            hover:bg-gray-50 text-sm font-medium transition-colors"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -544,12 +562,12 @@ export default function SubmissionsModal({
                 {saving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Saving...
+                    {t("saving")}
                   </>
                 ) : (
                   <>
                     <Send className="w-4 h-4" />
-                    Save Feedback
+                    {t("saveFeedback")}
                   </>
                 )}
               </button>

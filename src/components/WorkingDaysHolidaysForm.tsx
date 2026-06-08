@@ -9,6 +9,7 @@ import type { SchoolDayExceptionItem } from "@/lib/schoolSettings";
 import { schoolWeekDays, type SchoolWeekDay } from "@/lib/schoolCalendar";
 import { X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
 import { toast } from "react-toastify";
 
@@ -17,23 +18,10 @@ type Props = {
   exceptions: SchoolDayExceptionItem[];
 };
 
-const dayLabels: Record<SchoolWeekDay, string> = {
-  SATURDAY: "Saturday",
-  SUNDAY: "Sunday",
-  MONDAY: "Monday",
-  TUESDAY: "Tuesday",
-  WEDNESDAY: "Wednesday",
-  THURSDAY: "Thursday",
-  FRIDAY: "Friday",
-};
-
-const typeLabels: Record<SchoolDayExceptionItem["type"], string> = {
-  HOLIDAY: "Holiday",
-  OFF_DAY: "Off Day",
-  WORKING_OVERRIDE: "Working Override",
-};
-
 const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
+  const th = useTranslations("tableHeaders");
+  const t = useTranslations("settings.workingDays");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [isSavingWorkingDays, startSavingWorkingDays] = useTransition();
   const [isSavingException, startSavingException] = useTransition();
@@ -73,12 +61,12 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
       );
 
       if (result.success) {
-        toast("Working days updated.");
+        toast(t("workingDaysUpdated"));
         router.refresh();
         return;
       }
 
-      toast.error(result.message ?? "Something went wrong!");
+      toast.error(result.message ?? actionsT("somethingWentWrong"));
     });
   };
 
@@ -92,7 +80,7 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
       );
 
       if (result.success) {
-        toast("Day exception saved.");
+        toast(t("exceptionSaved"));
         setDate("");
         setType("HOLIDAY");
         setName("");
@@ -102,7 +90,7 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
         return;
       }
 
-      toast.error(result.message ?? "Something went wrong!");
+      toast.error(result.message ?? actionsT("somethingWentWrong"));
     });
   };
 
@@ -118,14 +106,14 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
       );
 
       if (result.success) {
-        toast("Day exception removed.");
+        toast(t("exceptionRemoved"));
         setDeletingExceptionId(null);
         router.refresh();
         return;
       }
 
       setDeletingExceptionId(null);
-      toast.error(result.message ?? "Something went wrong!");
+      toast.error(result.message ?? actionsT("somethingWentWrong"));
     });
   };
 
@@ -133,7 +121,7 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
     <div className="flex flex-col gap-6">
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="block font-semibold text-gray-700 text-sm">
-          Weekly Working Days
+          {t("weeklyWorkingDays")}
         </span>
         <div className="flex flex-wrap gap-2">
           {schoolWeekDays.map((day) => {
@@ -149,7 +137,7 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                     : "bg-white border-gray-200 text-gray-700"
                 }`}
               >
-                {dayLabels[day]}
+                {t(`days.${day}`)}
               </button>
             );
           })}
@@ -160,28 +148,28 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
           disabled={isSavingWorkingDays}
           className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
         >
-          {isSavingWorkingDays ? "Saving..." : "Save Working Days"}
+          {isSavingWorkingDays ? actionsT("saving") : t("saveWorkingDays")}
         </button>
       </div>
 
       <div className="flex flex-col gap-4 bg-gray-50 p-6 rounded-xl">
         <div className="flex justify-between items-center">
           <span className="block font-semibold text-gray-700 text-sm">
-            Holidays and Off Days
+            {t("holidaysOffDays")}
           </span>
           <button
             type="button"
             onClick={() => setIsExceptionModalOpen(true)}
             className="bg-academixPurpleDark hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
           >
-            Add Exception
+            {t("addException")}
           </button>
         </div>
 
         <div className="sm:hidden space-y-3">
           {sortedExceptions.length === 0 ? (
             <div className="px-3 py-4 border border-gray-200 rounded-lg text-gray-500 text-sm">
-              No day exceptions yet.
+              {t("empty")}
             </div>
           ) : (
             sortedExceptions.map((item) => (
@@ -192,11 +180,12 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                 <div className="flex justify-between items-center">
                   <span className="font-semibold text-sm">{item.date}</span>
                   <span className="text-gray-600 text-xs">
-                    {typeLabels[item.type]}
+                    {t(`types.${item.type}`)}
                   </span>
                 </div>
                 <p className="text-sm">
-                  <span className="font-medium">Name:</span> {item.name || "-"}
+                  <span className="font-medium">{th("name")}:</span>{" "}
+                  {item.name || "-"}
                 </p>
                 <button
                   type="button"
@@ -205,8 +194,8 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                   className="text-red-600 text-sm hover:underline"
                 >
                   {isDeletingException && deletingExceptionId === item.id
-                    ? "Deleting..."
-                    : "Delete"}
+                    ? actionsT("deleting")
+                    : actionsT("delete")}
                 </button>
               </div>
             ))
@@ -216,25 +205,25 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
         <div className="hidden sm:block overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead>
-              <tr className="border-b text-left">
-                <th className="px-2 py-2 font-semibold">Date</th>
-                <th className="px-2 py-2 font-semibold">Type</th>
-                <th className="px-2 py-2 font-semibold">Name</th>
-                <th className="px-2 py-2 font-semibold">Actions</th>
+              <tr className="border-b text-start">
+                <th className="px-2 py-2 font-semibold">{th("date")}</th>
+                <th className="px-2 py-2 font-semibold">{th("type")}</th>
+                <th className="px-2 py-2 font-semibold">{th("name")}</th>
+                <th className="px-2 py-2 font-semibold">{th("actions")}</th>
               </tr>
             </thead>
             <tbody>
               {sortedExceptions.length === 0 ? (
                 <tr>
                   <td colSpan={4} className="px-2 py-3 text-gray-500">
-                    No day exceptions yet.
+                    {t("empty")}
                   </td>
                 </tr>
               ) : (
                 sortedExceptions.map((item) => (
                   <tr key={item.id} className="border-b">
                     <td className="px-2 py-3">{item.date}</td>
-                    <td className="px-2 py-3">{typeLabels[item.type]}</td>
+                    <td className="px-2 py-3">{t(`types.${item.type}`)}</td>
                     <td className="px-2 py-3">{item.name || "-"}</td>
                     <td className="px-2 py-3">
                       <button
@@ -244,8 +233,8 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                         className="text-red-600 hover:underline"
                       >
                         {isDeletingException && deletingExceptionId === item.id
-                          ? "Deleting..."
-                          : "Delete"}
+                          ? actionsT("deleting")
+                          : actionsT("delete")}
                       </button>
                     </td>
                   </tr>
@@ -273,12 +262,12 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
             onMouseDown={(event) => event.stopPropagation()}
           >
             <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-lg">Add Day Exception</h3>
+              <h3 className="font-semibold text-lg">{t("addDayException")}</h3>
               <button
                 type="button"
                 onClick={() => setIsExceptionModalOpen(false)}
                 className="text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label="Close modal"
+                aria-label={actionsT("close")}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -286,7 +275,9 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
 
             <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
               <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-700 text-sm">Date</span>
+                <span className="font-medium text-gray-700 text-sm">
+                  {th("date")}
+                </span>
                 <input
                   type="date"
                   value={date}
@@ -296,7 +287,9 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                 />
               </label>
               <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-700 text-sm">Type</span>
+                <span className="font-medium text-gray-700 text-sm">
+                  {th("type")}
+                </span>
                 <select
                   value={type}
                   onChange={(e) =>
@@ -304,26 +297,28 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                   }
                   className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
                 >
-                  <option value="HOLIDAY">Holiday</option>
-                  <option value="OFF_DAY">Off Day</option>
-                  <option value="WORKING_OVERRIDE">Working Override</option>
+                  <option value="HOLIDAY">{t("types.HOLIDAY")}</option>
+                  <option value="OFF_DAY">{t("types.OFF_DAY")}</option>
+                  <option value="WORKING_OVERRIDE">
+                    {t("types.WORKING_OVERRIDE")}
+                  </option>
                 </select>
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
                 <span className="font-medium text-gray-700 text-sm">
-                  Name (optional)
+                  {t("nameOptional")}
                 </span>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
-                  placeholder="e.g. Eid Holiday"
+                  placeholder={t("namePlaceholder")}
                 />
               </label>
               <label className="flex flex-col gap-2 md:col-span-2">
                 <span className="font-medium text-gray-700 text-sm">
-                  Notes (optional)
+                  {t("notesOptional")}
                 </span>
                 <textarea
                   value={notes}
@@ -338,7 +333,7 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
               disabled={isSavingException}
               className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 mt-4 px-4 py-2 rounded-md w-fit font-semibold text-white text-sm transition-all"
             >
-              {isSavingException ? "Adding..." : "Add"}
+              {isSavingException ? actionsT("adding") : actionsT("add")}
             </button>
           </form>
         </div>

@@ -1,5 +1,5 @@
-import { AttendanceListSkeleton } from "@/components/loaders/DashboardSkeletons";
+import LoadingIndicator from "@/components/loaders/LoadingIndicator";
 
-export default function loading() {
-  return <AttendanceListSkeleton />;
+export default function Loading() {
+  return <LoadingIndicator />;
 }

@@ -1,9 +1,12 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ClassFilter from "@/components/ClassFilter";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildParentQuery } from "@/lib/query-builders/parent-query";
 import prisma from "@/lib/prisma";
@@ -14,25 +17,25 @@ import type { PageSearchParams } from "@/lib/pageParams";
 
 type ParentList = Parent & { students: Student[] };
 
-const getColumns = (role: UserRole | null) => [
-  { header: "Info", accessor: "info" },
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("info"), accessor: "info" },
   {
-    header: "Student Names",
+    header: th("studentNames"),
     accessor: "students",
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
+    header: th("phone"),
     accessor: "phone",
     className: "hidden lg:table-cell",
   },
   {
-    header: "Address",
+    header: th("address"),
     accessor: "address",
     className: "hidden lg:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -74,6 +77,9 @@ const ParentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/parents");
 
   const {
@@ -113,14 +119,35 @@ const ParentListPage = async ({
       where: query,
     }),
   ]);
+  const [classes, grades] =
+    role === "admin"
+      ? await prisma.$transaction([
+          prisma.class.findMany({
+            where: { schoolId },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          }),
+          prisma.grade.findMany({
+            where: { schoolId },
+            select: { id: true, level: true },
+            orderBy: { level: "asc" },
+          }),
+        ])
+      : [[], []];
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Parents</h1>
+        <h1 className="font-semibold text-lg">{t("allParents")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && (
+            <>
+              <GradeFilter grades={grades} />
+              <ClassFilter classes={classes} />
+            </>
+          )}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
@@ -139,11 +166,11 @@ const ParentListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No parents found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("parents")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

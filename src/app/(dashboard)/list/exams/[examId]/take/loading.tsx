@@ -1,5 +1,5 @@
-import { ExamGradingSkeleton } from "@/components/loaders/DashboardSkeletons";
+import LoadingIndicator from "@/components/loaders/LoadingIndicator";
 
-export default function loading() {
-  return <ExamGradingSkeleton />;
+export default function Loading() {
+  return <LoadingIndicator />;
 }

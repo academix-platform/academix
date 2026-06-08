@@ -2,6 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --academix-ink: #24104f;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.academix-menu-scroll {
+  scrollbar-color: #7c3aed transparent;
+  scrollbar-width: thin;
+}
+
+.academix-menu-scroll::-webkit-scrollbar {
+  width: 8px;
+}
+
+.academix-menu-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.academix-menu-scroll::-webkit-scrollbar-thumb {
+  background-color: #7c3aed;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: content-box;
+}
+
+.academix-menu-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: #3b1b76;
+}
+
 .react-calendar {
   width: 100% !important;
   border: none !important;
@@ -122,3 +154,35 @@
   margin-bottom: 5px;
 }
 
+.custom-shape-divider-bottom-1779710312 {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  line-height: 0;
+  transform: rotate(180deg);
+}
+
+.custom-shape-divider-bottom-1779710312 svg {
+  position: relative;
+  display: block;
+  width: calc(126% + 1.3px);
+  height: 124px;
+}
+
+.custom-shape-divider-bottom-1779710312 .shape-fill {
+  fill: var(--academix-ink);
+}
+
+@keyframes titleReveal {
+  from {
+    opacity: 0;
+    transform: translateY(2rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

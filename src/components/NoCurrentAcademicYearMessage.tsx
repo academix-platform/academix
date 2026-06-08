@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth";
 import { UserRole } from "@/lib/utils";
 import EmptyState from "@/components/states/EmptyState";
+import { getTranslations } from "next-intl/server";
 
 type Props = {
   compact?: boolean;
@@ -11,6 +12,7 @@ const NoCurrentAcademicYearMessage = async ({
   compact = false,
   role,
 }: Props) => {
+  const t = await getTranslations("states");
   const resolvedRole = role ?? (await getAuthUser())?.role ?? null;
   const isAdmin = resolvedRole === "admin";
 
@@ -19,8 +21,8 @@ const NoCurrentAcademicYearMessage = async ({
       return (
         <div className="bg-white p-4 rounded-md text-sm">
           <EmptyState
-            title="No data yet"
-            description="Academic year did not begin yet."
+            title={t("noDataYet")}
+            description={t("academicYearNotStarted")}
             className="py-2"
           />
         </div>
@@ -30,9 +32,9 @@ const NoCurrentAcademicYearMessage = async ({
     return (
       <div className="bg-white p-4 rounded-md text-sm">
         <EmptyState
-          title="No current year selected"
-          description="Select a current academic year to view data."
-          actionLabel="Go to settings"
+          title={t("noCurrentYear")}
+          description={t("selectCurrentYear")}
+          actionLabel={t("goToSettings")}
           actionHref="/settings"
           className="py-2"
         />
@@ -43,9 +45,9 @@ const NoCurrentAcademicYearMessage = async ({
   if (!isAdmin) {
     return (
       <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-        <EmptyState
-          title="No data yet"
-          description="Academic year did not begin yet."
+      <EmptyState
+          title={t("noDataYet")}
+          description={t("academicYearNotStarted")}
         />
       </div>
     );
@@ -54,9 +56,9 @@ const NoCurrentAcademicYearMessage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
       <EmptyState
-        title="No current year selected"
-        description="Select a current academic year to view data."
-        actionLabel="Go to settings"
+        title={t("noCurrentYear")}
+        description={t("selectCurrentYear")}
+        actionLabel={t("goToSettings")}
         actionHref="/settings"
       />
     </div>

@@ -88,7 +88,7 @@ const BigCalendarContainer = async ({
   const schedule = adjustScheduleToCurrentWeek(data, schoolSettings.workingDays);
 
   return (
-    <div className="h-[560px] overflow-x-auto">
+    <div className="h-[560px] overflow-x-auto text-left" dir="ltr">
       <BigCalendar data={schedule} settings={schoolSettings} />
     </div>
   );

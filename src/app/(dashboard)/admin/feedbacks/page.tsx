@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { updateFeedbackStatus } from "@/lib/actions/feedback";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { getTranslations } from "next-intl/server";
 
 const statusOrder: Record<string, number> = {
   pending: 1,
@@ -24,12 +25,12 @@ const getStatusClass = (status: string) => {
 };
 
 const filters = [
-  { label: "All", href: "/admin/feedbacks" },
-  { label: "Pending", href: "/admin/feedbacks?status=pending" },
-  { label: "Reviewed", href: "/admin/feedbacks?status=reviewed" },
-  { label: "Resolved", href: "/admin/feedbacks?status=resolved" },
-  { label: "Suggestions", href: "/admin/feedbacks?type=suggestion" },
-  { label: "Complaints", href: "/admin/feedbacks?type=complaint" },
+  { labelKey: "all", href: "/admin/feedbacks" },
+  { labelKey: "pending", href: "/admin/feedbacks?status=pending" },
+  { labelKey: "reviewed", href: "/admin/feedbacks?status=reviewed" },
+  { labelKey: "resolved", href: "/admin/feedbacks?status=resolved" },
+  { labelKey: "suggestions", href: "/admin/feedbacks?type=suggestion" },
+  { labelKey: "complaints", href: "/admin/feedbacks?type=complaint" },
 ];
 
 const FeedbacksPage = async ({
@@ -37,10 +38,13 @@ const FeedbacksPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const filtersT = await getTranslations("filters");
+  const feedbackT = await getTranslations("feedbackPage");
   const user = await getAuthUser();
 
   if (!user) {
-    return <div>Unauthorized</div>;
+    return <div>{feedbackT("unauthorized")}</div>;
   }
 
   const params = await searchParams;
@@ -87,31 +91,30 @@ const FeedbacksPage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex md:flex-row flex-col md:justify-between md:items-center gap-4 mb-6">
         <div>
-          <h1 className="font-semibold text-lg">Feedbacks</h1>
-          <p className="text-gray-500 text-sm">
-            Manage suggestions and complaints from students and parents.
-          </p>
+          <h1 className="font-semibold text-lg">{t("feedbacks")}</h1>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="bg-yellow-100 px-4 py-2 rounded-full font-medium text-yellow-700 text-sm">
-            {pendingCount} pending
+            {feedbackT("pendingCount", { count: pendingCount })}
           </span>
 
-          <span className="text-gray-500 text-sm">{count} shown</span>
+          <span className="text-gray-500 text-sm">
+            {feedbackT("shownCount", { count })}
+          </span>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2 mb-6">
         {filters.map((filter) => {
           const isActive =
-            (!status && !type && filter.label === "All") ||
+            (!status && !type && filter.labelKey === "all") ||
             filter.href.includes(`status=${status}`) ||
             filter.href.includes(`type=${type}`);
 
           return (
             <Link
-              key={filter.label}
+              key={filter.labelKey}
               href={filter.href}
               className={`rounded-md px-4 py-2 text-sm font-medium transition ${
                 isActive
@@ -119,7 +122,7 @@ const FeedbacksPage = async ({
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               }`}
             >
-              {filter.label}
+              {filtersT(filter.labelKey)}
             </Link>
           );
         })}
@@ -128,7 +131,7 @@ const FeedbacksPage = async ({
       <div className="space-y-4">
         {sortedFeedbacks.length === 0 ? (
           <div className="p-10 border border-gray-300 border-dashed rounded-xl text-center">
-            <p className="text-gray-500">No feedbacks found.</p>
+            <p className="text-gray-500">{feedbackT("noFeedbacks")}</p>
           </div>
         ) : (
           sortedFeedbacks.map((feedback) => {
@@ -146,8 +149,8 @@ const FeedbacksPage = async ({
                 <div className="flex md:flex-row flex-col md:justify-between md:items-start gap-3">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
-                      <span className="font-semibold text-gray-900 capitalize">
-                        {feedback.type}
+                      <span className="font-semibold text-gray-900">
+                        {feedbackT(`types.${feedback.type}`)}
                       </span>
 
                       <span
@@ -155,7 +158,7 @@ const FeedbacksPage = async ({
                           feedback.status,
                         )}`}
                       >
-                        {feedback.status}
+                    {filtersT(feedback.status)}
                       </span>
                     </div>
 
@@ -171,10 +174,10 @@ const FeedbacksPage = async ({
 
                 {isResolved ? (
                   <p className="mt-5 text-green-700 text-sm">
-                    This feedback is resolved and locked.
+                    {feedbackT("resolvedLocked")}
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-2 mt-5 ml-auto">
+                  <div className="flex flex-wrap gap-2 mt-5 ms-auto">
                     {feedback.status !== "reviewed" && (
                       <form action={updateFeedbackStatus}>
                         <input type="hidden" name="id" value={feedback.id} />
@@ -184,7 +187,7 @@ const FeedbacksPage = async ({
                           type="submit"
                           className="bg-blue-100 hover:bg-blue-200 px-4 py-2 rounded-md font-medium text-blue-700 text-sm transition"
                         >
-                          Mark Reviewed
+                          {feedbackT("markReviewed")}
                         </button>
                       </form>
                     )}
@@ -197,7 +200,7 @@ const FeedbacksPage = async ({
                         type="submit"
                         className="bg-green-100 hover:bg-green-200 px-4 py-2 rounded-md font-medium text-green-700 text-sm transition"
                       >
-                        Mark Resolved
+                        {feedbackT("markResolved")}
                       </button>
                     </form>
 
@@ -210,7 +213,7 @@ const FeedbacksPage = async ({
                           type="submit"
                           className="bg-yellow-100 hover:bg-yellow-200 px-4 py-2 rounded-md font-medium text-yellow-700 text-sm transition"
                         >
-                          Mark Pending
+                          {feedbackT("markPending")}
                         </button>
                       </form>
                     )}

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Props = {
   classes: {
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function ClassFilter({ classes }: Props) {
+  const t = useTranslations("filters");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -32,7 +34,7 @@ export default function ClassFilter({ classes }: Props) {
       onChange={(e) => handleChange(e.target.value)}
       className="h-10 rounded-md border px-3 text-sm"
     >
-      <option value="">All Classes</option>
+      <option value="">{t("allClasses")}</option>
 
       {classes.map((cls) => (
         <option key={cls.id} value={cls.id}>

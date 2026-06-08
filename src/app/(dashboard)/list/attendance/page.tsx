@@ -4,22 +4,42 @@ import { getAttendanceData } from "@/lib/attendance";
 
 import AttendanceClient from "@/components/AttendanceClient";
 import AttendanceClassSelect from "@/components/AttendanceClassSelect";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import EmptyState from "@/components/states/EmptyState";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { getTranslations } from "next-intl/server";
+import { getQueryParam } from "@/lib/pageParams";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+
+const isDateWithinRange = (date: string, startDate: string, endDate: string) =>
+  date >= startDate && date <= endDate;
 
 const AttendancePage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const attendanceT = await getTranslations("attendance");
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
   const { role, userId, schoolId } =
     await enforceRouteAccess("/list/attendance");
+  const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
+
+  if (!currentAcademicYear) {
+    return <NoCurrentAcademicYearMessage />;
+  }
 
   const resolved = await searchParams;
+  const gradeIdParam = getQueryParam(resolved.gradeId);
+  const gradeId = gradeIdParam ? Number.parseInt(gradeIdParam, 10) : undefined;
+  const selectedGradeId =
+    gradeId && !Number.isNaN(gradeId) && gradeId > 0 ? gradeId : undefined;
 
   // PARAMS
   const {
@@ -33,12 +53,22 @@ const AttendancePage = async ({
 
   const scope: "students" | "teachers" =
     rawScope === "teachers" ? "teachers" : "students";
+  const isSelectedDateInAcademicYear = isDateWithinRange(
+    selectedDate,
+    currentAcademicYear.startDate,
+    currentAcademicYear.endDate,
+  );
 
   // CLASSES
   const classes =
     role === "admin"
       ? await prisma.class.findMany({
-          where: { schoolId: schoolId },
+          where: {
+            schoolId: schoolId,
+            ...(scope === "students" && selectedGradeId
+              ? { gradeId: selectedGradeId }
+              : {}),
+          },
           select: { id: true, name: true },
           orderBy: { name: "asc" },
         })
@@ -49,15 +79,23 @@ const AttendancePage = async ({
           },
           select: { id: true, name: true },
         });
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
 
   // Teacher with no classes
   if (role === "teacher" && classes.length === 0) {
     return (
       <div className="flex-1 bg-white m-4 p-6 rounded-md">
-        <h1 className="mb-2 font-semibold text-lg">Attendance</h1>
+        <h1 className="mb-2 font-semibold text-lg">{t("attendance")}</h1>
         <EmptyState
-          title="No classes assigned"
-          description="You are not assigned to supervise any class yet."
+          title={attendanceT("noClassesAssigned")}
+          description={attendanceT("noClassesAssignedDescription")}
           className="py-6"
         />
       </div>
@@ -70,14 +108,17 @@ const AttendancePage = async ({
     classId && validClassIds.has(classId) ? classId : classes[0]?.id;
 
   // DATA
-  const { data, hasAttendance, noCurrentYear } = await getAttendanceData({
-    role,
-    userId,
-    schoolId: schoolId,
-    scope,
-    classId: effectiveClassId,
-    day,
-  });
+  const { data, hasAttendance, noCurrentYear } = isSelectedDateInAcademicYear
+    ? await getAttendanceData({
+        role,
+        userId,
+        schoolId: schoolId,
+        scope,
+        classId: effectiveClassId,
+        gradeId: selectedGradeId,
+        day,
+      })
+    : { data: [], hasAttendance: false, noCurrentYear: false };
 
   if (noCurrentYear) {
     return <NoCurrentAcademicYearMessage />;
@@ -91,13 +132,15 @@ const AttendancePage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="font-semibold text-lg">Attendance</h1>
+        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
 
         <form className="hidden sm:flex items-center gap-2">
           <input
             type="date"
             name="date"
             defaultValue={selectedDate}
+            min={currentAcademicYear.startDate}
+            max={currentAcademicYear.endDate}
             className="p-2 border rounded-md text-sm"
           />
 
@@ -105,9 +148,12 @@ const AttendancePage = async ({
           {effectiveClassId && (
             <input type="hidden" name="classId" value={effectiveClassId} />
           )}
+          {selectedGradeId && (
+            <input type="hidden" name="gradeId" value={selectedGradeId} />
+          )}
 
           <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">
-            Filter
+            {attendanceT("filter")}
           </button>
         </form>
       </div>
@@ -124,7 +170,7 @@ const AttendancePage = async ({
                   : "bg-gray-100"
               }`}
             >
-              Students
+              {filtersT("students")}
             </a>
 
             <a
@@ -135,15 +181,16 @@ const AttendancePage = async ({
                   : "bg-gray-100"
               }`}
             >
-              Teachers
+              {filtersT("teachers")}
             </a>
           </div>
         )}
 
         {/* CLASS SELECT (ADMIN) */}
         {role === "admin" && scope === "students" && (
-          <div className="mb-4">
-            <span className="mr-2">Class:</span>
+          <div className="mb-4 flex flex-wrap items-center gap-2">
+            <GradeFilter grades={grades} />
+            <span className="me-2">{th("class")}:</span>
             <AttendanceClassSelect
               classes={classes}
               value={effectiveClassId}
@@ -169,6 +216,15 @@ const AttendancePage = async ({
               {cls.name}
             </a>
           ))}
+        </div>
+      )}
+
+      {!isSelectedDateInAcademicYear && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          {attendanceT("dateOutsideAcademicYear", {
+            start: currentAcademicYear.startDate,
+            end: currentAcademicYear.endDate,
+          })}
         </div>
       )}
 

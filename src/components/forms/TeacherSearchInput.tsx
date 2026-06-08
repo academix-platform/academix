@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useMemo, useState } from "react";
 
 type TeacherOption = {
@@ -19,8 +20,11 @@ export default function TeacherSearchInput({
   teachers,
   value,
   onChange,
-  label = "Teacher",
+  label,
 }: TeacherSearchInputProps) {
+  const tableT = useTranslations("tableHeaders");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const selectedTeacher = teachers.find((teacher) => teacher.id === value);
   const [search, setSearch] = useState(selectedTeacher?.name ?? "");
   const [open, setOpen] = useState(false);
@@ -37,8 +41,10 @@ export default function TeacherSearchInput({
   return (
     <div className="flex flex-col gap-2 w-full">
       <label className="font-medium text-gray-700 text-sm">
-        {label}
-        <span className="ml-1 font-normal text-gray-400">(optional)</span>
+        {label ?? tableT("teacher")}
+        <span className="ms-1 font-normal text-gray-400">
+          ({commonT("optional")})
+        </span>
       </label>
       <div className="relative">
         <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg transition-all">
@@ -46,7 +52,7 @@ export default function TeacherSearchInput({
           <input
             type="text"
             value={search}
-            placeholder="Search teachers..."
+            placeholder={commonT("searchTeachers")}
             onFocus={() => setOpen(true)}
             onBlur={() => window.setTimeout(() => setOpen(false), 120)}
             onChange={(event) => {
@@ -65,7 +71,7 @@ export default function TeacherSearchInput({
                 setOpen(true);
               }}
               className="text-gray-400 hover:text-gray-600"
-              aria-label="Clear teacher"
+              aria-label={actionsT("clear")}
             >
               <X className="w-4 h-4" />
             </button>
@@ -73,7 +79,7 @@ export default function TeacherSearchInput({
         </div>
 
         {open && (
-          <div className="top-full right-0 left-0 z-20 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
+          <div className="top-full inset-x-0 z-20 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-48 overflow-y-auto">
             {filteredTeachers.length > 0 ? (
               filteredTeachers.map((teacher) => {
                 const isSelected = teacher.id === value;
@@ -88,7 +94,7 @@ export default function TeacherSearchInput({
                       setSearch(teacher.name);
                       setOpen(false);
                     }}
-                    className={`px-4 py-3 w-full text-sm text-left transition-colors ${
+                    className={`px-4 py-3 w-full text-sm text-start transition-colors ${
                       isSelected
                         ? "bg-academixPurpleLight text-academixPurpleDark font-medium"
                         : "hover:bg-academixPurpleLight hover:text-academixPurpleDark"
@@ -100,7 +106,7 @@ export default function TeacherSearchInput({
               })
             ) : (
               <div className="px-4 py-3 text-gray-500 text-sm">
-                No teachers found.
+                {commonT("noTeachersFound")}
               </div>
             )}
           </div>

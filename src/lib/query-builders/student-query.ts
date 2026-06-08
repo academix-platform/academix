@@ -30,13 +30,10 @@ export async function buildStudentQuery({
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
 
-  const academicYearParam = getQueryParam(queryParams.academicYearId);
   const statusParam = getQueryParam(queryParams.status);
   const repeatCountParam = getQueryParam(queryParams.repeatCount);
 
-  const selectedAcademicYearId = academicYearParam
-    ? Number.parseInt(academicYearParam, 10)
-    : currentAcademicYearId;
+  const selectedAcademicYearId = currentAcademicYearId;
 
   const selectedStatus = validStatuses.includes(statusParam as StudentStatus)
     ? (statusParam as StudentStatus)
@@ -71,6 +68,9 @@ export async function buildStudentQuery({
     if (value === undefined || value === "") continue;
 
     switch (key) {
+  case "academicYearId":
+    break;
+
   case "classId":
     conditions.push({
       classId: Number(value),

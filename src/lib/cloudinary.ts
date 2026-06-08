@@ -17,6 +17,32 @@ cloudinary.config({
 
 export default cloudinary;
 
+export const generateProfileImageUploadSignature = (
+  schoolId: number,
+): {
+  signature: string;
+  timestamp: number;
+  folder: string;
+  apiKey: string;
+  cloudName: string;
+} => {
+  const folder = `schools/${schoolId}/profiles`;
+  const timestamp = Math.floor(Date.now() / 1000);
+  const paramsToSign = { folder, timestamp };
+  const signature = cloudinary.utils.api_sign_request(
+    paramsToSign,
+    process.env.CLOUDINARY_API_SECRET!,
+  );
+
+  return {
+    signature,
+    timestamp,
+    folder,
+    apiKey: process.env.CLOUDINARY_API_KEY!,
+    cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
+  };
+};
+
 export const generateExamUploadSignature = (
   schoolId: number, examId: number, submissionId: number, questionId: number
 ): { signature: string; timestamp: number; folder: string; apiKey: string; cloudName: string } => {

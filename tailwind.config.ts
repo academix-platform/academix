@@ -14,6 +14,12 @@ const config: Config = {
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
       colors: {
+        academixInk: "#24104F",
+        academixInkMuted: "#3B1B76",
+        academixSurface: "#F7F3FF",
+        academixPanel: "#FFFFFF",
+        academixBorder: "#E9DDFD",
+
         academixSky: "#C3EBFA",
         academixSkyLight: "#EDF9FD",
 
@@ -21,8 +27,10 @@ const config: Config = {
         academixPurpleLight: "#F1F0FF",
 
         academixPurpleDark: "#7C3AED",
+        academixPurpleDeep: "#24104F",
+        academixPurpleMuted: "#3B1B76",
 
-        academixYellow: "#FAE27C",
+        academixYellow: "#FCD34D",
         academixYellowLight: "#FEFCE8",
       },
       keyframes: {

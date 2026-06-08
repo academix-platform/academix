@@ -1,8 +1,10 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildSubjectQuery } from "@/lib/query-builders/subject-query";
 import prisma from "@/lib/prisma";
@@ -23,6 +25,8 @@ const SubjectListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
 
   const {
@@ -60,14 +64,23 @@ const SubjectListPage = async ({
     }),
     prisma.subject.count({ where: query }),
   ]);
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Subjects</h1>
+        <h1 className="font-semibold text-lg">{t("allSubjects")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && <GradeFilter grades={grades} />}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
@@ -87,31 +100,34 @@ const SubjectListPage = async ({
       {data.length === 0 ? (
         <div className="flex flex-col justify-center items-center bg-gray-50 mt-6 p-10 rounded-xl text-center">
           <h3 className="font-semibold text-gray-700 text-base">
-            No subjects found
+            {emptyT("subjects")}
           </h3>
           <p className="mt-1 text-gray-400 text-sm">
-            Try changing your filters or search terms.
+            {emptyT("filterDescription")}
           </p>
         </div>
       ) : (
         <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
           {data.map((item: SubjectList) => (
-            <div
+            <article
               key={item.id}
-              className="flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 border border-gray-100 rounded-xl min-h-[150px] transition-shadow"
+              className="group relative flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 rounded-xl min-h-[150px] transition-shadow"
             >
-              <div className="space-y-8">
+              <Link
+                href={`/list/subjects/${item.id}`}
+                aria-label={item.name}
+                className="absolute inset-0 z-0 rounded-xl"
+              />
+
+              <div className="z-10 relative space-y-8 pointer-events-none">
                 <div className="flex justify-between items-start">
                   {" "}
-                  <Link
-                    href={`/list/subjects/${item.id}`}
-                    className="flex items-center gap-1 font-semibold text-white hover:text-purple-600 text-lg transition-colors"
-                  >
+                  <div className="flex items-center gap-1 font-semibold text-white group-hover:text-purple-600 text-lg transition-colors">
                     <BookText className="inline mr-1 w-5 h-5" />
                     {item.name}
-                  </Link>
+                  </div>
                   {role === "admin" && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 pointer-events-auto">
                       <FormContainer
                         table="subject"
                         type="update"
@@ -146,7 +162,7 @@ const SubjectListPage = async ({
                   </p>
                 </div>
               </div>
-            </div>
+            </article>
           ))}
         </div>
       )}

@@ -1,10 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 const statuses = ["ALL", "PENDING", "ACTIVE", "PAUSED"] as const;
 
 const SchoolStatusFilter = () => {
+  const t = useTranslations("filters");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -28,7 +30,7 @@ const SchoolStatusFilter = () => {
     >
       {statuses.map((status) => (
         <option key={status} value={status}>
-          {status}
+          {status === "ALL" ? t("all") : t(status.toLowerCase())}
         </option>
       ))}
     </select>

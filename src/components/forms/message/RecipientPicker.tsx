@@ -1,6 +1,7 @@
 "use client";
 
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 type RecipientOption = {
@@ -21,6 +22,9 @@ const RecipientPicker = ({
   selectedIds,
   onChange,
 }: RecipientPickerProps) => {
+  const t = useTranslations("forms.message");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [searchValue, setSearchValue] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
@@ -72,7 +76,7 @@ const RecipientPicker = ({
           onClick={selectAll}
           className="font-medium text-academixPurpleDark text-xs hover:underline"
         >
-          Select all
+          {commonT("selectAll")}
         </button>
       </div>
 
@@ -83,27 +87,27 @@ const RecipientPicker = ({
               type="search"
               value={searchValue}
               onChange={(event) => setSearchValue(event.target.value)}
-              placeholder={`Search ${label.toLowerCase()}...`}
-              aria-label={`Search ${label.toLowerCase()}`}
+              placeholder={t("searchRecipients", { label })}
+              aria-label={t("searchRecipients", { label })}
               className="bg-transparent outline-none w-full text-sm placeholder-gray-400"
             />
             <button
               type="button"
               onClick={() => setShowDropdown(true)}
               className="text-gray-400 hover:text-academixPurpleDark transition-colors"
-              aria-label={`Open ${label.toLowerCase()} search results`}
+              aria-label={t("openRecipientSearch", { label })}
             >
               <Search className="w-5 h-5" />
             </button>
           </div>
 
           {showDropdown && (
-            <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
+            <div className="top-full inset-x-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
               {filteredItems.length > 0 ? (
                 filteredItems.map((item) => (
                   <label
                     key={item.id}
-                    className="flex items-center gap-2 hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-left transition-colors cursor-pointer"
+                    className="flex items-center gap-2 hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-start transition-colors cursor-pointer"
                   >
                     <input
                       type="checkbox"
@@ -118,7 +122,7 @@ const RecipientPicker = ({
                 ))
               ) : (
                 <div className="px-4 py-3 text-gray-500 text-sm">
-                  No results found
+                  {commonT("noResultsFound")}
                 </div>
               )}
             </div>
@@ -127,7 +131,7 @@ const RecipientPicker = ({
 
         <div className="flex justify-between items-center bg-white mt-3 px-4 py-3 border-2 border-gray-300 border-dashed rounded-lg">
           <span className="text-gray-600 text-sm">
-            {selectedIds.length} selected
+            {commonT("selected", { count: selectedIds.length })}
           </span>
           {selectedIds.length > 0 && (
             <button
@@ -135,7 +139,7 @@ const RecipientPicker = ({
               onClick={clear}
               className="font-medium text-academixPurpleDark text-xs hover:underline"
             >
-              Clear
+              {actionsT("clear")}
             </button>
           )}
         </div>

@@ -6,6 +6,7 @@ import type { AiEvaluation } from "@prisma/client";
 import { Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import AssignmentSubmissionAiEvaluation from "./AssignmentSubmissionAiEvaluation";
 import AssignmentSubmissionBulkActions from "./AssignmentSubmissionBulkActions";
 import AssignmentSubmissionScoreForm from "./AssignmentSubmissionScoreForm";
@@ -37,14 +38,14 @@ type SubmissionRow = {
   };
 };
 
-const columns = [
-  { header: "Student", accessor: "student", className: "min-w-[190px] p-4" },
-  { header: "Class", accessor: "class", className: "min-w-[120px] p-4" },
-  { header: "File", accessor: "file", className: "hidden md:table-cell min-w-[180px] p-4" },
-  { header: "Status", accessor: "status", className: "min-w-[120px] p-4" },
-  { header: "Score", accessor: "score", className: "min-w-[140px] p-4" },
-  { header: "Submitted", accessor: "submitted", className: "hidden md:table-cell p-4" },
-  { header: "Actions", accessor: "actions", className: "min-w-[130px] p-4" },
+const getColumns = (th: (key: string) => string) => [
+  { header: th("student"), accessor: "student", className: "min-w-[190px] p-4" },
+  { header: th("class"), accessor: "class", className: "min-w-[120px] p-4" },
+  { header: th("file"), accessor: "file", className: "hidden md:table-cell min-w-[180px] p-4" },
+  { header: th("status"), accessor: "status", className: "min-w-[120px] p-4" },
+  { header: th("score"), accessor: "score", className: "min-w-[140px] p-4" },
+  { header: th("submitted"), accessor: "submitted", className: "hidden md:table-cell p-4" },
+  { header: th("actions"), accessor: "actions", className: "min-w-[130px] p-4" },
 ];
 
 const formatDateTime = (date: Date) =>
@@ -74,11 +75,11 @@ const getPreviewHref = (submission: SubmissionRow) => {
     : null;
 };
 
-const getStatusBadge = (submission: SubmissionRow) => {
+const getStatusBadge = (submission: SubmissionRow, t: (key: string) => string) => {
   if (submission.gradePublished) {
     return (
       <span className="rounded-md bg-academixPurpleLight px-2 py-1 text-xs font-medium text-academixPurpleDark">
-        Published
+        {t("status.published")}
       </span>
     );
   }
@@ -86,19 +87,23 @@ const getStatusBadge = (submission: SubmissionRow) => {
   if (submission.score !== null) {
     return (
       <span className="rounded-md bg-amber-100 px-2 py-1 text-xs font-medium text-amber-700">
-        Draft Grade
+        {t("status.draftGrade")}
       </span>
     );
   }
 
   return (
     <span className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-700">
-      Submitted
+      {t("status.submitted")}
     </span>
   );
 };
 
-const renderRow = (item: SubmissionRow, maxScore: number) => {
+const renderRow = (
+  item: SubmissionRow,
+  maxScore: number,
+  t: (key: string) => string,
+) => {
   const isPdfSubmission = getFileExtension(item.fileName) === "pdf";
 
   return (
@@ -129,7 +134,7 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
       <td className="hidden max-w-[180px] truncate p-4 text-gray-500 md:table-cell">
         {item.fileName}
       </td>
-      <td className="min-w-[120px] p-4">{getStatusBadge(item)}</td>
+      <td className="min-w-[120px] p-4">{getStatusBadge(item, t)}</td>
       <td className="min-w-[140px] p-4">
         <AssignmentSubmissionScoreForm
           submissionId={item.id}
@@ -150,11 +155,11 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
               className="inline-flex items-center gap-2 rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:bg-gray-100"
             >
               <Eye className="h-3.5 w-3.5" />
-              View
+              {t("actions.view")}
             </a>
           ) : (
             <span className="inline-flex items-center rounded-md bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-400">
-              Preview unavailable
+              {t("empty.previewUnavailable")}
             </span>
           )}
           <a
@@ -164,7 +169,7 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
             className="inline-flex items-center gap-2 rounded-md bg-academixPurpleLight px-3 py-1.5 text-xs font-medium text-academixPurpleDark transition hover:brightness-95"
           >
             <Download className="h-3.5 w-3.5" />
-            Download
+            {t("actions.download")}
           </a>
           <AssignmentSubmissionAiEvaluation
             submissionId={item.id}
@@ -177,6 +182,10 @@ const renderRow = (item: SubmissionRow, maxScore: number) => {
 };
 
 const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
+  const th = await getTranslations("tableHeaders");
+  const filtersT = await getTranslations("filters");
+  const actionsT = await getTranslations("actions");
+  const assignmentSubmissionsT = await getTranslations("assignmentSubmissions");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
   const { assignmentId: assignmentIdRaw } = await params;
   const resolvedSearchParams = await searchParams;
@@ -269,14 +278,17 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
         <div>
           <div className="mb-1 flex items-center gap-2 text-sm text-gray-400">
             <Link href="/list/assignments" className="hover:text-gray-600">
-              Assignments
+              {assignmentSubmissionsT("breadcrumb")}
             </Link>
             <span>/</span>
             <span className="text-gray-700">{assignment.title}</span>
           </div>
-          <h1 className="text-lg font-semibold">Assignment Submissions</h1>
+          <h1 className="text-lg font-semibold">
+            {assignmentSubmissionsT("title")}
+          </h1>
           <p className="mt-1 text-sm text-gray-400">
-            {assignment.subject?.name ?? "No subject"} - {assignment.maxScore} marks
+            {assignment.subject?.name ?? assignmentSubmissionsT("subjectFallback")} -{" "}
+            {assignmentSubmissionsT("marks", { count: assignment.maxScore })}
           </p>
         </div>
         <PublishAssignmentGradesButton
@@ -288,19 +300,27 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
 
       <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
         <div className="rounded-md bg-gray-50 p-4">
-          <span className="text-xs text-gray-400">Visible Submissions</span>
+          <span className="text-xs text-gray-400">
+            {assignmentSubmissionsT("stats.visibleSubmissions")}
+          </span>
           <p className="text-xl font-bold">{submitted}</p>
         </div>
         <div className="rounded-md bg-green-50 p-4">
-          <span className="text-xs text-green-500">Graded</span>
+          <span className="text-xs text-green-500">
+            {assignmentSubmissionsT("stats.graded")}
+          </span>
           <p className="text-xl font-bold text-green-700">{graded}</p>
         </div>
         <div className="rounded-md bg-amber-50 p-4">
-          <span className="text-xs text-amber-500">Draft Grades</span>
+          <span className="text-xs text-amber-500">
+            {assignmentSubmissionsT("stats.draftGrades")}
+          </span>
           <p className="text-xl font-bold text-amber-700">{draftGrades}</p>
         </div>
         <div className="rounded-md bg-academixPurpleLight p-4">
-          <span className="text-xs text-academixPurpleDark">Published</span>
+          <span className="text-xs text-academixPurpleDark">
+            {assignmentSubmissionsT("stats.published")}
+          </span>
           <p className="text-xl font-bold text-academixPurpleDark">{published}</p>
         </div>
       </div>
@@ -312,7 +332,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
             defaultValue={selectedClassId ?? ""}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-auto"
           >
-            <option value="">All Classes</option>
+            <option value="">{filtersT("allClasses")}</option>
             {classOptions.map((classItem) => (
               <option key={classItem.id} value={classItem.id}>
                 {classItem.name}
@@ -322,21 +342,21 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
           <input
             name="search"
             defaultValue={search}
-            placeholder="Search student..."
+            placeholder={filtersT("searchStudent")}
             className="h-10 w-full rounded-md border border-gray-200 px-3 text-sm outline-none focus:border-academixPurpleDark sm:w-[220px]"
           />
           <button
             type="submit"
             className="h-10 rounded-md bg-academixPurpleDark px-4 text-sm font-medium text-white transition hover:brightness-90"
           >
-            Apply
+            {actionsT("apply")}
           </button>
           {(selectedClassId || search) && (
             <Link
               href={`/list/assignments/${assignmentId}/submissions`}
               className="h-10 rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
             >
-              Clear
+              {actionsT("clear")}
             </Link>
           )}
         </form>
@@ -353,11 +373,17 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
       <div className="w-full overflow-x-auto">
         <div className="min-w-[980px]">
           <Table
-            columns={columns}
-            renderRow={(item) => renderRow(item as SubmissionRow, assignment.maxScore)}
+            columns={getColumns(th)}
+            renderRow={(item) =>
+              renderRow(
+                item as SubmissionRow,
+                assignment.maxScore,
+                assignmentSubmissionsT,
+              )
+            }
             data={submissions}
-            emptyTitle="No submissions found"
-            emptyDescription="No student submissions match the current filters."
+            emptyTitle={assignmentSubmissionsT("empty.title")}
+            emptyDescription={assignmentSubmissionsT("empty.description")}
           />
         </div>
       </div>

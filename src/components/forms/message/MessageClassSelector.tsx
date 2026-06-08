@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 type ClassOption = {
   id: number;
   name: string;
@@ -16,6 +18,9 @@ const MessageClassSelector = ({
   selectedClassIds,
   onChange,
 }: MessageClassSelectorProps) => {
+  const t = useTranslations("forms.message");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const allSelected =
     classes.length > 0 && selectedClassIds.length === classes.length;
 
@@ -30,14 +35,16 @@ const MessageClassSelector = ({
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center">
-        <label className="font-medium text-gray-700 text-sm">Classes (optional)</label>
+        <label className="font-medium text-gray-700 text-sm">
+          {t("classesOptional")}
+        </label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => onChange(classes.map((cls) => cls.id))}
             className="font-medium text-academixPurpleDark text-xs hover:underline"
           >
-            Select all
+            {commonT("selectAll")}
           </button>
           {selectedClassIds.length > 0 && (
             <button
@@ -45,7 +52,7 @@ const MessageClassSelector = ({
               onClick={() => onChange([])}
               className="font-medium text-academixPurpleDark text-xs hover:underline"
             >
-              Clear
+              {actionsT("clear")}
             </button>
           )}
         </div>
@@ -63,7 +70,7 @@ const MessageClassSelector = ({
             }
             className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
           />
-          <span className="font-medium">Select all</span>
+          <span className="font-medium">{commonT("selectAll")}</span>
         </label>
 
         {classes.map((cls) => (

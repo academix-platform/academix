@@ -20,6 +20,7 @@ import {
 import { useForm, useWatch } from "react-hook-form";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type DayValue = (typeof lessonDays)[number];
 
@@ -50,16 +51,6 @@ type RelatedData = {
     workDayEndMinute: number;
     workingDays?: SchoolWeekDay[];
   };
-};
-
-const dayLabels: Record<DayValue, string> = {
-  SATURDAY: "SAT",
-  SUNDAY: "SUN",
-  MONDAY: "MON",
-  TUESDAY: "TUE",
-  WEDNESDAY: "WED",
-  THURSDAY: "THU",
-  FRIDAY: "FRI",
 };
 
 const buildSlotNumbers = (lessonsPerDay: number) =>
@@ -189,6 +180,9 @@ const LessonForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: RelatedData;
 }) => {
+  const t = useTranslations("forms.lesson");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [isSubmitting, startTransition] = useTransition();
 
@@ -409,15 +403,15 @@ const LessonForm = ({
         );
 
         if (result.success) {
-          toast("Weekly lesson schedule has been saved.");
+          toast(t("saved"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       } catch {
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -425,19 +419,19 @@ const LessonForm = ({
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <h1 className="font-bold text-gray-900 text-2xl">
-        {type === "create"
-          ? "Create weekly lesson schedule"
-          : "Update weekly lesson schedule"}
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
       <div className="flex flex-wrap justify-between items-start gap-4">
         <div className="flex gap-2">
-          <label className="font-medium text-gray-700 text-sm">Class:</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {t("class")}
+          </label>
           <select
             className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             value={selectedClassId ?? ""}
             onChange={(e) => onClassChange(e.target.value)}
           >
-            <option value="">Select class</option>
+            <option value="">{t("selectClass")}</option>
             {classes.map((classItem) => (
               <option key={classItem.id} value={classItem.id}>
                 {classItem.name}
@@ -463,7 +457,7 @@ const LessonForm = ({
                   : "bg-white text-gray-700 border-gray-300"
               }`}
             >
-              {dayLabels[day]}
+              {t(`days.${day}`)}
             </button>
           ))}
         </div>
@@ -485,9 +479,9 @@ const LessonForm = ({
               className="flex flex-col gap-2 p-3 rounded-md ring-1 ring-gray-200"
             >
               <p className="font-medium text-sm">
-                Lesson {slot}
+                {t("lesson", { slot })}
                 {teacherName ? (
-                  <span className="ml-2 font-medium text-gray-700 text-sm">
+                  <span className="ms-2 font-medium text-gray-700 text-sm">
                     - {teacherName}
                   </span>
                 ) : null}
@@ -499,7 +493,7 @@ const LessonForm = ({
                   onChange={(e) => setSlotSubject(index, e.target.value)}
                   disabled={!selectedClassId}
                 >
-                  <option value="">No subject</option>
+                  <option value="">{t("noSubject")}</option>
                   {filteredSubjects.map((subject) => (
                     <option key={subject.id} value={subject.id}>
                       {subject.name}
@@ -513,7 +507,7 @@ const LessonForm = ({
                   onChange={(e) => setSlotTeacher(index, e.target.value)}
                   disabled={!currentSubjectId}
                 >
-                  <option value="">Select teacher</option>
+                  <option value="">{t("selectTeacher")}</option>
                   {teacherOptions.map((teacher) => (
                     <option key={teacher.id} value={teacher.id}>
                       {teacher.name}
@@ -522,7 +516,9 @@ const LessonForm = ({
                 </select>
               </div>
               {submitCount > 0 && teacherError && (
-                <p className="text-amber-700 text-xs">Select a teacher</p>
+                <p className="text-amber-700 text-xs">
+                  {t("teacherRequired")}
+                </p>
               )}
             </div>
           );
@@ -572,7 +568,7 @@ const LessonForm = ({
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {isSubmitting ? "Saving..." : "Save Weekly Schedule"}
+        {isSubmitting ? actionsT("saving") : t("save")}
       </button>
     </form>
   );

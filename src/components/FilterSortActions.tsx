@@ -1,6 +1,7 @@
 "use client";
 
 import { ArrowUpDown, Filter } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 type Props = {
@@ -14,6 +15,7 @@ export default function FilterSortActions({
   filterValue,
   sortKey = "sort",
 }: Props) {
+  const t = useTranslations("actions");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -54,7 +56,7 @@ export default function FilterSortActions({
           type="button"
           onClick={handleFilterClick}
           className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
-          title="Filter"
+          title={t("filter")}
         >
           <Filter className="w-[14px] h-[14px]" />
         </button>
@@ -64,7 +66,7 @@ export default function FilterSortActions({
         type="button"
         onClick={handleSortClick}
         className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
-        title="Sort"
+        title={t("sort")}
       >
         <ArrowUpDown className="w-[14px] h-[14px]" />
       </button>

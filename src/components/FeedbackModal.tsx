@@ -2,10 +2,12 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { createFeedback } from "@/lib/actions/feedback";
 
 export default function FeedbackModal() {
+  const t = useTranslations("feedbackPage");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -27,7 +29,7 @@ export default function FeedbackModal() {
         toast.error(result.message);
       }
     } catch (error) {
-      toast.error("Something went wrong!");
+      toast.error(t("unexpectedError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -38,60 +40,58 @@ export default function FeedbackModal() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-lg bg-[#7C3AED] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6D28D9]"
+        className="bg-[#7C3AED] hover:bg-[#6D28D9] shadow-sm px-5 py-2.5 rounded-lg font-semibold text-white text-sm transition"
       >
-        Submit Feedback
+        {t("submit")}
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="w-full max-w-2xl rounded-2xl bg-white p-6 shadow-xl">
-            <div className="mb-5 flex items-start justify-between gap-4">
+        <div className="z-50 fixed inset-0 flex justify-center items-center bg-black/40 p-4">
+          <div className="bg-white shadow-xl p-6 rounded-2xl w-full max-w-2xl">
+            <div className="flex justify-between items-start gap-4 mb-5">
               <div>
-                <h2 className="text-lg font-semibold">Submit Feedback</h2>
-                <p className="text-sm text-gray-500">
-                  Send a suggestion or complaint to the school administration.
-                </p>
+                <h2 className="font-semibold text-lg">{t("submit")}</h2>
+                <p className="text-gray-500 text-sm">{t("description")}</p>
               </div>
 
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
-                className="rounded-full bg-gray-100 px-3 py-1 text-sm text-gray-600 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                className="disabled:opacity-60 px-3 py-1 rounded-full text-gray-600 text-sm disabled:cursor-not-allowed"
               >
-                X
+                x
               </button>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Type
+                <label className="block mb-2 font-medium text-gray-700 text-sm">
+                  {t("type")}
                 </label>
 
                 <select
                   name="type"
                   required
                   disabled={isSubmitting}
-                  className="w-full rounded-lg border border-gray-300 bg-white p-3 text-sm outline-none focus:border-[#7C3AED] disabled:cursor-not-allowed disabled:bg-gray-100"
+                  className="bg-white disabled:bg-gray-100 p-3 border border-gray-300 focus:border-[#7C3AED] rounded-lg outline-none w-full text-sm disabled:cursor-not-allowed"
                 >
-                  <option value="suggestion">Suggestion</option>
-                  <option value="complaint">Complaint</option>
+                  <option value="suggestion">{t("types.suggestion")}</option>
+                  <option value="complaint">{t("types.complaint")}</option>
                 </select>
               </div>
 
               <div>
-                <label className="mb-2 block text-sm font-medium text-gray-700">
-                  Message
+                <label className="block mb-2 font-medium text-gray-700 text-sm">
+                  {t("message")}
                 </label>
 
                 <textarea
                   name="message"
                   required
                   disabled={isSubmitting}
-                  placeholder="Write your message..."
-                  className="h-36 w-full resize-none rounded-lg border border-gray-300 bg-white p-3 text-sm outline-none focus:border-[#7C3AED] disabled:cursor-not-allowed disabled:bg-gray-100"
+                  placeholder={t("messagePlaceholder")}
+                  className="bg-white disabled:bg-gray-100 p-3 border border-gray-300 focus:border-[#7C3AED] rounded-lg outline-none w-full h-36 text-sm resize-none disabled:cursor-not-allowed"
                 />
               </div>
 
@@ -100,17 +100,17 @@ export default function FeedbackModal() {
                   type="button"
                   onClick={() => setOpen(false)}
                   disabled={isSubmitting}
-                  className="rounded-lg bg-gray-100 px-5 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-200 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 px-5 py-2.5 rounded-lg font-medium text-gray-700 text-sm disabled:cursor-not-allowed"
                 >
-                  Cancel
+                  {t("cancel")}
                 </button>
 
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="rounded-lg bg-[#7C3AED] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#6D28D9] disabled:cursor-not-allowed disabled:opacity-70"
+                  className="bg-[#7C3AED] hover:bg-[#6D28D9] disabled:opacity-70 shadow-sm px-6 py-2.5 rounded-lg font-semibold text-white text-sm transition disabled:cursor-not-allowed"
                 >
-                  {isSubmitting ? "Sending..." : "Send Feedback"}
+                  {isSubmitting ? t("sending") : t("send")}
                 </button>
               </div>
             </form>

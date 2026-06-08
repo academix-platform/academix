@@ -12,6 +12,9 @@ export { createTeacher, updateTeacher, deleteTeacher } from "./teacher.actions";
 export { createStudent, updateStudent, deleteStudent } from "./student.actions";
 export { promoteStudentsByPerformance } from "./studentPromotion.actions";
 
+// Profile image actions
+export { getProfileImageUploadSignature } from "./profileImage.actions";
+
 // Parent actions
 export { createParent, updateParent, deleteParent } from "./parent.actions";
 
@@ -30,6 +33,7 @@ export {
 
 // Result actions
 export { createResult, updateResult, deleteResult } from "./result.actions";
+export { updateStudentFinalGrade } from "./finalResult.actions";
 
 // Attendance actions
 export { saveDailyAttendance } from "./attendance.actions";

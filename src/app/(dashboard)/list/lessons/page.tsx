@@ -7,6 +7,7 @@ import { computeClassSelection } from "@/lib/lessons/classSelection";
 import { getAccessibleClasses } from "@/lib/lessons/getClasses";
 import { parseLessonParams } from "@/lib/lessons/lessonParams";
 import { type PageSearchParams } from "@/lib/pageParams";
+import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
 const LessonListPage = async ({
@@ -15,6 +16,8 @@ const LessonListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const user = await enforceRouteAccess("/list/lessons");
+  const t = await getTranslations("lessonsPage");
+  const filtersT = await getTranslations("filters");
   const resolvedSearchParams = await searchParams;
 
   const role = user.role;
@@ -63,7 +66,7 @@ const LessonListPage = async ({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex justify-between md:items-center gap-4">
-        <h1 className="font-semibold text-xl">Lessons Calendar</h1>
+        <h1 className="font-semibold text-xl">{t("title")}</h1>
 
         <div className="flex items-center gap-2">
           {role === "admin" && selectedClass && (
@@ -86,15 +89,15 @@ const LessonListPage = async ({
 
       {classes.length === 0 ? (
         <EmptyState
-          title="No classes found"
-          description="No classes with lessons are available for this view."
+          title={t("empty.noClassesTitle")}
+          description={t("empty.noClassesDescription")}
           className="mt-6"
         />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2 mt-6">
-            <span className="mr-1 font-medium text-gray-600 text-xs">
-              Grade:
+            <span className="me-1 font-medium text-gray-600 text-xs">
+              {t("grade")}
             </span>
 
             {availableGrades.map((gradeLevel) => (
@@ -107,14 +110,14 @@ const LessonListPage = async ({
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
-                {`Grade ${gradeLevel}`}
+                {filtersT("gradeLevel", { level: gradeLevel })}
               </Link>
             ))}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 mt-6">
-            <span className="mr-1 font-medium text-gray-600 text-xs">
-              Classes:
+            <span className="me-1 font-medium text-gray-600 text-xs">
+              {t("classes")}
             </span>
 
             {filteredClasses.map((item) => {
@@ -140,7 +143,10 @@ const LessonListPage = async ({
             <div className="mt-4">
               <div className="flex justify-between items-center mb-3">
                 <h2 className="font-medium text-gray-700 text-sm">
-                  {`Schedule for Grade ${selectedClass.grade.level} - ${selectedClass.name}`}
+                  {t("scheduleFor", {
+                    grade: selectedClass.grade.level,
+                    className: selectedClass.name,
+                  })}
                 </h2>
               </div>
 
@@ -148,8 +154,8 @@ const LessonListPage = async ({
             </div>
           ) : (
             <EmptyState
-              title="No classes found"
-              description="No classes were found for the selected grade."
+              title={t("empty.noClassesTitle")}
+              description={t("empty.noClassesForGrade")}
               className="mt-4"
             />
           )}

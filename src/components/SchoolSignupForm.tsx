@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import Link from "next/link";
 import { useState } from "react";
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SignupState = {
   success: boolean;
@@ -27,6 +28,7 @@ const initialState: SignupState = {
 };
 
 const SchoolSignupForm = () => {
+  const t = useTranslations("schoolSignup");
   const [step, setStep] = useState<1 | 2>(1);
   const [schoolFieldErrors, setSchoolFieldErrors] = useState<
     Partial<Record<SchoolFieldKey, string>>
@@ -60,27 +62,27 @@ const SchoolSignupForm = () => {
     const nextErrors: Partial<Record<SchoolFieldKey, string>> = {};
 
     if (!schoolForm.schoolName.trim()) {
-      nextErrors.schoolName = "School name is required.";
+      nextErrors.schoolName = t("validation.schoolNameRequired");
       return nextErrors;
     }
     if (!schoolForm.contactEmail.trim()) {
-      nextErrors.contactEmail = "School email is required.";
+      nextErrors.contactEmail = t("validation.schoolEmailRequired");
       return nextErrors;
     }
     if (!schoolForm.contactPhone.trim()) {
-      nextErrors.contactPhone = "School phone is required.";
+      nextErrors.contactPhone = t("validation.schoolPhoneRequired");
       return nextErrors;
     }
     if (!schoolForm.country.trim()) {
-      nextErrors.country = "Country is required.";
+      nextErrors.country = t("validation.countryRequired");
       return nextErrors;
     }
     if (!schoolForm.city.trim()) {
-      nextErrors.city = "City is required.";
+      nextErrors.city = t("validation.cityRequired");
       return nextErrors;
     }
     if (!schoolForm.address.trim()) {
-      nextErrors.address = "School address is required.";
+      nextErrors.address = t("validation.addressRequired");
       return nextErrors;
     }
 
@@ -94,15 +96,15 @@ const SchoolSignupForm = () => {
     const adminPassword = String(formData.get("adminPassword") ?? "").trim();
 
     if (!adminName) {
-      nextErrors.adminName = "Admin full name is required.";
+      nextErrors.adminName = t("validation.adminNameRequired");
       return nextErrors;
     }
     if (!adminUsername) {
-      nextErrors.adminUsername = "Admin username is required.";
+      nextErrors.adminUsername = t("validation.adminUsernameRequired");
       return nextErrors;
     }
     if (!adminPassword) {
-      nextErrors.adminPassword = "Admin password is required.";
+      nextErrors.adminPassword = t("validation.adminPasswordRequired");
       return nextErrors;
     }
 
@@ -120,16 +122,15 @@ const SchoolSignupForm = () => {
     <div className="w-full h-full">
       {state.success ? (
         <div className="flex flex-col space-y-4 h-full">
-          <h2 className="font-semibold text-2xl">School Access Status</h2>
+          <h2 className="font-semibold text-2xl">{t("statusTitle")}</h2>
           <p className="text-gray-700 text-sm leading-6">
-            Your school is pending approval. Academix team will review your
-            request and activate your account once verification is complete.
+            {t("statusDescription")}
           </p>
           <Link
             href="/sign-in"
             className="inline-flex bg-academixPurpleDark px-4 py-2 rounded-md w-fit text-white text-sm"
           >
-            Go to sign-in
+            {t("goToSignIn")}
           </Link>
         </div>
       ) : (
@@ -154,9 +155,9 @@ const SchoolSignupForm = () => {
           className="relative flex flex-col space-y-6 h-full"
         >
           <div>
-            <h1 className="font-bold text-2xl">Create School Account</h1>
+            <h1 className="font-bold text-2xl">{t("title")}</h1>
             <p className="mt-2 text-gray-600 text-sm">
-              Fill in complete school and primary admin details.
+              {t("description")}
             </p>
           </div>
 
@@ -169,7 +170,7 @@ const SchoolSignupForm = () => {
                   : "border border-gray-300 bg-transparent"
               }`}
             >
-              <span className="sr-only">Step 1</span>
+              <span className="sr-only">{t("step", { number: 1 })}</span>
             </button>
             <button
               type="button"
@@ -179,20 +180,20 @@ const SchoolSignupForm = () => {
                   : "border border-gray-300 bg-transparent"
               }`}
             >
-              <span className="sr-only">Step 2</span>
+              <span className="sr-only">{t("step", { number: 2 })}</span>
             </button>
           </div>
 
           {step === 1 && (
             <div className="flex flex-col flex-1 space-y-4 pb-20">
               <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
-                School Information
+                {t("schoolInfo")}
               </h3>
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
                   <input
                     name="schoolName"
-                    placeholder="School Name"
+                    placeholder={t("fields.schoolName")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.schoolName}
                     onChange={(e) =>
@@ -211,7 +212,7 @@ const SchoolSignupForm = () => {
                 <div className="space-y-1">
                   <input
                     name="registrationNumber"
-                    placeholder="Registration Number"
+                    placeholder={t("fields.registrationNumber")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.registrationNumber}
                     onChange={(e) =>
@@ -226,7 +227,7 @@ const SchoolSignupForm = () => {
                   <input
                     name="contactEmail"
                     type="email"
-                    placeholder="School Email"
+                    placeholder={t("fields.schoolEmail")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.contactEmail}
                     onChange={(e) =>
@@ -245,7 +246,7 @@ const SchoolSignupForm = () => {
                 <div className="space-y-1">
                   <input
                     name="contactPhone"
-                    placeholder="School Phone"
+                    placeholder={t("fields.schoolPhone")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.contactPhone}
                     onChange={(e) =>
@@ -264,7 +265,7 @@ const SchoolSignupForm = () => {
                 <div className="space-y-1">
                   <input
                     name="country"
-                    placeholder="Country"
+                    placeholder={t("fields.country")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.country}
                     onChange={(e) =>
@@ -283,7 +284,7 @@ const SchoolSignupForm = () => {
                 <div className="space-y-1">
                   <input
                     name="city"
-                    placeholder="City"
+                    placeholder={t("fields.city")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.city}
                     onChange={(e) =>
@@ -303,7 +304,7 @@ const SchoolSignupForm = () => {
                   <input
                     name="website"
                     type="url"
-                    placeholder="Website"
+                    placeholder={t("fields.website")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     value={schoolForm.website}
                     onChange={(e) =>
@@ -317,7 +318,7 @@ const SchoolSignupForm = () => {
                 <div className="space-y-1 md:col-span-2">
                   <textarea
                     name="address"
-                    placeholder="School Address"
+                    placeholder={t("fields.schoolAddress")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                     rows={3}
                     value={schoolForm.address}
@@ -336,13 +337,13 @@ const SchoolSignupForm = () => {
                 </div>
               </div>
 
-              <div className="right-0 bottom-5 absolute">
+              <div className="end-0 bottom-5 absolute">
                 <button
                   type="button"
                   onClick={goToAdminStep}
                   className="text-academixPurpleDark hover:underline transition"
                 >
-                  <ArrowRight />
+                  <ArrowRight className="rtl:rotate-180" />
                 </button>
               </div>
             </div>
@@ -375,13 +376,13 @@ const SchoolSignupForm = () => {
               <input type="hidden" name="website" value={schoolForm.website} />
               <input type="hidden" name="address" value={schoolForm.address} />
               <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
-                Primary Admin Account
+                {t("adminInfo")}
               </h3>
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
                   <input
                     name="adminName"
-                    placeholder="Admin Full Name"
+                    placeholder={t("fields.adminName")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminName && (
@@ -394,14 +395,14 @@ const SchoolSignupForm = () => {
                   <input
                     name="adminEmail"
                     type="email"
-                    placeholder="Admin Email (Optional)"
+                    placeholder={t("fields.adminEmailOptional")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                 </div>
                 <div className="space-y-1">
                   <input
                     name="adminUsername"
-                    placeholder="Admin Username"
+                    placeholder={t("fields.adminUsername")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminUsername && (
@@ -414,7 +415,7 @@ const SchoolSignupForm = () => {
                   <input
                     name="adminPassword"
                     type="password"
-                    placeholder="Admin Password"
+                    placeholder={t("fields.adminPassword")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                   />
                   {adminFieldErrors.adminPassword && (
@@ -428,20 +429,20 @@ const SchoolSignupForm = () => {
                 <p className="text-red-600 text-sm">{state.message}</p>
               )}
 
-              <div className="right-0 bottom-0 left-0 absolute bg-white/95 py-3 min-h-[64px]">
+              <div className="inset-x-0 bottom-0 absolute bg-white/95 py-3 min-h-[64px]">
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                  className="top-1/2 left-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2"
-                >
-                  <ArrowLeft />
+                className="top-1/2 start-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2"
+              >
+                  <ArrowLeft className="rtl:rotate-180" />
                 </button>
                 <button
                   type="submit"
                   disabled={pending}
-                  className="top-1/2 right-0 absolute bg-academixPurpleDark disabled:opacity-70 px-6 py-2.5 rounded-md text-white -translate-y-1/2"
+                  className="top-1/2 end-0 absolute bg-academixPurpleDark disabled:opacity-70 px-6 py-2.5 rounded-md text-white -translate-y-1/2"
                 >
-                  {pending ? "Submitting..." : "Submit"}
+                  {pending ? t("submitting") : t("submit")}
                 </button>
               </div>
             </div>

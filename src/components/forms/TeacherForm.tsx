@@ -3,16 +3,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
 import { useEffect, useTransition, useState } from "react";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
 import {
   BookOpen,
-  Camera,
   Eye,
   EyeOff,
   Search,
@@ -20,6 +17,8 @@ import {
   UserRound,
   X,
 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import ProfileImageUpload from "./ProfileImageUpload";
 
 type TeacherFormState = {
   success: boolean;
@@ -49,6 +48,8 @@ const TeacherForm = ({
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.teacher");
+  const commonT = useTranslations("forms.common");
   const subjects: SubjectOption[] = relatedData?.subjects ?? [];
 
   const buildInitialPairs: SubjectClassPair[] =
@@ -93,6 +94,7 @@ const TeacherForm = ({
   const onSubmit = handleSubmit((formValues) => {
     const payload = {
       ...formValues,
+      img: img || formValues.img || "",
       password:
         formValues.password === PASSWORD_MASK ? "" : formValues.password,
     };
@@ -106,15 +108,13 @@ const TeacherForm = ({
         );
 
         if (result.success) {
-          toast(
-            `${type === "create" ? "Teacher created" : "Teacher updated"} successfully!`,
-          );
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       })();
     });
   });
@@ -155,24 +155,26 @@ const TeacherForm = ({
   return (
     <form className="flex flex-col gap-6" onSubmit={onSubmit}>
       <div>
-        <h1 className="font-bold text-gray-900 text-2xl">{`${type === "create" ? "Create" : "Update"} Teacher`}</h1>
+        <h1 className="font-bold text-gray-900 text-2xl">
+          {type === "create" ? t("createTitle") : t("updateTitle")}
+        </h1>
       </div>
 
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
           <ShieldCheck size={16} />
-          Authentication Information
+          {commonT("authenticationInfo")}
         </span>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           <InputField
-            label="Username"
+            label={commonT("username")}
             name="username"
             defaultValue={data?.username}
             register={register}
             error={errors?.username}
           />
           <InputField
-            label="Email"
+            label={commonT("email")}
             name="email"
             defaultValue={data?.email}
             register={register}
@@ -180,19 +182,23 @@ const TeacherForm = ({
           />
           <div className="flex flex-col gap-2 w-full">
             <label className="font-medium text-gray-700 text-sm">
-              Password
+              {commonT("password")}
             </label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 {...register("password")}
-                className="focus:bg-academixPurpleLight px-4 py-3 pr-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                className="focus:bg-academixPurpleLight px-4 py-3 pe-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
-                aria-label={showPassword ? "Hide password" : "Show password"}
-                className="top-1/2 right-3 absolute text-gray-400 hover:text-academixPurpleDark transition-colors -translate-y-1/2"
+                aria-label={
+                  showPassword
+                    ? commonT("hidePassword")
+                    : commonT("showPassword")
+                }
+                className="top-1/2 end-3 absolute text-gray-400 hover:text-academixPurpleDark transition-colors -translate-y-1/2"
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
@@ -209,39 +215,39 @@ const TeacherForm = ({
       <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
           <UserRound size={16} />
-          Personal Information
+          {commonT("personalInfo")}
         </span>
         <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
           <InputField
-            label="Name"
+            label={commonT("name")}
             name="name"
             defaultValue={data?.name}
             register={register}
             error={errors.name}
           />
           <InputField
-            label="Phone"
+            label={commonT("phone")}
             name="phone"
             defaultValue={data?.phone}
             register={register}
             error={errors.phone}
           />
           <InputField
-            label="Address"
+            label={commonT("address")}
             name="address"
             defaultValue={data?.address}
             register={register}
             error={errors.address}
           />
           <InputField
-            label="Blood Type"
+            label={commonT("bloodType")}
             name="bloodType"
             defaultValue={data?.bloodType}
             register={register}
             error={errors.bloodType}
           />
           <InputField
-            label="Birthday"
+            label={commonT("birthday")}
             name="birthday"
             defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
             register={register}
@@ -252,15 +258,17 @@ const TeacherForm = ({
             <input type="hidden" {...register("id")} defaultValue={data?.id} />
           )}
           <div className="flex flex-col gap-2 w-full">
-            <label className="font-medium text-gray-700 text-sm">Sex</label>
+            <label className="font-medium text-gray-700 text-sm">
+              {commonT("sex")}
+            </label>
             <select
               className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
               {...register("sex")}
               defaultValue={data?.sex}
             >
-              <option value="">Select sex</option>
-              <option value="MALE">Male</option>
-              <option value="FEMALE">Female</option>
+              <option value="">{commonT("selectSex")}</option>
+              <option value="MALE">{commonT("male")}</option>
+              <option value="FEMALE">{commonT("female")}</option>
             </select>
             {errors.sex?.message && (
               <p className="font-medium text-red-500 text-xs">
@@ -277,14 +285,16 @@ const TeacherForm = ({
             <div>
               <label className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
                 <BookOpen size={16} />
-                Subjects
+                {t("subjects")}
               </label>
               <p className="mt-1 font-medium text-gray-700 text-sm">
-                Choose one or more subjects this teacher will teach.
+                {t("subjectsHelp")}
               </p>
             </div>
             <span className="bg-academixPurpleLight px-4 py-2 rounded-full font-semibold text-academixPurpleDark text-xs">
-              {(subjectClassPairsWatch ?? []).length} selected
+              {commonT("selected", {
+                count: (subjectClassPairsWatch ?? []).length,
+              })}
             </span>
           </div>
 
@@ -294,8 +304,8 @@ const TeacherForm = ({
                 type="search"
                 value={subjectSearch}
                 onChange={(event) => setSubjectSearch(event.target.value)}
-                placeholder="Search subjects..."
-                aria-label="Search subjects"
+                placeholder={commonT("searchSubjects")}
+                aria-label={commonT("searchSubjects")}
                 className="bg-transparent outline-none w-full text-sm placeholder-gray-400"
               />
               <button
@@ -314,20 +324,20 @@ const TeacherForm = ({
                   setShowSubjectDropdown(true);
                 }}
                 className="text-gray-400 hover:text-academixPurpleDark transition-colors"
-                aria-label="Search subjects"
+                aria-label={commonT("searchSubjects")}
               >
                 <Search className="w-5 h-5" />
               </button>
             </div>
 
             {showSubjectDropdown && (
-              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
+              <div className="top-full inset-x-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
                 {filteredSubjectOptions.length > 0 ? (
                   filteredSubjectOptions.map((subject) => (
                     <button
                       key={subject.id}
                       type="button"
-                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-left transition-colors"
+                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-start transition-colors"
                       onClick={() => handleSubjectSelect(String(subject.id))}
                     >
                       {subject.name}
@@ -335,7 +345,7 @@ const TeacherForm = ({
                   ))
                 ) : (
                   <div className="px-4 py-3 text-gray-500 text-sm">
-                    No subjects found
+                    {commonT("noSubjectsFound")}
                   </div>
                 )}
               </div>
@@ -358,7 +368,9 @@ const TeacherForm = ({
                         type="button"
                         onClick={() => remove(index)}
                         className="text-academixPurpleDark hover:text-red-500 transition-colors"
-                        aria-label={`Remove ${subject?.name ?? "subject"}`}
+                        aria-label={t("removeSubject", {
+                          subject: subject?.name ?? t("subjects"),
+                        })}
                       >
                         <X size={16} />
                       </button>
@@ -368,7 +380,7 @@ const TeacherForm = ({
               )
             ) : (
               <div className="bg-white px-4 py-3 border-2 border-gray-300 border-dashed rounded-lg w-full text-gray-500 text-sm">
-                No subjects selected yet.
+                {t("noSubjectsSelected")}
               </div>
             )}
           </div>
@@ -382,67 +394,21 @@ const TeacherForm = ({
 
         <div className="pt-6 border-gray-200 border-t">
           <input type="hidden" {...register("img")} defaultValue={img} />
-          <CldUploadWidget
-            uploadPreset="school"
-            onSuccess={(result, widget) => {
-              const secureUrl =
-                (result.info as { secure_url?: string })?.secure_url ?? "";
+          <ProfileImageUpload
+            value={img}
+            uploadLabel={t("uploadPhoto")}
+            previewAlt={t("previewAlt")}
+            photoUploadedLabel={commonT("photoUploaded")}
+            removePhotoLabel={commonT("removePhoto")}
+            errorMessage={commonT("somethingWentWrong")}
+            onChange={(secureUrl) => {
               setImg(secureUrl);
-              setValue("img", secureUrl, { shouldDirty: true });
-              widget.close();
+              setValue("img", secureUrl, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
             }}
-          >
-            {({ open }) => {
-              return (
-                <div className="flex flex-col gap-4">
-                  <div
-                    onClick={() => open()}
-                    className="group flex items-center gap-3 hover:bg-academixPurpleLight p-4 border-2 border-gray-300 hover:border-academixPurpleDark border-dashed rounded-lg transition-all cursor-pointer"
-                  >
-                    <Image
-                      src="/upload.png"
-                      alt=""
-                      width={32}
-                      height={32}
-                      className="group-hover:scale-110 transition-transform"
-                    />
-                    <div>
-                      <span className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
-                        <Camera size={16} />
-                        Upload Teacher Photo
-                      </span>
-                    </div>
-                  </div>
-                  {img && (
-                    <div className="flex items-start gap-4 bg-white p-4 border border-gray-200 rounded-lg">
-                      <Image
-                        src={img}
-                        alt="Teacher preview"
-                        width={80}
-                        height={80}
-                        className="border border-gray-200 rounded-lg w-20 h-20 object-cover"
-                      />
-                      <div className="flex-1">
-                        <p className="mb-2 font-medium text-gray-700 text-sm">
-                          Photo uploaded successfully
-                        </p>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setImg("");
-                            setValue("img", "", { shouldDirty: true });
-                          }}
-                          className="font-medium text-red-500 hover:text-red-700 text-sm transition-colors"
-                        >
-                          Remove photo
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            }}
-          </CldUploadWidget>
+          />
         </div>
       </div>
 
@@ -451,10 +417,10 @@ const TeacherForm = ({
         className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
       >
         {isSubmitting
-          ? "Submitting..."
+          ? commonT("submitting")
           : type === "create"
-            ? "Create Teacher"
-            : "Update Teacher"}
+            ? t("create")
+            : t("update")}
       </button>
     </form>
   );

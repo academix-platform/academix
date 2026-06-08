@@ -1,5 +1,5 @@
-import { ScheduleDashboardSkeleton } from "@/components/loaders/DashboardSkeletons";
+import LoadingIndicator from "@/components/loaders/LoadingIndicator";
 
-export default function loading() {
-  return <ScheduleDashboardSkeleton />;
+export default function Loading() {
+  return <LoadingIndicator />;
 }

@@ -6,6 +6,7 @@ import { Upload, X, FileText, AlertCircle, CheckCircle, Loader2, Replace } from 
 import { BLOCKED_EXTENSIONS, isFileConfig, EXAM_FILE_MAX_SIZE_MB } from "@/lib/formValidationSchemas";
 import type { FileConfig } from "@/lib/formValidationSchemas";
 import { getExamUploadSignature, saveAnswer, deleteOldExamFileOnReplace } from "@/lib/actions/examWorkflow.actions";
+import { useTranslations } from "next-intl";
 
 type UploadedFile = {
   fileUrl: string;
@@ -168,6 +169,7 @@ export default function FileUploadRenderer({
   onUploadEnd,
   onFileMetaSaved,
 }: FileUploadRendererProps) {
+  const t = useTranslations("examTaking");
   const fileConfig: FileConfig | null = isFileConfig(question.options)
     ? question.options
     : null;
@@ -226,29 +228,31 @@ export default function FileUploadRenderer({
     (file: File): string | null => {
       const ext = file.name.split(".").pop()?.toLowerCase() || "";
       if (BLOCKED_EXTENSIONS.has(ext)) {
-        return `File type ".${ext}" is not allowed.`;
+        return t("fileTypeBlocked", { extension: ext });
       }
 
       if (fileConfig && fileConfig.allowedExtensions.length > 0) {
         if (!fileConfig.allowedExtensions.includes(ext)) {
-          return `Only ${fileConfig.allowedExtensions.join(", ")} files are allowed.`;
+          return t("allowedFilesOnly", {
+            extensions: fileConfig.allowedExtensions.join(", "),
+          });
         }
       }
 
       if (fileConfig && fileConfig.minFileSizeMb > 0) {
         if (file.size < fileConfig.minFileSizeMb * 1024 * 1024) {
-          return `File size must be at least ${fileConfig.minFileSizeMb} MB.`;
+          return t("minFileSize", { size: fileConfig.minFileSizeMb });
         }
       }
 
       const maxMb = fileConfig?.maxFileSizeMb ?? EXAM_FILE_MAX_SIZE_MB;
       if (file.size > maxMb * 1024 * 1024) {
-        return `File size exceeds ${maxMb} MB limit.`;
+        return t("maxFileSize", { size: maxMb });
       }
 
       return null;
     },
-    [fileConfig]
+    [fileConfig, t]
   );
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -264,7 +268,7 @@ export default function FileUploadRenderer({
         uploadState.file.fileSizeBytes === file.size;
       if (sameFile) {
         const confirmed = window.confirm(
-          "This file appears identical to the current upload. Replace anyway?"
+          t("identicalFileConfirm")
         );
         if (!confirmed) {
           if (fileInputRef.current) fileInputRef.current.value = "";
@@ -313,7 +317,11 @@ export default function FileUploadRenderer({
           `exam_pending_file_${submissionId}_${questionId}`,
           JSON.stringify(uploadedFile)
         );
-        setUploadState({ status: "error", message: "Failed to save file metadata. Your file is saved locally and will be retried.", fileName: file.name });
+        setUploadState({
+          status: "error",
+          message: t("metadataSaveFailed"),
+          fileName: file.name,
+        });
         onUploadEnd?.();
         if (fileInputRef.current) fileInputRef.current.value = "";
         return;
@@ -332,7 +340,7 @@ export default function FileUploadRenderer({
       } else {
         setUploadState({
           status: "error",
-          message: err.message || "Upload failed",
+          message: err.message || t("uploadFailed"),
           fileName: file.name,
         });
       }
@@ -366,11 +374,11 @@ export default function FileUploadRenderer({
         onFileMetaSaved?.({ fileUrl: "", filePublicId: "", fileOriginalName: "", fileMimeType: "", fileSizeBytes: 0, questionId });
       } else {
         setUploadState({ status: "uploaded", file: uploadState.file });
-        toast.error("Failed to remove file.");
+        toast.error(t("removeFileFailed"));
       }
     } catch {
       setUploadState({ status: "uploaded", file: uploadState.file });
-      toast.error("Failed to remove file.");
+      toast.error(t("removeFileFailed"));
     }
   };
 
@@ -401,9 +409,14 @@ export default function FileUploadRenderer({
           )}
           <div className="flex items-center gap-2 flex-wrap text-xs text-gray-400">
             {fileConfig && fileConfig.allowedExtensions.length > 0 && (
-              <span>Accepted: {fileConfig.allowedExtensions.map((e) => `.${e}`).join(", ")}</span>
+              <span>
+                {t("accepted")}{" "}
+                {fileConfig.allowedExtensions.map((e) => `.${e}`).join(", ")}
+              </span>
             )}
-            <span>Max size: {maxSizeStr}</span>
+            <span>
+              {t("maxSize")} {maxSizeStr}
+            </span>
           </div>
           <button
             type="button"
@@ -412,7 +425,7 @@ export default function FileUploadRenderer({
             className={`flex items-center gap-2 px-4 py-2 border-2 border-dashed border-gray-300 rounded-md text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 cursor-pointer w-fit transition-colors ${disabled ? "opacity-50 cursor-not-allowed" : ""}`}
           >
             <Upload className="w-4 h-4" />
-            Choose File
+            {t("chooseFile")}
           </button>
         </div>
       )}
@@ -422,7 +435,9 @@ export default function FileUploadRenderer({
           <div className="flex items-center gap-2 text-sm text-gray-700">
             <Loader2 className="w-4 h-4 animate-spin text-academixPurpleDark" />
             <span className="font-medium">{uploadState.fileName}</span>
-            <span className="text-gray-400">Uploading... {uploadState.progress}%</span>
+            <span className="text-gray-400">
+              {t("uploading", { progress: uploadState.progress })}
+            </span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-2">
             <div
@@ -455,7 +470,7 @@ export default function FileUploadRenderer({
                   className="flex items-center gap-1 text-xs text-academixPurpleDark hover:underline font-medium"
                 >
                   <Replace className="w-3 h-3" />
-                  Replace
+                  {t("replace")}
                 </button>
                 <button
                   type="button"
@@ -463,7 +478,7 @@ export default function FileUploadRenderer({
                   className="flex items-center gap-1 text-xs text-red-500 hover:underline font-medium"
                 >
                   <X className="w-3 h-3" />
-                  Remove
+                  {t("remove")}
                 </button>
               </>
             )}
@@ -474,7 +489,7 @@ export default function FileUploadRenderer({
       {uploadState.status === "removing" && (
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <Loader2 className="w-4 h-4 animate-spin" />
-          Removing file...
+          {t("removingFile")}
         </div>
       )}
 
@@ -483,7 +498,9 @@ export default function FileUploadRenderer({
           <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
           <div className="flex-1 min-w-0">
             <p className="text-sm font-medium text-red-700">
-              {uploadState.fileName ? `Failed to upload "${uploadState.fileName}"` : "Upload failed"}
+              {uploadState.fileName
+                ? t("failedToUpload", { fileName: uploadState.fileName })
+                : t("uploadFailed")}
             </p>
             <p className="text-xs text-red-500">{uploadState.message}</p>
           </div>
@@ -492,7 +509,7 @@ export default function FileUploadRenderer({
             onClick={handleRetry}
             className="shrink-0 text-xs text-academixPurpleDark hover:underline font-medium"
           >
-            Try again
+            {t("tryAgain")}
           </button>
         </div>
       )}

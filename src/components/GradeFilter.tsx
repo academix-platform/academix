@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type Props = {
   grades: {
@@ -10,6 +11,7 @@ type Props = {
 };
 
 export default function GradeFilter({ grades }: Props) {
+  const t = useTranslations("filters");
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -33,11 +35,11 @@ export default function GradeFilter({ grades }: Props) {
       onChange={(e) => handleChange(e.target.value)}
       className="h-10 rounded-md border px-3 text-sm"
     >
-      <option value="">All Grades</option>
+      <option value="">{t("allGrades")}</option>
 
       {grades.map((grade) => (
         <option key={grade.id} value={grade.id}>
-          Grade {grade.level}
+          {t("gradeLevel", { level: grade.level })}
         </option>
       ))}
     </select>

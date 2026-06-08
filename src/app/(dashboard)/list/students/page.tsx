@@ -5,11 +5,8 @@ import PromoteStudentsButton from "@/components/PromoteStudentsButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import StudentsFilters from "@/components/StudentsFilters";
-import {
-  getAcademicYears,
-  getCurrentAcademicYearOrNull,
-} from "@/lib/academicYears";
+import { getTranslations } from "next-intl/server";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildStudentQuery } from "@/lib/query-builders/student-query";
 import prisma from "@/lib/prisma";
@@ -26,30 +23,30 @@ import ClassFilter from "@/components/ClassFilter";
 
 type StudentList = Student & { class: Class };
 
-const getColumns = (role: UserRole | null) => [
-  { header: "Info", accessor: "info" },
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("info"), accessor: "info" },
   {
-    header: "Student ID",
+    header: th("studentId"),
     accessor: "studentId",
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
+    header: th("grade"),
     accessor: "grade",
     className: "hidden md:table-cell",
   },
   {
-    header: "Phone",
+    header: th("phone"),
     accessor: "phone",
     className: "hidden lg:table-cell",
   },
   {
-    header: "Address",
+    header: th("address"),
     accessor: "address",
     className: "hidden lg:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -100,13 +97,13 @@ const StudentListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/students");
 
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
   const academicYearId = currentAcademicYear?.id ?? null;
-
-  const academicYears =
-    role === "admin" ? await getAcademicYears(schoolId) : [];
 
   if (!academicYearId || !currentAcademicYear) {
     return <NoCurrentAcademicYearMessage role={role} />;
@@ -136,9 +133,7 @@ const StudentListPage = async ({
     }),
   );
 
-  if (!exportQuery.get("academicYearId")) {
-    exportQuery.set("academicYearId", String(academicYearId));
-  }
+  exportQuery.set("academicYearId", String(academicYearId));
 
   const classes = await prisma.class.findMany({
     where: {
@@ -189,7 +184,7 @@ const StudentListPage = async ({
 
       {/* TOP ROW */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <h1 className="font-semibold text-lg">All Students</h1>
+        <h1 className="font-semibold text-lg">{t("allStudents")}</h1>
 
         <div className="flex flex-wrap items-center gap-2">
           <TableSearch />
@@ -211,16 +206,6 @@ const StudentListPage = async ({
       {/* FILTERS */}
       <div className="flex flex-wrap items-end gap-2">
 
-  {role === "admin" && (
-    <StudentsFilters
-      academicYears={academicYears}
-      currentAcademicYearId={academicYearId}
-    />
-  )}
-
-  {/* SPACE */}
-  <div className="w-64" />
-
   <GradeFilter grades={grades} />
 
   <ClassFilter classes={classes} />
@@ -230,11 +215,11 @@ const StudentListPage = async ({
 
     {/* TABLE */}
     <Table
-      columns={getColumns(role)}
+      columns={getColumns(role, th)}
       renderRow={(item) => renderRow(item, role)}
       data={data}
-      emptyTitle="No students found"
-      emptyDescription="Try changing your filters or search terms."
+      emptyTitle={emptyT("students")}
+      emptyDescription={emptyT("filterDescription")}
     />
 
     {/* PAGINATION */}

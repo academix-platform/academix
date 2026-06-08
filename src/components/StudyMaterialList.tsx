@@ -10,14 +10,15 @@ import {
   Trash2,
   Loader2,
   BookOpen,
-  Plus,
   X,
+  Upload,
 } from "lucide-react";
 import {
   deleteStudyMaterial,
   StudyMaterialState,
 } from "@/lib/actions/studyMaterial.actions";
 import StudyMaterialUpload from "@/components/StudyMaterialUpload";
+import { useTranslations } from "next-intl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -56,6 +57,7 @@ const badgeColors: Record<string, string> = {
 // ─── Delete button ────────────────────────────────────────────────────────────
 // مكون منفصل حتى لا يتشارك الـ state مع باقي العناصر
 function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
+  const t = useTranslations("subjectDetails");
   const init: StudyMaterialState = {
     success: false,
     error: false,
@@ -78,7 +80,7 @@ function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
       <button
         type="submit"
         disabled={isPending}
-        title="Delete"
+        title={t("delete")}
         className="hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
       >
         {isPending ? (
@@ -105,6 +107,8 @@ export default function StudyMaterialList({
   currentUserId,
   role,
 }: Props) {
+  const emptyT = useTranslations("emptyStates");
+  const t = useTranslations("subjectDetails");
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const canUpload = role === "teacher" || role === "admin";
 
@@ -112,20 +116,20 @@ export default function StudyMaterialList({
     return (
       <div className="bg-white shadow-sm p-10 border border-gray-100 rounded-xl text-center">
         <BookOpen className="mx-auto mb-3 w-10 h-10 text-gray-200" />
-        <p className="font-medium text-gray-500">No study materials yet</p>
+        <p className="font-medium text-gray-500">{emptyT("studyMaterials")}</p>
         <p className="mt-1 text-gray-400 text-sm">
           {role === "teacher"
-            ? "Upload the first material using the upload button."
-            : "Your teacher hasn't uploaded any materials yet."}
+            ? emptyT("uploadFirstMaterial")
+            : emptyT("noStudyMaterialsForStudent")}
         </p>
         {canUpload && (
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-lg text-white text-sm transition-colors"
+            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-md text-white text-sm transition-colors"
           >
-            <Plus className="w-4 h-4" />
-            Upload Material
+            <Upload className="w-4 h-4" />
+            {emptyT("uploadMaterial")}
           </button>
         )}
         {isUploadOpen && (
@@ -137,7 +141,7 @@ export default function StudyMaterialList({
             <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
               <div className="flex justify-between items-center mb-4">
                 <h3 className="font-semibold text-gray-800 text-base">
-                  Upload Study Material
+                  {t("materialUpload.title")}
                 </h3>
                 <button
                   type="button"
@@ -165,7 +169,7 @@ export default function StudyMaterialList({
         <div className="flex items-center gap-2">
           <BookOpen className="w-5 h-5 text-purple-500" />
           <h2 className="font-semibold text-gray-800 text-base">
-            Study Materials
+            {t("studyMaterials")}
           </h2>
           <span className="ml-1 text-gray-400 text-sm">
             ({materials.length})
@@ -175,10 +179,10 @@ export default function StudyMaterialList({
           <button
             type="button"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-4 py-2 rounded-md text-white text-sm hover:scale-[1.05] transition"
+            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
           >
-            <Plus className="w-4 h-4" />
-            Upload
+            <Upload className="w-3.5 h-3.5" />
+            {t("upload")}
           </button>
         )}
       </div>
@@ -242,7 +246,7 @@ export default function StudyMaterialList({
                   target="_blank"
                   rel="noopener noreferrer"
                   download={m.fileName}
-                  title="Download"
+                  title={t("download")}
                   className="hover:bg-purple-50 p-1.5 rounded-lg text-gray-400 hover:text-purple-600 transition-colors"
                 >
                   <Download className="w-4 h-4" />
@@ -265,7 +269,7 @@ export default function StudyMaterialList({
           <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
             <div className="flex justify-between items-center mb-4">
               <h3 className="font-semibold text-gray-800 text-base">
-                Upload Study Material
+                {t("materialUpload.title")}
               </h3>
               <button
                 type="button"

@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { saveDailyAttendance } from "@/lib/actions";
 import EmptyState from "@/components/states/EmptyState";
+import { useTranslations } from "next-intl";
 
 const AttendanceClient = ({
   data,
@@ -19,6 +20,9 @@ const AttendanceClient = ({
   hasAttendance: boolean;
   scope: "students" | "teachers";
 }) => {
+  const t = useTranslations("attendance");
+  const filtersT = useTranslations("filters");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
 
   const [changes, setChanges] = useState<Record<string, boolean>>({});
@@ -31,27 +35,27 @@ const AttendanceClient = ({
 
   useEffect(() => {
     if (state.success) {
-      toast.success(state.message || "Attendance saved");
+      toast.success(state.message || t("saved"));
       router.refresh();
     }
 
     if (state.error) {
-      toast.error(state.message || "Something went wrong");
+      toast.error(state.message || actionsT("somethingWentWrong"));
     }
-  }, [state, router]);
+  }, [state, router, t, actionsT]);
 
   if (data.length === 0) {
     return (
       <EmptyState
         title={
           hasAttendance
-            ? "No records on this page"
-            : `No ${scope} found`
+            ? t("noRecordsPage")
+            : t("noScopeFound", { scope: filtersT(scope) })
         }
         description={
           hasAttendance
-            ? "Try moving to another page."
-            : "There are no attendance records for the selected date."
+            ? t("tryAnotherPage")
+            : t("noRecordsDate")
         }
       />
     );
@@ -90,7 +94,7 @@ const AttendanceClient = ({
                           checked ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {checked ? "Present" : "Absent"}
+                        {checked ? t("present") : t("absent")}
                       </span>
                     </>
                   ) : (
@@ -101,7 +105,7 @@ const AttendanceClient = ({
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {item.present ? "Present" : "Absent"}
+                      {item.present ? t("present") : t("absent")}
                     </span>
                   )}
                 </td>
@@ -112,7 +116,7 @@ const AttendanceClient = ({
       </table>
       {isToday && (
         <button className="bg-academixPurpleDark px-2 py-2 rounded-md w-max text-white">
-          Save Attendance
+          {t("save")}
         </button>
       )}
     </form>

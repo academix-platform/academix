@@ -2,6 +2,7 @@ import ArchiveFilters from "@/components/ArchiveFilters";
 import ExportButton from "@/components/ExportButton";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 type ArchiveRow = {
   id: string | number;
@@ -10,6 +11,12 @@ type ArchiveRow = {
   email?: string | null;
   phone?: string | null;
   status?: string | null;
+  finalGrade?: string | null;
+};
+
+type StoredFinalResult = {
+  studentId: string;
+  averageScore: number;
 };
 
 const ArchivePage = async ({
@@ -20,6 +27,9 @@ const ArchivePage = async ({
     academicYearId?: string;
   }>;
 }) => {
+  const t = await getTranslations("pages");
+  const archiveT = await getTranslations("archivePage");
+  const th = await getTranslations("tableHeaders");
   const params = await searchParams;
   const user = await requireAuth();
 
@@ -30,7 +40,9 @@ const ArchivePage = async ({
   if (!admin) return null;
 
   const academicYears = await prisma.academicYear.findMany({
-    distinct: ["name"],
+    where: {
+      schoolId: admin.schoolId,
+    },
     orderBy: { startDate: "desc" },
   });
 
@@ -41,7 +53,7 @@ const ArchivePage = async ({
   let rows: ArchiveRow[] = [];
 
   if (selectedType === "students") {
-    rows = await prisma.student.findMany({
+    const students = await prisma.student.findMany({
       where: {
         schoolId: admin.schoolId,
         academicYears: {
@@ -59,6 +71,48 @@ const ArchivePage = async ({
         status: true,
       },
     });
+
+    const studentIds = students.map((student) => student.id);
+    const finalResults: StoredFinalResult[] = studentIds.length
+      ? await (
+          prisma as unknown as {
+            studentFinalResult: {
+              findMany: (args: {
+                where: {
+                  schoolId: number;
+                  academicYearId: number;
+                  studentId: { in: string[] };
+                };
+                select: {
+                  studentId: boolean;
+                  averageScore: boolean;
+                };
+              }) => Promise<StoredFinalResult[]>;
+            };
+          }
+        ).studentFinalResult.findMany({
+          where: {
+            schoolId: admin.schoolId,
+            academicYearId: Number(selectedYear),
+            studentId: { in: studentIds },
+          },
+          select: {
+            studentId: true,
+            averageScore: true,
+          },
+        })
+      : [];
+    const finalGradeByStudent = new Map(
+      finalResults.map((result) => [
+        result.studentId,
+        `${result.averageScore.toFixed(2)}%`,
+      ]),
+    );
+
+    rows = students.map((student) => ({
+      ...student,
+      finalGrade: finalGradeByStudent.get(student.id) ?? "-",
+    }));
   }
 
   if (selectedType === "teachers") {
@@ -116,112 +170,112 @@ const ArchivePage = async ({
   }
 
   if (selectedType === "exams") {
-    rows = await prisma.exam.findMany({
-      where: {
-        lesson: {
-          subject: {
-            schoolId: admin.schoolId,
+    rows = await prisma.exam
+      .findMany({
+        where: {
+          lesson: {
+            subject: {
+              schoolId: admin.schoolId,
+            },
           },
         },
-      },
-      select: {
-        id: true,
-        title: true,
-      },
-    }).then((items) =>
-      items.map((item) => ({
-        id: item.id,
-        name: item.title,
-      }))
-    );
+        select: {
+          id: true,
+          title: true,
+        },
+      })
+      .then((items) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.title,
+        })),
+      );
   }
 
   if (selectedType === "assignments") {
-    rows = await prisma.assignment.findMany({
-      where: {
-        lesson: {
-          subject: {
-            schoolId: admin.schoolId,
+    rows = await prisma.assignment
+      .findMany({
+        where: {
+          lesson: {
+            subject: {
+              schoolId: admin.schoolId,
+            },
           },
         },
-      },
-      select: {
-        id: true,
-        title: true,
-      },
-    }).then((items) =>
-      items.map((item) => ({
-        id: item.id,
-        name: item.title,
-      }))
-    );
+        select: {
+          id: true,
+          title: true,
+        },
+      })
+      .then((items) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.title,
+        })),
+      );
   }
 
   if (selectedType === "results") {
-    rows = await prisma.result.findMany({
-      where: {
-        student: {
-          schoolId: admin.schoolId,
-        },
-      },
-      select: {
-        id: true,
-        score: true,
-        student: {
-          select: {
-            name: true,
+    rows = await prisma.result
+      .findMany({
+        where: {
+          student: {
+            schoolId: admin.schoolId,
           },
         },
-      },
-    }).then((items) =>
-      items.map((item) => ({
-        id: item.id,
-        name: item.student.name,
-        status: String(item.score),
-      }))
-    );
+        select: {
+          id: true,
+          score: true,
+          student: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      })
+      .then((items) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.student.name,
+          status: String(item.score),
+        })),
+      );
   }
 
   if (selectedType === "attendance") {
-    rows = await prisma.attendance.findMany({
-      where: {
-        student: {
-          schoolId: admin.schoolId,
-        },
-      },
-      select: {
-        id: true,
-        present: true,
-        student: {
-          select: {
-            name: true,
+    rows = await prisma.attendance
+      .findMany({
+        where: {
+          student: {
+            schoolId: admin.schoolId,
           },
         },
-      },
-    }).then((items) =>
-      items.map((item) => ({
-        id: item.id,
-        name: item.student?.name || "Unknown student",
-        status: item.present ? "Present" : "Absent",
-      }))
-    );
+        select: {
+          id: true,
+          present: true,
+          student: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      })
+      .then((items) =>
+        items.map((item) => ({
+          id: item.id,
+          name: item.student?.name || archiveT("unknownStudent"),
+          status: item.present ? archiveT("present") : archiveT("absent"),
+        })),
+      );
   }
 
   return (
-    <div className="p-4 md:p-6 flex flex-col gap-6">
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+    <div className="flex flex-col gap-6 p-4 md:p-6">
+      <div>
+        <div className="flex lg:flex-row flex-col lg:justify-between lg:items-center gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-gray-800">Archive</h1>
-            <p className="text-sm text-gray-500 mt-1">
-              Export school data by academic year
-            </p>
+            <h1 className="font-bold text-gray-800 text-2xl">{t("archive")}</h1>
           </div>
-
-          <ExportButton
-            href={`/api/export/archive?type=${selectedType}&academicYearId=${selectedYear}`}
-            title="Export CSV"
-          />
         </div>
       </div>
 
@@ -234,50 +288,64 @@ const ArchivePage = async ({
         selectedYear={selectedYear}
       />
 
-      <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Preview Data
-        </h2>
+      <div className="bg-white shadow-sm p-6 border border-gray-100 rounded-2xl">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="mb-4 font-semibold text-gray-800 text-lg">
+            {archiveT("previewData")}
+          </h2>
+          <ExportButton
+            href={`/api/export/archive?type=${selectedType}&academicYearId=${selectedYear}`}
+          />
+        </div>
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="border-b text-left text-gray-500">
-                <th className="py-3 px-4">Name</th>
-                <th className="py-3 px-4">Username</th>
-                <th className="py-3 px-4">Email</th>
-                <th className="py-3 px-4">Phone</th>
-                <th className="py-3 px-4">Status / Value</th>
+              <tr className="border-b text-gray-500 text-start">
+                <th className="px-4 py-3">{th("name")}</th>
+                <th className="px-4 py-3">{th("username")}</th>
+                <th className="px-4 py-3">{th("email")}</th>
+                <th className="px-4 py-3">{th("phone")}</th>
+                {selectedType === "students" && (
+                  <th className="px-4 py-3">{th("finalGrade")}</th>
+                )}
+                <th className="px-4 py-3">{th("statusValue")}</th>
               </tr>
             </thead>
 
             <tbody>
               {rows.slice(0, 5).map((row) => (
                 <tr key={row.id} className="border-b last:border-b-0">
-                  <td className="py-3 px-4 font-medium">{row.name}</td>
-                  <td className="py-3 px-4">{row.username || "-"}</td>
-                  <td className="py-3 px-4">{row.email || "-"}</td>
-                  <td className="py-3 px-4">{row.phone || "-"}</td>
-                  <td className="py-3 px-4">{row.status || "-"}</td>
+                  <td className="px-4 py-3 font-medium">{row.name}</td>
+                  <td className="px-4 py-3">{row.username || "-"}</td>
+                  <td className="px-4 py-3">{row.email || "-"}</td>
+                  <td className="px-4 py-3">{row.phone || "-"}</td>
+                  {selectedType === "students" && (
+                    <td className="px-4 py-3">{row.finalGrade || "-"}</td>
+                  )}
+                  <td className="px-4 py-3">{row.status || "-"}</td>
                 </tr>
               ))}
 
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="py-8 text-center text-gray-400">
-                    No data found
+                  <td
+                    colSpan={selectedType === "students" ? 6 : 5}
+                    className="py-8 text-gray-400 text-center"
+                  >
+                    {archiveT("noData")}
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
           {rows.length > 5 && (
-  <div className="flex justify-center mt-6">
-    <button className="px-5 py-2 rounded-xl bg-academixPurple text-white text-sm font-medium hover:bg-academixPurpleDark transition">
-      Show More
-    </button>
-  </div>
-)}
+            <div className="flex justify-center mt-6">
+              <button className="bg-academixPurple hover:bg-academixPurpleDark px-5 py-2 rounded-xl font-medium text-white text-sm transition">
+                {archiveT("showMore")}
+              </button>
+            </div>
+          )}
         </div>
       </div>
     </div>

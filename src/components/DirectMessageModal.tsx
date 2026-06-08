@@ -11,6 +11,7 @@ import type { MessageSchema } from "@/lib/formValidationSchemas";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
 import { X } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type DirectMessageModalProps = {
   open: boolean;
@@ -28,6 +29,7 @@ export default function DirectMessageModal({
   userName,
 }: DirectMessageModalProps) {
   const router = useRouter();
+  const t = useTranslations("directMessage");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -38,7 +40,7 @@ export default function DirectMessageModal({
     setError(null);
 
     if (!title.trim() || !description.trim()) {
-      setError("Title and message are required");
+      setError(t("titleMessageRequired"));
       return;
     }
 
@@ -69,18 +71,19 @@ export default function DirectMessageModal({
         );
 
         if (result.success) {
-          toast.success(`Message sent to ${userName}`);
+          toast.success(t("sentTo", { name: userName }));
           setTitle("");
           setDescription("");
           setOpen(false);
           router.refresh();
         } else {
-          setError(result.message || "Failed to send message");
-          toast.error(result.message || "Failed to send message");
+          const message = result.message || t("sendFailed");
+          setError(message);
+          toast.error(message);
         }
       } catch (err) {
         const message =
-          err instanceof Error ? err.message : "An error occurred";
+          err instanceof Error ? err.message : t("errorOccurred");
         setError(message);
         toast.error(message);
       }
@@ -94,13 +97,13 @@ export default function DirectMessageModal({
       <div className="relative bg-white shadow-xl p-6 rounded-xl w-full max-w-xl">
         <button
           onClick={() => setOpen(false)}
-          className="top-4 right-4 absolute text-gray-400 hover:text-academixPurpleDark transition-colors"
+          className="top-4 end-4 absolute text-gray-400 hover:text-academixPurpleDark transition-colors"
         >
           <X className="w-5 h-5" />
         </button>
 
-        <h2 className="mb-4 pr-8 font-bold text-gray-900 text-2xl">
-          Send Message to {userName}
+        <h2 className="mb-4 pe-8 font-bold text-gray-900 text-2xl">
+          {t("heading", { name: userName })}
         </h2>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-6">
@@ -108,7 +111,7 @@ export default function DirectMessageModal({
             <div className="grid grid-cols-1 gap-4">
               <div className="flex flex-col gap-2 w-full">
                 <label className="font-medium text-gray-700 text-sm">
-                  Title
+                  {t("title")}
                 </label>
                 <input
                   type="text"
@@ -116,21 +119,21 @@ export default function DirectMessageModal({
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
-                  placeholder="Enter message title"
+                  placeholder={t("titlePlaceholder")}
                   required
                 />
               </div>
 
               <div className="flex flex-col gap-2 w-full">
                 <label className="font-medium text-gray-700 text-sm">
-                  Message
+                  {t("message")}
                 </label>
                 <textarea
                   name="description"
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all resize-none"
-                  placeholder="Enter message body"
+                  placeholder={t("messagePlaceholder")}
                   rows={5}
                   required
                 />
@@ -150,14 +153,14 @@ export default function DirectMessageModal({
               onClick={() => setOpen(false)}
               className="hover:bg-gray-50 px-4 py-2 border border-gray-300 rounded-lg font-medium text-gray-700 text-sm transition-colors"
             >
-              Cancel
+              {t("cancel")}
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
               className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-2 rounded-lg font-semibold text-white text-sm transition-all"
             >
-              {isSubmitting ? "Sending..." : "Send"}
+              {isSubmitting ? t("sending") : t("send")}
             </button>
           </div>
         </form>

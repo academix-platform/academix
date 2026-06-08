@@ -4,6 +4,7 @@ import { getAuthUser } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
+import { getTranslations } from "next-intl/server";
 
 const getStatusClass = (status: string) => {
   switch (status) {
@@ -16,12 +17,12 @@ const getStatusClass = (status: string) => {
   }
 };
 
-const getTypeLabel = (type: string) => {
+const getTypeLabel = (type: string, t: (key: string) => string) => {
   switch (type) {
     case "complaint":
-      return "Complaint";
+      return t("types.complaint");
     default:
-      return "Suggestion";
+      return t("types.suggestion");
   }
 };
 
@@ -30,10 +31,11 @@ export default async function FeedbackPage({
 }: {
   searchParams: PageSearchParams;
 }) {
+  const feedbackT = await getTranslations("feedbackPage");
   const user = await getAuthUser();
 
   if (!user) {
-    return <div>Unauthorized</div>;
+    return <div>{feedbackT("unexpectedError")}</div>;
   }
 
   const resolvedSearchParams = await searchParams;
@@ -62,17 +64,17 @@ export default async function FeedbackPage({
       <div className="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-lg font-semibold">
-            My Feedback History
+            {feedbackT("historyTitle")}
           </h1>
 
           <p className="text-sm text-gray-500">
-            Track your previous suggestions and complaints.
+            {feedbackT("historyDescription")}
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           <span className="text-sm text-gray-500">
-            {count} submitted
+            {feedbackT("submittedCount", { count })}
           </span>
 
           <FeedbackModal />
@@ -83,7 +85,7 @@ export default async function FeedbackPage({
         {feedbacks.length === 0 ? (
           <div className="rounded-xl border border-dashed border-gray-300 p-10 text-center">
             <p className="text-gray-500 text-sm">
-              You have not submitted any feedback yet.
+              {feedbackT("emptyHistory")}
             </p>
           </div>
         ) : (
@@ -96,7 +98,7 @@ export default async function FeedbackPage({
                 <div>
                   <div className="mb-2 flex items-center gap-2">
                     <span className="font-semibold text-gray-900">
-                      {getTypeLabel(feedback.type)}
+                      {getTypeLabel(feedback.type, feedbackT)}
                     </span>
 
                     <span
@@ -104,7 +106,7 @@ export default async function FeedbackPage({
                         feedback.status
                       )}`}
                     >
-                      {feedback.status}
+                      {feedbackT(`statuses.${feedback.status}`)}
                     </span>
                   </div>
 

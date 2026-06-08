@@ -2,6 +2,7 @@
 
 import { publishExamGrades } from "@/lib/actions/examWorkflow.actions";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
@@ -21,6 +22,7 @@ const PublishGradesButton = ({
   allGraded,
   alreadyPublished,
 }: PublishGradesButtonProps) => {
+  const t = useTranslations("examSubmissions");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [synced, setSynced] = useState(false);
@@ -36,12 +38,12 @@ const PublishGradesButton = ({
         setSynced(true);
         toast.success(
           published
-            ? "Published grades synced to results."
-            : "Grades published to students."
+            ? t("toast.publishedSynced")
+            : t("toast.gradesPublished")
         );
         router.refresh();
       } else {
-        toast.error(result.message ?? "Could not publish grades.");
+        toast.error(result.message ?? t("toast.publishFailed"));
       }
     });
   };
@@ -59,8 +61,8 @@ const PublishGradesButton = ({
         <CheckCircle className="h-4 w-4" />
       )}
       {synced || published
-        ? "Grades Published"
-        : "Publish Grades"}
+        ? t("actions.gradesPublished")
+        : t("actions.publishGrades")}
     </button>
   );
 };

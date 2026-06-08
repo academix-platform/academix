@@ -7,19 +7,19 @@ import { Prisma } from "@prisma/client";
 import NotificationsClient from "./NotificationsClient";
 
 const TYPE_OPTIONS = [
-  { value: "",                    label: "All Types"          },
-  { value: "NEW_ASSIGNMENT",      label: "Assignments"        },
-  { value: "ASSIGNMENT_UPDATED",  label: "Assignment Updates" },
-  { value: "ASSIGNMENT_FEEDBACK", label: "Feedback"           },
-  { value: "NEW_EXAM",            label: "Exams"              },
-  { value: "GRADE_POSTED",        label: "Grades"             },
-  { value: "GRADE_UPDATED",       label: "Grade Updates"      },
-  { value: "NEW_ANNOUNCEMENT",    label: "Announcements"      },
-  { value: "NEW_EVENT",           label: "Events"             },
-  { value: "SCHEDULE_UPDATED",    label: "Schedule"           },
-  { value: "ATTENDANCE_SAVED",    label: "Attendance"         },
-  { value: "SUPERVISOR_ASSIGNED", label: "Supervisor"         },
-  { value: "NEW_MESSAGE",         label: "Messages"           },
+  { value: "",                    labelKey: "allTypes"          },
+  { value: "NEW_ASSIGNMENT",      labelKey: "assignments"       },
+  { value: "ASSIGNMENT_UPDATED",  labelKey: "assignmentUpdates" },
+  { value: "ASSIGNMENT_FEEDBACK", labelKey: "feedback"          },
+  { value: "NEW_EXAM",            labelKey: "exams"             },
+  { value: "GRADE_POSTED",        labelKey: "grades"            },
+  { value: "GRADE_UPDATED",       labelKey: "gradeUpdates"      },
+  { value: "NEW_ANNOUNCEMENT",    labelKey: "announcements"     },
+  { value: "NEW_EVENT",           labelKey: "events"            },
+  { value: "SCHEDULE_UPDATED",    labelKey: "schedule"          },
+  { value: "ATTENDANCE_SAVED",    labelKey: "attendance"        },
+  { value: "SUPERVISOR_ASSIGNED", labelKey: "supervisor"        },
+  { value: "NEW_MESSAGE",         labelKey: "messages"          },
 ];
 
 export default async function NotificationsPage({

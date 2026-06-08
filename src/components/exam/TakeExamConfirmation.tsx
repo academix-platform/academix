@@ -1,6 +1,7 @@
 "use client";
 
 import { BookOpen, Loader2, X } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -15,6 +16,7 @@ export default function TakeExamConfirmation({
   title,
   instructions,
 }: TakeExamConfirmationProps) {
+  const t = useTranslations("examList");
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -32,7 +34,7 @@ export default function TakeExamConfirmation({
         onClick={() => setOpen(true)}
         className="bg-academixPurpleDark hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs hover:scale-[1.05] transition"
       >
-        Take Exam
+        {t("takeExam")}
       </button>
 
       {open && (
@@ -45,7 +47,7 @@ export default function TakeExamConfirmation({
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase text-gray-400">
-                    Ready to start?
+                    {t("readyToStart")}
                   </p>
                   <h2 className="text-base font-semibold text-gray-900">
                     {title}
@@ -56,7 +58,7 @@ export default function TakeExamConfirmation({
                 type="button"
                 onClick={() => setOpen(false)}
                 className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700"
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -66,7 +68,7 @@ export default function TakeExamConfirmation({
               {trimmedInstructions ? (
                 <div className="rounded-md border border-academixPurpleDark/10 bg-academixPurpleLight p-3">
                   <p className="mb-2 text-sm font-semibold text-academixPurpleDark">
-                    Instructions
+                    {t("instructions")}
                   </p>
                   <p className="whitespace-pre-wrap text-sm leading-6 text-gray-700">
                     {trimmedInstructions}
@@ -74,12 +76,12 @@ export default function TakeExamConfirmation({
                 </div>
               ) : (
                 <p className="text-sm text-gray-500">
-                  No special instructions were added for this exam.
+                  {t("noInstructions")}
                 </p>
               )}
 
               <p className="text-xs text-gray-400">
-                Once you continue, the exam session will open.
+                {t("continueNotice")}
               </p>
             </div>
 
@@ -89,7 +91,7 @@ export default function TakeExamConfirmation({
                 onClick={() => setOpen(false)}
                 className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -98,7 +100,7 @@ export default function TakeExamConfirmation({
                 className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isStarting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isStarting ? "Starting..." : "Start Exam"}
+                {isStarting ? t("starting") : t("startExam")}
               </button>
             </div>
           </div>

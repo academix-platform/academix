@@ -9,6 +9,7 @@ import { getQueryParam } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { School, SchoolStatus } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 
 const statusPillClass: Record<SchoolStatus, string> = {
   PENDING: "bg-yellow-100 text-yellow-800",
@@ -17,6 +18,9 @@ const statusPillClass: Record<SchoolStatus, string> = {
 };
 
 const SuperAdminPage = async ({ searchParams }: { searchParams: PageSearchParams }) => {
+  const pagesT = await getTranslations("sidebar.items");
+  const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   await enforceRouteAccess("/super-admin");
   const resolved = await searchParams;
   const page = Number.parseInt(getQueryParam(resolved.page) ?? "1", 10) || 1;
@@ -49,7 +53,7 @@ const SuperAdminPage = async ({ searchParams }: { searchParams: PageSearchParams
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">Schools</h1>
+        <h1 className="font-semibold text-lg">{pagesT("schools")}</h1>
         <div className="flex flex-wrap items-center gap-2">
           <TableSearch />
           <SchoolStatusFilter />
@@ -58,15 +62,15 @@ const SuperAdminPage = async ({ searchParams }: { searchParams: PageSearchParams
 
       <Table
         columns={[
-          { header: "School", accessor: "school" },
-          { header: "Admin Username", accessor: "admin" },
-          { header: "Status", accessor: "status" },
-          { header: "Pause Reason", accessor: "reason", className: "hidden lg:table-cell" },
-          { header: "Actions", accessor: "actions" },
+          { header: th("school"), accessor: "school" },
+          { header: th("adminUsername"), accessor: "admin" },
+          { header: th("status"), accessor: "status" },
+          { header: th("pauseReason"), accessor: "reason", className: "hidden lg:table-cell" },
+          { header: th("actions"), accessor: "actions" },
         ]}
         data={schools}
-        emptyTitle="No schools found"
-        emptyDescription="Try changing your search or status filter."
+        emptyTitle={emptyT("defaultTitle")}
+        emptyDescription={emptyT("defaultDescription")}
         renderRow={(school: School & { admins: { username: string }[] }) => (
           <tr key={school.id} className="hover:bg-academixPurpleLight even:bg-slate-50 border-b text-sm">
             <td className="p-4 font-medium">{school.name}</td>

@@ -1,10 +1,13 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ClassFilter from "@/components/ClassFilter";
+import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import TakeExamConfirmation from "@/components/exam/TakeExamConfirmation";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
@@ -40,32 +43,32 @@ const formatDateTime = (date: Date) =>
     timeStyle: "short",
   }).format(date);
 
-const getColumns = (role: UserRole | null) => {
+const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   const columns: {
     header: string;
     accessor: string;
     className?: string;
   }[] = [
-      {
-        header: "Title",
-        accessor: "title",
-      },
-      {
-        header: "Subject",
-        accessor: "subject",
-      },
-    ];
+    {
+      header: th("title"),
+      accessor: "title",
+    },
+    {
+      header: th("subject"),
+      accessor: "subject",
+    },
+  ];
 
   if (role !== "student") {
     columns.push({
-      header: "Class",
+      header: th("class"),
       accessor: "class",
     });
   }
 
   if (role !== "teacher") {
     columns.push({
-      header: "Teacher",
+      header: th("teacher"),
       accessor: "teacher",
       className: "hidden md:table-cell",
     });
@@ -73,12 +76,12 @@ const getColumns = (role: UserRole | null) => {
 
   columns.push(
     {
-      header: "Start Time",
+      header: th("startTime"),
       accessor: "startTime",
       className: "hidden md:table-cell min-w-[180px] w-[180px]",
     },
     {
-      header: "End Time",
+      header: th("endTime"),
       accessor: "endTime",
       className: "hidden md:table-cell min-w-[180px] w-[180px]",
     },
@@ -86,17 +89,17 @@ const getColumns = (role: UserRole | null) => {
 
   if (role === "student") {
     columns.push({
-      header: "Status",
+      header: th("status"),
       accessor: "myStatus",
     });
     columns.push({
-      header: "Score",
+      header: th("score"),
       accessor: "myScore",
     });
   }
 
   columns.push({
-    header: role === "admin" || role === "teacher" ? "Actions" : "",
+    header: role === "admin" || role === "teacher" ? th("actions") : "",
     accessor: "action",
   });
 
@@ -105,9 +108,12 @@ const getColumns = (role: UserRole | null) => {
 
 const renderRow = (item: ExamList, role: UserRole | null) => {
   const sub = item.studentSubmission;
-  const isTimerExpired = sub && sub.status === "IN_PROGRESS" && (
-    Date.now() > new Date(sub.startedAt).getTime() + ((item.duration ?? 0) + (sub.extraTime ?? 0)) * 60000
-  );
+  const isTimerExpired =
+    sub &&
+    sub.status === "IN_PROGRESS" &&
+    Date.now() >
+      new Date(sub.startedAt).getTime() +
+        ((item.duration ?? 0) + (sub.extraTime ?? 0)) * 60000;
   const hasExamEnded = Date.now() > new Date(item.endTime).getTime();
   const maxScore = item.questions?.reduce((sum, q) => sum + q.points, 0) ?? 0;
 
@@ -118,7 +124,9 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
     >
       <td className="p-4">{item.title}</td>
 
-      <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
+      <td className="flex items-center gap-4 p-4">
+        {item.subject?.name ?? "-"}
+      </td>
 
       {role !== "student" && (
         <td>{item.displayClasses ?? item.class?.name ?? "-"}</td>
@@ -144,41 +152,63 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
             if (!sub) {
               if (hasExamEnded) {
                 return (
-                  <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">
+                  <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
                     Ended
                   </span>
                 );
               }
               return (
-                <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">
+                <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
                   Not Started
                 </span>
               );
             }
-            if (sub.status === "IN_PROGRESS" && (isTimerExpired || hasExamEnded)) {
+            if (
+              sub.status === "IN_PROGRESS" &&
+              (isTimerExpired || hasExamEnded)
+            ) {
               return (
-                <span className="bg-red-100 text-red-700 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">
+                <span className="bg-red-100 px-2 py-1 rounded-md font-medium text-red-700 text-xs whitespace-nowrap">
                   Ended
                 </span>
               );
             }
             if (sub.status === "IN_PROGRESS")
-              return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">In Progress</span>;
+              return (
+                <span className="bg-yellow-100 px-2 py-1 rounded-md font-medium text-yellow-700 text-xs">
+                  In Progress
+                </span>
+              );
             if (sub.status === "SUBMITTED")
-              return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">Submitted</span>;
+              return (
+                <span className="bg-blue-100 px-2 py-1 rounded-md font-medium text-blue-700 text-xs">
+                  Submitted
+                </span>
+              );
             if (sub.status === "GRADED" && !sub.gradePublished)
-              return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">Graded</span>;
+              return (
+                <span className="bg-orange-100 px-2 py-1 rounded-md font-medium text-orange-700 text-xs">
+                  Graded
+                </span>
+              );
             if (sub.status === "GRADED" && sub.gradePublished)
-              return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">Published</span>;
+              return (
+                <span className="bg-green-100 px-2 py-1 rounded-md font-medium text-green-700 text-xs">
+                  Published
+                </span>
+              );
           })()}
         </td>
       )}
 
       {role === "student" && (
-        <td className="py-4 pr-4 text-left font-semibold text-academixPurpleDark">
-          {item.studentSubmission?.gradePublished && item.studentSubmission.totalScore !== null
-            ? `${item.studentSubmission.totalScore}/${maxScore}`
-            : <span className="text-gray-300 font-normal">—</span>}
+        <td className="py-4 pr-4 font-semibold text-academixPurpleDark text-left">
+          {item.studentSubmission?.gradePublished &&
+          item.studentSubmission.totalScore !== null ? (
+            `${item.studentSubmission.totalScore}/${maxScore}`
+          ) : (
+            <span className="font-normal text-gray-300">—</span>
+          )}
         </td>
       )}
 
@@ -211,13 +241,16 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
               instructions={item.instructions}
             />
           )}
-          {role === "student" && item.studentSubmission?.status === "IN_PROGRESS" && !isTimerExpired && !hasExamEnded && (
-            <Link href={`/list/exams/${item.id}/take`}>
-              <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
-                Continue
-              </button>
-            </Link>
-          )}
+          {role === "student" &&
+            item.studentSubmission?.status === "IN_PROGRESS" &&
+            !isTimerExpired &&
+            !hasExamEnded && (
+              <Link href={`/list/exams/${item.id}/take`}>
+                <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
+                  Continue
+                </button>
+              </Link>
+            )}
         </div>
       </td>
     </tr>
@@ -229,6 +262,9 @@ const ExamListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const examT = await getTranslations("examList");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
 
   const resolvedSearchParams = await searchParams;
@@ -301,9 +337,24 @@ const ExamListPage = async ({
       where: query,
     }),
   ]);
+  const [classes, grades] =
+    role === "admin"
+      ? await prisma.$transaction([
+          prisma.class.findMany({
+            where: { schoolId },
+            select: { id: true, name: true },
+            orderBy: { name: "asc" },
+          }),
+          prisma.grade.findMany({
+            where: { schoolId },
+            select: { id: true, level: true },
+            orderBy: { level: "asc" },
+          }),
+        ])
+      : [[], []];
 
   const classGroups = new Map<string, Set<string>>();
-  const uniqueExamsMap = new Map<string, typeof data[0]>();
+  const uniqueExamsMap = new Map<string, (typeof data)[0]>();
 
   for (const exam of data) {
     const groupKey = [
@@ -329,7 +380,13 @@ const ExamListPage = async ({
   // For student role: fetch their submission status for each displayed exam
   let studentSubmissionsMap = new Map<
     number,
-    { status: string; gradePublished: boolean; totalScore: number | null; startedAt: Date; extraTime: number | null }
+    {
+      status: string;
+      gradePublished: boolean;
+      totalScore: number | null;
+      startedAt: Date;
+      extraTime: number | null;
+    }
   >();
   if (role === "student") {
     const examIds = data.map((e) => e.id);
@@ -355,7 +412,9 @@ const ExamListPage = async ({
     }
   }
 
-  const dataWithClassDisplay: ExamList[] = Array.from(uniqueExamsMap.values()).map((exam) => {
+  const dataWithClassDisplay: ExamList[] = Array.from(
+    uniqueExamsMap.values(),
+  ).map((exam) => {
     const groupKey = [
       exam.title,
       exam.startTime.toISOString(),
@@ -370,17 +429,26 @@ const ExamListPage = async ({
         groupedClasses && groupedClasses.size > 1
           ? Array.from(groupedClasses).sort().join(", ")
           : exam.class?.name,
-      studentSubmission: role === "student" ? (studentSubmissionsMap.get(exam.id) ?? null) : undefined,
+      studentSubmission:
+        role === "student"
+          ? (studentSubmissionsMap.get(exam.id) ?? null)
+          : undefined,
     };
   });
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Exams</h1>
+        <h1 className="font-semibold text-lg">{t("allExams")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && (
+            <>
+              <GradeFilter grades={grades} />
+              <ClassFilter classes={classes} />
+            </>
+          )}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
@@ -396,7 +464,7 @@ const ExamListPage = async ({
                   href="/list/exams/create-workflow"
                   className="bg-academixPurpleDark hover:opacity-90 px-4 py-2 rounded-md font-medium text-white text-sm transition-colors"
                 >
-                  Add Exam
+                  {examT("addExam")}
                 </Link>
               </>
             )}
@@ -405,11 +473,11 @@ const ExamListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
-        emptyTitle="No exams found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={examT("noExams")}
+        emptyDescription={examT("emptyDescription")}
       />
 
       <Pagination page={p} count={count} />

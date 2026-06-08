@@ -2,6 +2,7 @@
 
 import { useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import ErrorState from "@/components/states/ErrorState";
 
 export default function GlobalError({
@@ -11,6 +12,7 @@ export default function GlobalError({
   error: Error & { digest?: string };
   reset: () => void;
 }) {
+  const t = useTranslations("states");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -28,10 +30,10 @@ export default function GlobalError({
   return (
     <main className="flex justify-center items-center min-h-screen">
       <ErrorState
-        title="Application error"
-        description="An unexpected error happened while loading the app."
+        title={t("applicationErrorTitle")}
+        description={t("applicationErrorDescription")}
         onRetry={handleRetry}
-        retryLabel={isPending ? "Retrying..." : "Try again"}
+        retryLabel={isPending ? t("retrying") : t("tryAgain")}
       />
     </main>
   );

@@ -2,6 +2,7 @@
 
 import { adjustAssignmentSubmissionScores } from "@/lib/actions/submission.actions";
 import { Loader2, Minus, Plus } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
@@ -23,6 +24,7 @@ export default function AssignmentSubmissionBulkActions({
   search,
   disabled,
 }: Props) {
+  const t = useTranslations("assignmentSubmissions");
   const router = useRouter();
   const [amount, setAmount] = useState("1");
   const [pendingAction, setPendingAction] = useState<BulkAction | null>(null);
@@ -37,12 +39,12 @@ export default function AssignmentSubmissionBulkActions({
     const parsedAmount = Number(amount);
 
     if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
-      toast.error("Enter a positive adjustment amount.");
+      toast.error(t("validation.positiveAmount"));
       return;
     }
 
     if (parsedAmount > maxScore) {
-      toast.error(`Amount cannot be greater than ${maxScore}.`);
+      toast.error(t("validation.maxAmount", { maxScore }));
       return;
     }
 
@@ -78,9 +80,9 @@ export default function AssignmentSubmissionBulkActions({
           value={amount}
           onChange={(event) => setAmount(event.target.value)}
           className="bg-transparent outline-none w-20 h-8 text-sm"
-          aria-label="Score adjustment amount"
+          aria-label={t("fields.scoreAdjustmentAmount")}
         />
-        <span className="text-gray-400 text-xs">marks</span>
+        <span className="text-gray-400 text-xs">{t("fields.marks")}</span>
       </div>
 
       <div className="flex items-center gap-2">
@@ -95,7 +97,7 @@ export default function AssignmentSubmissionBulkActions({
           ) : (
             <Plus className="w-3.5 h-3.5" />
           )}
-          Increase All
+          {t("actions.increaseAll")}
         </button>
 
         <button
@@ -109,7 +111,7 @@ export default function AssignmentSubmissionBulkActions({
           ) : (
             <Minus className="w-3.5 h-3.5" />
           )}
-          Decrease All
+          {t("actions.decreaseAll")}
         </button>
       </div>
     </div>

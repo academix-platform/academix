@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import type { Exam, Question, Answer } from "@prisma/client";
 import { Loader2, Send, X } from "lucide-react";
@@ -37,6 +38,7 @@ export default function ExamClient({
   initialTimeRemaining,
   totalPages,
 }: ExamClientProps) {
+  const t = useTranslations("examTaking");
   const router = useRouter();
 
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
@@ -83,7 +85,7 @@ export default function ExamClient({
 
       if (res.error) {
         setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "error" }));
-        toast.error(res.message || "Failed to save answer.");
+        toast.error(res.message || t("toast.saveFailed"));
       } else {
         setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saved" }));
         // Clear from pending once saved successfully
@@ -113,7 +115,7 @@ export default function ExamClient({
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
     if (!exam.enableNavigation && newPage < currentPage) {
-      toast.error("Navigation to previous pages is disabled.");
+      toast.error(t("toast.previousDisabled"));
       return;
     }
 
@@ -140,7 +142,7 @@ export default function ExamClient({
       });
 
       if (unanswered.length > 0) {
-        toast.error("Please answer all questions on this page before proceeding.");
+        toast.error(t("toast.answerBeforeProceeding"));
         return;
       }
     }
@@ -226,7 +228,7 @@ export default function ExamClient({
     });
 
     if (unanswered.length > 0) {
-      toast.error("Please answer all questions on this page before submitting.");
+      toast.error(t("toast.answerBeforeSubmitting"));
       return;
     }
 
@@ -245,7 +247,7 @@ export default function ExamClient({
       toast.error(res.error as string);
       setIsSubmitting(false);
     } else {
-      toast.success("Exam submitted successfully!");
+      toast.success(t("toast.submitted"));
       router.push("/list/exams");
     }
   };
@@ -256,7 +258,7 @@ export default function ExamClient({
     await abortAllUploads();
     debouncedSaveRef.current?.flush();
     await submitExam(submission.id);
-    toast.info("Exam time is up! Auto-submitting...");
+    toast.info(t("toast.timeUp"));
     router.push("/list/exams");
   };
 
@@ -323,7 +325,7 @@ export default function ExamClient({
             <h1 className="font-bold text-gray-900 text-xl">{exam.title}</h1>
             <div className="flex items-center gap-4 mt-2 text-gray-600 text-sm">
               <span className="font-medium">
-                Page {currentPage} of {totalPages}
+                {t("pageLabel", { current: currentPage, total: totalPages })}
               </span>
 
             </div>
@@ -344,7 +346,7 @@ export default function ExamClient({
               disabled={isSubmitting || isLoadingPage}
               className="bg-academixPurpleDark hover:bg-academixPurple disabled:opacity-50 px-6 py-2 rounded-md font-semibold text-white transition-colors"
             >
-              {isSubmitting ? "Submitting..." : "Submit Exam"}
+              {isSubmitting ? t("submitting") : t("submitExam")}
             </button>
           </div>
         </div>
@@ -360,27 +362,27 @@ export default function ExamClient({
             >
               <div className="flex justify-between items-start mb-4">
                 <div className="font-medium text-gray-900">
-                  <span className="mr-2">{q.order}.</span>
+                  <span className="me-2">{q.order}.</span>
                   {q.text}
                 </div>
                 <div className="flex items-center gap-2">
                   {qStatus === "saving" && (
                     <span className="flex items-center gap-1 text-xs text-blue-500 animate-pulse font-medium">
-                      Saving...
+                      {t("saving")}
                     </span>
                   )}
                   {qStatus === "saved" && (
                     <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
-                      ✓ Saved
+                      {t("saved")}
                     </span>
                   )}
                   {qStatus === "error" && (
                     <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
-                      ⚠ Error
+                      {t("error")}
                     </span>
                   )}
                   <span className="bg-gray-100 px-2 py-1 rounded font-medium text-gray-500 text-sm">
-                    {q.points} {q.points === 1 ? "point" : "points"}
+                    {t("point", { count: q.points })}
                   </span>
                 </div>
               </div>
@@ -394,11 +396,12 @@ export default function ExamClient({
                   examId={exam.id}
                   onChange={handleAnswerChange}
                   disabled={isSubmitting || isLoadingPage}
+                  t={t}
                   onUploadStart={() => uploadingQuestionsRef.current.add(q.id)}
                   onUploadEnd={() => uploadingQuestionsRef.current.delete(q.id)}
                 />
                 {q.type === "FILE" && qStatus !== "idle" && (
-                  <span className="ml-2 text-xs text-gray-400">File upload</span>
+                  <span className="ms-2 text-xs text-gray-400">{t("fileUpload")}</span>
                 )}
               </div>
             </div>
@@ -417,7 +420,7 @@ export default function ExamClient({
           }
           className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 disabled:cursor-not-allowed"
         >
-          Previous
+          {t("previous")}
         </button>
 
         <span className="text-gray-500 text-sm">
@@ -430,10 +433,10 @@ export default function ExamClient({
             disabled={isLoadingPage || isSubmitting}
             className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700"
           >
-            Next
+            {t("next")}
           </button>
         ) : (
-          <div className="opacity-0 px-4 py-2">Next</div> // Spacer
+          <div className="opacity-0 px-4 py-2">{t("next")}</div>
         )}
       </div>
 
@@ -447,10 +450,10 @@ export default function ExamClient({
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase text-gray-400">
-                    Submit exam
+                    {t("confirmEyebrow")}
                   </p>
                   <h2 className="text-base font-semibold text-gray-900">
-                    Are you sure?
+                    {t("confirmTitle")}
                   </h2>
                 </div>
               </div>
@@ -459,7 +462,7 @@ export default function ExamClient({
                 onClick={() => setShowSubmitConfirm(false)}
                 disabled={isSubmitting}
                 className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
-                aria-label="Close"
+                aria-label={t("close")}
               >
                 <X className="h-4 w-4" />
               </button>
@@ -467,10 +470,10 @@ export default function ExamClient({
 
             <div className="space-y-3 p-4">
               <p className="text-sm leading-6 text-gray-600">
-                Once you submit, you cannot change your answers for this exam.
+                {t("confirmBody")}
               </p>
               <p className="rounded-md bg-academixPurpleLight p-3 text-xs text-academixPurpleDark">
-                Your saved answers will be submitted for grading.
+                {t("confirmNotice")}
               </p>
             </div>
 
@@ -481,7 +484,7 @@ export default function ExamClient({
                 disabled={isSubmitting}
                 className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 type="button"
@@ -490,7 +493,7 @@ export default function ExamClient({
                 className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isSubmitting ? "Submitting..." : "Submit Exam"}
+                {isSubmitting ? t("submitting") : t("submitExam")}
               </button>
             </div>
           </div>

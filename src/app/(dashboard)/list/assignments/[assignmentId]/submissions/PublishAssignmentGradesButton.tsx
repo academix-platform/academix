@@ -2,6 +2,7 @@
 
 import { publishAssignmentGrades } from "@/lib/actions/submission.actions";
 import { CheckCircle, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { toast } from "react-toastify";
@@ -17,6 +18,7 @@ export default function PublishAssignmentGradesButton({
   disabled,
   allPublished,
 }: Props) {
+  const t = useTranslations("assignmentSubmissions.actions");
   const router = useRouter();
   const [synced, setSynced] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -47,7 +49,7 @@ export default function PublishAssignmentGradesButton({
       ) : (
         <CheckCircle className="h-4 w-4" />
       )}
-      {allPublished || synced ? "Grades Published" : "Publish Grades"}
+      {allPublished || synced ? t("gradesPublished") : t("publishGrades")}
     </button>
   );
 }

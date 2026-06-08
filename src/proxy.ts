@@ -5,6 +5,7 @@ import { getRoleHome, type UserRole } from "./lib/utils";
 
 const isSignInRoute = createRouteMatcher(["/sign-in(.*)"]);
 const isPublicRoute = createRouteMatcher([
+  "/",
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",
@@ -22,8 +23,7 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
   const role =
-    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ??
-    null;
+    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
 
   const isSignIn = isSignInRoute(req);
   const isPublic = isPublicRoute(req);
@@ -50,7 +50,9 @@ export default clerkMiddleware(async (auth, req) => {
     }
 
     if (role) {
-      const destination = shouldUsePostLogin ? "/post-login" : getRoleHome(role);
+      const destination = shouldUsePostLogin
+        ? "/post-login"
+        : getRoleHome(role);
       return NextResponse.redirect(new URL(destination, req.url));
     }
 
@@ -60,7 +62,9 @@ export default clerkMiddleware(async (auth, req) => {
 
   if (isRoot && userId) {
     if (role) {
-      const destination = shouldUsePostLogin ? "/post-login" : getRoleHome(role);
+      const destination = shouldUsePostLogin
+        ? "/post-login"
+        : getRoleHome(role);
       return NextResponse.redirect(new URL(destination, req.url));
     }
     return NextResponse.redirect(new URL("/post-login", req.url));
@@ -93,5 +97,6 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
+    "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
   ],
 };

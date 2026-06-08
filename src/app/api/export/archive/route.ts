@@ -34,7 +34,7 @@ export async function GET(req: NextRequest) {
 
   switch (type) {
     case "students":
-      data = await prisma.student.findMany({
+      const students = await prisma.student.findMany({
         where: {
           schoolId: admin.schoolId,
           academicYears: {
@@ -44,6 +44,50 @@ export async function GET(req: NextRequest) {
           },
         },
       });
+      const studentIds = students.map((student) => student.id);
+      const finalResults: Array<{
+        studentId: string;
+        averageScore: number;
+      }> = studentIds.length
+        ? await (
+            prisma as unknown as {
+              studentFinalResult: {
+                findMany: (args: {
+                  where: {
+                    schoolId: number;
+                    academicYearId: number;
+                    studentId: { in: string[] };
+                  };
+                  select: {
+                    studentId: boolean;
+                    averageScore: boolean;
+                  };
+                }) => Promise<Array<{ studentId: string; averageScore: number }>>;
+              };
+            }
+          ).studentFinalResult.findMany({
+            where: {
+              schoolId: admin.schoolId,
+              academicYearId: Number(academicYearId),
+              studentId: { in: studentIds },
+            },
+            select: {
+              studentId: true,
+              averageScore: true,
+            },
+          })
+        : [];
+      const finalGradeByStudent = new Map(
+        finalResults.map((result) => [
+          result.studentId,
+          `${result.averageScore.toFixed(2)}%`,
+        ]),
+      );
+
+      data = students.map((student) => ({
+        ...student,
+        finalGrade: finalGradeByStudent.get(student.id) ?? "",
+      }));
       break;
 
     case "teachers":

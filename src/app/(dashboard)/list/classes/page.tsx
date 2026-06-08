@@ -1,9 +1,11 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildClassQuery } from "@/lib/query-builders/class-query";
 import prisma from "@/lib/prisma";
@@ -19,25 +21,25 @@ type ClassList = Class & {
   } | null;
 };
 
-const getColumns = (role: UserRole | null) => [
-  { header: "Class Name", accessor: "name" },
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("className"), accessor: "name" },
   {
-    header: "Capacity",
+    header: th("capacity"),
     accessor: "capacity",
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
+    header: th("grade"),
     accessor: "grade",
     className: "hidden md:table-cell",
   },
   {
-    header: "Supervisor",
+    header: th("supervisor"),
     accessor: "supervisor",
     className: "hidden md:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -75,6 +77,9 @@ const ClassListPage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
   const { role, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
@@ -117,14 +122,23 @@ const ClassListPage = async ({
       where: query,
     }),
   ]);
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">All Classes</h1>
+        <h1 className="font-semibold text-lg">{t("allClasses")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
+          {role === "admin" && <GradeFilter grades={grades} />}
 
           <div className="flex items-center self-end gap-2">
             <FilterSortActions sortKey="sort" />
@@ -143,11 +157,11 @@ const ClassListPage = async ({
       </div>
 
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
-        emptyTitle="No classes found"
-        emptyDescription="Try changing your filters or search terms."
+        emptyTitle={emptyT("classes")}
+        emptyDescription={emptyT("filterDescription")}
       />
 
       <Pagination page={p} count={count} />

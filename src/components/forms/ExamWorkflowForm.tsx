@@ -16,6 +16,7 @@ import { useMemo, useRef, useState } from "react";
 import InputField from "../InputField";
 import { FileText } from "lucide-react";
 import TeacherSearchInput from "./TeacherSearchInput";
+import { useTranslations } from "next-intl";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
@@ -59,6 +60,7 @@ function QuestionEditor({
   isSubmitted: boolean;
   removeQuestion: () => void;
 }) {
+  const t = useTranslations("forms.examWorkflow.question");
   const containerRef = useRef<HTMLDivElement>(null);
 
   const optionsPath = `questions.${index}.options` as const;
@@ -207,7 +209,7 @@ function QuestionEditor({
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
     const optionValue = currentOptions[optionIndex];
     if (checked && (!optionValue || !optionValue.trim())) {
-      toast.error("Please write the option text before marking it as correct!");
+      toast.error(t("optionTextRequired"));
       return;
     }
 
@@ -251,21 +253,23 @@ function QuestionEditor({
       <button
         type="button"
         onClick={removeQuestion}
-        className="top-4 right-4 absolute font-bold text-red-500"
+        className="top-4 end-4 absolute font-bold text-red-500"
       >
         X
       </button>
 
       <div className="gap-4 grid grid-cols-1 md:grid-cols-3">
         <InputField
-          label="Question Text"
+          label={t("text")}
           name={`questions.${index}.text`}
           register={register}
           error={errors?.questions?.[index]?.text}
         />
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="font-medium text-gray-700 text-sm">Type</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {t("type")}
+          </label>
           <select
             {...typeField}
             onChange={(e) => {
@@ -274,15 +278,15 @@ function QuestionEditor({
             }}
             className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
           >
-            <option value="TEXT">Text Answer</option>
-            <option value="MCQ">Multiple Choice</option>
-            <option value="TRUE_FALSE">True / False</option>
-            <option value="FILE">File Upload</option>
+            <option value="TEXT">{t("textAnswer")}</option>
+            <option value="MCQ">{t("mcq")}</option>
+            <option value="TRUE_FALSE">{t("trueFalse")}</option>
+            <option value="FILE">{t("file")}</option>
           </select>
         </div>
 
         <InputField
-          label="Points"
+          label={t("points")}
           name={`questions.${index}.points`}
           type="number"
           register={register}
@@ -295,19 +299,21 @@ function QuestionEditor({
           <div className="flex items-center gap-2">
             <input type="checkbox" {...register(allowMultiplePath)} />
             <span className="text-gray-700 text-sm">
-              Allow multiple correct answers
+              {t("allowMultiple")}
             </span>
           </div>
 
           <div className="space-y-3">
             <div className="flex justify-between items-center">
-              <h3 className="font-medium text-gray-700 text-sm">Options</h3>
+              <h3 className="font-medium text-gray-700 text-sm">
+                {t("options")}
+              </h3>
               <button
                 type="button"
                 onClick={() => appendOption()}
                 className="text-blue-600 text-sm hover:underline"
               >
-                + Add Option
+                {t("addOption")}
               </button>
             </div>
 
@@ -319,7 +325,9 @@ function QuestionEditor({
                   <input
                     {...register(`questions.${index}.options.${optionIndex}`)}
                     className="flex-1 p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
-                    placeholder={`Option ${optionIndex + 1}`}
+                    placeholder={t("optionPlaceholder", {
+                      number: optionIndex + 1,
+                    })}
                   />
                   <label className="flex items-center gap-2 text-gray-600 text-xs">
                     <input
@@ -330,14 +338,14 @@ function QuestionEditor({
                         toggleMcqAnswer(optionIndex, e.target.checked)
                       }
                     />
-                    Correct
+                    {t("correct")}
                   </label>
                   <button
                     type="button"
                     onClick={() => removeOptionAt(optionIndex)}
                     className="text-red-500 text-sm hover:underline"
                   >
-                    Remove
+                    {t("remove")}
                   </button>
                 </div>
               );
@@ -348,20 +356,22 @@ function QuestionEditor({
               (isSubmitted && hasEmptyOption)) && (
               <p className="mt-1 font-medium text-red-500 text-xs">
                 {errors?.questions?.[index]?.options?.message?.toString() ||
-                  "⚠️ All option fields must be filled. Please do not leave empty options."}
+                  t("emptyOptions")}
               </p>
             )}
           </div>
 
           <div className="font-medium text-gray-700 text-sm">
-            Select one correct answer, or more if multiple answers are allowed.
+            {t("answerHelp")}
           </div>
         </div>
       )}
 
       {qType === "TRUE_FALSE" && (
         <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
-          <h3 className="font-medium text-gray-700 text-sm">Correct Answer</h3>
+          <h3 className="font-medium text-gray-700 text-sm">
+            {t("correctAnswer")}
+          </h3>
           <div className="flex flex-wrap gap-6">
             {["TRUE", "FALSE"].map((value) => (
               <label
@@ -375,7 +385,7 @@ function QuestionEditor({
                   onChange={() => toggleTrueFalse(value as "TRUE" | "FALSE")}
                 />
                 <span className="text-gray-700 text-sm">
-                  {value === "TRUE" ? "True" : "False"}
+                  {value === "TRUE" ? t("true") : t("false")}
                 </span>
               </label>
             ))}
@@ -391,15 +401,15 @@ function QuestionEditor({
       {(qType === "TEXT" || qType === "FILE") && (
         <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
           <h3 className="font-medium text-gray-700 text-sm">
-            Model Answer / Rubric
+            {t("rubric")}
           </h3>
           <textarea
             {...register(`questions.${index}.textAnswer`)}
             className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[100px] text-sm transition-all"
-            placeholder="Write the expected answer or explain how marks should be awarded..."
+            placeholder={t("rubricPlaceholder")}
           />
           <p className="text-gray-400 text-xs">
-            Used to guide manual grading and AI evaluation.
+            {t("rubricHelp")}
           </p>
           {errors?.questions?.[index]?.textAnswer?.message && (
             <p className="font-medium text-red-500 text-xs">
@@ -414,18 +424,18 @@ function QuestionEditor({
           <div className="flex items-center gap-2">
             <FileText className="w-4 h-4 text-academixPurpleDark" />
             <h3 className="font-medium text-gray-700 text-sm">
-              File Upload Settings
+              {t("fileSettings")}
             </h3>
           </div>
 
           <div className="space-y-2">
             <label className="font-medium text-gray-700 text-xs">
-              Allowed File Extensions
+              {t("allowedExtensions")}
             </label>
             <input
               type="text"
               className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
-              placeholder="e.g. pdf, docx, jpg"
+              placeholder={t("allowedExtensionsPlaceholder")}
               {...register(`questions.${index}.fileConfig.allowedExtensions`, {
                 setValueAs: (v: any) => {
                   if (Array.isArray(v)) return v;
@@ -459,14 +469,14 @@ function QuestionEditor({
               }}
             />
             <p className="text-gray-400 text-xs">
-              Leave empty to accept all file types (Optional)
+              {t("allowedExtensionsHelp")}
             </p>
           </div>
 
           <div className="gap-4 grid grid-cols-2">
             <div className="space-y-2">
               <label className="font-medium text-gray-700 text-xs">
-                Min File Size (MB)
+                {t("minFileSize")}
               </label>
               <input
                 type="number"
@@ -480,7 +490,7 @@ function QuestionEditor({
             </div>
             <div className="space-y-2">
               <label className="font-medium text-gray-700 text-xs">
-                Max File Size (MB)
+                {t("maxFileSize")}
               </label>
               <input
                 type="number"
@@ -492,25 +502,24 @@ function QuestionEditor({
                 })}
                 className="p-2 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full text-sm transition-all"
               />
-              <p className="text-gray-400 text-xs">System max: 10 MB</p>
+              <p className="text-gray-400 text-xs">{t("systemMax")}</p>
             </div>
           </div>
 
           <div className="space-y-2">
             <label className="font-medium text-gray-700 text-xs">
-              Instructions for Student (optional)
+              {t("fileInstructions")}
             </label>
             <textarea
               rows={3}
               {...register(`questions.${index}.fileConfig.instructions`)}
               className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[60px] text-sm transition-all"
-              placeholder="e.g. Upload your essay as a PDF file..."
+              placeholder={t("fileInstructionsPlaceholder")}
             />
           </div>
 
           <p className="text-gray-400 text-xs italic">
-            PDF submissions can be evaluated with AI using the model answer /
-            rubric above.
+            {t("pdfAiHelp")}
           </p>
 
           {errors?.questions?.[index]?.fileConfig?.message && (
@@ -534,6 +543,9 @@ export default function ExamWorkflowForm({
   initialData,
   teacherLessons,
 }: ExamWorkflowFormProps) {
+  const t = useTranslations("forms.examWorkflow");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const createDateTimeDefault = toDateTimeLocalValue(new Date());
@@ -615,13 +627,13 @@ export default function ExamWorkflowForm({
           const hasEmptyOption = q.options?.some((opt) => !opt || !opt.trim());
           if (hasEmptyOption) {
             toast.error(
-              `Question #${i + 1} has empty options! Please fill in all option fields.`,
+              t("emptyOptionsForQuestion", { number: i + 1 }),
             );
             return;
           }
           if (!q.correctAnswer || q.correctAnswer.length === 0) {
             toast.error(
-              `Please select at least one correct answer for Question #${i + 1}.`,
+              t("selectCorrectForQuestion", { number: i + 1 }),
             );
             return;
           }
@@ -644,13 +656,13 @@ export default function ExamWorkflowForm({
       } else {
         toast.success(
           mode === "update"
-            ? "Exam updated successfully!"
-            : "Exam created successfully!",
+            ? t("updated")
+            : t("created"),
         );
         router.push("/list/exams");
       }
     } catch (err) {
-      toast.error("An unexpected error occurred.");
+      toast.error(t("unexpectedError"));
     } finally {
       setIsSubmitting(false);
     }
@@ -661,24 +673,24 @@ export default function ExamWorkflowForm({
       <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
         <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
           <h2 className="font-bold text-gray-900 text-2xl">
-            1. Basic Information
+            {t("basicInfo")}
           </h2>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <InputField
-              label="Exam Title"
+              label={t("examTitle")}
               name="title"
               register={register}
               error={errors.title}
             />
             <InputField
-              label="Start Time"
+              label={t("startTime")}
               name="startTime"
               type="datetime-local"
               register={register}
               error={errors.startTime}
             />
             <InputField
-              label="End Time"
+              label={t("endTime")}
               name="endTime"
               type="datetime-local"
               register={register}
@@ -689,7 +701,7 @@ export default function ExamWorkflowForm({
               <div className="md:col-span-2">
                 <input type="hidden" {...register("teacherId")} />
                 <TeacherSearchInput
-                  label="Assigned Teacher"
+                  label={t("assignedTeacher")}
                   teachers={teachers}
                   value={watchTeacherId}
                   onChange={(teacherId) =>
@@ -700,20 +712,20 @@ export default function ExamWorkflowForm({
                   }
                 />
                 <p className="mt-1 text-gray-400 text-xs">
-                  This teacher will be able to access and evaluate submissions.
+                  {t("assignedTeacherHelp")}
                 </p>
               </div>
             )}
 
             <div className="flex flex-col gap-2 w-full">
               <label className="font-medium text-gray-700 text-sm">
-                Subject
+                {t("subject")}
               </label>
               <select
                 {...register("subjectId")}
                 className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
               >
-                <option value="">Select a subject...</option>
+                <option value="">{t("selectSubject")}</option>
                 {subjects.map((s) => (
                   <option key={s.id} value={s.id}>
                     {s.name}
@@ -729,7 +741,7 @@ export default function ExamWorkflowForm({
 
             <div className="flex flex-col gap-2 md:col-span-2 w-full">
               <label className="font-medium text-gray-700 text-sm">
-                Classes
+                {t("classes")}
               </label>
               <div className="flex flex-wrap gap-4">
                 {filteredClasses.length > 0 ? (
@@ -746,8 +758,8 @@ export default function ExamWorkflowForm({
                 ) : (
                   <p className="text-gray-400 text-sm italic">
                     {watchSubjectId
-                      ? "No classes found for this subject."
-                      : "Select a subject first to see available classes."}
+                      ? t("noClassesForSubject")
+                      : t("selectSubjectFirst")}
                   </p>
                 )}
               </div>
@@ -761,30 +773,32 @@ export default function ExamWorkflowForm({
         </section>
 
         <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
-          <h2 className="font-bold text-gray-900 text-2xl">2. Settings</h2>
+          <h2 className="font-bold text-gray-900 text-2xl">
+            {t("settings")}
+          </h2>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableTimer")} />
-              <span>Show Timer</span>
+              <span>{t("showTimer")}</span>
             </label>
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableAutoSave")} />
-              <span>Auto-Save</span>
+              <span>{t("autoSave")}</span>
             </label>
 
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableNavigation")} />
-              <span>Previous Page Navigation</span>
+              <span>{t("navigation")}</span>
             </label>
 
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableAutoSubmit")} />
-              <span>Auto-Submit when time is up</span>
+              <span>{t("autoSubmit")}</span>
             </label>
             <div className="space-y-2">
               {watchEnableTimer && (
                 <InputField
-                  label="Duration (minutes)"
+                  label={t("duration")}
                   name="duration"
                   type="number"
                   register={register}
@@ -793,7 +807,7 @@ export default function ExamWorkflowForm({
               )}
 
               <InputField
-                label="Questions Per Page"
+                label={t("questionsPerPage")}
                 name="questionsPerPage"
                 type="number"
                 register={register}
@@ -805,16 +819,20 @@ export default function ExamWorkflowForm({
       </div>
 
       <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
-        <h2 className="font-bold text-gray-900 text-2xl">3. Instructions</h2>
+        <h2 className="font-bold text-gray-900 text-2xl">
+          {t("instructions")}
+        </h2>
         <div className="flex flex-col gap-2 w-full">
           <label className="font-medium text-gray-700 text-sm">
-            Student Instructions
-            <span className="ml-1 font-normal text-gray-400">(optional)</span>
+            {t("studentInstructions")}
+            <span className="ms-1 font-normal text-gray-400">
+              ({commonT("optional")})
+            </span>
           </label>
           <textarea
             {...register("instructions")}
             rows={4}
-            placeholder="Add anything students should read before starting..."
+            placeholder={t("instructionsPlaceholder")}
             className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all resize-none placeholder-gray-400"
           />
           {errors.instructions?.message && (
@@ -827,7 +845,9 @@ export default function ExamWorkflowForm({
 
       <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold text-gray-900 text-2xl">4. Questions</h2>
+          <h2 className="font-bold text-gray-900 text-2xl">
+            {t("questions")}
+          </h2>
         </div>
 
         {fields.map((field, index) => {
@@ -861,9 +881,9 @@ export default function ExamWorkflowForm({
               textAnswer: "",
             })
           }
-          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 ml-auto px-4 py-2 rounded-md w-fit text-white transition-all"
+          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 ms-auto px-4 py-2 rounded-md w-fit text-white transition-all"
         >
-          + Add Question
+          {t("addQuestion")}
         </button>
       </section>
 
@@ -874,11 +894,11 @@ export default function ExamWorkflowForm({
       >
         {isSubmitting
           ? mode === "update"
-            ? "Updating..."
-            : "Creating..."
+            ? actionsT("updating")
+            : actionsT("creating")
           : mode === "update"
-            ? "Update Exam"
-            : "Create Exam"}
+            ? t("updateExam")
+            : t("createExam")}
       </button>
     </form>
   );

@@ -11,6 +11,7 @@ import {
   Trash2,
 } from "lucide-react";
 import { saveSubjectPageSettings } from "@/lib/actions/subjectPageSettings.actions";
+import { useTranslations } from "next-intl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Section = "assignments" | "exams" | "materials";
@@ -54,6 +55,7 @@ export default function SubjectPageEditor({
   subjectId,
   initialSettings,
 }: Props) {
+  const t = useTranslations("subjectDetails.editor");
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -143,7 +145,7 @@ export default function SubjectPageEditor({
         className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 px-4 py-2 border border-purple-200 rounded-lg font-medium text-purple-700 text-sm transition-colors"
       >
         <Settings className="w-4 h-4" />
-        <span className="hidden sm:block">Edit Page</span>
+        <span className="hidden sm:block">{t("trigger")}</span>
       </button>
 
       {/* Overlay */}
@@ -161,7 +163,7 @@ export default function SubjectPageEditor({
             <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
               <h2 className="flex items-center gap-2 font-semibold text-gray-800 text-base">
                 <Settings className="w-4 h-4 text-purple-600" />
-                Edit Subject Page
+                {t("title")}
               </h2>
               <button
                 onClick={() => setOpen(false)}
@@ -176,13 +178,13 @@ export default function SubjectPageEditor({
               <div>
                 <label className="block flex items-center gap-1.5 mb-2 font-medium text-gray-700 text-sm">
                   <ImageIcon className="w-4 h-4 text-gray-400" />
-                  Banner Image
+                  {t("bannerImage")}
                 </label>
                 {bannerPreview ? (
                   <div className="group relative bg-gray-100 rounded-xl h-36 overflow-hidden">
                     <Image
                       src={bannerPreview}
-                      alt="Banner preview"
+                      alt={t("bannerPreviewAlt")}
                       fill
                       className="object-cover"
                     />
@@ -197,10 +199,10 @@ export default function SubjectPageEditor({
                   <label className="flex flex-col justify-center items-center hover:bg-purple-50 border-2 border-gray-200 hover:border-purple-300 border-dashed rounded-xl h-36 transition-colors cursor-pointer">
                     <ImageIcon className="mb-2 w-8 h-8 text-gray-300" />
                     <span className="text-gray-400 text-sm">
-                      Click to upload banner
+                      {t("uploadBanner")}
                     </span>
                     <span className="mt-1 text-gray-300 text-xs">
-                      Max 5MB · JPG, PNG, WebP
+                      {t("bannerHint")}
                     </span>
                     <input
                       type="file"
@@ -213,7 +215,7 @@ export default function SubjectPageEditor({
 
                 {/* Height selector */}
                 <div className="flex items-center gap-2 mt-3">
-                  <span className="text-gray-500 text-xs">Height:</span>
+                  <span className="text-gray-500 text-xs">{t("height")}</span>
                   {(["sm", "md", "lg"] as const).map((h) => (
                     <button
                       key={h}
@@ -225,7 +227,7 @@ export default function SubjectPageEditor({
                           : "bg-white text-gray-600 border-gray-200 hover:border-purple-300"
                       }`}
                     >
-                      {h === "sm" ? "Small" : h === "md" ? "Medium" : "Large"}
+                      {t(`heights.${h}`)}
                     </button>
                   ))}
                 </div>
@@ -234,9 +236,9 @@ export default function SubjectPageEditor({
               {/* Announcement */}
               <div>
                 <label className="block mb-2 font-medium text-gray-700 text-sm">
-                  📢 Announcement
+                  {t("announcement")}
                   <span className="ml-1 font-normal text-gray-400">
-                    (shown at top for students)
+                    {t("announcementHint")}
                   </span>
                 </label>
                 <textarea
@@ -246,18 +248,21 @@ export default function SubjectPageEditor({
                   }
                   maxLength={500}
                   rows={1}
-                  placeholder='e.g. "Welcome to Mathematics! Please review chapter 3 before Monday."'
+                  placeholder={t("announcementPlaceholder")}
                   className="px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 w-full text-sm resize-none"
                 />
                 <p className="mt-1 text-gray-400 text-xs text-right">
-                  {announcementWords}/{ANNOUNCEMENT_MAX_WORDS} words
+                  {t("wordCount", {
+                    count: announcementWords,
+                    max: ANNOUNCEMENT_MAX_WORDS,
+                  })}
                 </p>
               </div>
 
               {/* Description */}
               <div>
                 <label className="block mb-2 font-medium text-gray-700 text-sm">
-                  📝 Course Description
+                  {t("courseDescription")}
                 </label>
                 <textarea
                   value={description}
@@ -266,11 +271,14 @@ export default function SubjectPageEditor({
                   }
                   maxLength={1000}
                   rows={2}
-                  placeholder="Brief description of this subject..."
+                  placeholder={t("descriptionPlaceholder")}
                   className="px-3 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-300 w-full text-sm resize-none"
                 />
                 <p className="mt-1 text-gray-400 text-xs text-right">
-                  {descriptionWords}/{DESCRIPTION_MAX_WORDS} words
+                  {t("wordCount", {
+                    count: descriptionWords,
+                    max: DESCRIPTION_MAX_WORDS,
+                  })}
                 </p>
               </div>
               {/* Messages */}
@@ -292,7 +300,7 @@ export default function SubjectPageEditor({
                 onClick={() => setOpen(false)}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 text-sm transition-colors"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 onClick={handleSave}
@@ -304,7 +312,7 @@ export default function SubjectPageEditor({
                 ) : (
                   <Save className="w-4 h-4" />
                 )}
-                Save Changes
+                {t("saveChanges")}
               </button>
             </div>
           </div>

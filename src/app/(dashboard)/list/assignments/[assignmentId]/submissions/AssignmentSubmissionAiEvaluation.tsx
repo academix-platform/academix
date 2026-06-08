@@ -2,6 +2,7 @@
 
 import { evaluateAssignmentSubmissionWithAi } from "@/lib/actions/aiEvaluation.actions";
 import { Loader2, Sparkles } from "lucide-react";
+import { useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { toast } from "react-toastify";
@@ -15,6 +16,7 @@ export default function AssignmentSubmissionAiEvaluation({
   submissionId,
   disabled,
 }: Props) {
+  const t = useTranslations("aiEvaluation");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
@@ -36,7 +38,7 @@ export default function AssignmentSubmissionAiEvaluation({
       type="button"
       onClick={handleEvaluate}
       disabled={disabled || isPending}
-      title={disabled ? "AI evaluation supports PDF submissions only." : "Evaluate with AI"}
+      title={disabled ? t("pdfSubmissionsOnly") : t("evaluate")}
       className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {isPending ? (
@@ -44,7 +46,7 @@ export default function AssignmentSubmissionAiEvaluation({
       ) : (
         <Sparkles className="h-3.5 w-3.5" />
       )}
-      Evaluate with AI
+      {t("evaluate")}
     </button>
   );
 }
