@@ -8,6 +8,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",
+  "/api/cron(.*)",
 ]);
 
 const matchers = (

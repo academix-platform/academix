@@ -1,6 +1,6 @@
 "use client";
 
-import { evaluateAssignmentSubmissionWithAi } from "@/lib/actions";
+import { evaluateAssignmentSubmissionWithAi } from "@/lib/actions/aiEvaluation.actions";
 import { Loader2, Sparkles } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";

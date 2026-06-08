@@ -11,6 +11,7 @@ import {
   requireActionAccess,
   successResult,
 } from "./helpers";
+import { deleteExamFileFromCloudinary } from "../cloudinary";
 
 export const createExam = async (
   currentState: CurrentState,
@@ -257,14 +258,52 @@ export const deleteExam = async (
       }
     }
 
-    const deleted = await prisma.exam.deleteMany({
-      where: { id, schoolId: access.schoolId },
-    });
-    if (deleted.count === 0) {
-      return { success: false, error: true, message: "Exam not found." };
-    }
+    await prisma.$transaction(async (tx) => {
+      // 1. Get all submissions for this exam to delete files from Cloudinary
+      const submissions = await tx.submission.findMany({
+        where: { examId: id, schoolId: access.schoolId },
+        include: {
+          answers: {
+            where: { filePublicId: { not: null } },
+            select: { filePublicId: true },
+          },
+        },
+      });
 
-    return successResult();
+      // Extract filePublicIds
+      const filePublicIds = submissions
+        .flatMap((s) => s.answers)
+        .map((a) => a.filePublicId)
+        .filter((pid): pid is string => !!pid);
+
+      // Delete files from Cloudinary (non-blocking)
+      for (const publicId of filePublicIds) {
+        await deleteExamFileFromCloudinary(publicId).catch((err) => {
+          console.error(`[deleteExam] Failed to delete file ${publicId} from Cloudinary:`, err);
+        });
+      }
+
+      // 2. Delete all results associated with this exam
+      await tx.result.deleteMany({
+        where: { examId: id, schoolId: access.schoolId },
+      });
+
+      // 3. Delete all submissions (cascades to Answers and AiEvaluations)
+      await tx.submission.deleteMany({
+        where: { examId: id, schoolId: access.schoolId },
+      });
+
+      // 4. Delete the exam (cascades to Questions)
+      const deleted = await tx.exam.deleteMany({
+        where: { id, schoolId: access.schoolId },
+      });
+
+      if (deleted.count === 0) {
+        throw new Error("Exam not found.");
+      }
+    });
+
+    return successResult(["/list/exams", "/list/results"]);
   } catch (err) {
     return errorResult(err);
   }

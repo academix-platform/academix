@@ -52,7 +52,13 @@ export default function ExamTimer({
         try {
           const data = JSON.parse(e.data);
           if (typeof data.timeRemaining === "number") {
-            setTimeRemaining((current) => Math.min(current, data.timeRemaining));
+            setTimeRemaining((current) => {
+              // If the server's time is greater (extended) or has drifted significantly, sync it
+              if (data.timeRemaining > current || Math.abs(current - data.timeRemaining) > 3) {
+                return data.timeRemaining;
+              }
+              return current;
+            });
           }
         } catch (err) {
           console.error("Failed to parse timer data", err);

@@ -4,6 +4,7 @@ import ExamWorkflowForm from "@/components/forms/ExamWorkflowForm";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { isFileConfig } from "@/lib/formValidationSchemas";
 
 export default async function CreateExamWorkflowPage({
   searchParams,
@@ -104,9 +105,15 @@ export default async function CreateExamWorkflowPage({
           points: question.points,
           order: question.order,
           allowMultiple: question.allowMultiple,
-          options: Array.isArray(question.options)
+          options: question.type === "FILE"
+            ? []
+            : Array.isArray(question.options)
             ? (question.options as string[])
             : [],
+          fileConfig:
+            question.type === "FILE" && isFileConfig(question.options)
+              ? question.options
+              : undefined,
           correctAnswer: question.correctAnswer ?? [],
           textAnswer: question.textAnswer ?? "",
         })),
