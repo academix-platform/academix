@@ -12,7 +12,7 @@ import {
   createExamWorkflow,
   updateExamWorkflow,
 } from "@/lib/actions/examWorkflow.actions";
-import { useEffect, useMemo, useState, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import InputField from "../InputField";
 import { FileText } from "lucide-react";
 import TeacherSearchInput from "./TeacherSearchInput";
@@ -86,12 +86,14 @@ function QuestionEditor({
       defaultValue: [],
     } as any) ?? [];
 
-  const [selectedIndexes, setSelectedIndexes] = useState<number[]>(() => {
+  // Derived reactively — always in sync with form values (fixes edit mode bug)
+  const selectedIndexes = useMemo(() => {
     if (!currentOptions.length || !correctAnswers.length) return [];
     return currentOptions
       .map((opt: string, i: number) => (correctAnswers.includes(opt) ? i : -1))
       .filter((i: number) => i >= 0);
-  });
+  }, [currentOptions, correctAnswers]);
+
 
   const selectedTrueFalse = useMemo<"TRUE" | "FALSE" | null>(() => {
     if ((correctAnswers ?? [])[0] === "FALSE") return "FALSE";
@@ -139,11 +141,11 @@ function QuestionEditor({
     const nextSelected = selectedIndexes
       .filter((si) => si !== idx)
       .map((si) => (si > idx ? si - 1 : si));
-    setSelectedIndexes(nextSelected);
 
     const next = currentOptions.filter((_: string, i: number) => i !== idx);
     setOptions(next);
 
+    // Compute and write correct answers directly (selectedIndexes is now derived/read-only)
     const nextCorrect = nextSelected
       .map((si) => next[si])
       .filter((v): v is string => Boolean(v?.trim()));
@@ -158,7 +160,6 @@ function QuestionEditor({
 
     if (nextType === "MCQ") {
       setOptions(["", "", "", ""]);
-      setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
@@ -167,7 +168,6 @@ function QuestionEditor({
       setValue(fileConfigPath, undefined, { shouldDirty: true });
     } else if (nextType === "TRUE_FALSE") {
       setOptions(["True", "False"]);
-      setSelectedIndexes([]);
       setValue(correctPath, ["TRUE"], {
         shouldDirty: true,
         shouldValidate: true,
@@ -179,7 +179,6 @@ function QuestionEditor({
       setValue(fileConfigPath, undefined, { shouldDirty: true });
     } else if (nextType === "FILE") {
       setOptions([]);
-      setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
@@ -197,7 +196,6 @@ function QuestionEditor({
       );
     } else {
       setOptions([]);
-      setSelectedIndexes([]);
       setValue(correctPath, [], { shouldDirty: true, shouldValidate: true });
       setValue(allowMultiplePath, false, {
         shouldDirty: true,
@@ -207,27 +205,6 @@ function QuestionEditor({
     }
   };
 
-  useEffect(() => {
-    if (qType !== "MCQ" || selectedIndexes.length === 0) return;
-
-    const nextCorrect = selectedIndexes
-      .map((si) => currentOptions[si])
-      .filter((v): v is string => Boolean(v?.trim()));
-
-    if (JSON.stringify(nextCorrect) !== JSON.stringify(correctAnswers)) {
-      setValue(correctPath, nextCorrect, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    }
-  }, [
-    correctAnswers,
-    correctPath,
-    currentOptions,
-    qType,
-    selectedIndexes,
-    setValue,
-  ]);
 
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
     const optionValue = currentOptions[optionIndex];
@@ -250,12 +227,10 @@ function QuestionEditor({
       nextSelected = checked ? [optionIndex] : [];
     }
 
-    setSelectedIndexes(nextSelected);
-
+    // Write directly to correctAnswers (selectedIndexes is derived from it)
     const nextCorrect = nextSelected
       .map((si) => currentOptions[si])
       .filter((v): v is string => Boolean(v?.trim()));
-
     setValue(correctPath, nextCorrect, {
       shouldDirty: true,
       shouldValidate: true,

@@ -3,7 +3,7 @@
 import AiEvaluationCard, {
   AiEvaluationCardData,
 } from "@/components/AiEvaluationCard";
-import { evaluateExamAnswerWithAi } from "@/lib/actions";
+import { evaluateExamAnswerWithAi } from "@/lib/actions/aiEvaluation.actions";
 
 type Props = {
   answerId: number;

@@ -9,6 +9,8 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import PublishGradesButton from "./PublishGradesButton";
 
+import ExtendTimeButton from "./ExtendTimeButton";
+
 type SubmissionRow = Submission & {
   student: Pick<Student, "name" | "username">;
   exam: { class: Pick<Class, "name"> | null };
@@ -90,6 +92,9 @@ const renderRow = (
         >
           {item.status === "GRADED" ? t("actions.view") : t("actions.grade")}
         </Link>
+      )}
+      {item.status === "IN_PROGRESS" && (
+        <ExtendTimeButton submissionId={item.id} studentName={item.student.name} />
       )}
     </td>
   </tr>

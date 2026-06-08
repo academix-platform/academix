@@ -608,13 +608,6 @@ export const questionSchema = z.object({
 
   // 4️⃣ الشروط الخاصة بسؤال رفع الملفات (FILE)
   if (data.type === "FILE") {
-    if (!data.fileConfig?.allowedExtensions || data.fileConfig.allowedExtensions.length === 0) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        message: "Please specify at least one required file extension (e.g. pdf, docx)",
-        path: ["fileConfig", "allowedExtensions"],
-      });
-    }
     if (data.fileConfig && data.fileConfig.minFileSizeMb > data.fileConfig.maxFileSizeMb) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,

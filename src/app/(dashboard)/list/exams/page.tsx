@@ -31,7 +31,10 @@ type ExamList = Exam & {
     status: string;
     gradePublished: boolean;
     totalScore: number | null;
+    startedAt: Date;
+    extraTime: number | null;
   } | null;
+  questions?: { points: number }[];
 };
 
 const formatDateTime = (date: Date) =>
@@ -46,15 +49,15 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
     accessor: string;
     className?: string;
   }[] = [
-      {
-        header: th("title"),
-        accessor: "title",
-      },
-      {
-        header: th("subject"),
-        accessor: "subject",
-      },
-    ];
+    {
+      header: th("title"),
+      accessor: "title",
+    },
+    {
+      header: th("subject"),
+      accessor: "subject",
+    },
+  ];
 
   if (role !== "student") {
     columns.push({
@@ -103,102 +106,156 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   return columns;
 };
 
-const renderRow = (
-  item: ExamList,
-  role: UserRole | null,
-  examT: (key: string) => string,
-) => (
-  <tr
-    key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
-  >
-    <td className="p-4">{item.title}</td>
+const renderRow = (item: ExamList, role: UserRole | null) => {
+  const sub = item.studentSubmission;
+  const isTimerExpired =
+    sub &&
+    sub.status === "IN_PROGRESS" &&
+    Date.now() >
+      new Date(sub.startedAt).getTime() +
+        ((item.duration ?? 0) + (sub.extraTime ?? 0)) * 60000;
+  const hasExamEnded = Date.now() > new Date(item.endTime).getTime();
+  const maxScore = item.questions?.reduce((sum, q) => sum + q.points, 0) ?? 0;
 
-    <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
+  return (
+    <tr
+      key={item.id}
+      className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    >
+      <td className="p-4">{item.title}</td>
 
-    {role !== "student" && (
-      <td>{item.displayClasses ?? item.class?.name ?? "-"}</td>
-    )}
-
-    {role !== "teacher" && (
-      <td className="hidden md:table-cell">
-        {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+      <td className="flex items-center gap-4 p-4">
+        {item.subject?.name ?? "-"}
       </td>
-    )}
 
-    <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-      {formatDateTime(item.startTime)}
-    </td>
+      {role !== "student" && (
+        <td>{item.displayClasses ?? item.class?.name ?? "-"}</td>
+      )}
 
-    <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-      {formatDateTime(item.endTime)}
-    </td>
+      {role !== "teacher" && (
+        <td className="hidden md:table-cell">
+          {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+        </td>
+      )}
 
-    {role === "student" && (
-      <td className="p-4 text-start">
-        {(() => {
-          const sub = item.studentSubmission;
-          if (!sub) return <span className="bg-gray-100 text-gray-500 px-2 py-1 rounded-md text-xs font-medium whitespace-nowrap">{examT("statuses.notStarted")}</span>;
-          if (sub.status === "IN_PROGRESS")
-            return <span className="bg-yellow-100 text-yellow-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.inProgress")}</span>;
-          if (sub.status === "SUBMITTED")
-            return <span className="bg-blue-100 text-blue-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.submitted")}</span>;
-          if (sub.status === "GRADED" && !sub.gradePublished)
-            return <span className="bg-orange-100 text-orange-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.graded")}</span>;
-          if (sub.status === "GRADED" && sub.gradePublished)
-            return <span className="bg-green-100 text-green-700 px-2 py-1 rounded-md text-xs font-medium">{examT("statuses.published")}</span>;
-        })()}
+      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
+        {formatDateTime(item.startTime)}
       </td>
-    )}
 
-    {role === "student" && (
-      <td className="p-4 text-start font-semibold text-academixPurpleDark">
-        {item.studentSubmission?.gradePublished && item.studentSubmission.totalScore !== null
-          ? item.studentSubmission.totalScore
-          : <span className="text-gray-300 font-normal">—</span>}
+      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
+        {formatDateTime(item.endTime)}
       </td>
-    )}
 
-    <td>
-      <div className="flex items-center gap-2">
-        {(role === "admin" || role === "teacher") && (
-          <div className="flex items-center gap-2">
+      {role === "student" && (
+        <td className="py-4 pr-4 text-left">
+          {(() => {
+            if (!sub) {
+              if (hasExamEnded) {
+                return (
+                  <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
+                    Ended
+                  </span>
+                );
+              }
+              return (
+                <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
+                  Not Started
+                </span>
+              );
+            }
+            if (
+              sub.status === "IN_PROGRESS" &&
+              (isTimerExpired || hasExamEnded)
+            ) {
+              return (
+                <span className="bg-red-100 px-2 py-1 rounded-md font-medium text-red-700 text-xs whitespace-nowrap">
+                  Ended
+                </span>
+              );
+            }
+            if (sub.status === "IN_PROGRESS")
+              return (
+                <span className="bg-yellow-100 px-2 py-1 rounded-md font-medium text-yellow-700 text-xs">
+                  In Progress
+                </span>
+              );
+            if (sub.status === "SUBMITTED")
+              return (
+                <span className="bg-blue-100 px-2 py-1 rounded-md font-medium text-blue-700 text-xs">
+                  Submitted
+                </span>
+              );
+            if (sub.status === "GRADED" && !sub.gradePublished)
+              return (
+                <span className="bg-orange-100 px-2 py-1 rounded-md font-medium text-orange-700 text-xs">
+                  Graded
+                </span>
+              );
+            if (sub.status === "GRADED" && sub.gradePublished)
+              return (
+                <span className="bg-green-100 px-2 py-1 rounded-md font-medium text-green-700 text-xs">
+                  Published
+                </span>
+              );
+          })()}
+        </td>
+      )}
+
+      {role === "student" && (
+        <td className="py-4 pr-4 font-semibold text-academixPurpleDark text-left">
+          {item.studentSubmission?.gradePublished &&
+          item.studentSubmission.totalScore !== null ? (
+            `${item.studentSubmission.totalScore}/${maxScore}`
+          ) : (
+            <span className="font-normal text-gray-300">—</span>
+          )}
+        </td>
+      )}
+
+      <td>
+        <div className="flex items-center gap-2">
+          {(role === "admin" || role === "teacher") && (
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/list/exams/create-workflow?examId=${item.id}`}
+                className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
+                aria-label="Edit exam workflow"
+              >
+                <Pencil className="w-4 h-4" />
+              </Link>
+              <FormContainer table="exam" type="delete" id={item.id} />
+            </div>
+          )}
+          {(role === "admin" || role === "teacher") && (
             <Link
-              href={`/list/exams/create-workflow?examId=${item.id}`}
-              className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
-              aria-label={examT("editWorkflow")}
+              href={`/list/exams/${item.id}/submissions`}
+              className="bg-academixYellow hover:opacity-90 px-3 py-2 rounded-md text-xs hover:scale-[1.05] transition"
             >
-              <Pencil className="w-4 h-4" />
+              Submissions
             </Link>
-            <FormContainer table="exam" type="delete" id={item.id} />
-          </div>
-        )}
-        {(role === "admin" || role === "teacher") && (
-          <Link
-            href={`/list/exams/${item.id}/submissions`}
-            className="bg-academixYellow hover:opacity-90 px-3 py-2 rounded-md text-xs hover:scale-[1.05] transition"
-          >
-            {examT("submissions")}
-          </Link>
-        )}
-        {role === "student" && !item.studentSubmission && (
-          <TakeExamConfirmation
-            examId={item.id}
-            title={item.title}
-            instructions={item.instructions}
-          />
-        )}
-        {role === "student" && item.studentSubmission?.status === "IN_PROGRESS" && (
-          <Link href={`/list/exams/${item.id}/take`}>
-            <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
-              {examT("continue")}
-            </button>
-          </Link>
-        )}
-      </div>
-    </td>
-  </tr>
-);
+          )}
+          {role === "student" && !item.studentSubmission && !hasExamEnded && (
+            <TakeExamConfirmation
+              examId={item.id}
+              title={item.title}
+              instructions={item.instructions}
+            />
+          )}
+          {role === "student" &&
+            item.studentSubmission?.status === "IN_PROGRESS" &&
+            !isTimerExpired &&
+            !hasExamEnded && (
+              <Link href={`/list/exams/${item.id}/take`}>
+                <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
+                  Continue
+                </button>
+              </Link>
+            )}
+        </div>
+      </td>
+    </tr>
+  );
+};
 
 const ExamListPage = async ({
   searchParams,
@@ -266,6 +323,11 @@ const ExamListPage = async ({
             name: true,
           },
         },
+        questions: {
+          select: {
+            points: true,
+          },
+        },
       },
       orderBy,
       take: ITEM_PER_PAGE,
@@ -292,7 +354,7 @@ const ExamListPage = async ({
       : [[], []];
 
   const classGroups = new Map<string, Set<string>>();
-  const uniqueExamsMap = new Map<string, typeof data[0]>();
+  const uniqueExamsMap = new Map<string, (typeof data)[0]>();
 
   for (const exam of data) {
     const groupKey = [
@@ -318,20 +380,41 @@ const ExamListPage = async ({
   // For student role: fetch their submission status for each displayed exam
   let studentSubmissionsMap = new Map<
     number,
-    { status: string; gradePublished: boolean; totalScore: number | null }
+    {
+      status: string;
+      gradePublished: boolean;
+      totalScore: number | null;
+      startedAt: Date;
+      extraTime: number | null;
+    }
   >();
   if (role === "student") {
     const examIds = data.map((e) => e.id);
     const studentSubmissions = await prisma.submission.findMany({
       where: { studentId: userId, examId: { in: examIds }, schoolId },
-      select: { examId: true, status: true, gradePublished: true, totalScore: true },
+      select: {
+        examId: true,
+        status: true,
+        gradePublished: true,
+        totalScore: true,
+        startedAt: true,
+        extraTime: true,
+      },
     });
     for (const sub of studentSubmissions) {
-      studentSubmissionsMap.set(sub.examId, { status: sub.status, gradePublished: sub.gradePublished, totalScore: sub.totalScore ?? null });
+      studentSubmissionsMap.set(sub.examId, {
+        status: sub.status,
+        gradePublished: sub.gradePublished,
+        totalScore: sub.totalScore ?? null,
+        startedAt: sub.startedAt,
+        extraTime: sub.extraTime,
+      });
     }
   }
 
-  const dataWithClassDisplay: ExamList[] = Array.from(uniqueExamsMap.values()).map((exam) => {
+  const dataWithClassDisplay: ExamList[] = Array.from(
+    uniqueExamsMap.values(),
+  ).map((exam) => {
     const groupKey = [
       exam.title,
       exam.startTime.toISOString(),
@@ -346,7 +429,10 @@ const ExamListPage = async ({
         groupedClasses && groupedClasses.size > 1
           ? Array.from(groupedClasses).sort().join(", ")
           : exam.class?.name,
-      studentSubmission: role === "student" ? (studentSubmissionsMap.get(exam.id) ?? null) : undefined,
+      studentSubmission:
+        role === "student"
+          ? (studentSubmissionsMap.get(exam.id) ?? null)
+          : undefined,
     };
   });
 
@@ -388,7 +474,7 @@ const ExamListPage = async ({
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role, examT)}
+        renderRow={(item) => renderRow(item, role)}
         data={dataWithClassDisplay}
         emptyTitle={examT("noExams")}
         emptyDescription={examT("emptyDescription")}
