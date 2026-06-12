@@ -10,7 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/webhooks(.*)",
   "/school-signup(.*)",
 ]);
-// تحديد أن مسارات الـ API والـ Cron لا تحتاج لفحص Clerk
+
 const isCronRoute = createRouteMatcher(['/api/cron(.*)']);
 
 const matchers = (
@@ -23,7 +23,7 @@ const matchers = (
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
-  // إذا كان الطلب لمسار الكرون، اتركه يمر دون أي تدخل من Clerk
+
   if (isCronRoute(req)) {
     return;
   }
