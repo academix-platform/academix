@@ -142,34 +142,34 @@ export default function NotificationBell() {
 
       {/* ─── Dropdown ─── */}
       {open && (
-        <div className="absolute end-0 top-10 z-50 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+        <div className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-10 sm:w-80">
           {/* Header */}
-          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-            <div className="flex items-center gap-2">
-              <Bell className="w-4 h-4 text-gray-600" />
+          <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:items-center sm:px-4">
+            <div className="flex min-w-0 flex-wrap items-center gap-2">
+              <Bell className="h-4 w-4 flex-shrink-0 text-gray-600" />
               <Link
                 href="/list/notifications"
                 onClick={() => setOpen(false)}
-                className="font-semibold text-sm text-gray-800 hover:text-purple-600 transition-colors"
+                className="truncate text-sm font-semibold text-gray-800 transition-colors hover:text-purple-600"
               >
                 {t("label")}
               </Link>
               {unreadCount > 0 && (
-                <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700">
                   {t("newCount", { count: unreadCount })}
                 </span>
               )}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-xs text-gray-500 hover:text-purple-600 transition-colors"
+                  className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-purple-600"
                   title={t("markAllRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  {t("allRead")}
+                  <span className="hidden min-[380px]:inline">{t("allRead")}</span>
                 </button>
               )}
               <button
@@ -183,7 +183,7 @@ export default function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="max-h-96 overflow-y-auto">
+          <div className="max-h-[min(24rem,calc(100vh-11rem))] overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-10">
                 <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
@@ -199,7 +199,7 @@ export default function NotificationBell() {
                   const { icon: Icon, color, bg } = TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
                   const content = (
                     <div
-                      className={`flex items-start gap-3 px-4 py-3 transition-colors cursor-pointer
+                      className={`flex cursor-pointer items-start gap-2 px-3 py-3 transition-colors sm:gap-3 sm:px-4
                                   ${n.isRead ? "bg-white hover:bg-gray-50" : "bg-purple-50 hover:bg-purple-100"}`}
                       onClick={() => !n.isRead && markRead(n.id)}
                     >
