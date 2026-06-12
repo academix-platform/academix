@@ -1,6 +1,5 @@
 import "dotenv/config";
 import {
-  Day,
   PrismaClient,
   SchoolStatus,
   StudentStatus,
