@@ -70,6 +70,18 @@ export async function buildSubjectQuery({
     });
   }
 
+  if (role === "student") {
+    conditions.push({
+      grade: {
+        students: {
+          some: {
+            id: userId,
+          },
+        },
+      },
+    });
+  }
+
   if (conditions.length > 0) {
     query.AND = conditions;
   }
