@@ -94,7 +94,6 @@ function QuestionEditor({
       .filter((i: number) => i >= 0);
   }, [currentOptions, correctAnswers]);
 
-
   const selectedTrueFalse = useMemo<"TRUE" | "FALSE" | null>(() => {
     if ((correctAnswers ?? [])[0] === "FALSE") return "FALSE";
     if ((correctAnswers ?? [])[0] === "TRUE") return "TRUE";
@@ -205,7 +204,6 @@ function QuestionEditor({
     }
   };
 
-
   const toggleMcqAnswer = (optionIndex: number, checked: boolean) => {
     const optionValue = currentOptions[optionIndex];
     if (checked && (!optionValue || !optionValue.trim())) {
@@ -253,7 +251,7 @@ function QuestionEditor({
       <button
         type="button"
         onClick={removeQuestion}
-        className="top-4 end-4 absolute font-bold text-red-500"
+        className="top-4 absolute font-bold text-red-500 end-4"
       >
         X
       </button>
@@ -298,9 +296,7 @@ function QuestionEditor({
         <div className="space-y-4 p-4 border border-gray-300 border-dashed rounded-md">
           <div className="flex items-center gap-2">
             <input type="checkbox" {...register(allowMultiplePath)} />
-            <span className="text-gray-700 text-sm">
-              {t("allowMultiple")}
-            </span>
+            <span className="text-gray-700 text-sm">{t("allowMultiple")}</span>
           </div>
 
           <div className="space-y-3">
@@ -400,17 +396,13 @@ function QuestionEditor({
 
       {(qType === "TEXT" || qType === "FILE") && (
         <div className="space-y-3 p-4 border border-gray-300 border-dashed rounded-md">
-          <h3 className="font-medium text-gray-700 text-sm">
-            {t("rubric")}
-          </h3>
+          <h3 className="font-medium text-gray-700 text-sm">{t("rubric")}</h3>
           <textarea
             {...register(`questions.${index}.textAnswer`)}
             className="p-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none w-full min-h-[100px] text-sm transition-all"
             placeholder={t("rubricPlaceholder")}
           />
-          <p className="text-gray-400 text-xs">
-            {t("rubricHelp")}
-          </p>
+          <p className="text-gray-400 text-xs">{t("rubricHelp")}</p>
           {errors?.questions?.[index]?.textAnswer?.message && (
             <p className="font-medium text-red-500 text-xs">
               {errors.questions[index]?.textAnswer?.message?.toString()}
@@ -518,9 +510,7 @@ function QuestionEditor({
             />
           </div>
 
-          <p className="text-gray-400 text-xs italic">
-            {t("pdfAiHelp")}
-          </p>
+          <p className="text-gray-400 text-xs italic">{t("pdfAiHelp")}</p>
 
           {errors?.questions?.[index]?.fileConfig?.message && (
             <p className="font-medium text-red-500 text-xs">
@@ -604,6 +594,7 @@ export default function ExamWorkflowForm({
   const watchEnableTimer = watch("enableTimer");
   const watchSubjectId = watch("subjectId");
   const watchTeacherId = watch("teacherId");
+  const watchClassIds = watch("classIds");
 
   const filteredClasses = useMemo(() => {
     if (!watchSubjectId) {
@@ -619,6 +610,28 @@ export default function ExamWorkflowForm({
     return classes.filter((c) => validClassIds.has(c.id));
   }, [classes, teacherLessons, watchSubjectId]);
 
+  const filteredClassIdStrings = useMemo(
+    () => filteredClasses.map((classItem) => String(classItem.id)),
+    [filteredClasses],
+  );
+  const selectedClassIds = useMemo(
+    () => new Set((watchClassIds ?? []).map(String)),
+    [watchClassIds],
+  );
+  const allFilteredClassesSelected =
+    filteredClassIdStrings.length > 0 &&
+    filteredClassIdStrings.every((classId) => selectedClassIds.has(classId));
+  const someFilteredClassesSelected = filteredClassIdStrings.some((classId) =>
+    selectedClassIds.has(classId),
+  );
+
+  const toggleAllClasses = (checked: boolean) => {
+    setValue("classIds", (checked ? filteredClassIdStrings : []) as any, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+  };
+
   const onSubmit = async (data: CreateExamWorkflowSchema) => {
     if (data.questions && data.questions.length > 0) {
       for (let i = 0; i < data.questions.length; i++) {
@@ -626,15 +639,11 @@ export default function ExamWorkflowForm({
         if (q.type === "MCQ") {
           const hasEmptyOption = q.options?.some((opt) => !opt || !opt.trim());
           if (hasEmptyOption) {
-            toast.error(
-              t("emptyOptionsForQuestion", { number: i + 1 }),
-            );
+            toast.error(t("emptyOptionsForQuestion", { number: i + 1 }));
             return;
           }
           if (!q.correctAnswer || q.correctAnswer.length === 0) {
-            toast.error(
-              t("selectCorrectForQuestion", { number: i + 1 }),
-            );
+            toast.error(t("selectCorrectForQuestion", { number: i + 1 }));
             return;
           }
         }
@@ -654,11 +663,7 @@ export default function ExamWorkflowForm({
       if (res.error) {
         toast.error(res.message);
       } else {
-        toast.success(
-          mode === "update"
-            ? t("updated")
-            : t("created"),
-        );
+        toast.success(mode === "update" ? t("updated") : t("created"));
         router.push("/list/exams");
       }
     } catch (err) {
@@ -672,9 +677,7 @@ export default function ExamWorkflowForm({
     <form className="flex flex-col gap-6" onSubmit={handleSubmit(onSubmit)}>
       <div className="gap-6 grid grid-cols-1 lg:grid-cols-2">
         <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
-          <h2 className="font-bold text-gray-900 text-2xl">
-            {t("basicInfo")}
-          </h2>
+          <h2 className="font-bold text-gray-900 text-2xl">{t("basicInfo")}</h2>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <InputField
               label={t("examTitle")}
@@ -743,6 +746,23 @@ export default function ExamWorkflowForm({
               <label className="font-medium text-gray-700 text-sm">
                 {t("classes")}
               </label>
+              {filteredClasses.length > 0 && (
+                <label className="flex items-center gap-2 w-fit font-medium text-sm">
+                  <input
+                    type="checkbox"
+                    checked={allFilteredClassesSelected}
+                    ref={(element) => {
+                      if (element) {
+                        element.indeterminate =
+                          someFilteredClassesSelected &&
+                          !allFilteredClassesSelected;
+                      }
+                    }}
+                    onChange={(event) => toggleAllClasses(event.target.checked)}
+                  />
+                  <span>{commonT("selectAll")}</span>
+                </label>
+              )}
               <div className="flex flex-wrap gap-4">
                 {filteredClasses.length > 0 ? (
                   filteredClasses.map((c) => (
@@ -773,9 +793,7 @@ export default function ExamWorkflowForm({
         </section>
 
         <section className="space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
-          <h2 className="font-bold text-gray-900 text-2xl">
-            {t("settings")}
-          </h2>
+          <h2 className="font-bold text-gray-900 text-2xl">{t("settings")}</h2>
           <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
             <label className="flex items-center gap-2">
               <input type="checkbox" {...register("enableTimer")} />
@@ -845,9 +863,7 @@ export default function ExamWorkflowForm({
 
       <section className="flex flex-col space-y-4 bg-academixPurpleLight p-4 border border-academixPurpleDark/10 rounded-md">
         <div className="flex justify-between items-center">
-          <h2 className="font-bold text-gray-900 text-2xl">
-            {t("questions")}
-          </h2>
+          <h2 className="font-bold text-gray-900 text-2xl">{t("questions")}</h2>
         </div>
 
         {fields.map((field, index) => {

@@ -25,6 +25,7 @@ import {
   generateExamUploadSignature,
 } from "../cloudinary";
 import { Prisma } from "@prisma/client";
+import { notifyNewExam } from "./notification.actions";
 
 // ============================================================
 // HELPERS
@@ -293,7 +294,7 @@ export const createExamWorkflow = async (
       }
     }
 
-    await prisma.$transaction(
+    const createdExams = await prisma.$transaction(
       assignmentResult.assignments.map((assignment) =>
         prisma.exam.create({
           data: {
@@ -337,6 +338,17 @@ export const createExamWorkflow = async (
         })
       )
     );
+
+    for (const exam of createdExams) {
+      if (exam.classId) {
+        await notifyNewExam({
+          schoolId: access.schoolId,
+          examId: exam.id,
+          examTitle: data.title,
+          classId: exam.classId,
+        }).catch(() => {});
+      }
+    }
 
     return successResult(["/list/exams"]);
   } catch (err) {
@@ -475,6 +487,8 @@ export const updateExamWorkflow = async (
       return successResult(["/list/exams"]);
     }
 
+    const createdExamsToNotify: { id: number; classId: number | null }[] = [];
+
     await prisma.$transaction(async (tx) => {
       for (const exam of groupExams) {
         if (exam.classId && !selectedAssignmentsByClass.has(exam.classId)) {
@@ -537,7 +551,7 @@ export const updateExamWorkflow = async (
             })),
           });
         } else {
-          await tx.exam.create({
+          const createdExam = await tx.exam.create({
             data: {
               title: data.title,
               startTime: data.startTime,
@@ -575,9 +589,25 @@ export const updateExamWorkflow = async (
               },
             },
           });
+
+          createdExamsToNotify.push({
+            id: createdExam.id,
+            classId: createdExam.classId,
+          });
         }
       }
     });
+
+    for (const exam of createdExamsToNotify) {
+      if (exam.classId) {
+        await notifyNewExam({
+          schoolId: access.schoolId,
+          examId: exam.id,
+          examTitle: data.title,
+          classId: exam.classId,
+        }).catch(() => {});
+      }
+    }
 
     return successResult(["/list/exams"]);
   } catch (err) {
