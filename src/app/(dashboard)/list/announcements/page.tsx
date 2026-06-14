@@ -171,7 +171,7 @@ const AnnouncementListPage = async ({
     prisma.class.count({ where: { schoolId } }),
     prisma.class.findMany({
       where: { schoolId },
-      select: { id: true, name: true },
+      select: { id: true, name: true, gradeId: true },
       orderBy: { name: "asc" },
     }),
     prisma.grade.findMany({

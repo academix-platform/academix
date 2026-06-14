@@ -209,7 +209,7 @@ export default async function FinalResultsPage({
     prisma.student.count({ where: studentWhere }),
     prisma.class.findMany({
       where: classWhere,
-      select: { id: true, name: true },
+      select: { id: true, name: true, gradeId: true },
       orderBy: { name: "asc" },
     }),
     prisma.grade.findMany({

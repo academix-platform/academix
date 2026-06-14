@@ -124,7 +124,7 @@ const ParentListPage = async ({
       ? await prisma.$transaction([
           prisma.class.findMany({
             where: { schoolId },
-            select: { id: true, name: true },
+            select: { id: true, name: true, gradeId: true },
             orderBy: { name: "asc" },
           }),
           prisma.grade.findMany({

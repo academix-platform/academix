@@ -24,6 +24,7 @@ export default function GradeFilter({ grades }: Props) {
       params.delete("gradeId");
     }
 
+    params.delete("classId");
     params.set("page", "1");
 
     router.push(`?${params.toString()}`);
