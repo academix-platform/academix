@@ -90,9 +90,9 @@ const Navbar = ({
       .join("") || "U";
 
   return (
-    <div className="flex justify-between items-center p-4">
+    <div className="flex items-center justify-between gap-2 p-3 sm:gap-4 sm:p-4">
       {/* SEARCH */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         {onMenuClick && (
           <button
             type="button"
@@ -123,18 +123,18 @@ const Navbar = ({
             )}
           </button>
         )}
-        <div className="flex items-center gap-4 bg-gradient-to-r from-academixYellow via-academixYellow/50 to-academixYellow/30 ms-2 px-4 py-3 rounded-md text-xs">
-          {schoolName && (
-            <span className="font-bold text-[16px] text-academixPurpleDeep uppercase whitespace-nowrap">
+        {schoolName && authUser?.role !== "superAdmin" && (
+          <div className="ms-0 flex min-w-0 items-center gap-3 rounded-md bg-gradient-to-r from-academixYellow via-academixYellow/50 to-academixYellow/30 px-3 py-2 text-xs sm:ms-2 sm:px-4 sm:py-3">
+            <span className="min-w-0 truncate text-[13px] font-bold uppercase text-academixPurpleDeep sm:text-[16px]">
               {schoolName}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* RIGHT */}
-      <div className="flex justify-end items-center gap-6 w-full">
-        <div className="flex items-center gap-3">
+      <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-4 lg:gap-6">
+        <div className="flex items-center gap-2 sm:gap-3">
           <LanguageSwitcher />
 
           {canViewMessages && (
@@ -152,7 +152,7 @@ const Navbar = ({
             </Link>
           )}
 
-          <NotificationBell />
+          {authUser?.role !== "superAdmin" && <NotificationBell />}
         </div>
 
         {/* USER INFO */}

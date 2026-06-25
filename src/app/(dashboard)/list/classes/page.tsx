@@ -80,7 +80,7 @@ const ClassListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
-  const { role, schoolId } = await enforceRouteAccess("/list/classes");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
 
@@ -91,6 +91,8 @@ const ClassListPage = async ({
   } = await buildClassQuery({
     searchParams,
     schoolId,
+    role,
+    userId,
   });
 
   const exportQuery = new URLSearchParams(

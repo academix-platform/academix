@@ -3,12 +3,16 @@ import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 type BuildClassQueryInput = {
   searchParams: PageSearchParams;
-schoolId: number;
+  schoolId: number;
+  role?: string | null;
+  userId?: string;
 };
 
 export async function buildClassQuery({
   searchParams,
   schoolId,
+  role,
+  userId,
 }: BuildClassQueryInput) {
   const resolvedSearchParams = await searchParams;
 
@@ -60,6 +64,23 @@ export async function buildClassQuery({
         });
         break;
     }
+  }
+
+  if (role === "teacher" && userId) {
+    conditions.push({
+      OR: [
+        {
+          teachers: {
+            some: { id: userId },
+          },
+        },
+        {
+          lessons: {
+            some: { teacherId: userId },
+          },
+        },
+      ],
+    });
   }
 
   if (conditions.length > 0) {

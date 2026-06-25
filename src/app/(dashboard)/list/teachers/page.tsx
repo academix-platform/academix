@@ -131,6 +131,7 @@ const TeacherListPage = async ({
   select: {
     id: true,
     name: true,
+    gradeId: true,
   },
   orderBy: {
     name: "asc",
@@ -144,6 +145,7 @@ const classes = await prisma.class.findMany({
   select: {
     id: true,
     name: true,
+    gradeId: true,
   },
   orderBy: {
     name: "asc",
@@ -171,7 +173,7 @@ const classes = await prisma.class.findMany({
         <h1 className="font-semibold text-lg">{t("allTeachers")}</h1>
 
         <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-         <SubjectFilter subjects={subjects} />
+         <SubjectFilter subjects={subjects} classes={classes} />
          <ClassFilter classes={classes} />
           <TableSearch />
 

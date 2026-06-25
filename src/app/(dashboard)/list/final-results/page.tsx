@@ -4,6 +4,7 @@ import FinalGradeEditButton from "@/components/FinalGradeEditButton";
 import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
+import EmptyState from "@/components/states/EmptyState";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import {
@@ -69,6 +70,26 @@ const statusClassName: Record<FinalResultStatus, string> = {
   NOT_UPDATED: "bg-amber-50 text-amber-700",
 };
 
+const AverageBadge = ({ value }: { value: number | null }) => (
+  <span className="inline-flex items-center bg-academixSkyLight px-2 py-1 rounded-md font-semibold text-academixPurpleDark">
+    {formatValue(value, "%")}
+  </span>
+);
+
+const StatusBadge = ({
+  status,
+  statusT,
+}: {
+  status: FinalResultStatus;
+  statusT: (key: FinalResultStatus) => string;
+}) => (
+  <span
+    className={`inline-flex items-center rounded-md px-2 py-1 font-medium ${statusClassName[status]}`}
+  >
+    {statusT(status)}
+  </span>
+);
+
 const renderRow = (
   item: FinalResultRow,
   statusT: (key: FinalResultStatus) => string,
@@ -83,16 +104,10 @@ const renderRow = (
     <td className="hidden md:table-cell">{item.className}</td>
     <td>{item.assessmentCount}</td>
     <td>
-      <span className="inline-flex items-center rounded-md bg-academixSkyLight px-2 py-1 font-semibold text-academixPurpleDark">
-        {formatValue(item.averageScore, "%")}
-      </span>
+      <AverageBadge value={item.averageScore} />
     </td>
     <td>
-      <span
-        className={`inline-flex items-center rounded-md px-2 py-1 font-medium ${statusClassName[item.status]}`}
-      >
-        {statusT(item.status)}
-      </span>
+      <StatusBadge status={item.status} statusT={statusT} />
     </td>
     {canEdit && (
       <td>
@@ -116,8 +131,9 @@ export default async function FinalResultsPage({
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
   const statusT = await getTranslations("finalResultStatus");
-  const { role, userId, schoolId } =
-    await enforceRouteAccess("/list/final-results");
+  const { role, userId, schoolId } = await enforceRouteAccess(
+    "/list/final-results",
+  );
   const resolvedSearchParams = await searchParams;
   const pageParam = getQueryParam(resolvedSearchParams.page);
   const search = getQueryParam(resolvedSearchParams.search);
@@ -133,7 +149,9 @@ export default async function FinalResultsPage({
   if (!currentAcademicYearId) return <NoCurrentAcademicYearMessage />;
 
   const academicYears =
-    role === "student" || role === "parent" ? await getAcademicYears(schoolId) : [];
+    role === "student" || role === "parent"
+      ? await getAcademicYears(schoolId)
+      : [];
   const selectedAcademicYearId = academicYearParam
     ? Number.parseInt(academicYearParam, 10)
     : currentAcademicYearId;
@@ -191,7 +209,7 @@ export default async function FinalResultsPage({
     prisma.student.count({ where: studentWhere }),
     prisma.class.findMany({
       where: classWhere,
-      select: { id: true, name: true },
+      select: { id: true, name: true, gradeId: true },
       orderBy: { name: "asc" },
     }),
     prisma.grade.findMany({
@@ -258,7 +276,10 @@ export default async function FinalResultsPage({
   for (const result of results) {
     const maxScore =
       result.assignment?.maxScore ??
-      result.exam?.questions.reduce((sum, question) => sum + question.points, 0) ??
+      result.exam?.questions.reduce(
+        (sum, question) => sum + question.points,
+        0,
+      ) ??
       null;
     const scores = scoresByStudent.get(result.studentId) ?? [];
     scores.push({ score: result.score, maxScore });
@@ -271,7 +292,8 @@ export default async function FinalResultsPage({
     );
     const storedFinalResult = storedFinalResultByStudent.get(student.id);
     const hasStoredFinalResult = !!storedFinalResult;
-    const averageScore = storedFinalResult?.averageScore ?? summary.averageScore;
+    const averageScore =
+      storedFinalResult?.averageScore ?? summary.averageScore;
     const assessmentCount =
       storedFinalResult?.assessmentCount ?? summary.assessmentCount;
 
@@ -285,16 +307,16 @@ export default async function FinalResultsPage({
       status:
         !hasStoredFinalResult && summary.assessmentCount === 0
           ? "NO_RESULTS"
-          : storedStatusByStudent.get(student.id) ?? "NOT_UPDATED",
+          : (storedStatusByStudent.get(student.id) ?? "NOT_UPDATED"),
     };
   });
   const canEdit = role === "admin" || role === "teacher";
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
+    <div className="flex-1 bg-white m-2 sm:m-4 mt-0 sm:mt-0 p-3 sm:p-4 rounded-md">
+      <div className="flex md:flex-row flex-col md:flex-wrap justify-between md:items-center gap-4">
         <h1 className="font-semibold text-lg">{t("finalAverages")}</h1>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+        <div className="flex sm:flex-row flex-col sm:flex-wrap sm:items-center gap-2 w-fit md:w-auto">
           <TableSearch />
           {(role === "student" || role === "parent") && (
             <AcademicYearFilter
@@ -310,13 +332,75 @@ export default async function FinalResultsPage({
           )}
         </div>
       </div>
-      <Table
-        columns={columns(th, canEdit)}
-        renderRow={(item) => renderRow(item, statusT, academicYearId, canEdit)}
-        data={data}
-        emptyTitle={emptyT("finalAverages")}
-        emptyDescription={emptyT("filterDescription")}
-      />
+
+      <div className="md:hidden space-y-3 mt-4">
+        {data.length === 0 ? (
+          <div className="flex justify-center items-center min-h-[300px]">
+            <EmptyState
+              title={emptyT("finalAverages")}
+              description={emptyT("filterDescription")}
+              className="py-0"
+            />
+          </div>
+        ) : (
+          data.map((item) => (
+            <div
+              key={item.id}
+              className="bg-white shadow-sm p-3 border border-gray-100 rounded-md"
+            >
+              <div className="flex justify-between items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-medium text-gray-900 text-sm truncate">
+                    {item.name}
+                  </p>
+                  <p className="mt-1 text-gray-500 text-xs">
+                    {th("class")}: {item.className}
+                  </p>
+                </div>
+                <StatusBadge status={item.status} statusT={statusT} />
+              </div>
+
+              <div className="gap-2 grid grid-cols-2 mt-3 text-xs">
+                <div className="bg-slate-50 p-2 rounded-md">
+                  <p className="text-gray-500">{th("assessmentCount")}</p>
+                  <p className="mt-1 font-semibold text-gray-900">
+                    {item.assessmentCount}
+                  </p>
+                </div>
+                <div className="bg-slate-50 p-2 rounded-md">
+                  <p className="text-gray-500">{th("averageScore")}</p>
+                  <div className="mt-1">
+                    <AverageBadge value={item.averageScore} />
+                  </div>
+                </div>
+              </div>
+
+              {canEdit && (
+                <div className="mt-3">
+                  <FinalGradeEditButton
+                    studentId={item.id}
+                    studentName={item.name}
+                    academicYearId={academicYearId}
+                    averageScore={item.storedAverageScore ?? item.averageScore}
+                  />
+                </div>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      <div className="hidden md:block">
+        <Table
+          columns={columns(th, canEdit)}
+          renderRow={(item) =>
+            renderRow(item, statusT, academicYearId, canEdit)
+          }
+          data={data}
+          emptyTitle={emptyT("finalAverages")}
+          emptyDescription={emptyT("filterDescription")}
+        />
+      </div>
       <Pagination page={currentPage} count={count} />
     </div>
   );
