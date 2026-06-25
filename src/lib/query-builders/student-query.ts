@@ -114,11 +114,22 @@ export async function buildStudentQuery({
 
     case "teacher":
       conditions.push({
-        class: {
-          lessons: {
-            some: { teacherId: userId },
+        OR: [
+          {
+            class: {
+              teachers: {
+                some: { id: userId },
+              },
+            },
           },
-        },
+          {
+            class: {
+              lessons: {
+                some: { teacherId: userId },
+              },
+            },
+          },
+        ],
       });
       break;
   }

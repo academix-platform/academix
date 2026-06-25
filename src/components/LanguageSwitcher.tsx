@@ -86,9 +86,9 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
         disabled={isPending}
         aria-label={t("label")}
         aria-expanded={isOpen}
-        className="group flex items-center gap-2 bg-white/95 disabled:opacity-60 shadow-sm hover:shadow-md ps-2 pe-3 border border-academixPurple/20 hover:border-academixPurple/40 rounded-md ring-1 ring-white/70 h-10 text-gray-700 text-sm transition disabled:cursor-not-allowed"
+        className="group flex h-10 items-center gap-1.5 rounded-md border border-academixPurple/20 bg-white/95 px-1.5 text-sm text-gray-700 shadow-sm ring-1 ring-white/70 transition hover:border-academixPurple/40 hover:shadow-md disabled:cursor-not-allowed disabled:opacity-60 sm:gap-2 sm:ps-2 sm:pe-3"
       >
-        <span className="flex justify-center items-center bg-academixPurpleLight rounded-full ring-1 ring-academixPurple/20 w-7 h-7">
+        <span className="flex h-7 w-7 items-center justify-center rounded-full bg-academixPurpleLight ring-1 ring-academixPurple/20">
           <Languages className="w-4 h-4 text-academixPurpleDark" />
         </span>
         <span className="hidden sm:flex flex-col items-start min-w-0 leading-none">
@@ -96,11 +96,11 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
             {t(currentLocale)}
           </span>
         </span>
-        <span className="bg-academixPurpleDark px-1.5 py-0.5 rounded-md font-bold text-[10px] text-white uppercase">
+        <span className="hidden rounded-md bg-academixPurpleDark px-1.5 py-0.5 text-[10px] font-bold uppercase text-white min-[360px]:inline">
           {currentLocale}
         </span>
         <ChevronDown
-          className={`h-4 w-4 text-gray-400 transition group-hover:text-academixPurpleDark ${
+          className={`hidden h-4 w-4 text-gray-400 transition group-hover:text-academixPurpleDark min-[420px]:block ${
             isOpen ? "rotate-180" : ""
           }`}
           aria-hidden="true"

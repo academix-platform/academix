@@ -31,9 +31,7 @@ const RolesSection = () => {
           <h2 className="font-semibold text-3xl md:text-4xl tracking-tight">
             {t("title")}
           </h2>
-          <p className="mt-4 text-purple-50">
-            {t("description")}
-          </p>
+          <p className="mt-4 text-purple-50">{t("description")}</p>
         </div>
         <div className="gap-5 grid md:grid-cols-3 mt-14">
           {roles.map((role) => (
@@ -56,7 +54,7 @@ const RolesSection = () => {
                     key={action}
                     className="flex items-center gap-2 text-purple-100 text-sm"
                   >
-                    <CheckCircle2 className="flex-shrink-0 w-4 h-4 text-academixPurpleDark" />
+                    <CheckCircle2 className="flex-shrink-0 w-4 h-4 text-green-500" />
                     {t(`items.${role.key}.actions.${action}`)}
                   </li>
                 ))}

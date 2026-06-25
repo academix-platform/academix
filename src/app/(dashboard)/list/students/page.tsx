@@ -135,22 +135,38 @@ const StudentListPage = async ({
 
   exportQuery.set("academicYearId", String(academicYearId));
 
+  const classWhere =
+    role === "teacher"
+      ? {
+          schoolId,
+          OR: [
+            { teachers: { some: { id: userId } } },
+            { lessons: { some: { teacherId: userId } } },
+          ],
+        }
+      : { schoolId };
+
   const classes = await prisma.class.findMany({
-    where: {
-      schoolId,
-    },
+    where: classWhere,
     select: {
       id: true,
       name: true,
+      gradeId: true,
     },
     orderBy: {
       name: "asc",
     },
   });
 
+  const teacherGradeIds =
+    role === "teacher"
+      ? Array.from(new Set(classes.map((classItem) => classItem.gradeId)))
+      : [];
+
   const grades = await prisma.grade.findMany({
     where: {
       schoolId,
+      ...(role === "teacher" ? { id: { in: teacherGradeIds } } : {}),
     },
     select: {
       id: true,

@@ -271,7 +271,21 @@ export default async function SubjectDetailPage({
 
   // جلب المادة مع كل البيانات + إعدادات الصفحة
   const subject = await prisma.subject.findFirst({
-    where: { id: subjectId, schoolId },
+    where: {
+      id: subjectId,
+      schoolId,
+      ...(roleStr === "student"
+        ? {
+            grade: {
+              students: {
+                some: {
+                  id: userId,
+                },
+              },
+            },
+          }
+        : {}),
+    },
     include: {
       grade: { select: { level: true } },
       teachers: {

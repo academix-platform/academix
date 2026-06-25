@@ -26,10 +26,6 @@ type ResultList = Result & {
 const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   const columns = [
     {
-      header: th("student"),
-      accessor: "student",
-    },
-    {
       header: th("assessment"),
       accessor: "assessment",
     },
@@ -39,6 +35,13 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
       className: "hidden md:table-cell",
     },
   ];
+
+  if (role !== "student") {
+    columns.unshift({
+      header: th("student"),
+      accessor: "student",
+    });
+  }
 
   if (role === "admin" || role === "teacher") {
       columns.push({
@@ -55,18 +58,22 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
     key={item.id}
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
-    <td className="flex items-center gap-4 p-4">
-      <Image
-        src="/avatar.png"
-        alt=""
-        width={40}
-        height={40}
-        className="hidden md:block rounded-full w-10 h-10 object-cover"
-      />
-      {item.student.name}
-    </td>
+    {role !== "student" && (
+      <td className="flex items-center gap-4 p-4">
+        <Image
+          src="/avatar.png"
+          alt=""
+          width={40}
+          height={40}
+          className="hidden md:block rounded-full w-10 h-10 object-cover"
+        />
+        {item.student.name}
+      </td>
+    )}
 
-    <td>{item.exam?.title || item.assignment?.title || "-"}</td>
+    <td className={role === "student" ? "p-4" : ""}>
+      {item.exam?.title || item.assignment?.title || "-"}
+    </td>
 
     <td className="hidden md:table-cell">{item.score}</td>
 
@@ -152,7 +159,7 @@ const ResultListPage = async ({
       ? await prisma.$transaction([
           prisma.class.findMany({
             where: { schoolId },
-            select: { id: true, name: true },
+            select: { id: true, name: true, gradeId: true },
             orderBy: { name: "asc" },
           }),
           prisma.grade.findMany({
