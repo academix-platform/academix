@@ -264,15 +264,12 @@ export default function ExamClient({
       );
       await Promise.race([submitExam(submission.id), timeout]);
 
-      // نجح → وجّه الطالب
       toast.info(t("toast.timeUp"));
       router.push("/list/exams");
 
     } catch {
-      // فشل (offline أو timeout) → افتح الـ UI وأخبر الطالب
       setIsSubmitting(false);
-      toast.info(t("toast.timeUp"));
-      // الـ lazy eval على صفحة المعلم رح يتكفل بالسبمت
+      toast.error(t("toast.submitFailed"));
     }
   };
 
