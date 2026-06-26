@@ -136,7 +136,7 @@ export default function ExamClient({
             if (Array.isArray(parsed)) {
               return parsed.filter(Boolean).length === 0;
             }
-          } catch {}
+          } catch { }
         }
         return false;
       });
@@ -222,7 +222,7 @@ export default function ExamClient({
           if (Array.isArray(parsed)) {
             return parsed.filter(Boolean).length === 0;
           }
-        } catch {}
+        } catch { }
       }
       return false;
     });
@@ -257,9 +257,23 @@ export default function ExamClient({
     setIsSubmitting(true);
     await abortAllUploads();
     debouncedSaveRef.current?.flush();
-    await submitExam(submission.id);
-    toast.info(t("toast.timeUp"));
-    router.push("/list/exams");
+
+    try {
+      const timeout = new Promise<never>((_, reject) =>
+        setTimeout(() => reject(new Error("timeout")), 5000)
+      );
+      await Promise.race([submitExam(submission.id), timeout]);
+
+      // نجح → وجّه الطالب
+      toast.info(t("toast.timeUp"));
+      router.push("/list/exams");
+
+    } catch {
+      // فشل (offline أو timeout) → افتح الـ UI وأخبر الطالب
+      setIsSubmitting(false);
+      toast.info(t("toast.timeUp"));
+      // الـ lazy eval على صفحة المعلم رح يتكفل بالسبمت
+    }
   };
 
   useEffect(() => {
