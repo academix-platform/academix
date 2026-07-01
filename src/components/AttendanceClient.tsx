@@ -1,7 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveDailyAttendance } from "@/lib/actions";
 import EmptyState from "@/components/states/EmptyState";
@@ -26,23 +27,42 @@ const AttendanceClient = ({
   const router = useRouter();
 
   const [changes, setChanges] = useState<Record<string, boolean>>({});
+  const handledResultRef = useRef<string | null>(null);
 
-  const [state, formAction] = useActionState(saveDailyAttendance, {
+  const [state, formAction, isPending] = useActionState(saveDailyAttendance, {
     success: false,
     error: false,
     message: "",
   });
 
   useEffect(() => {
+    if (isPending) {
+      handledResultRef.current = null;
+      return;
+    }
+
+    const resultKey = `${state.success}:${state.error}:${state.message}`;
+    if (handledResultRef.current === resultKey) {
+      return;
+    }
+
+    handledResultRef.current = resultKey;
+
     if (state.success) {
       toast.success(state.message || t("saved"));
       router.refresh();
-    }
-
-    if (state.error) {
+    } else if (state.error) {
       toast.error(state.message || actionsT("somethingWentWrong"));
     }
-  }, [state, router, t, actionsT]);
+  }, [
+    state.success,
+    state.error,
+    state.message,
+    isPending,
+    router,
+    t,
+    actionsT,
+  ]);
 
   if (data.length === 0) {
     return (
@@ -52,11 +72,7 @@ const AttendanceClient = ({
             ? t("noRecordsPage")
             : t("noScopeFound", { scope: filtersT(scope) })
         }
-        description={
-          hasAttendance
-            ? t("tryAnotherPage")
-            : t("noRecordsDate")
-        }
+        description={hasAttendance ? t("tryAnotherPage") : t("noRecordsDate")}
       />
     );
   }
@@ -115,8 +131,15 @@ const AttendanceClient = ({
         </tbody>
       </table>
       {isToday && (
-        <button className="bg-academixPurpleDark px-2 py-2 rounded-md w-max text-white">
-          {t("save")}
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-academixPurpleDark disabled:opacity-70 px-2 py-2 rounded-md w-max text-white disabled:cursor-not-allowed"
+        >
+          <span className="inline-flex items-center gap-2">
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isPending ? actionsT("saving") : t("save")}
+          </span>
         </button>
       )}
     </form>
