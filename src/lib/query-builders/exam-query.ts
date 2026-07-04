@@ -4,7 +4,7 @@ import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 type BuildExamQueryInput = {
   searchParams: PageSearchParams;
- schoolId: number;
+  schoolId: number;
   role: string | null;
   userId: string;
 };
@@ -24,13 +24,11 @@ export async function buildExamQuery({
 
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
 
-  // ترتيب حسب تاريخ الامتحان (startTime)
-  // asc  = الأقدم أولاً
-  // desc = الأحدث أولاً
+  // Default to newest exams first unless the user explicitly asks for ascending order.
   const orderBy: Prisma.ExamOrderByWithRelationInput =
-    getQueryParam(sort) === "desc"
-      ? { startTime: "desc" }
-      : { startTime: "asc" };
+    getQueryParam(sort) === "asc"
+      ? { startTime: "asc" }
+      : { startTime: "desc" };
 
   if (!academicYearId) {
     return {
