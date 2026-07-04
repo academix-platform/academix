@@ -2,6 +2,7 @@
 
 import { AcademicYearItem } from "@/lib/academicYears";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
 
 type StudentsFiltersProps = {
   academicYears: AcademicYearItem[];
@@ -9,10 +10,10 @@ type StudentsFiltersProps = {
 };
 
 const STATUS_OPTIONS = [
-  { value: "ACTIVE", label: "Regular" },
-  { value: "REPEATED", label: "Repeated" },
-  { value: "GRADUATED", label: "Graduated" },
-  { value: "LEFT", label: "Left" },
+  { value: "ACTIVE", labelKey: "regular" },
+  { value: "REPEATED", labelKey: "repeated" },
+  { value: "GRADUATED", labelKey: "graduated" },
+  { value: "LEFT", labelKey: "left" },
 ] as const;
 
 const REPEAT_COUNT_OPTIONS = [1, 2, 3, 4, 5] as const;
@@ -21,6 +22,7 @@ const StudentsFilters = ({
   academicYears,
   currentAcademicYearId,
 }: StudentsFiltersProps) => {
+  const t = useTranslations("filters");
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -46,9 +48,9 @@ const StudentsFilters = ({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-3">
+    <div className="hidden sm:flex flex-wrap items-center gap-3">
       <label className="flex flex-col gap-1 text-gray-500 text-xs">
-        Academic Year
+        {t("academicYear")}
         <select
           value={selectedAcademicYearId}
           onChange={(event) =>
@@ -65,7 +67,7 @@ const StudentsFilters = ({
       </label>
 
       <label className="flex flex-col gap-1 text-gray-500 text-xs">
-        Status
+        {t("status")}
         <select
           value={selectedStatus}
           onChange={(event) => {
@@ -79,7 +81,7 @@ const StudentsFilters = ({
         >
           {STATUS_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
-              {option.label}
+              {t(option.labelKey)}
             </option>
           ))}
         </select>
@@ -87,7 +89,7 @@ const StudentsFilters = ({
 
       {selectedStatus === "REPEATED" && (
         <label className="flex flex-col gap-1 text-gray-500 text-xs">
-          Repeated Times
+          {t("repeatedTimes")}
           <select
             value={selectedRepeatCount}
             onChange={(event) =>
@@ -97,7 +99,7 @@ const StudentsFilters = ({
           >
             {REPEAT_COUNT_OPTIONS.map((count) => (
               <option key={count} value={count}>
-                {count} {count === 1 ? "time" : "times"}
+                {count} {count === 1 ? t("time") : t("times")}
               </option>
             ))}
           </select>

@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyNewExam } from "./notification.actions";
 import { ExamSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -10,6 +11,7 @@ import {
   requireActionAccess,
   successResult,
 } from "./helpers";
+import { deleteExamFileFromCloudinary } from "../cloudinary";
 
 export const createExam = async (
   currentState: CurrentState,
@@ -52,8 +54,17 @@ export const createExam = async (
       };
     }
 
-    await prisma.$transaction(
-      lessons.map((lesson) =>
+    const uniqueClassLessons = Array.from(
+      lessons.reduce((map, lesson) => {
+        if (!map.has(lesson.classId)) {
+          map.set(lesson.classId, lesson);
+        }
+        return map;
+      }, new Map<number, (typeof lessons)[number]>()).values(),
+    );
+
+    const createdExams = await prisma.$transaction(
+      uniqueClassLessons.map((lesson) =>
         prisma.exam.create({
           data: {
             title: data.title,
@@ -68,6 +79,18 @@ export const createExam = async (
         }),
       ),
     );
+
+    // ✅ إشعار الطلاب بالاختبار الجديد
+    for (const exam of createdExams) {
+      if (exam.classId) {
+        await notifyNewExam({
+          schoolId: access.schoolId,
+          examId: exam.id,
+          examTitle: data.title,
+          classId: exam.classId,
+        }).catch(() => {});
+      }
+    }
 
     return successResult(["/list/exams"]);
   } catch (err) {
@@ -235,14 +258,52 @@ export const deleteExam = async (
       }
     }
 
-    const deleted = await prisma.exam.deleteMany({
-      where: { id, schoolId: access.schoolId },
-    });
-    if (deleted.count === 0) {
-      return { success: false, error: true, message: "Exam not found." };
-    }
+    await prisma.$transaction(async (tx) => {
+      // 1. Get all submissions for this exam to delete files from Cloudinary
+      const submissions = await tx.submission.findMany({
+        where: { examId: id, schoolId: access.schoolId },
+        include: {
+          answers: {
+            where: { filePublicId: { not: null } },
+            select: { filePublicId: true },
+          },
+        },
+      });
 
-    return successResult();
+      // Extract filePublicIds
+      const filePublicIds = submissions
+        .flatMap((s) => s.answers)
+        .map((a) => a.filePublicId)
+        .filter((pid): pid is string => !!pid);
+
+      // Delete files from Cloudinary (non-blocking)
+      for (const publicId of filePublicIds) {
+        await deleteExamFileFromCloudinary(publicId).catch((err) => {
+          console.error(`[deleteExam] Failed to delete file ${publicId} from Cloudinary:`, err);
+        });
+      }
+
+      // 2. Delete all results associated with this exam
+      await tx.result.deleteMany({
+        where: { examId: id, schoolId: access.schoolId },
+      });
+
+      // 3. Delete all submissions (cascades to Answers and AiEvaluations)
+      await tx.submission.deleteMany({
+        where: { examId: id, schoolId: access.schoolId },
+      });
+
+      // 4. Delete the exam (cascades to Questions)
+      const deleted = await tx.exam.deleteMany({
+        where: { id, schoolId: access.schoolId },
+      });
+
+      if (deleted.count === 0) {
+        throw new Error("Exam not found.");
+      }
+    });
+
+    return successResult(["/list/exams", "/list/results"]);
   } catch (err) {
     return errorResult(err);
   }

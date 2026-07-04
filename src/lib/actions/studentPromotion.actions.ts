@@ -2,6 +2,11 @@
 
 import prisma from "../prisma";
 import {
+  calculateFinalResultSummary,
+  PASSING_AVERAGE,
+  type AssessmentScore,
+} from "../finalResults";
+import {
   errorResult,
   requireActionAccess,
   successResult,
@@ -65,7 +70,6 @@ export const promoteStudentsByPerformance = async (
                 where: {
                   academicYearId: number;
                   schoolId?: number;
-                  performanceStatus: { in: Array<"PASS" | "FAIL"> };
                   student: {
                     schoolId?: number;
                     status: { in: Array<"ACTIVE" | "REPEATED"> };
@@ -93,7 +97,6 @@ export const promoteStudentsByPerformance = async (
           where: {
             academicYearId: currentAcademicYearId,
             schoolId: access.schoolId,
-            performanceStatus: { in: ["PASS", "FAIL"] },
             student: {
               schoolId: access.schoolId,
               status: { in: ["ACTIVE", "REPEATED"] },
@@ -117,7 +120,7 @@ export const promoteStudentsByPerformance = async (
         success: false,
         error: true,
         message:
-          "No active or repeated students with PASS/FAIL performance status were found for the current academic year.",
+          "No active or repeated students were found for the current academic year.",
         promotedCount: 0,
         graduatedCount: 0,
         repeatedCount: 0,
@@ -141,15 +144,119 @@ export const promoteStudentsByPerformance = async (
     let repeatedCount = 0;
     let skippedCount = 0;
 
+    const studentIds = enrollments.map((enrollment) => enrollment.studentId);
+    const results =
+      studentIds.length > 0
+        ? await prisma.result.findMany({
+            where: {
+              schoolId: access.schoolId,
+              academicYearId: currentAcademicYearId,
+              studentId: { in: studentIds },
+            },
+            select: {
+              studentId: true,
+              score: true,
+              assignment: {
+                select: {
+                  maxScore: true,
+                },
+              },
+              exam: {
+                select: {
+                  questions: {
+                    select: {
+                      points: true,
+                    },
+                  },
+                },
+              },
+            },
+          })
+        : [];
+
+    const scoresByStudent = new Map<string, AssessmentScore[]>();
+
+    for (const result of results) {
+      const examMaxScore =
+        result.exam?.questions.reduce(
+          (sum, question) => sum + question.points,
+          0,
+        ) ?? null;
+      const maxScore = result.assignment?.maxScore ?? examMaxScore;
+      const existingScores = scoresByStudent.get(result.studentId) ?? [];
+
+      existingScores.push({
+        score: result.score,
+        maxScore,
+      });
+      scoresByStudent.set(result.studentId, existingScores);
+    }
+
     await prisma.$transaction(async (tx) => {
       for (const enrollment of enrollments) {
         const currentGrade = gradeById.get(enrollment.gradeId);
-        if (!currentGrade || !enrollment.performanceStatus) {
+        const finalSummary = calculateFinalResultSummary(
+          scoresByStudent.get(enrollment.studentId) ?? [],
+        );
+
+        if (!currentGrade || finalSummary.averageScore === null) {
           skippedCount += 1;
           continue;
         }
 
-        if (enrollment.performanceStatus === "FAIL") {
+        await (
+          tx as unknown as {
+            studentFinalResult: {
+              upsert: (args: {
+                where: {
+                  schoolId_studentId_academicYearId: {
+                    schoolId: number;
+                    studentId: string;
+                    academicYearId: number;
+                  };
+                };
+                create: {
+                  schoolId: number;
+                  studentId: string;
+                  academicYearId: number;
+                  averageScore: number;
+                  assessmentCount: number;
+                  status: "PASS" | "FAIL";
+                };
+                update: {
+                  averageScore: number;
+                  assessmentCount: number;
+                  status: "PASS" | "FAIL";
+                };
+              }) => Promise<unknown>;
+            };
+          }
+        ).studentFinalResult.upsert({
+          where: {
+            schoolId_studentId_academicYearId: {
+              schoolId: access.schoolId,
+              studentId: enrollment.studentId,
+              academicYearId: currentAcademicYearId,
+            },
+          },
+          create: {
+            schoolId: access.schoolId,
+            studentId: enrollment.studentId,
+            academicYearId: currentAcademicYearId,
+            averageScore: finalSummary.averageScore,
+            assessmentCount: finalSummary.assessmentCount,
+            status:
+              finalSummary.averageScore >= PASSING_AVERAGE ? "PASS" : "FAIL",
+          },
+          update: {
+            averageScore: finalSummary.averageScore,
+            assessmentCount: finalSummary.assessmentCount,
+            status:
+              finalSummary.averageScore >= PASSING_AVERAGE ? "PASS" : "FAIL",
+          },
+        });
+
+        if (finalSummary.averageScore < PASSING_AVERAGE) {
           await tx.student.update({
             where: { id: enrollment.studentId },
             data: {

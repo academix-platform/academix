@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import type { Exam, Question, Answer } from "@prisma/client";
+import { Loader2, Send, X } from "lucide-react";
 import {
   getExamPage,
   saveAnswer,
@@ -14,6 +16,10 @@ import { debounce } from "@/lib/utils";
 import ExamTimer from "./ExamTimer";
 import FreezeOverlay from "./FreezeOverlay";
 import QuestionRenderer from "./QuestionRenderer";
+
+type DebouncedSaveFn = ((questionId: number, answer: string) => void) & {
+  flush: () => void;
+};
 
 interface ExamClientProps {
   exam: Exam;
@@ -32,43 +38,63 @@ export default function ExamClient({
   initialTimeRemaining,
   totalPages,
 }: ExamClientProps) {
+  const t = useTranslations("examTaking");
   const router = useRouter();
-  
+
   const [questions, setQuestions] = useState<Question[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<number, string>>(
-    initialAnswers.reduce((acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || "" }), {})
+    initialAnswers.reduce(
+      (acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || ans.fileUrl || "" }),
+      {},
+    ),
   );
-  
+  const [answerRecords, setAnswerRecords] = useState<Record<number, Answer>>(
+    initialAnswers.reduce(
+      (acc, ans) => ({ ...acc, [ans.questionId]: ans }),
+      {} as Record<number, Answer>,
+    ),
+  );
+
   const [currentPage, setCurrentPage] = useState(submission.currentPage);
   const [isFrozen, setIsFrozen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   const [isLoadingPage, setIsLoadingPage] = useState(false);
-  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [questionSaveStatus, setQuestionSaveStatus] = useState<
+    Record<number, "idle" | "saving" | "saved" | "error">
+  >({});
+  const saveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
   const pendingAnswersRef = useRef<Record<number, string>>({});
   const disconnectedAtRef = useRef<number | null>(null);
   const freezeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedSaveRef = useRef<ReturnType<typeof debounce> | null>(null);
+  const debouncedSaveRef = useRef<DebouncedSaveFn | null>(null);
+  const uploadingQuestionsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
     const debounced = debounce(async (questionId: number, answer: string) => {
-      setSaveStatus("saving");
+      setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saving" }));
       const res = await saveAnswer(
         { success: true, error: false },
         {
           submissionId: submission.id,
           questionId,
           textAnswer: answer,
-        }
+        },
       );
 
       if (res.error) {
-        setSaveStatus("error");
-        toast.error(res.message || "Failed to save answer.");
+        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "error" }));
+        toast.error(res.message || t("toast.saveFailed"));
       } else {
-        setSaveStatus("saved");
+        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saved" }));
         // Clear from pending once saved successfully
         delete pendingAnswersRef.current[questionId];
+        // Auto-hide "saved" after 2 seconds
+        if (saveTimersRef.current[questionId]) clearTimeout(saveTimersRef.current[questionId]);
+        saveTimersRef.current[questionId] = setTimeout(() => {
+          setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "idle" }));
+        }, 2000);
       }
     }, 1000);
 
@@ -89,8 +115,36 @@ export default function ExamClient({
   const handlePageChange = async (newPage: number) => {
     if (newPage < 1 || newPage > totalPages) return;
     if (!exam.enableNavigation && newPage < currentPage) {
-      toast.error("Navigation to previous pages is disabled.");
+      toast.error(t("toast.previousDisabled"));
       return;
+    }
+
+    // Check for unanswered questions on the current page when moving forward
+    if (newPage > currentPage) {
+      const unanswered = questions.filter((q) => {
+        const ans = pendingAnswersRef.current[q.id] !== undefined
+          ? pendingAnswersRef.current[q.id]
+          : answers[q.id];
+
+        if (ans === undefined || ans === null) return true;
+        const trimmed = ans.trim();
+        if (trimmed === "") return true;
+
+        if (q.type === "MCQ" && q.allowMultiple) {
+          try {
+            const parsed = JSON.parse(trimmed);
+            if (Array.isArray(parsed)) {
+              return parsed.filter(Boolean).length === 0;
+            }
+          } catch {}
+        }
+        return false;
+      });
+
+      if (unanswered.length > 0) {
+        toast.error(t("toast.answerBeforeProceeding"));
+        return;
+      }
     }
 
     setIsLoadingPage(true);
@@ -100,7 +154,11 @@ export default function ExamClient({
     for (const [qId, ans] of Object.entries(pendingAnswersRef.current)) {
       await saveAnswer(
         { success: true, error: false },
-        { submissionId: submission.id, questionId: parseInt(qId), textAnswer: ans }
+        {
+          submissionId: submission.id,
+          questionId: parseInt(qId),
+          textAnswer: ans,
+        },
       );
     }
     pendingAnswersRef.current = {};
@@ -114,44 +172,93 @@ export default function ExamClient({
 
     if ("questions" in res && res.questions) {
       setQuestions(res.questions as Question[]);
+      const savedAnswerList = res.savedAnswers as Answer[];
       setAnswers((prev) => {
         const newAns = { ...prev };
-        (res.savedAnswers as Answer[]).forEach((ans) => {
-          newAns[ans.questionId] = ans.textAnswer || "";
+        savedAnswerList.forEach((ans) => {
+          newAns[ans.questionId] = ans.textAnswer || ans.fileUrl || "";
         });
         return newAns;
+      });
+      setAnswerRecords((prev) => {
+        const newRecs = { ...prev };
+        savedAnswerList.forEach((ans) => {
+          newRecs[ans.questionId] = ans;
+        });
+        return newRecs;
       });
       setCurrentPage(newPage);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
-    
+
     setIsLoadingPage(false);
+  };
+
+  const abortAllUploads = async () => {
+    if (uploadingQuestionsRef.current.size > 0) {
+      document.querySelectorAll("[data-file-upload-question]").forEach((el) => {
+        (el as any).__abortUpload?.();
+      });
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  };
+
+  const requestSubmit = () => {
+    if (isSubmitting) return;
+
+    const unanswered = questions.filter((q) => {
+      if (q.type === "FILE") return false; // FILE questions are optional
+      const ans = pendingAnswersRef.current[q.id] !== undefined
+        ? pendingAnswersRef.current[q.id]
+        : answers[q.id];
+
+      if (ans === undefined || ans === null) return true;
+      const trimmed = ans.trim();
+      if (trimmed === "") return true;
+
+      if (q.type === "MCQ" && q.allowMultiple) {
+        try {
+          const parsed = JSON.parse(trimmed);
+          if (Array.isArray(parsed)) {
+            return parsed.filter(Boolean).length === 0;
+          }
+        } catch {}
+      }
+      return false;
+    });
+
+    if (unanswered.length > 0) {
+      toast.error(t("toast.answerBeforeSubmitting"));
+      return;
+    }
+
+    setShowSubmitConfirm(true);
   };
 
   const handleSubmit = async () => {
     if (isSubmitting) return;
-    
-    if (confirm("Are you sure you want to submit your exam? You cannot change your answers after submitting.")) {
-      setIsSubmitting(true);
-      debouncedSaveRef.current?.flush();
-      
-      const res = await submitExam(submission.id);
-      if (res.error) {
-        toast.error(res.error as string);
-        setIsSubmitting(false);
-      } else {
-        toast.success("Exam submitted successfully!");
-        router.push("/list/exams");
-      }
+
+    setIsSubmitting(true);
+    await abortAllUploads();
+    debouncedSaveRef.current?.flush();
+
+    const res = await submitExam(submission.id);
+    if (res.error) {
+      toast.error(res.error as string);
+      setIsSubmitting(false);
+    } else {
+      toast.success(t("toast.submitted"));
+      router.push("/list/exams");
     }
   };
 
   const handleAutoSubmit = async () => {
     if (isSubmitting) return;
     setIsSubmitting(true);
+    await abortAllUploads();
     debouncedSaveRef.current?.flush();
     await submitExam(submission.id);
-    toast.info("Exam time is up! Auto-submitting...");
+    toast.info(t("toast.timeUp"));
     router.push("/list/exams");
   };
 
@@ -165,14 +272,16 @@ export default function ExamClient({
 
     const handleOnline = async () => {
       if (freezeTimerRef.current) clearTimeout(freezeTimerRef.current);
-      
+
       if (isFrozen && disconnectedAtRef.current) {
         setIsFrozen(false);
-        const offlineSeconds = Math.floor((Date.now() - disconnectedAtRef.current) / 1000);
+        const offlineSeconds = Math.floor(
+          (Date.now() - disconnectedAtRef.current) / 1000,
+        );
         await recordDisconnection(
           submission.id,
           offlineSeconds,
-          new Date(disconnectedAtRef.current)
+          new Date(disconnectedAtRef.current),
         );
         disconnectedAtRef.current = null;
       }
@@ -197,7 +306,7 @@ export default function ExamClient({
             submissionId: submission.id,
             questionId: parseInt(qId),
             textAnswer: answer,
-          })
+          }),
         );
       }
     };
@@ -207,31 +316,21 @@ export default function ExamClient({
   }, [submission.id]);
 
   return (
-    <div className="max-w-4xl mx-auto py-8 px-4 relative">
+    <div className="relative w-full px-4 py-8">
       <FreezeOverlay isFrozen={isFrozen} />
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-6 sticky top-4 z-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+      <div className="top-4 z-10 sticky bg-white shadow-sm mb-6 p-6 border border-gray-200 rounded-lg">
+        <div className="flex md:flex-row flex-col justify-between items-start md:items-center gap-4">
           <div>
-            <h1 className="text-xl font-bold text-gray-900">{exam.title}</h1>
-            <div className="flex items-center gap-4 mt-2 text-sm text-gray-600">
+            <h1 className="font-bold text-gray-900 text-xl">{exam.title}</h1>
+            <div className="flex items-center gap-4 mt-2 text-gray-600 text-sm">
               <span className="font-medium">
-                Page {currentPage} of {totalPages}
+                {t("pageLabel", { current: currentPage, total: totalPages })}
               </span>
-              {exam.enableAutoSave && (
-                <span className={`flex items-center gap-1 ${
-                  saveStatus === "saving" ? "text-blue-500" :
-                  saveStatus === "saved" ? "text-green-500" :
-                  saveStatus === "error" ? "text-red-500" : "text-gray-400"
-                }`}>
-                  {saveStatus === "saving" && "Saving..."}
-                  {saveStatus === "saved" && "✓ Saved"}
-                  {saveStatus === "error" && "⚠ Save failed"}
-                </span>
-              )}
+
             </div>
           </div>
-          
+
           <div className="flex items-center gap-4">
             {exam.enableTimer && (
               <ExamTimer
@@ -241,68 +340,165 @@ export default function ExamClient({
                 onSubmit={handleAutoSubmit}
               />
             )}
-            
+
             <button
-              onClick={handleSubmit}
+              onClick={requestSubmit}
               disabled={isSubmitting || isLoadingPage}
-              className="bg-academixPurpleDark text-white px-6 py-2 rounded-md font-semibold hover:bg-academixPurple transition-colors disabled:opacity-50"
+              className="bg-academixPurpleDark hover:bg-academixPurple disabled:opacity-50 px-6 py-2 rounded-md font-semibold text-white transition-colors"
             >
-              {isSubmitting ? "Submitting..." : "Submit Exam"}
+              {isSubmitting ? t("submitting") : t("submitExam")}
             </button>
           </div>
         </div>
       </div>
 
       <div className="space-y-6 mb-8">
-        {questions.map((q) => (
-          <div key={q.id} className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <div className="flex justify-between items-start mb-4">
-              <div className="font-medium text-gray-900">
-                <span className="mr-2">{q.order}.</span>
-                {q.text}
+        {questions.map((q) => {
+          const qStatus = questionSaveStatus[q.id] || "idle";
+          return (
+            <div
+              key={q.id}
+              className="bg-white shadow-sm p-6 border border-gray-200 rounded-lg"
+            >
+              <div className="flex justify-between items-start mb-4">
+                <div className="font-medium text-gray-900">
+                  <span className="me-2">{q.order}.</span>
+                  {q.text}
+                </div>
+                <div className="flex items-center gap-2">
+                  {qStatus === "saving" && (
+                    <span className="flex items-center gap-1 text-xs text-blue-500 animate-pulse font-medium">
+                      {t("saving")}
+                    </span>
+                  )}
+                  {qStatus === "saved" && (
+                    <span className="flex items-center gap-1 text-xs text-green-500 font-medium">
+                      {t("saved")}
+                    </span>
+                  )}
+                  {qStatus === "error" && (
+                    <span className="flex items-center gap-1 text-xs text-red-500 font-medium">
+                      {t("error")}
+                    </span>
+                  )}
+                  <span className="bg-gray-100 px-2 py-1 rounded font-medium text-gray-500 text-sm">
+                    {t("point", { count: q.points })}
+                  </span>
+                </div>
               </div>
-              <span className="text-sm font-medium text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                {q.points} {q.points === 1 ? "point" : "points"}
-              </span>
+
+              <div className="mt-4">
+                <QuestionRenderer
+                  question={q}
+                  savedAnswer={answers[q.id] || null}
+                  savedAnswerRecord={answerRecords[q.id] || null}
+                  submissionId={submission.id}
+                  examId={exam.id}
+                  onChange={handleAnswerChange}
+                  disabled={isSubmitting || isLoadingPage}
+                  t={t}
+                  onUploadStart={() => uploadingQuestionsRef.current.add(q.id)}
+                  onUploadEnd={() => uploadingQuestionsRef.current.delete(q.id)}
+                />
+                {q.type === "FILE" && qStatus !== "idle" && (
+                  <span className="ms-2 text-xs text-gray-400">{t("fileUpload")}</span>
+                )}
+              </div>
             </div>
-            
-            <div className="mt-4">
-              <QuestionRenderer
-                question={q}
-                savedAnswer={answers[q.id] || null}
-                onChange={handleAnswerChange}
-                disabled={isSubmitting || isLoadingPage}
-              />
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      <div className="flex justify-between items-center bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+      <div className="flex justify-between items-center bg-white shadow-sm p-4 border border-gray-200 rounded-lg">
         <button
           onClick={() => handlePageChange(currentPage - 1)}
-          disabled={currentPage === 1 || !exam.enableNavigation || isLoadingPage || isSubmitting}
-          className="px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          disabled={
+            currentPage === 1 ||
+            !exam.enableNavigation ||
+            isLoadingPage ||
+            isSubmitting
+          }
+          className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 disabled:cursor-not-allowed"
         >
-          Previous
+          {t("previous")}
         </button>
-        
-        <span className="text-sm text-gray-500">
+
+        <span className="text-gray-500 text-sm">
           {currentPage} / {totalPages}
         </span>
-        
+
         {currentPage < totalPages ? (
           <button
             onClick={() => handlePageChange(currentPage + 1)}
             disabled={isLoadingPage || isSubmitting}
-            className="px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50"
+            className="hover:bg-gray-50 disabled:opacity-50 px-4 py-2 border border-gray-300 rounded-md font-medium text-gray-700"
           >
-            Next
+            {t("next")}
           </button>
         ) : (
-          <div className="px-4 py-2 opacity-0">Next</div> // Spacer
+          <div className="opacity-0 px-4 py-2">{t("next")}</div>
         )}
       </div>
+
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg bg-white shadow-xl">
+            <div className="flex items-start justify-between gap-4 border-b border-gray-100 p-4">
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 items-center justify-center rounded-md bg-academixPurpleLight text-academixPurpleDark">
+                  <Send className="h-4 w-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-medium uppercase text-gray-400">
+                    {t("confirmEyebrow")}
+                  </p>
+                  <h2 className="text-base font-semibold text-gray-900">
+                    {t("confirmTitle")}
+                  </h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={isSubmitting}
+                className="rounded-md p-1 text-gray-400 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label={t("close")}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-4">
+              <p className="text-sm leading-6 text-gray-600">
+                {t("confirmBody")}
+              </p>
+              <p className="rounded-md bg-academixPurpleLight p-3 text-xs text-academixPurpleDark">
+                {t("confirmNotice")}
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-gray-100 p-4">
+              <button
+                type="button"
+                onClick={() => setShowSubmitConfirm(false)}
+                disabled={isSubmitting}
+                className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {t("cancel")}
+              </button>
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
+                {isSubmitting ? t("submitting") : t("submitExam")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

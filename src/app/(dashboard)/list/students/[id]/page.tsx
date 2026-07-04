@@ -1,15 +1,25 @@
-﻿import Announcements from "@/components/Announcements";
+import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import UserActionButtons from "@/components/UserActionButtons";
-import Performance from "@/components/Performance";
-import StudentAttendanceCard from "@/components/StudentAttendanceCard";
+import AttendanceCard from "@/components/AttendanceCard";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import {
+  BookOpen,
+  Calendar,
+  CalendarCheck2,
+  Droplet,
+  GraduationCap,
+  Mail,
+  Phone,
+  School,
+} from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 const SingleStudentPage = async ({
@@ -17,6 +27,8 @@ const SingleStudentPage = async ({
 }: {
   params: Promise<{ id: string }>;
 }) => {
+  const t = await getTranslations("profilePages");
+  const statesT = await getTranslations("states");
   const { id } = await params;
 
   const { role, userId, schoolId } = await enforceRouteAccess(`/list/students`);
@@ -78,7 +90,7 @@ const SingleStudentPage = async ({
         <div className="flex flex-wrap md:flex-nowrap gap-4">
           {/* USER INFO CARD */}
           <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-6 rounded-md w-full md:w-2/3">
-            <div className="top-5 right-5 absolute flex items-center gap-2">
+            <div className="top-5 absolute flex items-center gap-2 end-5">
               {role === "admin" && (
                 <FormContainer table="student" type="update" data={student} />
               )}
@@ -101,28 +113,25 @@ const SingleStudentPage = async ({
             <div className="flex flex-col gap-8">
               <div>
                 <h1 className="font-semibold text-xl">{student.name}</h1>
-                <p className="text-gray-500 text-sm">
-                  Lorem ipsum, dolor sit amet consectetur adipisicing elit.
-                </p>
               </div>
 
               <div className="flex flex-wrap justify-between items-center gap-2 font-medium text-xs">
                 <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Image src="/blood.png" alt="" width={14} height={14} />
+                  <Droplet className="w-4 h-4 text-gray-600" />
                   <span>{student.bloodType}</span>
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Image src="/date.png" alt="" width={14} height={14} />
+                  <Calendar className="w-4 h-4 text-gray-600" />
                   <span>
                     {new Intl.DateTimeFormat("en-US").format(student.birthday)}
                   </span>
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Image src="/mail.png" alt="" width={14} height={14} />
+                  <Mail className="w-4 h-4 text-gray-600" />
                   <span>{student.email || "-"}</span>
                 </div>
                 <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Image src="/phone.png" alt="" width={14} height={14} />
+                  <Phone className="w-4 h-4 text-gray-600" />
                   <span>{student.phone || "-"}</span>
                 </div>
               </div>
@@ -134,112 +143,90 @@ const SingleStudentPage = async ({
 
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                <Image
-                  src="/singleAttendance.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
-                <Suspense fallback="Loading...">
-                  <StudentAttendanceCard id={id} />
+                <CalendarCheck2 className="w-6 h-6 text-academixPurpleDark" />
+                <Suspense fallback={statesT("loading")}>
+                  <AttendanceCard id={id} scope="student" />
                 </Suspense>
               </div>
-              <span className="text-gray-400 text-sm">Attendance</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.attendance")}
+              </span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                <Image
-                  src="/singleBranch.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />{" "}
+                <GraduationCap className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">
                   {student.class?.name.charAt(0)}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Grade</span>
+              <span className="text-gray-400 text-sm">{t("cards.grade")}</span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                <Image
-                  src="/singleLesson.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
+                <BookOpen className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">
                   {student.class._count.lessons}
                 </h1>
               </div>
-              <span className="text-gray-400 text-sm">Lessons</span>
+              <span className="text-gray-400 text-sm">
+                {t("cards.lessons")}
+              </span>
             </div>
             {/* CARD */}
             <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
               <div className="flex items-center gap-4">
-                {" "}
-                <Image
-                  src="/singleClass.png"
-                  alt=""
-                  width={24}
-                  height={24}
-                  className="w-6 h-6"
-                />
+                <School className="w-6 h-6 text-academixPurpleDark" />
                 <h1 className="font-semibold text-xl">{student.class?.name}</h1>
               </div>
-              <span className="text-gray-400 text-sm">Class</span>
+              <span className="text-gray-400 text-sm">{t("cards.class")}</span>
             </div>
           </div>
         </div>
         {/* BOTTOM */}
         <div className="bg-white mt-4 p-4 rounded-md h-[800px]">
-          <h1>Student&apos;s Schedule</h1>
+          <h1>{t("student.schedule")}</h1>
           <BigCalendarContainer type="classId" id={student.class.id} />
         </div>
       </div>
       {/* RIGHT */}
       <div className="flex flex-col gap-4 w-full xl:w-1/4">
         <div className="bg-white p-4 rounded-md">
-          <h1 className="font-semibold text-xl">Shortcuts</h1>
-          <div className="flex flex-wrap gap-4 mt-4 text-gray-500 text-xs">
+          <h1 className="font-semibold text-xl">{t("shortcuts.title")}</h1>
+          <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/lessons?classId=${student.class.id}`}
             >
-              Student&apos;s Lessons
+              {t("student.lessons")}
             </Link>
             <Link
-              className="bg-academixPurpleLight p-3 rounded-md"
+              className="bg-academixPurpleLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/teachers?classId=${student.class.id}`}
             >
-              Student&apos;s Teachers
+              {t("student.teachers")}
             </Link>
             <Link
-              className="bg-pink-50 p-3 rounded-md"
+              className="bg-pink-50 p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/exams?classId=${student.class.id}`}
             >
-              Student&apos;s Exams
+              {t("student.exams")}
             </Link>
             <Link
-              className="bg-academixSkyLight p-3 rounded-md"
+              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/assignments?classId=${student.class.id}`}
             >
-              Student&apos;s Assignments
+              {t("student.assignments")}
             </Link>
             <Link
-              className="bg-academixYellowLight p-3 rounded-md"
+              className="bg-academixYellowLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
               href={`/list/results?studentId=${id}`}
             >
-              Student&apos;s Results
+              {t("student.results")}
             </Link>
           </div>
         </div>
-        <Performance />
         <Announcements />
       </div>
     </div>

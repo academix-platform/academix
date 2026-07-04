@@ -1,14 +1,19 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
-import { routePermissions } from "./lib/settings";
 import { NextResponse } from "next/server";
-
-type AllowedRole = string;
+import { routePermissions } from "./lib/settings";
+import { getRoleHome, type UserRole } from "./lib/utils";
 
 const isSignInRoute = createRouteMatcher(["/sign-in(.*)"]);
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/api/webhooks(.*)"]);
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/sign-in(.*)",
+  "/api/webhooks(.*)",
+  "/school-signup(.*)",
+  "/api/cron(.*)",
+]);
 
 const matchers = (
-  Object.entries(routePermissions) as [string, AllowedRole[]][]
+  Object.entries(routePermissions) as [string, UserRole[]][]
 ).map(([route, allowedRoles]) => ({
   matcher: createRouteMatcher([route]),
   allowedRoles,
@@ -18,37 +23,67 @@ export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
   const role =
-    (sessionClaims?.metadata as { role?: AllowedRole } | undefined)?.role ??
-    null;
+    (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
 
   const isSignIn = isSignInRoute(req);
   const isPublic = isPublicRoute(req);
+  const isRoot = req.nextUrl.pathname === "/";
 
-  // ✅ 1. If already signed in, don't stay on /sign-in
-  if (isSignIn && userId) {
-    const redirectUrl =
-      req.nextUrl.searchParams.get("redirect_url") || (role ? `/${role}` : "/");
+  const shouldUsePostLogin =
+    role === "admin" ||
+    role === "teacher" ||
+    role === "student" ||
+    role === "parent";
 
-    return NextResponse.redirect(new URL(redirectUrl, req.url));
+  if (
+    role === "superAdmin" &&
+    (req.nextUrl.pathname.startsWith("/list/") ||
+      req.nextUrl.pathname.startsWith("/settings"))
+  ) {
+    return NextResponse.redirect(new URL("/super-admin", req.url));
   }
 
-  // ✅ 2. Allow public routes always
+  if (isSignIn && userId) {
+    const redirectUrl = req.nextUrl.searchParams.get("redirect_url");
+    if (redirectUrl) {
+      return NextResponse.redirect(new URL(redirectUrl, req.url));
+    }
+
+    if (role) {
+      const destination = shouldUsePostLogin
+        ? "/post-login"
+        : getRoleHome(role);
+      return NextResponse.redirect(new URL(destination, req.url));
+    }
+
+    // Keep user on /sign-in loading view until role is available.
+    return NextResponse.next();
+  }
+
+  if (isRoot && userId) {
+    if (role) {
+      const destination = shouldUsePostLogin
+        ? "/post-login"
+        : getRoleHome(role);
+      return NextResponse.redirect(new URL(destination, req.url));
+    }
+    return NextResponse.redirect(new URL("/post-login", req.url));
+  }
+
   if (isPublic) {
     return NextResponse.next();
   }
 
-  // ✅ 3. If user not ready yet → DON'T redirect immediately (fixes your bug)
   if (!userId) {
     const signInUrl = new URL("/sign-in", req.url);
     signInUrl.searchParams.set("redirect_url", req.nextUrl.pathname);
     return NextResponse.redirect(signInUrl);
   }
 
-  // ✅ 4. Role-based protection
   for (const { matcher, allowedRoles } of matchers) {
     if (matcher(req)) {
       if (!role || !allowedRoles.includes(role)) {
-        const dest = role ? `/${role}` : "/unauthorized";
+        const dest = role ? getRoleHome(role) : "/unauthorized";
         return NextResponse.redirect(new URL(dest, req.url));
       }
       break;
@@ -62,5 +97,6 @@ export const config = {
   matcher: [
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
     "/(api|trpc)(.*)",
+    "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
   ],
 };

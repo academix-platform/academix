@@ -3,8 +3,11 @@
 import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useSyncExternalStore } from "react";
 import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
+import type { SchoolWeekDay } from "@/lib/schoolCalendar";
+import Week from "react-big-calendar/lib/Week";
+import TimeGrid from "react-big-calendar/lib/TimeGrid";
 
 moment.updateLocale(moment.locale(), {
   week: {
@@ -14,6 +17,129 @@ moment.updateLocale(moment.locale(), {
 });
 
 const localizer = momentLocalizer(moment);
+const jsDayToSchoolDay: Record<number, SchoolWeekDay> = {
+  0: "SUNDAY",
+  1: "MONDAY",
+  2: "TUESDAY",
+  3: "WEDNESDAY",
+  4: "THURSDAY",
+  5: "FRIDAY",
+  6: "SATURDAY",
+};
+const schoolDayToJsDay: Record<SchoolWeekDay, number> = {
+  SUNDAY: 0,
+  MONDAY: 1,
+  TUESDAY: 2,
+  WEDNESDAY: 3,
+  THURSDAY: 4,
+  FRIDAY: 5,
+  SATURDAY: 6,
+};
+
+const useMediaQuery = (query: string) =>
+  useSyncExternalStore(
+    (onStoreChange) => {
+      const mediaQueryList = window.matchMedia(query);
+      const listener = () => onStoreChange();
+
+      if (mediaQueryList.addEventListener) {
+        mediaQueryList.addEventListener("change", listener);
+        return () => mediaQueryList.removeEventListener("change", listener);
+      }
+
+      mediaQueryList.addListener(listener);
+      return () => mediaQueryList.removeListener(listener);
+    },
+    () => window.matchMedia(query).matches,
+    () => false,
+  );
+
+type WorkingWeekViewProps = {
+  date: Date;
+  localizer: any;
+  min?: Date;
+  max?: Date;
+  scrollToTime?: Date;
+  enableAutoScroll?: boolean;
+  workingDays?: SchoolWeekDay[];
+  [key: string]: unknown;
+};
+
+const workingWeekRange = (
+  date: Date,
+  props: WorkingWeekViewProps,
+  boundWorkingDays?: SchoolWeekDay[],
+) => {
+  const weekRange = Week.range(date, props) as Date[];
+  const allowed = new Set<number>(
+    ((boundWorkingDays ?? props.workingDays) ?? [
+      "SATURDAY",
+      "SUNDAY",
+      "MONDAY",
+      "TUESDAY",
+      "WEDNESDAY",
+      "THURSDAY",
+      "FRIDAY",
+    ]).map((day) => schoolDayToJsDay[day]),
+  );
+
+  const filtered = weekRange.filter((d) => allowed.has(d.getDay()));
+
+  return filtered.length > 0 ? filtered : weekRange;
+};
+
+const buildWorkingWeekView = (workingDays: SchoolWeekDay[]) => {
+  const WorkingWeekView = ((props: WorkingWeekViewProps) => {
+    const {
+      date,
+      localizer: viewLocalizer,
+      min = viewLocalizer.startOf(new Date(), "day"),
+      max = viewLocalizer.endOf(new Date(), "day"),
+      scrollToTime = viewLocalizer.startOf(new Date(), "day"),
+      enableAutoScroll = true,
+      ...rest
+    } = props;
+
+    const range = workingWeekRange(date, props, workingDays);
+
+    return (
+      <TimeGrid
+        {...rest}
+        range={range}
+        eventOffset={15}
+        localizer={viewLocalizer}
+        min={min}
+        max={max}
+        scrollToTime={scrollToTime}
+        enableAutoScroll={enableAutoScroll}
+      />
+    );
+  }) as any;
+
+  WorkingWeekView.range = (date: Date, props: WorkingWeekViewProps) =>
+    workingWeekRange(date, props, workingDays);
+  WorkingWeekView.navigate = Week.navigate;
+  WorkingWeekView.title = (
+    date: Date,
+    { localizer: viewLocalizer }: { localizer: any },
+  ) => {
+    const range = workingWeekRange(
+      date,
+      {
+        date,
+        localizer: viewLocalizer,
+      } as WorkingWeekViewProps,
+      workingDays,
+    );
+
+    return viewLocalizer.format(
+      { start: range[0], end: range[range.length - 1] },
+      "dayRangeHeaderFormat",
+    );
+  };
+
+  return WorkingWeekView;
+};
 
 const toTimeOfDayDate = (hour: number, minute: number) =>
   new Date(2025, 0, 1, hour, minute, 0, 0);
@@ -68,7 +194,16 @@ const BigCalendar = ({
   }[];
   settings: SchoolScheduleSettings;
 }) => {
-  const [view, setView] = useState<View>(Views.WEEK);
+  const isMdDown = useMediaQuery("(max-width: 1023px)");
+  const defaultView = isMdDown ? Views.DAY : Views.WEEK;
+  const WorkingWeekView = useMemo(
+    () => buildWorkingWeekView(settings.workingDays),
+    [settings.workingDays],
+  );
+
+  // Keep a user override so toggling views still works.
+  const [userView, setUserView] = useState<View | null>(null);
+  const view = userView ?? defaultView;
 
   const calendarMinTime = useMemo(
     () =>
@@ -158,36 +293,61 @@ const BigCalendar = ({
     return labelsByTime;
   }, [settings]);
 
+  const workingDaysSet = useMemo(
+    () => new Set<SchoolWeekDay>(settings.workingDays),
+    [settings.workingDays],
+  );
+
+  const dayPropGetter = (date: Date) => {
+    const schoolDay = jsDayToSchoolDay[date.getDay()];
+    if (workingDaysSet.has(schoolDay)) {
+      return {};
+    }
+
+    return {
+      style: {
+        backgroundColor: "#f8fafc",
+        opacity: 0.55,
+      },
+    };
+  };
+
   const timeGutterFormat = (date: Date) => {
     const key = moment(date).format("HH:mm");
     return lessonStartLabels.get(key) ?? "";
   };
 
   const handleOnChangeView = (selectedView: View) => {
-    setView(selectedView);
+    setUserView(selectedView);
   };
 
   return (
-    <Calendar
-      className={view === Views.WEEK ? "calendar-week-mode" : ""}
-      localizer={localizer}
-      events={displayEvents}
-      startAccessor="start"
-      endAccessor="end"
-      views={[Views.WEEK, Views.DAY]}
-      view={view}
-      style={{ height: "100%" }}
-      onView={handleOnChangeView}
-      min={calendarMinTime}
-      max={calendarMaxTime}
-      step={settings.lessonDurationMinutes}
-      timeslots={1}
-      formats={{
-        timeGutterFormat,
-        eventTimeRangeFormat: () => "",
-      }}
-      components={{ event: EventContent }}
-    />
+    <div className="h-full">
+      <Calendar
+        className={view === Views.WEEK ? "calendar-week-mode" : ""}
+        localizer={localizer}
+        events={displayEvents}
+        startAccessor="start"
+        endAccessor="end"
+        views={{
+          week: WorkingWeekView,
+          day: true,
+        } as any}
+        view={view}
+        style={{ height: "100%" }}
+        onView={handleOnChangeView}
+        min={calendarMinTime}
+        max={calendarMaxTime}
+        step={settings.lessonDurationMinutes}
+        timeslots={1}
+        formats={{
+          timeGutterFormat,
+          eventTimeRangeFormat: () => "",
+        }}
+        components={{ event: EventContent }}
+        dayPropGetter={dayPropGetter}
+      />
+    </div>
   );
 };
 

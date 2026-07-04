@@ -1,42 +1,63 @@
 import Announcements from "@/components/Announcements";
 import AttendanceChartContainer from "@/components/AttendanceChartContainer";
-import CountChartContainer from "@/components/CountChartContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import FinanceChartLoader from "@/components/FinanceChartLoader";
 import UserCard from "@/components/UserCard";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import { requireAuth } from "@/lib/auth";
+import prisma from "@/lib/prisma";
+import { UserRole } from "@/lib/utils";
+type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
 
-const AdminPage = ({
+const AdminPage = async ({
   searchParams,
 }: {
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
+  const user = await requireAuth();
+  const roleTypes: SchoolDashboardRole[] = ["admin", "teacher", "student", "parent"];
+  const schoolId = user.schoolId;
+  const [currentYear, counts] = await Promise.all([
+    getCurrentAcademicYearOrNull(schoolId),
+    Promise.all([
+      prisma.admin.count({ where: { schoolId } }),
+      prisma.teacher.count({ where: { schoolId } }),
+      prisma.student.count({ where: { schoolId } }),
+      prisma.parent.count({ where: { schoolId } }),
+    ]),
+  ]);
+  const countByRole: Record<SchoolDashboardRole, number> = {
+    admin: counts[0],
+    teacher: counts[1],
+    student: counts[2],
+    parent: counts[3],
+  };
+  const currentYearName = currentYear?.name ?? null;
+
   return (
-    <div className="flex md:flex-row flex-col gap-4 p-4">
+    <div className="flex lg:flex-row flex-col gap-4 p-4">
       {/* LEFT */}
       <div className="flex flex-col gap-8 w-full lg:w-2/3">
         {/* USER CARDS */}
-        <div className="flex flex-wrap justify-between gap-4">
-          <UserCard type="admin" />
-          <UserCard type="teacher" />
-          <UserCard type="student" />
-          <UserCard type="parent" />
+        <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
+          {roleTypes.map((type) => (
+            <UserCard
+              key={type}
+              type={type}
+              count={countByRole[type]}
+              currentYearName={currentYearName}
+            />
+          ))}
         </div>
         {/* MIDDLE CHARTS */}
         <div className="flex lg:flex-row flex-col gap-4">
-          {/* COUNT CHART */}
-          <div className="w-full lg:w-1/3 h-[450px]">
-            {/* <CountChartContainer /> */}
-          </div>
           {/* ATTENDANCE CHART */}
-          <div className="w-full lg:w-2/3 h-[450px]">
+          <div className="w-full h-[450px]">
             <AttendanceChartContainer />
           </div>
         </div>
-        {/* BOTTOM CHART */}
-        <div className="w-full h-[500px]">{/* <FinanceChartLoader /> */}</div>
       </div>
       {/* RIGHT */}
-      <div className="flex flex-col gap-8 w-full lg:w-1/3">
+      <div className="flex flex-col justify-between w-full lg:w-1/3">
         <EventCalendarContainer searchParams={searchParams} />
         <Announcements />
       </div>

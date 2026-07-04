@@ -2,11 +2,16 @@ import { auth } from "@clerk/nextjs/server";
 import prisma from "./prisma";
 import { redirect } from "next/navigation";
 import { UserRole } from "./utils";
+import { SchoolStatus } from "@prisma/client";
 
 export type AuthUser = {
   userId: string;
   role: UserRole;
   schoolId: number;
+  schoolStatus: SchoolStatus | null;
+  schoolPauseReason: string | null;
+  displayName: string | null;
+  profileImageUrl: string | null;
 };
 
 class AuthError extends Error {
@@ -19,39 +24,62 @@ class AuthError extends Error {
   }
 }
 
-async function getSchoolId(userId: string, role: UserRole): Promise<number> {
-  const select = { schoolId: true } as const;
-
+async function getUserProfile(
+  userId: string,
+  role: UserRole,
+): Promise<{ schoolId: number; displayName: string | null; profileImageUrl: string | null }> {
   try {
     switch (role) {
-      case "admin":
-        return (
-          await prisma.admin.findUniqueOrThrow({
-            where: { id: userId },
-            select,
-          })
-        ).schoolId;
-      case "teacher":
-        return (
-          await prisma.teacher.findUniqueOrThrow({
-            where: { id: userId },
-            select,
-          })
-        ).schoolId;
-      case "student":
-        return (
-          await prisma.student.findUniqueOrThrow({
-            where: { id: userId },
-            select,
-          })
-        ).schoolId;
-      case "parent":
-        return (
-          await prisma.parent.findUniqueOrThrow({
-            where: { id: userId },
-            select,
-          })
-        ).schoolId;
+      case "admin": {
+        const admin = await prisma.admin.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true, username: true },
+        });
+
+        return {
+          schoolId: admin.schoolId,
+          displayName: admin.username,
+          profileImageUrl: null,
+        };
+      }
+      case "teacher": {
+        const teacher = await prisma.teacher.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true, name: true, img: true },
+        });
+
+        return {
+          schoolId: teacher.schoolId,
+          displayName: teacher.name,
+          profileImageUrl: teacher.img,
+        };
+      }
+      case "student": {
+        const student = await prisma.student.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true, name: true, img: true },
+        });
+
+        return {
+          schoolId: student.schoolId,
+          displayName: student.name,
+          profileImageUrl: student.img,
+        };
+      }
+      case "parent": {
+        const parent = await prisma.parent.findUniqueOrThrow({
+          where: { id: userId },
+          select: { schoolId: true, name: true },
+        });
+
+        return {
+          schoolId: parent.schoolId,
+          displayName: parent.name,
+          profileImageUrl: null,
+        };
+      }
+      case "superAdmin":
+        return { schoolId: 0, displayName: null, profileImageUrl: null };
     }
   } catch (err: unknown) {
     if (
@@ -80,9 +108,25 @@ export const getAuthUser = async (): Promise<AuthUser | null> => {
 
   if (!role) return null;
 
-  const schoolId = await getSchoolId(userId, role);
+  const profile = await getUserProfile(userId, role);
+  const schoolId = profile.schoolId;
+  const school =
+    schoolId > 0
+      ? await prisma.school.findUnique({
+          where: { id: schoolId },
+          select: { status: true, pauseReason: true },
+        })
+      : null;
 
-  return { userId, role, schoolId };
+  return {
+    userId,
+    role,
+    schoolId,
+    schoolStatus: school?.status ?? null,
+    schoolPauseReason: school?.pauseReason ?? null,
+    displayName: profile.displayName,
+    profileImageUrl: profile.profileImageUrl,
+  };
 };
 
 export async function requireAuth(): Promise<AuthUser> {
@@ -99,4 +143,11 @@ export async function requireRole(user: AuthUser, roles: UserRole[]) {
   if (!roles.includes(user.role)) {
     redirect("/unauthorized");
   }
+}
+
+export async function enforceAdminSchoolAccess(user: AuthUser) {
+  if (!["admin", "teacher", "student", "parent"].includes(user.role)) return;
+  if (user.schoolStatus === "ACTIVE") return;
+
+  redirect("/school-access");
 }

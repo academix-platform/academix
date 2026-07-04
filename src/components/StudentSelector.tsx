@@ -2,36 +2,45 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 
-type Student = {
-  id: string;
+type ClassOption = {
+  id: number;
   name: string;
-  classId: number;
 };
 
-const StudentSelector = ({ students }: { students: Student[] }) => {
+const StudentSelector = ({
+  classes,
+  selectedClassId,
+  label,
+}: {
+  classes: ClassOption[];
+  selectedClassId: number;
+  label: string;
+}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const selected = searchParams.get("studentId") || students[0]?.id;
-
-  const handleChange = (id: string) => {
+  const handleChange = (classId: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    params.set("studentId", id);
+    params.delete("studentId");
+    params.set("classId", classId);
     router.push(`?${params.toString()}`);
   };
 
   return (
-    <select
-      value={selected}
-      onChange={(e) => handleChange(e.target.value)}
-      className="mb-4 p-2 border rounded-md"
-    >
-      {students.map((student) => (
-        <option key={student.id} value={student.id}>
-          {student.name}
-        </option>
-      ))}
-    </select>
+    <label className="flex flex-col gap-1 min-w-48 text-sm">
+      <span className="text-gray-500">{label}</span>
+      <select
+        value={selectedClassId}
+        onChange={(e) => handleChange(e.target.value)}
+        className="px-3 py-2 border border-gray-200 rounded-md outline-none text-sm"
+      >
+        {classes.map((classOption) => (
+          <option key={classOption.id} value={classOption.id}>
+            {classOption.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 };
 

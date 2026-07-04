@@ -15,6 +15,7 @@ import { useRouter } from "next/navigation";
 import { createResult, updateResult } from "@/lib/actions";
 import { resultSchema, ResultSchema } from "@/lib/formValidationSchemas";
 import { Search } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const ResultForm = ({
   type,
@@ -27,8 +28,15 @@ const ResultForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.result");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const initialAssessmentType =
-    data?.examId != null ? "exam" : data?.assignmentId != null ? "assignment" : "exam";
+    data?.examId != null
+      ? "exam"
+      : data?.assignmentId != null
+        ? "assignment"
+        : "exam";
 
   const {
     register,
@@ -69,15 +77,15 @@ const ResultForm = ({
         );
 
         if (result.success) {
-          toast(`Result has been ${type === "create" ? "created" : "updated"}!`);
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       } catch {
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -148,20 +156,22 @@ const ResultForm = ({
   ]);
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
-        {type === "create" ? "Create a new result" : "Update the result"}
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
 
-      <div className="flex flex-wrap justify-between gap-4">
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Student</label>
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {t("student")}
+          </label>
           <input type="hidden" {...register("studentId")} />
           <div className="relative student-search">
-            <div className="flex items-center gap-2 px-3 py-2 rounded-md ring-[1.5px] ring-gray-300 w-full">
+            <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg focus-within:ring-0 transition-all">
               <input
                 type="text"
-                placeholder="Search students..."
+                placeholder={commonT("searchStudents")}
                 value={searchInput}
                 onChange={(e) => {
                   setSearchInput(e.target.value);
@@ -189,60 +199,68 @@ const ResultForm = ({
               </button>
             </div>
             {showDropdown && (
-              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-40 overflow-y-auto">
+              <div className="top-full inset-x-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
                 {filteredStudents.length > 0 ? (
-                  filteredStudents.map((student: { id: string; name: string }) => (
-                    <div
-                      key={student.id}
-                      onClick={() => {
-                        setSelectedStudentId(student.id);
-                        setSearchInput(student.name);
-                        setShowDropdown(false);
-                        setFilteredStudents([]);
-                      }}
-                      className="hover:bg-blue-100 px-3 py-2 text-sm cursor-pointer"
-                    >
-                      {student.name}
-                    </div>
-                  ))
+                  filteredStudents.map(
+                    (student: { id: string; name: string }) => (
+                      <div
+                        key={student.id}
+                        onClick={() => {
+                          setSelectedStudentId(student.id);
+                          setSearchInput(student.name);
+                          setShowDropdown(false);
+                          setFilteredStudents([]);
+                        }}
+                        className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-start transition-colors cursor-pointer"
+                      >
+                        {student.name}
+                      </div>
+                    ),
+                  )
                 ) : (
                   <div className="px-3 py-2 text-gray-500 text-sm">
-                    No students found
+                    {commonT("noStudentsFound")}
                   </div>
                 )}
               </div>
             )}
           </div>
           {errors.studentId?.message && (
-            <p className="text-red-400 text-xs">{errors.studentId.message.toString()}</p>
+            <p className="font-medium text-red-500 text-xs">
+              {errors.studentId.message.toString()}
+            </p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Assessment Type</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {t("assessmentType")}
+          </label>
           <select
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             {...register("assessmentType")}
             defaultValue={initialAssessmentType}
           >
-            <option value="exam">Exam</option>
-            <option value="assignment">Assignment</option>
+            <option value="exam">{t("exam")}</option>
+            <option value="assignment">{t("assignment")}</option>
           </select>
           {errors.assessmentType?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.assessmentType.message.toString()}
             </p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-gray-500 text-xs">Assessment</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {t("assessment")}
+          </label>
           <select
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             {...register("assessmentId")}
             defaultValue={data?.examId ?? data?.assignmentId}
           >
-            <option value="">Select assessment</option>
+            <option value="">{t("selectAssessment")}</option>
             {currentAssessments.map(
               (assessment: {
                 id: number;
@@ -251,44 +269,57 @@ const ResultForm = ({
                 className: string;
               }) => (
                 <option key={assessment.id} value={assessment.id}>
-                  {assessment.title} ({assessment.subjectName} - {assessment.className})
+                  {assessment.title} ({assessment.subjectName} -{" "}
+                  {assessment.className})
                 </option>
               ),
             )}
           </select>
           {errors.assessmentId?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.assessmentId.message.toString()}
             </p>
           )}
         </div>
 
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Score</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {t("score")}
+          </label>
           <input
             type="number"
             min={0}
             max={100}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
             {...register("score")}
             defaultValue={data?.score}
           />
           {errors.score?.message && (
-            <p className="text-red-400 text-xs">{errors.score.message.toString()}</p>
+            <p className="font-medium text-red-500 text-xs">
+              {errors.score.message.toString()}
+            </p>
           )}
         </div>
       </div>
 
-      {type === "update" && <input type="hidden" {...register("id")} defaultValue={data?.id} />}
+      {type === "update" && (
+        <input type="hidden" {...register("id")} defaultValue={data?.id} />
+      )}
 
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {type === "create" ? "Create" : "Update"}
+        {isSubmitting
+          ? commonT("submitting")
+          : type === "create"
+            ? actionsT("create")
+            : actionsT("update")}
       </button>
     </form>
   );
 };
 
 export default ResultForm;
+
+

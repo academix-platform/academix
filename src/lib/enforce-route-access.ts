@@ -9,7 +9,7 @@ export async function enforceRouteAccess(pathname: string): Promise<AuthUser> {
     redirect("/sign-in");
   }
 
-  if (!user.schoolId) {
+  if (!user.schoolId && user.role !== "superAdmin") {
     redirect("/unauthorized");
   }
 

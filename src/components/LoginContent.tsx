@@ -2,11 +2,16 @@
 
 import { useSignIn, useUser } from "@clerk/nextjs";
 import Image from "next/image";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getRoleHome, type UserRole } from "@/lib/utils";
+import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const LoginContent = () => {
+  const commonT = useTranslations("common");
+  const t = useTranslations("auth.login");
   const { isLoaded: isUserLoaded, user } = useUser();
   const { signIn, errors, fetchStatus } = useSignIn();
   const router = useRouter();
@@ -21,8 +26,18 @@ const LoginContent = () => {
 
     const redirectUrl = searchParams.get("redirect_url");
     const role = user.publicMetadata.role as UserRole | undefined;
-
-    const destination = redirectUrl || (role ? getRoleHome(role) : "/");
+    const shouldUsePostLogin =
+      role === "admin" ||
+      role === "teacher" ||
+      role === "student" ||
+      role === "parent";
+    const destination =
+      redirectUrl ||
+      (shouldUsePostLogin
+        ? "/post-login"
+        : role
+          ? getRoleHome(role)
+          : "/post-login");
 
     if (window.location.pathname === destination) return;
 
@@ -33,7 +48,6 @@ const LoginContent = () => {
     e.preventDefault();
 
     const { error } = await signIn.password({ identifier, password });
-
     if (error) return;
 
     if (signIn.status === "complete") {
@@ -46,22 +60,26 @@ const LoginContent = () => {
 
   if (user) {
     return (
-      <div className="flex justify-center items-center bg-lamaSkyLight h-screen">
-        <div className="bg-white shadow-2xl px-10 py-9 rounded-2xl w-[360px] text-gray-600">
-          <h1 className="flex items-center gap-2 mb-4 font-bold text-xl">
-            <Image src="/icon.png" alt="Academix logo" width={24} height={24} />
-            Academix
+      <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
+        <div className="z-10 relative shadow-2xl backdrop-blur-sm px-10 py-9 border border-white/60 rounded-2xl w-[380px] text-gray-600">
+          <h1 className="flex items-center gap-2 mb-4 font-bold text-white text-xl">
+            <Image
+              src="/logo-white.png"
+              alt="Academix logo"
+              className="w-[44px] h-[34px] rotate-[-15deg]"
+              width={40}
+              height={40}
+            />
+            {commonT("brand")}
           </h1>
           <div className="flex items-center gap-3 bg-academixPurpleLight/40 px-4 py-3 rounded-xl">
             <span
-              className="border-2 border-academixPurple/30 border-t-academixPurple rounded-full w-5 h-5 animate-spin"
+              className="border-2 border-academixPurple/30 border-t-white rounded-full w-5 h-5 animate-spin"
               aria-hidden="true"
             />
-            <div>
-              <p className="font-medium text-sm">Welcome back</p>
-              <p className="text-gray-500 text-xs">
-                Redirecting to your dashboard...
-              </p>
+            <div className="text-white">
+              <p className="font-medium text-sm">{t("welcomeBack")}</p>
+              <p className="text-xs">{t("redirecting")}</p>
             </div>
           </div>
         </div>
@@ -70,31 +88,44 @@ const LoginContent = () => {
   }
 
   return (
-    <div className="flex justify-center items-center bg-lamaSkyLight h-screen">
-      <div className="flex flex-col gap-6 bg-white shadow-2xl p-12 rounded-md">
-        <div className="flex flex-col gap-2">
-          <h1 className="flex items-center gap-2 font-bold text-xl">
-            <Image src="/icon.png" alt="Academix logo" width={24} height={24} />
-            Academix
-          </h1>
-          <h2 className="text-gray-400">Sign in to your account</h2>
+    <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
+      <div className="z-10 relative flex flex-col gap-6 shadow-2xl backdrop-blur-sm p-10 md:p-12 border border-white/60 rounded-2xl w-full max-w-[460px]">
+        <div>
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 mb-4 text-gray-200 hover:text-white text-sm transition-colors"
+          >
+            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+            {t("goHome")}
+          </Link>
+          <div>
+            <h1 className="flex items-center gap-2 mb-2 font-bold text-white text-2xl">
+              <Image
+                src="/logo-white.png"
+                alt="Academix logo"
+                className="w-[48px] h-[36px] rotate-[-15deg]"
+                width={40}
+                height={40}
+              />
+              {commonT("brand")}
+            </h1>
+            <h2 className="ms-4 text-gray-300">{t("title")}</h2>
+          </div>
         </div>
-
-        <form className="flex flex-col gap-4 min-w-[300px]" onSubmit={onSubmit}>
+        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1">
-            <label className="text-gray-500 text-xs" htmlFor="identifier">
-              Username or Email
+            <label className="text-white text-xs" htmlFor="identifier">
+              {t("identifier")}
             </label>
             <input
               id="identifier"
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              className="p-2 rounded-md ring-[1.5px] ring-gray-300 text-sm"
+              className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
               required
               autoComplete="username"
             />
-            {/* v7: per-field errors via errors.fields */}
             {errors?.fields?.identifier && (
               <p role="alert" className="text-red-500 text-xs">
                 {errors.fields.identifier.message}
@@ -103,8 +134,8 @@ const LoginContent = () => {
           </div>
 
           <div className="flex flex-col gap-1">
-            <label className="text-gray-500 text-xs" htmlFor="password">
-              Password
+            <label className="text-white text-xs" htmlFor="password">
+              {t("password")}
             </label>
             <div className="relative">
               <input
@@ -112,17 +143,23 @@ const LoginContent = () => {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="p-2 pr-20 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+                className="focus:bg-academixPurpleLight px-4 py-3 pe-20 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
                 required
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="right-2 absolute inset-y-0 text-gray-500 text-xs"
-                aria-label={showPassword ? "Hide password" : "Show password"}
+                className="end-2 absolute inset-y-0 text-gray-500 text-xs"
+                aria-label={
+                  showPassword ? t("hidePassword") : t("showPassword")
+                }
               >
-                {showPassword ? "Hide" : "Show"}
+                {showPassword ? (
+                  <EyeOff className="w-5 h-5" />
+                ) : (
+                  <Eye className="w-5 h-5" />
+                )}
               </button>
             </div>
             {errors?.fields?.password && (
@@ -135,7 +172,7 @@ const LoginContent = () => {
           <button
             type="submit"
             disabled={fetchStatus === "fetching"}
-            className="flex justify-center items-center gap-2 bg-academixPurpleDark disabled:opacity-60 mt-2 p-2 rounded-md text-white"
+            className="flex justify-center items-center gap-2 bg-academixPurpleDark hover:bg-academixPurpleMuted disabled:opacity-80 shadow-md mt-2 py-2.5 rounded-md text-white transition"
           >
             {fetchStatus === "fetching" ? (
               <>
@@ -143,13 +180,19 @@ const LoginContent = () => {
                   className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin"
                   aria-hidden="true"
                 />
-                Signing in...
+                {t("signingIn")}
               </>
             ) : (
-              "Sign In"
+              t("signIn")
             )}
           </button>
         </form>
+        <p className="text-white text-xs">
+          {t("newSchool")}{" "}
+          <Link href="/school-signup" className="text-gray-300 hover:underline">
+            {t("signupRequest")}
+          </Link>
+        </p>
       </div>
     </div>
   );

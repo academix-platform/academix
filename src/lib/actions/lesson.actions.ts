@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyScheduleUpdated, notifyStudentsScheduleUpdated } from "./notification.actions";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -171,6 +172,7 @@ export const saveLessonSchedule = async (
     const settings =
       (await getSchoolScheduleSettings(access.schoolId)) ??
       getDefaultSchoolScheduleSettings();
+    const allowedDays = new Set(settings.workingDays);
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
     const selectedEntries = toSelectedEntries(data.entries);
 
@@ -194,9 +196,13 @@ export const saveLessonSchedule = async (
       };
     }
 
+    const filteredSelectedEntries = selectedEntries.filter((entry) =>
+      allowedDays.has(entry.day),
+    );
+
     const conflict = await detectTeacherConflicts({
       classId: data.classId,
-      selectedEntries,
+      selectedEntries: filteredSelectedEntries,
       settings,
       academicYearId,
       schoolId: access.schoolId,
@@ -224,7 +230,7 @@ export const saveLessonSchedule = async (
       });
 
       const selectedByKey = new Map(
-        selectedEntries.map((entry) => [
+        filteredSelectedEntries.map((entry) => [
           scheduleKey(entry.day, entry.slot),
           entry,
         ]),
@@ -271,7 +277,7 @@ export const saveLessonSchedule = async (
         });
       }
 
-      for (const entry of selectedEntries) {
+      for (const entry of filteredSelectedEntries) {
         const key = scheduleKey(entry.day, entry.slot);
         const existing = existingByKey.get(key);
 
@@ -312,6 +318,18 @@ export const saveLessonSchedule = async (
         });
       }
     });
+
+    // ✅ إشعار المعلمين المتأثرين بتغيير الجدول
+    await notifyScheduleUpdated({
+      schoolId: access.schoolId,
+      classId: data.classId,
+    }).catch(() => {});
+
+    // ✅ إشعار الطلاب والأولياء بتغيير الجدول
+    await notifyStudentsScheduleUpdated({
+      schoolId: access.schoolId,
+      classId: data.classId,
+    }).catch(() => {});
 
     revalidatePath("/list/lessons");
     return successResult(["/list/lessons"]);

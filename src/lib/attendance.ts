@@ -6,6 +6,7 @@ export const getAttendanceData = async ({
   userId,
   scope,
   classId,
+  gradeId,
   day,
   schoolId,
 }: {
@@ -13,6 +14,7 @@ export const getAttendanceData = async ({
   userId: string | null;
   scope: "students" | "teachers";
   classId?: number;
+  gradeId?: number;
   day: Date;
   schoolId: number;
 }) => {
@@ -61,6 +63,7 @@ export const getAttendanceData = async ({
       where: {
         schoolId,
         ...(classId ? { classId } : {}),
+        ...(!classId && gradeId ? { class: { gradeId } } : {}),
       },
       include: {
         class: { select: { name: true } },

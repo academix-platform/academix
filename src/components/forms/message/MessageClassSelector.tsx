@@ -1,5 +1,7 @@
 "use client";
 
+import { useTranslations } from "next-intl";
+
 type ClassOption = {
   id: number;
   name: string;
@@ -16,6 +18,9 @@ const MessageClassSelector = ({
   selectedClassIds,
   onChange,
 }: MessageClassSelectorProps) => {
+  const t = useTranslations("forms.message");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const allSelected =
     classes.length > 0 && selectedClassIds.length === classes.length;
 
@@ -28,30 +33,32 @@ const MessageClassSelector = ({
   };
 
   return (
-    <div className="flex flex-col gap-2 w-full md:w-1/3">
+    <div className="flex flex-col gap-2 w-full">
       <div className="flex justify-between items-center">
-        <label className="text-gray-500 text-xs">Classes (optional)</label>
+        <label className="font-medium text-gray-700 text-sm">
+          {t("classesOptional")}
+        </label>
         <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={() => onChange(classes.map((cls) => cls.id))}
-            className="text-blue-600 text-xs hover:underline"
+            className="font-medium text-academixPurpleDark text-xs hover:underline"
           >
-            Select all
+            {commonT("selectAll")}
           </button>
           {selectedClassIds.length > 0 && (
             <button
               type="button"
               onClick={() => onChange([])}
-              className="text-blue-600 text-xs hover:underline"
+              className="font-medium text-academixPurpleDark text-xs hover:underline"
             >
-              Clear
+              {actionsT("clear")}
             </button>
           )}
         </div>
       </div>
 
-      <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[170px] overflow-y-auto">
+      <div className="flex flex-col gap-2 bg-white p-4 border-2 border-gray-200 rounded-lg max-h-[220px] overflow-y-auto">
         <label className="flex items-center gap-2 mb-2 text-gray-700 text-sm">
           <input
             type="checkbox"
@@ -61,9 +68,9 @@ const MessageClassSelector = ({
                 ? onChange(classes.map((cls) => cls.id))
                 : onChange([])
             }
-            className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
+            className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
           />
-          <span className="font-medium">Select all</span>
+          <span className="font-medium">{commonT("selectAll")}</span>
         </label>
 
         {classes.map((cls) => (
@@ -75,7 +82,7 @@ const MessageClassSelector = ({
               type="checkbox"
               checked={selectedClassIds.includes(cls.id)}
               onChange={(event) => toggleClass(cls.id, event.target.checked)}
-              className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
+              className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
             />
             <span>{cls.name}</span>
           </label>
@@ -86,3 +93,5 @@ const MessageClassSelector = ({
 };
 
 export default MessageClassSelector;
+
+

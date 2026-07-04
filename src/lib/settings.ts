@@ -3,10 +3,12 @@ import { UserRole } from "./utils";
 export const ITEM_PER_PAGE = 10;
 
 export const routePermissions: Record<string, UserRole[]> = {
+  "/super-admin(.*)": ["superAdmin"],
   "/admin(.*)": ["admin"],
   "/teacher(.*)": ["teacher"],
   "/student(.*)": ["student"],
   "/parent(.*)": ["parent"],
+  "/school-access(.*)": ["admin", "teacher", "student", "parent"],
 
   "/list/lessons(.*)": ["admin"],
   "/list/teachers(.*)": ["admin"],
@@ -14,9 +16,12 @@ export const routePermissions: Record<string, UserRole[]> = {
   "/list/parents(.*)": ["admin", "teacher"],
   "/list/subjects(.*)": ["admin", "teacher", "student", "parent"],
   "/list/classes(.*)": ["admin", "teacher"],
+  "/list/grades(.*)": ["admin"],
   "/list/exams(.*)": ["admin", "teacher", "student", "parent"],
   "/list/assignments(.*)": ["admin", "teacher", "student", "parent"],
   "/list/results(.*)": ["admin", "teacher", "student", "parent"],
+  "/list/final-results": ["admin", "teacher", "student", "parent"],
+  "/list/final-results(.*)": ["admin", "teacher", "student", "parent"],
   "/list/attendance(.*)": ["admin", "teacher"],
   "/list/events(.*)": ["admin", "teacher", "student", "parent"],
   "/list/announcements(.*)": ["admin", "teacher", "student", "parent"],

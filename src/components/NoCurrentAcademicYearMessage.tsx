@@ -1,6 +1,7 @@
-import Link from "next/link";
 import { getAuthUser } from "@/lib/auth";
 import { UserRole } from "@/lib/utils";
+import EmptyState from "@/components/states/EmptyState";
+import { getTranslations } from "next-intl/server";
 
 type Props = {
   compact?: boolean;
@@ -11,6 +12,7 @@ const NoCurrentAcademicYearMessage = async ({
   compact = false,
   role,
 }: Props) => {
+  const t = await getTranslations("states");
   const resolvedRole = role ?? (await getAuthUser())?.role ?? null;
   const isAdmin = resolvedRole === "admin";
 
@@ -18,17 +20,24 @@ const NoCurrentAcademicYearMessage = async ({
     if (!isAdmin) {
       return (
         <div className="bg-white p-4 rounded-md text-sm">
-          <p className="text-gray-600">No data yet.</p>
+          <EmptyState
+            title={t("noDataYet")}
+            description={t("academicYearNotStarted")}
+            className="py-2"
+          />
         </div>
       );
     }
 
     return (
       <div className="bg-white p-4 rounded-md text-sm">
-        <p className="text-gray-600">No current year selected.</p>
-        <Link href="/settings" className="text-blue-600 hover:underline">
-          Go to settings
-        </Link>
+        <EmptyState
+          title={t("noCurrentYear")}
+          description={t("selectCurrentYear")}
+          actionLabel={t("goToSettings")}
+          actionHref="/settings"
+          className="py-2"
+        />
       </div>
     );
   }
@@ -36,26 +45,22 @@ const NoCurrentAcademicYearMessage = async ({
   if (!isAdmin) {
     return (
       <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-        <h1 className="font-semibold text-lg">No data yet</h1>
-        <p className="mt-2 text-gray-500 text-sm">
-          Academic year did not begin yet.
-        </p>
+      <EmptyState
+          title={t("noDataYet")}
+          description={t("academicYearNotStarted")}
+        />
       </div>
     );
   }
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
-      <h1 className="font-semibold text-lg">No current year selected</h1>
-      <p className="mt-2 text-gray-500 text-sm">
-        Select a current academic year to view data.
-      </p>
-      <Link
-        href="/settings"
-        className="inline-block bg-blue-500 mt-4 px-4 py-2 rounded-md text-white text-sm"
-      >
-        Go to settings
-      </Link>
+      <EmptyState
+        title={t("noCurrentYear")}
+        description={t("selectCurrentYear")}
+        actionLabel={t("goToSettings")}
+        actionHref="/settings"
+      />
     </div>
   );
 };

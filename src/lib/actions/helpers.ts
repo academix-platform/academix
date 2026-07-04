@@ -57,6 +57,15 @@ export const ensureAdminAccess = async () => {
     } as ActionResult;
   }
 
+  if (user.schoolStatus !== "ACTIVE") {
+    return {
+      success: false,
+      error: true,
+      message:
+        "Your school is not active yet. Please wait for super admin approval.",
+    } as ActionResult;
+  }
+
   return null;
 };
 
@@ -72,6 +81,17 @@ export const requireActionAccess = async (
       success: false,
       error: true,
       message: "You are not allowed to perform this action.",
+    };
+  }
+
+  if (user.role === "admin" && user.schoolStatus !== "ACTIVE") {
+    return {
+      success: false,
+      error: true,
+      message:
+        user.schoolStatus === "PAUSED"
+          ? `Your school account is paused. ${user.schoolPauseReason ? `Reason: ${user.schoolPauseReason}` : ""}`
+          : "Your school is pending approval by a super admin.",
     };
   }
 
@@ -205,41 +225,15 @@ export const deleteLessonGraph = async (
 ) => {
   if (lessonIds.length === 0) return;
 
-  const exams = await tx.exam.findMany({
+  await tx.exam.updateMany({
     where: { lessonId: { in: lessonIds } },
-    select: { id: true },
-  });
-  const assignments = await tx.assignment.findMany({
-    where: { lessonId: { in: lessonIds } },
-    select: { id: true },
+    data: { lessonId: null },
   });
 
-  const examIds = exams.map((exam) => exam.id);
-  const assignmentIds = assignments.map((assignment) => assignment.id);
-
-  if (examIds.length > 0) {
-    await tx.result.deleteMany({
-      where: { examId: { in: examIds } },
-    });
-  }
-
-  if (assignmentIds.length > 0) {
-    await tx.result.deleteMany({
-      where: { assignmentId: { in: assignmentIds } },
-    });
-  }
-
-  if (examIds.length > 0) {
-    await tx.exam.deleteMany({
-      where: { id: { in: examIds } },
-    });
-  }
-
-  if (assignmentIds.length > 0) {
-    await tx.assignment.deleteMany({
-      where: { id: { in: assignmentIds } },
-    });
-  }
+  await tx.assignment.updateMany({
+    where: { lessonId: { in: lessonIds } },
+    data: { lessonId: null },
+  });
 
   await tx.lesson.deleteMany({
     where: { id: { in: lessonIds } },
@@ -265,20 +259,21 @@ export const canTeacherManageResultAssessment = async ({
   if (role === "admin") return true;
   if (role !== "teacher" || !userId) return false;
 
-  const baseWhere = {
-    id: assessmentId,
-    lesson: { teacherId: userId },
-  };
-
   const checkers = {
     exam: () =>
       prisma.exam.findFirst({
-        where: baseWhere,
+        where: {
+          id: assessmentId,
+          OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+        },
         select: { id: true },
       }),
     assignment: () =>
       prisma.assignment.findFirst({
-        where: baseWhere,
+        where: {
+          id: assessmentId,
+          OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+        },
         select: { id: true },
       }),
   };
