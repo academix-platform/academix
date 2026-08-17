@@ -479,7 +479,8 @@
       "answerBeforeProceeding": "Please answer all questions on this page before proceeding.",
       "answerBeforeSubmitting": "Please answer all questions on this page before submitting.",
       "submitted": "Exam submitted successfully!",
-      "timeUp": "Exam time is up! Auto-submitting..."
+      "timeUp": "Exam time is up! Auto-submitting...",
+      "submitFailed": "Failed to submit exam. Please try again."
     },
     "uploading": "Uploading... {progress}%",
     "uploadFailed": "Upload failed",

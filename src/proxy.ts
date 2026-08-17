@@ -9,8 +9,9 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",
-  "/api/cron(.*)",
 ]);
+
+const isCronRoute = createRouteMatcher(['/api/cron(.*)']);
 
 const matchers = (
   Object.entries(routePermissions) as [string, UserRole[]][]
@@ -22,6 +23,10 @@ const matchers = (
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
+
+  if (isCronRoute(req)) {
+    return;
+  }
   const role =
     (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
 

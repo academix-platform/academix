@@ -52,11 +52,16 @@ const getColumns = (th: (key: string) => string) => [
   { header: th("actions"), accessor: "action", className: "min-w-[110px] p-4" },
 ];
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date);
+function LocalDateTime({ date }: { date: string }) {
+  return (
+    <span>
+      {new Intl.DateTimeFormat("en-US", {
+        dateStyle: "short",
+        timeStyle: "short",
+      }).format(new Date(date))}
+    </span>
+  );
+}
 
 const renderRow = (
   item: SubmissionRow,
@@ -82,7 +87,9 @@ const renderRow = (
         : "-"}
     </td>
     <td className="hidden p-4 text-start text-gray-500 md:table-cell">
-      {item.submittedAt ? formatDateTime(item.submittedAt) : "-"}
+      {item.submittedAt
+        ? <LocalDateTime date={item.submittedAt.toISOString()} />
+        : "-"}
     </td>
     <td className="min-w-[110px] p-4">
       {(item.status === "SUBMITTED" || item.status === "GRADED") && (
@@ -143,7 +150,7 @@ const ExamSubmissionsPage = async ({
   if (!exam) redirect("/list/exams");
   const maxScore = exam.questions.reduce((sum, q) => sum + q.points, 0);
 
-  await autoSubmitExpiredSubmissions(examId).catch(() => {});
+  await autoSubmitExpiredSubmissions(examId).catch(() => { });
 
   const groupExams = await prisma.exam.findMany({
     where: {
@@ -173,13 +180,13 @@ const ExamSubmissionsPage = async ({
       ...(selectedClassId ? { exam: { classId: selectedClassId } } : {}),
       ...(search
         ? {
-            student: {
-              OR: [
-                { name: { contains: search, mode: "insensitive" } },
-                { username: { contains: search, mode: "insensitive" } },
-              ],
-            },
-          }
+          student: {
+            OR: [
+              { name: { contains: search, mode: "insensitive" } },
+              { username: { contains: search, mode: "insensitive" } },
+            ],
+          },
+        }
         : {}),
     },
     include: {
