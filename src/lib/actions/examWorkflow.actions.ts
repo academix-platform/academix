@@ -38,7 +38,12 @@ import {
   examGroupWhere,
   teacherExamAccessWhere,
 } from "../exams/group";
-import { autoGrade, closeSubmission, finalizeGrade } from "../exams/grading";
+import {
+  autoGrade,
+  closeSubmission,
+  finalizeGrade,
+  unpublishExamGradeWrites,
+} from "../exams/grading";
 import {
   checkUploadedExamFile,
   getFileExtension,
@@ -862,6 +867,10 @@ export const gradeAnswer = async (
         question: { select: { type: true, points: true } },
         submission: {
           select: {
+            id: true,
+            examId: true,
+            studentId: true,
+            schoolId: true,
             status: true,
             exam: { select: { groupId: true, schoolId: true } },
           },
@@ -907,10 +916,7 @@ export const gradeAnswer = async (
         },
       }),
       // The grade changed, so it has to be published again.
-      prisma.submission.update({
-        where: { id: answer.submissionId },
-        data: { gradePublished: false },
-      }),
+      ...unpublishExamGradeWrites(answer.submission),
     ]);
 
     await finalizeGrade(answer.submissionId);
@@ -1051,7 +1057,10 @@ export const approveAndFinalizeGrading = async (submissionId: number) => {
     const submission = await prisma.submission.findFirst({
       where: { id: submissionId, schoolId: access.schoolId },
       select: {
+        id: true,
         examId: true,
+        studentId: true,
+        schoolId: true,
         status: true,
         exam: { select: { groupId: true, schoolId: true } },
         answers: {
@@ -1095,14 +1104,9 @@ export const approveAndFinalizeGrading = async (submissionId: number) => {
       0
     );
 
-    await prisma.submission.update({
-      where: { id: submissionId },
-      data: {
-        totalScore,
-        status: "GRADED",
-        gradePublished: false,
-      },
-    });
+    await prisma.$transaction(
+      unpublishExamGradeWrites(submission, { totalScore, status: "GRADED" })
+    );
 
     return successResult([`/list/exams/${submission.examId}/submissions`]);
   } catch (err) {
@@ -1181,8 +1185,7 @@ export const publishExamGrades = async (examId: number) => {
       if (submission.totalScore === null) continue;
 
       const resultData = {
-        // TODO(grades PR): Result.score becomes Float and this rounding goes away.
-        score: Math.round(submission.totalScore),
+        score: submission.totalScore,
         schoolId: access.schoolId,
         studentId: submission.studentId,
         examId: submission.examId,

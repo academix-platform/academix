@@ -1,6 +1,7 @@
 "use client";
 
 import { promoteStudentsByPerformance } from "@/lib/actions";
+import { isAcademicYearFinished } from "@/lib/promotion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { X } from "lucide-react";
@@ -23,17 +24,6 @@ const formatDate = (value: string, locale: string) =>
   new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
     new Date(`${value}T00:00:00`),
   );
-
-const getTodayIsoDate = () => {
-  const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${today.getFullYear()}-${month}-${day}`;
-};
-
-const isAcademicYearFinished = (academicYearEndDate: string) =>
-  getTodayIsoDate() > academicYearEndDate;
 
 const PromoteStudentsButton = ({
   academicYearName,
