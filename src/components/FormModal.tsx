@@ -371,12 +371,14 @@ const FormModal = ({
               relatedData={relatedData}
               setOpen={setOpen}
             />
-            <div
-              className="top-4 end-4 absolute cursor-pointer"
+            <button
+              type="button"
+              aria-label="Close dialog"
+              className="top-4 absolute hover:bg-gray-100 p-1.5 rounded-md text-gray-500 hover:text-gray-700 transition end-4"
               onClick={() => setOpen(false)}
             >
               <X className="w-4 h-4 text-gray-500" />
-            </div>
+            </button>
           </div>
         </div>
       )}

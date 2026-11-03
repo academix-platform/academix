@@ -96,6 +96,7 @@ const AttendanceClient = ({
                     <>
                       <input
                         type="checkbox"
+                        aria-label={`${item.name} - ${checked ? t("present") : t("absent")}`}
                         checked={checked}
                         onChange={(e) => {
                           setChanges((prev) => ({

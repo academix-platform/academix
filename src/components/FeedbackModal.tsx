@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { createFeedback } from "@/lib/actions/feedback";
+import { X } from "lucide-react";
 
 export default function FeedbackModal() {
   const t = useTranslations("feedbackPage");
@@ -56,11 +57,12 @@ export default function FeedbackModal() {
 
               <button
                 type="button"
+                aria-label="Close dialog"
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
-                className="disabled:opacity-60 px-3 py-1 rounded-full text-gray-600 text-sm disabled:cursor-not-allowed"
+                className="hover:bg-gray-100 disabled:opacity-60 p-1.5 rounded-md text-gray-500 hover:text-gray-700 transition disabled:cursor-not-allowed"
               >
-                x
+                <X className="w-5 h-5" />
               </button>
             </div>
 
@@ -98,6 +100,7 @@ export default function FeedbackModal() {
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
+                  aria-label="Close dialog"
                   onClick={() => setOpen(false)}
                   disabled={isSubmitting}
                   className="bg-gray-100 hover:bg-gray-200 disabled:opacity-60 px-5 py-2.5 rounded-lg font-medium text-gray-700 text-sm disabled:cursor-not-allowed"

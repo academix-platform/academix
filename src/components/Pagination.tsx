@@ -28,7 +28,9 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
   return (
     <div className="flex justify-end items-center gap-2 ms-auto p-4 text-gray-500">
       <button
-        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
+        type="button"
+        aria-label="Previous page"
+        className="bg-academixPurple disabled:opacity-50 p-2 rounded-md font-semibold text-academixInk hover:bg-academixPurpleDark hover:text-white transition shadow-sm text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page - 1)}
         disabled={!hasPrev}
       >
@@ -37,13 +39,17 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
       <div className="flex items-center gap-2 text-sm">
         {Array.from({ length: Math.ceil(count / ITEM_PER_PAGE) }, (_, i) => {
           const pageIndex = i + 1;
+          const isCurrent = page === pageIndex;
           return (
             <button
+              type="button"
               key={pageIndex}
-              className={`py-1.5 px-4 rounded-md ${
-                page === pageIndex
-                  ? "bg-academixPurpleDark text-white"
-                  : "bg-academixPurple hover:bg-academixPurpleDark text-academixPurpleDark hover:text-academixPurple"
+              aria-label={`Page ${pageIndex}`}
+              aria-current={isCurrent ? "page" : undefined}
+              className={`py-1.5 px-4 rounded-md transition font-medium ${
+                isCurrent
+                  ? "bg-academixPurpleDark text-white shadow-sm"
+                  : "bg-academixPurple hover:bg-academixPurpleDark text-academixInk hover:text-white"
               }`}
               onClick={() => changePage(pageIndex)}
             >
@@ -53,7 +59,9 @@ const Pagination = ({ page, count }: { page: number; count: number }) => {
         })}
       </div>
       <button
-        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
+        type="button"
+        aria-label="Next page"
+        className="bg-academixPurple disabled:opacity-50 p-2 rounded-md font-semibold text-academixInk hover:bg-academixPurpleDark hover:text-white transition shadow-sm text-xs disabled:cursor-not-allowed"
         onClick={() => changePage(page + 1)}
         disabled={!hasNext}
       >

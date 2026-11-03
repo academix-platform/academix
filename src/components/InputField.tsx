@@ -19,18 +19,26 @@ const InputField = ({
   error,
   inputProps,
 }: InputFieldProps) => {
+  const inputId = inputProps?.id || `input-${name}`;
+  const errorId = `${inputId}-error`;
+
   return (
     <div className="flex flex-col gap-2 w-full">
-      <label className="font-medium text-gray-700 text-sm">{label}</label>
+      <label htmlFor={inputId} className="font-medium text-gray-700 text-sm">
+        {label}
+      </label>
       <input
+        id={inputId}
         type={type}
         {...register(name)}
-        className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all placeholder-gray-400"
+        aria-invalid={error ? "true" : undefined}
+        aria-describedby={error?.message ? errorId : undefined}
+        className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-2 focus:ring-academixPurpleDark/20 text-sm transition-all placeholder-gray-400"
         {...inputProps}
         defaultValue={defaultValue}
       />
       {error?.message && (
-        <p className="font-medium text-red-500 text-xs">
+        <p id={errorId} role="alert" className="font-medium text-red-500 text-xs">
           {error.message.toString()}
         </p>
       )}
@@ -39,4 +47,3 @@ const InputField = ({
 };
 
 export default InputField;
-

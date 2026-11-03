@@ -191,7 +191,11 @@ const SchoolSignupForm = () => {
               </h3>
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
+                  <label htmlFor="schoolName" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.schoolName")}
+                  </label>
                   <input
+                    id="schoolName"
                     name="schoolName"
                     placeholder={t("fields.schoolName")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -210,7 +214,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="registrationNumber" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.registrationNumber")}
+                  </label>
                   <input
+                    id="registrationNumber"
                     name="registrationNumber"
                     placeholder={t("fields.registrationNumber")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -224,7 +232,11 @@ const SchoolSignupForm = () => {
                   />
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="contactEmail" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.schoolEmail")}
+                  </label>
                   <input
+                    id="contactEmail"
                     name="contactEmail"
                     type="email"
                     placeholder={t("fields.schoolEmail")}
@@ -244,7 +256,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="contactPhone" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.schoolPhone")}
+                  </label>
                   <input
+                    id="contactPhone"
                     name="contactPhone"
                     placeholder={t("fields.schoolPhone")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -263,7 +279,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="country" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.country")}
+                  </label>
                   <input
+                    id="country"
                     name="country"
                     placeholder={t("fields.country")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -282,7 +302,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="city" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.city")}
+                  </label>
                   <input
+                    id="city"
                     name="city"
                     placeholder={t("fields.city")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -301,7 +325,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1 md:col-span-2">
+                  <label htmlFor="website" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.website")}
+                  </label>
                   <input
+                    id="website"
                     name="website"
                     type="url"
                     placeholder={t("fields.website")}
@@ -316,7 +344,11 @@ const SchoolSignupForm = () => {
                   />
                 </div>
                 <div className="space-y-1 md:col-span-2">
+                  <label htmlFor="schoolAddress" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.schoolAddress")}
+                  </label>
                   <textarea
+                    id="schoolAddress"
                     name="address"
                     placeholder={t("fields.schoolAddress")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -341,7 +373,9 @@ const SchoolSignupForm = () => {
                 <button
                   type="button"
                   onClick={goToAdminStep}
-                  className="text-academixPurpleDark hover:underline transition"
+                  aria-label={t("step", { number: 2 })}
+                  title={t("step", { number: 2 })}
+                  className="text-academixPurpleDark hover:underline transition p-2"
                 >
                   <ArrowRight className="rtl:rotate-180" />
                 </button>
@@ -380,7 +414,11 @@ const SchoolSignupForm = () => {
               </h3>
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
+                  <label htmlFor="adminName" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.adminName")}
+                  </label>
                   <input
+                    id="adminName"
                     name="adminName"
                     placeholder={t("fields.adminName")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -392,7 +430,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="adminEmail" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.adminEmailOptional")}
+                  </label>
                   <input
+                    id="adminEmail"
                     name="adminEmail"
                     type="email"
                     placeholder={t("fields.adminEmailOptional")}
@@ -400,7 +442,11 @@ const SchoolSignupForm = () => {
                   />
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="adminUsername" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.adminUsername")}
+                  </label>
                   <input
+                    id="adminUsername"
                     name="adminUsername"
                     placeholder={t("fields.adminUsername")}
                     className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
@@ -412,7 +458,11 @@ const SchoolSignupForm = () => {
                   )}
                 </div>
                 <div className="space-y-1">
+                  <label htmlFor="adminPassword" className="block font-medium text-gray-700 text-xs">
+                    {t("fields.adminPassword")}
+                  </label>
                   <input
+                    id="adminPassword"
                     name="adminPassword"
                     type="password"
                     placeholder={t("fields.adminPassword")}
@@ -433,8 +483,10 @@ const SchoolSignupForm = () => {
                 <button
                   type="button"
                   onClick={() => setStep(1)}
-                className="top-1/2 start-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2"
-              >
+                  aria-label={t("step", { number: 1 })}
+                  title={t("step", { number: 1 })}
+                  className="top-1/2 start-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2 p-2"
+                >
                   <ArrowLeft className="rtl:rotate-180" />
                 </button>
                 <button
