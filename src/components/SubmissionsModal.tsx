@@ -331,7 +331,7 @@ export default function SubmissionsModal({
                         </div>
                         {s.note && (
                           <p className="text-xs text-gray-400 mt-1 line-clamp-2 italic">
-                            "{s.note}"
+                            &ldquo;{s.note}&rdquo;
                           </p>
                         )}
                         <p className="text-xs text-gray-300 mt-1">
