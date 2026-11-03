@@ -26,21 +26,23 @@ const Table = ({
   }
 
   return (
-    <table className="mt-4 w-full">
-      <thead>
-        <tr className="text-gray-500 text-sm">
-          {columns.map((col) => (
-            <th
-              key={col.accessor}
-              className={`p-4 text-start ${col.className ?? ""}`}
-            >
-              {col.header}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>{data.map((item) => renderRow(item))}</tbody>
-    </table>
+    <div className="w-full overflow-x-auto">
+      <table className="mt-4 w-full">
+        <thead>
+          <tr className="text-gray-500 text-sm">
+            {columns.map((col) => (
+              <th
+                key={col.accessor}
+                className={`p-4 text-start ${col.className ?? ""}`}
+              >
+                {col.header}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>{data.map((item) => renderRow(item))}</tbody>
+      </table>
+    </div>
   );
 };
 

@@ -32,14 +32,17 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
       {
         header: th("content"),
         accessor: "description",
+        className: "hidden md:table-cell",
       },
       {
         header: th("date"),
         accessor: "date",
+        className: "hidden sm:table-cell",
       },
       {
         header: th("time"),
         accessor: "time",
+        className: "hidden md:table-cell",
       },
       {
         header: th("actions"),
@@ -56,14 +59,17 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
     {
       header: th("content"),
       accessor: "description",
+      className: "hidden lg:table-cell",
     },
     {
       header: th("sentTo"),
       accessor: "recipients",
+      className: "hidden md:table-cell",
     },
     {
       header: th("class"),
       accessor: "class",
+      className: "hidden sm:table-cell",
     },
     {
       header: th("date"),
@@ -95,9 +101,9 @@ const renderRow = (
         className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
       >
         <td className="p-4">{item.title}</td>
-        <td>{getDescriptionPreview(item.description)}</td>
-        <td>{new Intl.DateTimeFormat("en-US").format(item.date)}</td>
-        <td>
+        <td className="hidden md:table-cell">{getDescriptionPreview(item.description)}</td>
+        <td className="hidden sm:table-cell">{new Intl.DateTimeFormat("en-US").format(item.date)}</td>
+        <td className="hidden md:table-cell">
           {item.date.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
@@ -119,9 +125,9 @@ const renderRow = (
       className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
     >
       <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td>{getDescriptionPreview(item.description)}</td>
-      <td>{getRecipientsPreview(item)}</td>
-      <td>
+      <td className="hidden lg:table-cell">{getDescriptionPreview(item.description)}</td>
+      <td className="hidden md:table-cell">{getRecipientsPreview(item)}</td>
+      <td className="hidden sm:table-cell">
         {item.classes.length === totalClassesCount && totalClassesCount > 0
           ? allClassesLabel
           : item.classes.map((cls) => cls.name).join(", ") || "-"}

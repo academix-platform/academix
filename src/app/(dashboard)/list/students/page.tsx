@@ -72,13 +72,13 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
 
     <td className="hidden md:table-cell">{item.username}</td>
     <td className="hidden md:table-cell">{item.class.name[0]}</td>
-    <td className="hidden md:table-cell">{item.phone}</td>
-    <td className="hidden md:table-cell">{item.address}</td>
+    <td className="hidden lg:table-cell">{item.phone}</td>
+    <td className="hidden lg:table-cell">{item.address}</td>
 
     <td>
       <div className="flex items-center gap-2">
         <Link href={`/list/students/${item.id}`}>
-          <button className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
+          <button aria-label="View student details" className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
             {" "}
             <Eye className="w-4 h-4" />
           </button>

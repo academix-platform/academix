@@ -74,13 +74,13 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
       {item.subjects.map((subject) => subject.name).join(", ")}
     </td>
 
-    <td className="hidden md:table-cell">{item.phone}</td>
-    <td className="hidden md:table-cell">{item.address}</td>
+    <td className="hidden lg:table-cell">{item.phone}</td>
+    <td className="hidden lg:table-cell">{item.address}</td>
 
     <td>
       <div className="flex items-center gap-2">
         <Link href={`/list/teachers/${item.id}`}>
-          <button className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
+          <button aria-label="View teacher details" className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
             {" "}
             <Eye className="w-4 h-4" />
           </button>

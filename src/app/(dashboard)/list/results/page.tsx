@@ -32,7 +32,7 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
     {
       header: th("score"),
       accessor: "score",
-      className: "hidden md:table-cell",
+      className: "",
     },
   ];
 
@@ -75,7 +75,7 @@ const renderRow = (item: ResultList, role: UserRole | null) => (
       {item.exam?.title || item.assignment?.title || "-"}
     </td>
 
-    <td className="hidden md:table-cell">{item.score}</td>
+    <td className="p-4 font-semibold text-academixPurpleDark">{item.score}</td>
 
     {(role === "admin" || role === "teacher") && (
       <td>
