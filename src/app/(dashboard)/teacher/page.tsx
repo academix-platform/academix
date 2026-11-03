@@ -2,6 +2,7 @@ import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import { getAuthUser } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 
 const TeacherPage = async ({
   searchParams,
@@ -11,19 +12,20 @@ const TeacherPage = async ({
   const user = await getAuthUser();
 
   if (!user) return null;
+  const t = await getTranslations("sidebar.items");
 
   return (
     <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
       {/* LEFT */}
       <div className="w-full xl:w-2/3">
         <div className="bg-white p-4 rounded-md h-full">
-          <h1 className="font-semibold text-xl">Schedule</h1>
+          <h1 className="font-semibold text-xl">{t("schedules")}</h1>
           <BigCalendarContainer type="teacherId" id={user.userId} />
         </div>
       </div>
 
       {/* RIGHT */}
-      <div className="flex flex-col justify-between w-full lg:w-1/3">
+      <div className="flex flex-col justify-between w-full xl:w-1/3">
         <EventCalendarContainer searchParams={searchParams} />
         <Announcements />
       </div>

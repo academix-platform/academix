@@ -49,7 +49,7 @@ const StudentPage = async ({
       </div>
 
       {/* RIGHT */}
-      <div className="flex flex-col justify-between w-full lg:w-1/3">
+      <div className="flex flex-col justify-between w-full xl:w-1/3">
         <EventCalendarContainer searchParams={searchParams} />
         <Announcements />
       </div>

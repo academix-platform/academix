@@ -104,7 +104,7 @@ const SingleStudentPage = async ({
             <div className="rounded-full">
               <Image
                 src={student.img || "/avatar.png"}
-                alt=""
+                alt={student.name}
                 width={144}
                 height={144}
                 className="rounded-full w-24 md:w-36 h-24 md:h-36 object-cover"
@@ -196,31 +196,31 @@ const SingleStudentPage = async ({
           <h1 className="font-semibold text-xl">{t("shortcuts.title")}</h1>
           <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
             <Link
-              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
+              className="bg-academixSkyLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
               href={`/list/lessons?classId=${student.class.id}`}
             >
               {t("student.lessons")}
             </Link>
             <Link
-              className="bg-academixPurpleLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
+              className="bg-academixPurpleLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
               href={`/list/teachers?classId=${student.class.id}`}
             >
               {t("student.teachers")}
             </Link>
             <Link
-              className="bg-pink-50 p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
+              className="bg-pink-50 p-3 rounded-md font-medium hover:shadow-sm transition-all"
               href={`/list/exams?classId=${student.class.id}`}
             >
               {t("student.exams")}
             </Link>
             <Link
-              className="bg-academixSkyLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
+              className="bg-academixSkyLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
               href={`/list/assignments?classId=${student.class.id}`}
             >
               {t("student.assignments")}
             </Link>
             <Link
-              className="bg-academixYellowLight p-3 rounded-md hover:font-bold hover:scale-[1.05] transition-all"
+              className="bg-academixYellowLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
               href={`/list/results?studentId=${id}`}
             >
               {t("student.results")}

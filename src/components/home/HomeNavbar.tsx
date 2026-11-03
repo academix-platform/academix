@@ -46,7 +46,7 @@ const HomeNavbar = () => {
                 {commonT("brand")}
               </h1>
               <div
-                className={`hidden xl:block absolute top-1/2 -translate-y-1/2 ${
+                className={`hidden lg:block absolute top-1/2 -translate-y-1/2 ${
                   isArabic
                     ? "right-[calc(100%+18px)]"
                     : "left-[calc(100%+18px)]"
@@ -106,7 +106,7 @@ const HomeNavbar = () => {
 
       {/* Mobile Sidebar */}
       <div
-        className={`fixed top-0 right-0 h-full w-64 backdrop-blur-md z-50 transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 right-0 h-full w-64 bg-[#24104F]/95 backdrop-blur-md z-50 transform transition-transform duration-300 ease-in-out shadow-2xl border-s border-purple-300/20 ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >
