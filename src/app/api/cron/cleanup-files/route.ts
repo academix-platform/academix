@@ -1,38 +1,29 @@
 import { NextRequest, NextResponse } from "next/server";
+import { isAuthorizedCronRequest } from "@/lib/cron";
 import cloudinary, { deleteExamFileFromCloudinary } from "@/lib/cloudinary";
 import prisma from "@/lib/prisma";
 
-const validateCronSecret = (req: NextRequest): boolean => {
-  const authHeader = req.headers.get("authorization");
-  if (authHeader?.startsWith("Bearer ")) {
-    const token = authHeader.slice(7);
-    if (token === process.env.CRON_SECRET) return true;
-  }
-
-  const { searchParams } = new URL(req.url);
-  const secretParam = searchParams.get("secret");
-  if (secretParam === process.env.CRON_SECRET) return true;
-
-  return false;
-};
-
 export async function GET(req: NextRequest) {
-  if (!validateCronSecret(req)) {
+  if (!isAuthorizedCronRequest(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const twoHoursAgo = Date.now() - 2 * 60 * 60 * 1000;
 
-    const searchResult = await cloudinary.search
-      .expression("resource_type:raw AND type:private AND folder:exams/*")
-      .max_results(500)
-      .execute();
+    // Search returns at most 500 per page; follow the cursor to see them all.
+    const allResources: Array<{ public_id: string; created_at: string }> = [];
+    let nextCursor: string | undefined;
+    do {
+      let search = cloudinary.search
+        .expression("resource_type:raw AND type:private AND folder:exams/*")
+        .max_results(500);
+      if (nextCursor) search = search.next_cursor(nextCursor);
 
-    const allResources = searchResult.resources as Array<{
-      public_id: string;
-      created_at: string;
-    }>;
+      const page = await search.execute();
+      allResources.push(...page.resources);
+      nextCursor = page.next_cursor;
+    } while (nextCursor);
 
     const oldResources = allResources.filter(
       (r) => new Date(r.created_at).getTime() < twoHoursAgo
@@ -59,11 +50,8 @@ export async function GET(req: NextRequest) {
 
     let deletedCount = 0;
     for (const resource of orphaned) {
-      try {
-        await deleteExamFileFromCloudinary(resource.public_id);
+      if (await deleteExamFileFromCloudinary(resource.public_id)) {
         deletedCount++;
-      } catch {
-        // Continue deleting remaining orphaned files
       }
     }
 

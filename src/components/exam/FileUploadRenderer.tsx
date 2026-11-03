@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { Upload, X, FileText, AlertCircle, CheckCircle, Loader2, Replace } from "lucide-react";
 import { BLOCKED_EXTENSIONS, isFileConfig, EXAM_FILE_MAX_SIZE_MB } from "@/lib/formValidationSchemas";
 import type { FileConfig } from "@/lib/formValidationSchemas";
-import { getExamUploadSignature, saveAnswer, deleteOldExamFileOnReplace } from "@/lib/actions/examWorkflow.actions";
+import { getExamUploadSignature, saveAnswer } from "@/lib/actions/examWorkflow.actions";
 import { useTranslations } from "next-intl";
 
 type UploadedFile = {
@@ -259,9 +259,6 @@ export default function FileUploadRenderer({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const oldFilePublicId =
-      uploadState.status === "uploaded" ? uploadState.file.filePublicId : null;
-
     if (uploadState.status === "uploaded") {
       const sameFile =
         uploadState.file.fileOriginalName === file.name &&
@@ -327,10 +324,7 @@ export default function FileUploadRenderer({
         return;
       }
 
-      if (oldFilePublicId) {
-        deleteOldExamFileOnReplace(oldFilePublicId, submissionId, questionId).catch(() => {});
-      }
-
+      // The server deletes the replaced file once the new one is saved.
       setUploadState({ status: "uploaded", file: uploadedFile });
       onFileMetaSaved?.({ ...uploadedFile, questionId });
       onUploadEnd?.();

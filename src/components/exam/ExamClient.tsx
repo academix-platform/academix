@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import type { Exam, Question, Answer } from "@prisma/client";
+import type { Exam, Answer } from "@prisma/client";
 import { Loader2, Send, X } from "lucide-react";
 import {
   getExamPage,
@@ -12,19 +12,19 @@ import {
   submitExam,
   recordDisconnection,
 } from "@/lib/actions/examWorkflow.actions";
-import { debounce } from "@/lib/utils";
+import { createSaveQueue, SaveQueue } from "@/lib/exams/saveQueue";
+import type { StudentQuestion } from "@/lib/exams/questions";
 import ExamTimer from "./ExamTimer";
 import FreezeOverlay from "./FreezeOverlay";
 import QuestionRenderer from "./QuestionRenderer";
 
-type DebouncedSaveFn = ((questionId: number, answer: string) => void) & {
-  flush: () => void;
-};
+// How long after the last keystroke a question's answer is saved.
+const AUTOSAVE_DELAY_MS = 1000;
 
 interface ExamClientProps {
   exam: Exam;
   submission: any;
-  initialQuestions: Question[];
+  initialQuestions: StudentQuestion[];
   initialAnswers: Answer[];
   initialTimeRemaining: number;
   totalPages: number;
@@ -41,7 +41,7 @@ export default function ExamClient({
   const t = useTranslations("examTaking");
   const router = useRouter();
 
-  const [questions, setQuestions] = useState<Question[]>(initialQuestions);
+  const [questions, setQuestions] = useState<StudentQuestion[]>(initialQuestions);
   const [answers, setAnswers] = useState<Record<number, string>>(
     initialAnswers.reduce(
       (acc, ans) => ({ ...acc, [ans.questionId]: ans.textAnswer || ans.fileUrl || "" }),
@@ -65,14 +65,13 @@ export default function ExamClient({
   >({});
   const saveTimersRef = useRef<Record<number, NodeJS.Timeout>>({});
 
-  const pendingAnswersRef = useRef<Record<number, string>>({});
+  const saveQueueRef = useRef<SaveQueue<number, string> | null>(null);
   const disconnectedAtRef = useRef<number | null>(null);
   const freezeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const debouncedSaveRef = useRef<DebouncedSaveFn | null>(null);
   const uploadingQuestionsRef = useRef<Set<number>>(new Set());
 
   useEffect(() => {
-    const debounced = debounce(async (questionId: number, answer: string) => {
+    const queue = createSaveQueue<number, string>(async (questionId, answer) => {
       setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saving" }));
       const res = await saveAnswer(
         { success: true, error: false },
@@ -86,30 +85,45 @@ export default function ExamClient({
       if (res.error) {
         setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "error" }));
         toast.error(res.message || t("toast.saveFailed"));
-      } else {
-        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saved" }));
-        // Clear from pending once saved successfully
-        delete pendingAnswersRef.current[questionId];
-        // Auto-hide "saved" after 2 seconds
-        if (saveTimersRef.current[questionId]) clearTimeout(saveTimersRef.current[questionId]);
-        saveTimersRef.current[questionId] = setTimeout(() => {
-          setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "idle" }));
-        }, 2000);
+        return false;
       }
-    }, 1000);
 
-    debouncedSaveRef.current = debounced;
+      setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "saved" }));
+      // Auto-hide "saved" after 2 seconds
+      if (saveTimersRef.current[questionId]) clearTimeout(saveTimersRef.current[questionId]);
+      saveTimersRef.current[questionId] = setTimeout(() => {
+        setQuestionSaveStatus((prev) => ({ ...prev, [questionId]: "idle" }));
+      }, 2000);
+      return true;
+    }, AUTOSAVE_DELAY_MS);
+
+    saveQueueRef.current = queue;
 
     return () => {
-      debounced.flush();
-      debouncedSaveRef.current = null;
+      void queue.flush();
+      queue.dispose();
+      saveQueueRef.current = null;
     };
   }, [submission.id]);
 
+  // Periodic backup: retry answers whose save failed (e.g. after a network
+  // blip). Only while autosave is on; otherwise answers are saved on page
+  // change and submit.
+  useEffect(() => {
+    if (!exam.enableAutoSave) return;
+    const intervalId = setInterval(
+      () => saveQueueRef.current?.retryPending(),
+      exam.autoSaveInterval * 1000,
+    );
+    return () => clearInterval(intervalId);
+  }, [exam.enableAutoSave, exam.autoSaveInterval]);
+
+  const flushPendingSaves = async () =>
+    (await saveQueueRef.current?.flush()) ?? true;
+
   const handleAnswerChange = (questionId: number, value: string) => {
     setAnswers((prev) => ({ ...prev, [questionId]: value }));
-    pendingAnswersRef.current[questionId] = value;
-    debouncedSaveRef.current?.(questionId, value);
+    saveQueueRef.current?.set(questionId, value, exam.enableAutoSave);
   };
 
   const handlePageChange = async (newPage: number) => {
@@ -122,9 +136,7 @@ export default function ExamClient({
     // Check for unanswered questions on the current page when moving forward
     if (newPage > currentPage) {
       const unanswered = questions.filter((q) => {
-        const ans = pendingAnswersRef.current[q.id] !== undefined
-          ? pendingAnswersRef.current[q.id]
-          : answers[q.id];
+        const ans = answers[q.id];
 
         if (ans === undefined || ans === null) return true;
         const trimmed = ans.trim();
@@ -148,20 +160,12 @@ export default function ExamClient({
     }
 
     setIsLoadingPage(true);
-    debouncedSaveRef.current?.flush();
 
-    // Flush any pending answers immediately
-    for (const [qId, ans] of Object.entries(pendingAnswersRef.current)) {
-      await saveAnswer(
-        { success: true, error: false },
-        {
-          submissionId: submission.id,
-          questionId: parseInt(qId),
-          textAnswer: ans,
-        },
-      );
+    if (!(await flushPendingSaves())) {
+      toast.error(t("toast.saveFailed"));
+      setIsLoadingPage(false);
+      return;
     }
-    pendingAnswersRef.current = {};
 
     const res = await getExamPage(submission.id, newPage);
     if ("error" in res && res.error) {
@@ -171,7 +175,7 @@ export default function ExamClient({
     }
 
     if ("questions" in res && res.questions) {
-      setQuestions(res.questions as Question[]);
+      setQuestions(res.questions);
       const savedAnswerList = res.savedAnswers as Answer[];
       setAnswers((prev) => {
         const newAns = { ...prev };
@@ -208,9 +212,7 @@ export default function ExamClient({
 
     const unanswered = questions.filter((q) => {
       if (q.type === "FILE") return false; // FILE questions are optional
-      const ans = pendingAnswersRef.current[q.id] !== undefined
-        ? pendingAnswersRef.current[q.id]
-        : answers[q.id];
+      const ans = answers[q.id];
 
       if (ans === undefined || ans === null) return true;
       const trimmed = ans.trim();
@@ -240,7 +242,13 @@ export default function ExamClient({
 
     setIsSubmitting(true);
     await abortAllUploads();
-    debouncedSaveRef.current?.flush();
+
+    // Don't submit while answers are still unsaved: they would be lost.
+    if (!(await flushPendingSaves())) {
+      toast.error(t("toast.saveFailed"));
+      setIsSubmitting(false);
+      return;
+    }
 
     const res = await submitExam(submission.id);
     if (res.error) {
@@ -256,8 +264,16 @@ export default function ExamClient({
     if (isSubmitting) return;
     setIsSubmitting(true);
     await abortAllUploads();
-    debouncedSaveRef.current?.flush();
-    await submitExam(submission.id);
+    // Time is up: save what we can, then submit regardless.
+    await flushPendingSaves();
+
+    const res = await submitExam(submission.id);
+    if (res.error) {
+      toast.error(res.error as string);
+      setIsSubmitting(false);
+      return;
+    }
+
     toast.info(t("toast.timeUp"));
     router.push("/list/exams");
   };
@@ -299,12 +315,12 @@ export default function ExamClient({
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      for (const [qId, answer] of Object.entries(pendingAnswersRef.current)) {
+      for (const [questionId, answer] of saveQueueRef.current?.entries() ?? []) {
         navigator.sendBeacon(
           "/api/save-answer",
           JSON.stringify({
             submissionId: submission.id,
-            questionId: parseInt(qId),
+            questionId,
             textAnswer: answer,
           }),
         );

@@ -12,6 +12,8 @@ import {
   successResult,
 } from "./helpers";
 import { deleteExamFileFromCloudinary } from "../cloudinary";
+import { examGroupWhere, teacherExamAccessWhere } from "../exams/group";
+import { randomUUID } from "crypto";
 
 export const createExam = async (
   currentState: CurrentState,
@@ -63,10 +65,12 @@ export const createExam = async (
       }, new Map<number, (typeof lessons)[number]>()).values(),
     );
 
+    const groupId = randomUUID();
     const createdExams = await prisma.$transaction(
       uniqueClassLessons.map((lesson) =>
         prisma.exam.create({
           data: {
+            groupId,
             title: data.title,
             startTime: data.startTime,
             endTime: data.endTime,
@@ -114,15 +118,13 @@ export const updateExam = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
-    const existingExam = await prisma.exam.findUnique({
-      where: { id: data.id, schoolId: access.schoolId },
-      select: {
-        id: true,
-        title: true,
-        startTime: true,
-        endTime: true,
-        subjectId: true,
+    const existingExam = await prisma.exam.findFirst({
+      where: {
+        id: data.id,
+        schoolId: access.schoolId,
+        ...(role === "teacher" ? teacherExamAccessWhere(userId) : {}),
       },
+      select: { id: true, groupId: true },
     });
 
     if (!existingExam) {
@@ -136,6 +138,7 @@ export const updateExam = async (
     const lessons = await prisma.lesson.findMany({
       where: {
         academicYearId,
+        schoolId: access.schoolId,
         subjectId: data.subjectId,
         classId: { in: data.classIds },
         ...(role === "teacher" ? { teacherId: userId! } : {}),
@@ -163,13 +166,8 @@ export const updateExam = async (
 
     const groupExams = await prisma.exam.findMany({
       where: {
-        title: existingExam.title,
-        startTime: existingExam.startTime,
-        endTime: existingExam.endTime,
+        ...examGroupWhere(existingExam.groupId, access),
         academicYearId,
-        schoolId: access.schoolId,
-        subjectId: existingExam.subjectId,
-        ...(role === "teacher" ? { lesson: { teacherId: userId! } } : {}),
       },
       select: { id: true, classId: true },
     });
@@ -211,6 +209,7 @@ export const updateExam = async (
         } else {
           await tx.exam.create({
             data: {
+              groupId: existingExam.groupId,
               title: data.title,
               startTime: data.startTime,
               endTime: data.endTime,

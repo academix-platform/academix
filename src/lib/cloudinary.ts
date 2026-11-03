@@ -62,10 +62,32 @@ export const generatePrivateDownloadUrl = (publicId: string, format: string): st
   });
 };
 
-export const deleteExamFileFromCloudinary = async (publicId: string): Promise<void> => {
+/**
+ * Looks up a student's uploaded exam file so the server can trust its size and
+ * URL instead of the values the browser reports. Returns null if it doesn't exist.
+ */
+export const getPrivateExamFile = async (
+  publicId: string,
+): Promise<{ bytes: number; secureUrl: string } | null> => {
   try {
-    await cloudinary.uploader.destroy(publicId, { resource_type: "raw", type: "private" });
+    const resource = await cloudinary.api.resource(publicId, {
+      resource_type: "raw",
+      type: "private",
+    });
+    return { bytes: resource.bytes, secureUrl: resource.secure_url };
+  } catch (err) {
+    console.error("[Cloudinary] Failed to look up exam file:", publicId, err);
+    return null;
+  }
+};
+
+/** Returns false when Cloudinary did not confirm the delete. */
+export const deleteExamFileFromCloudinary = async (publicId: string): Promise<boolean> => {
+  try {
+    const res = await cloudinary.uploader.destroy(publicId, { resource_type: "raw", type: "private" });
+    return res?.result === "ok" || res?.result === "not found";
   } catch (err) {
     console.error("[Cloudinary] Failed to delete exam file:", publicId, err);
+    return false;
   }
 };

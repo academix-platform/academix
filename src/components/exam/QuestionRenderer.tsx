@@ -1,6 +1,6 @@
 "use client";
 
-import { Question } from "@prisma/client";
+import type { StudentQuestion } from "@/lib/exams/questions";
 import { useState } from "react";
 import {
   parseAnswerList,
@@ -10,7 +10,7 @@ import {
 import FileUploadRenderer from "./FileUploadRenderer";
 
 interface QuestionRendererProps {
-  question: Question;
+  question: StudentQuestion;
   savedAnswer: string | null;
   savedAnswerRecord?: (Answer & Record<string, unknown>) | null;
   submissionId: number;

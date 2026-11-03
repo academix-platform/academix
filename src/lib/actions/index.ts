@@ -74,7 +74,6 @@ export {
   extendTime,
   recordDisconnection,
   approveAndFinalizeGrading,
-  publishAllGrades,
   publishExamGrades,
 } from "./examWorkflow.actions";
 

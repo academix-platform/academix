@@ -32,15 +32,6 @@ export const validateFile = (file: File): string | null => {
 };
 
 /**
- * Validate a stored file URL (relative path under /uploads/).
- * Used server-side to reject tampered URLs.
- */
-export const validateFileUrl = (url: string): boolean => {
-  if (url.startsWith("https://res.cloudinary.com/")) return true;
-  return /^\/uploads\/\d+\/[^/]+\/\d+_[^/]+$/.test(url);
-};
-
-/**
  * Upload a file to the local filesystem (Phase 1).
  * Phase 2: Swap internals here for Cloudinary — zero other files change.
  *
