@@ -1,9 +1,15 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
+import { requireActionAccess } from "./helpers";
+import {
+  ASSIGNMENT_GROUP_SELECT,
+  assignmentGroupWhere,
+  assignmentManagerWhere,
+  deleteAssignmentFileIfUnused,
+} from "../assignments/group";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
@@ -23,10 +29,8 @@ export async function uploadAssignmentFile(
   formData: FormData
 ): Promise<AssignmentFileState> {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || role !== "teacher") {
+    const access = await requireActionAccess(["teacher"]);
+    if ("error" in access) {
       return { success: false, error: true, message: "Unauthorized" };
     }
 
@@ -39,9 +43,10 @@ export async function uploadAssignmentFile(
     const assignment = await prisma.assignment.findFirst({
       where: {
         id: assignmentId,
-        OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
+        schoolId: access.schoolId,
+        ...assignmentManagerWhere(access),
       },
-      select: { id: true, title: true },
+      select: { id: true, fileUrl: true, ...ASSIGNMENT_GROUP_SELECT },
     });
     if (!assignment) {
       return { success: false, error: true, message: "Assignment not found" };
@@ -71,17 +76,17 @@ export async function uploadAssignmentFile(
       unique_filename: true,
     });
 
-    // تحديث كل الواجبات التي لها نفس العنوان (لأن createAssignment ينشئ نسخة لكل صف)
+    // تحديث نسخ هذا الواجب فقط (createAssignment ينشئ نسخة لكل صف)،
+    // وليس كل واجبات المعلم التي لها العنوان نفسه
     await prisma.assignment.updateMany({
-      where: {
-        title: assignment.title,
-        OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
-      },
+      where: assignmentGroupWhere(assignment, access),
       data: {
         fileUrl: result.secure_url,
         fileName: file.name,
       },
     });
+
+    await deleteAssignmentFileIfUnused(assignment.fileUrl);
 
     revalidatePath("/list/assignments");
     return { success: true, error: false, message: "File uploaded successfully!" };

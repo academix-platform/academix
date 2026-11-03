@@ -1,6 +1,7 @@
 // src/lib/actions/assignment.actions.ts
 "use server";
 
+import { randomUUID } from "crypto";
 import { assignmentSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -13,6 +14,12 @@ import {
 } from "./helpers";
 import cloudinary from "@/lib/cloudinary";
 import { notifyNewAssignment, notifyAssignmentUpdated } from "./notification.actions";
+import {
+  ASSIGNMENT_GROUP_SELECT,
+  assignmentGroupWhere,
+  assignmentManagerWhere,
+  deleteAssignmentFileIfUnused,
+} from "../assignments/group";
 
 async function uploadAssignmentFile(file: File, folder = "assignments"): Promise<{ url: string; name: string }> {
   const arrayBuffer = await file.arrayBuffer();
@@ -30,27 +37,11 @@ async function uploadAssignmentFile(file: File, folder = "assignments"): Promise
   });
 }
 
-async function deleteAssignmentFile(fileUrl: string) {
-  if (!fileUrl.includes("cloudinary")) return;
-  try {
-    const parts = fileUrl.split('/');
-    const publicIdWithExt = parts.slice(7).join('/');
-    const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
-    await cloudinary.uploader.destroy(publicId);
-  } catch (error) {
-    console.error("Failed to delete file from Cloudinary:", error);
-  }
-}
-
 type AssignmentAccess = {
   userId: string;
   role: string;
   schoolId: number;
 };
-
-const assignmentTeacherAccessWhere = (teacherId: string) => ({
-  OR: [{ teacherId }, { lesson: { teacherId } }],
-});
 
 const getAssignmentClassAssignments = async (
   access: AssignmentAccess,
@@ -286,10 +277,12 @@ export const createAssignment = async (
       }
     }
 
+    const groupId = randomUUID();
     const createdAssignments = await prisma.$transaction(
       assignmentResult.assignments.map((assignment) =>
         prisma.assignment.create({
           data: {
+            groupId,
             title,
             rubric,
             startDate,
@@ -377,9 +370,10 @@ export const updateAssignment = async (
       }
     }
 
-    const existingAssignment = await prisma.assignment.findUnique({
-      where: { id, schoolId: access.schoolId },
-      select: { fileUrl: true, fileName: true, title: true, startDate: true, endDate: true, subjectId: true },
+    // Check ownership before touching anything, including the attachment.
+    const existingAssignment = await prisma.assignment.findFirst({
+      where: { id, schoolId: access.schoolId, ...assignmentManagerWhere(access) },
+      select: { fileUrl: true, fileName: true, ...ASSIGNMENT_GROUP_SELECT },
     });
     if (!existingAssignment) {
       return { success: false, error: true, message: "Assignment not found." };
@@ -403,31 +397,23 @@ export const updateAssignment = async (
     let fileUrl = existingAssignment.fileUrl;
     let fileName = existingAssignment.fileName;
 
-    if (removeFile && existingAssignment.fileUrl) {
-      await deleteAssignmentFile(existingAssignment.fileUrl);
+    if (removeFile) {
       fileUrl = null;
       fileName = null;
     }
 
+    // Upload the new file first; the old one is only deleted once the
+    // assignments point at the new one.
+    let uploadedFileUrl: string | null = null;
     if (file && file.size > 0) {
-      if (existingAssignment.fileUrl && !removeFile) {
-        await deleteAssignmentFile(existingAssignment.fileUrl);
-      }
       const upload = await uploadAssignmentFile(file);
+      uploadedFileUrl = upload.url;
       fileUrl = upload.url;
       fileName = upload.name;
     }
 
     const groupAssignments = await prisma.assignment.findMany({
-      where: {
-        title: existingAssignment.title,
-        startDate: existingAssignment.startDate,
-        endDate: existingAssignment.endDate,
-        academicYearId,
-        schoolId: access.schoolId,
-        subjectId: existingAssignment.subjectId,
-        ...(role === "teacher" ? assignmentTeacherAccessWhere(userId!) : {}),
-      },
+      where: { ...assignmentGroupWhere(existingAssignment, access), academicYearId },
       select: { id: true, classId: true, teacherId: true },
     });
 
@@ -439,43 +425,55 @@ export const updateAssignment = async (
       selectedAssignmentsByClass.set(assignment.classId, assignment);
     }
 
-    await prisma.$transaction(async (tx) => {
-      for (const assignment of groupAssignments) {
-        if (assignment.classId && !selectedAssignmentsByClass.has(assignment.classId)) {
-          await tx.assignment.delete({ where: { id: assignment.id } });
+    try {
+      await prisma.$transaction(async (tx) => {
+        for (const assignment of groupAssignments) {
+          if (assignment.classId && !selectedAssignmentsByClass.has(assignment.classId)) {
+            await tx.assignment.delete({ where: { id: assignment.id } });
+          }
         }
-      }
 
-      for (const [classId, assignment] of selectedAssignmentsByClass) {
-        const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
-        const teacherId =
-          selectedTeacherId ??
-          existingClassAssignment?.teacherId ??
-          assignment.teacherId ??
-          null;
-        const data = {
-          title,
-          rubric,
-          startDate,
-          endDate,
-          lessonId: assignment.lessonId,
-          teacherId,
-          classId,
-          subjectId,
-          maxScore,
-          academicYearId,
-          schoolId: access.schoolId,
-          fileUrl,
-          fileName,
-          allowLateSubmission, // ✅ حفظ الخيار عند التحديث
-        };
-        if (existingClassAssignment) {
-          await tx.assignment.update({ where: { id: existingClassAssignment.id }, data });
-        } else {
-          await tx.assignment.create({ data });
+        for (const [classId, assignment] of selectedAssignmentsByClass) {
+          const existingClassAssignment = groupAssignments.find((a) => a.classId === classId);
+          const teacherId =
+            selectedTeacherId ??
+            existingClassAssignment?.teacherId ??
+            assignment.teacherId ??
+            null;
+          const data = {
+            title,
+            rubric,
+            startDate,
+            endDate,
+            lessonId: assignment.lessonId,
+            teacherId,
+            classId,
+            subjectId,
+            maxScore,
+            academicYearId,
+            schoolId: access.schoolId,
+            fileUrl,
+            fileName,
+            allowLateSubmission, // ✅ حفظ الخيار عند التحديث
+          };
+          if (existingClassAssignment) {
+            await tx.assignment.update({ where: { id: existingClassAssignment.id }, data });
+          } else {
+            await tx.assignment.create({
+            data: { ...data, groupId: existingAssignment.groupId },
+          });
+          }
         }
-      }
-    });
+      });
+    } catch (err) {
+      // Nothing points at the new upload; don't leave it behind.
+      await deleteAssignmentFileIfUnused(uploadedFileUrl);
+      throw err;
+    }
+
+    if (existingAssignment.fileUrl !== fileUrl) {
+      await deleteAssignmentFileIfUnused(existingAssignment.fileUrl);
+    }
 
     // ✅ إشعار الطلاب بتحديث الواجب
     for (const [classId] of selectedAssignmentsByClass) {
@@ -508,36 +506,26 @@ export const deleteAssignment = async (
   const userId = access.userId;
 
   try {
-    if (role === "teacher") {
-      const teacherAssignment = await prisma.assignment.findFirst({
-        where: {
-          id,
-          schoolId: access.schoolId,
-          ...assignmentTeacherAccessWhere(userId),
-        },
-        select: { id: true, fileUrl: true },
-      });
-      if (!teacherAssignment) {
-        return {
-          success: false,
-          error: true,
-          message: "You are not allowed to delete this assignment.",
-        };
-      }
-      if (teacherAssignment.fileUrl) {
-        await deleteAssignmentFile(teacherAssignment.fileUrl);
-      }
-    } else {
-      const assignment = await prisma.assignment.findUnique({
-        where: { id, schoolId: access.schoolId },
-        select: { fileUrl: true },
-      });
-      if (assignment?.fileUrl) {
-        await deleteAssignmentFile(assignment.fileUrl);
-      }
+    const assignment = await prisma.assignment.findFirst({
+      where: { id, schoolId: access.schoolId, ...assignmentManagerWhere(access) },
+      select: { id: true, fileUrl: true },
+    });
+    if (!assignment) {
+      return {
+        success: false,
+        error: true,
+        message:
+          role === "teacher"
+            ? "You are not allowed to delete this assignment."
+            : "Assignment not found.",
+      };
     }
 
     await prisma.assignment.deleteMany({ where: { id, schoolId: access.schoolId } });
+
+    // Other class copies may still use the same attachment.
+    await deleteAssignmentFileIfUnused(assignment.fileUrl);
+
     return successResult(["/list/assignments"]);
   } catch (err) {
     return errorResult(err);

@@ -1,14 +1,13 @@
-import { auth } from "@clerk/nextjs/server";
+import { getAuthUser } from "@/lib/auth";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
+    const user = await getAuthUser();
 
     // ✅ السماح للمعلم والأدمن
-    if (!userId || (role !== "teacher" && role !== "admin")) {
+    if (!user || (user.role !== "teacher" && user.role !== "admin")) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -18,30 +17,24 @@ export async function GET(req: NextRequest) {
     }
 
     // ✅ التحقق من صلاحية الوصول إلى الواجب
-    let assignment;
-    if (role === "admin") {
-      // الأدمن يرى كل الواجبات
-      assignment = await prisma.assignment.findUnique({
-        where: { id: assignmentId },
-        select: { id: true },
-      });
-    } else {
-      // المعلم يرى فقط واجباته
-      assignment = await prisma.assignment.findFirst({
-        where: {
-          id: assignmentId,
-          OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }],
-        },
-        select: { id: true },
-      });
-    }
+    // الأدمن يرى واجبات مدرسته، والمعلم يرى فقط واجباته
+    const assignment = await prisma.assignment.findFirst({
+      where: {
+        id: assignmentId,
+        schoolId: user.schoolId,
+        ...(user.role === "teacher"
+          ? { OR: [{ teacherId: user.userId }, { lesson: { teacherId: user.userId } }] }
+          : {}),
+      },
+      select: { id: true },
+    });
 
     if (!assignment) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const submissions = await prisma.assignmentSubmission.findMany({
-      where: { assignmentId },
+      where: { assignmentId, schoolId: user.schoolId },
       include: {
         student: {
           select: { id: true, name: true, img: true },
