@@ -381,6 +381,9 @@ model Assignment {
   maxScore            Float    @default(10)
   allowLateSubmission Boolean  @default(false) // ✅ أضف هذا السطر
 
+  // Shared by the per-class copies created together from one assignment form.
+  groupId   String   @default(uuid())
+
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])
   subjectId Int?
@@ -400,6 +403,7 @@ model Assignment {
 
   @@index([schoolId])
   @@index([teacherId])
+  @@index([groupId])
 }
 
 // Assignment file submission (from stash)
