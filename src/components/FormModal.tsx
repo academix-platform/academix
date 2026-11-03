@@ -225,7 +225,7 @@ const DeleteSubmitButton = () => {
     <button
       type="submit"
       disabled={pending}
-      className="self-center bg-red-700 disabled:opacity-60 px-4 py-2 rounded-md w-max text-white"
+      className="self-center bg-rose-600 hover:bg-rose-700 active:bg-rose-800 disabled:opacity-50 px-5 py-2.5 rounded-lg text-sm font-semibold w-max text-white shadow-xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
     >
       {pending ? t("deleting") : t("delete")}
     </button>
@@ -335,10 +335,20 @@ const FormModal = ({
     return () => document.removeEventListener("keydown", onKeyDown);
   }, [open]);
 
+  const buttonTypeStyles = {
+    create:
+      "bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white shadow-xs",
+    update:
+      "bg-slate-100 hover:bg-slate-200 text-slate-700 dark:bg-slate-800 dark:hover:bg-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700",
+    delete:
+      "bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800",
+  };
+
   return (
     <>
       <button
-        className={`p-2 flex items-center justify-center bg-academixPurpleDark hover:scale-[1.05] rounded-md transition text-white`}
+        type="button"
+        className={`p-2 flex items-center justify-center rounded-lg transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 ${buttonTypeStyles[type]}`}
         onClick={() => setOpen(true)}
         title={t(type)}
         aria-label={t(type)}
@@ -350,7 +360,7 @@ const FormModal = ({
       </button>
       {open && (
         <div
-          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-0 duration-200"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               setOpen(false);
@@ -358,7 +368,7 @@ const FormModal = ({
           }}
         >
           <div
-            className="relative bg-white p-4 rounded-md w-full max-w-4xl max-h-[90vh] overflow-y-auto"
+            className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200"
             role="dialog"
             aria-modal="true"
             onMouseDown={(event) => event.stopPropagation()}
@@ -374,10 +384,10 @@ const FormModal = ({
             <button
               type="button"
               aria-label="Close dialog"
-              className="top-4 absolute hover:bg-gray-100 p-1.5 rounded-md text-gray-500 hover:text-gray-700 transition end-4"
+              className="top-5 absolute hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition end-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
               onClick={() => setOpen(false)}
             >
-              <X className="w-4 h-4 text-gray-500" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>

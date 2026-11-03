@@ -14,7 +14,7 @@ const ExportButton = async ({ href, title }: ExportButtonProps) => {
   return (
     <Link
       href={href}
-      className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark shadow-sm p-2 rounded-md w-8 h-8 text-academixInk hover:text-white transition"
+      className="inline-flex justify-center items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-xs p-2 w-9 h-9 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-purple-700 dark:hover:text-purple-400 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
       title={resolvedTitle}
       aria-label={resolvedTitle}
     >
