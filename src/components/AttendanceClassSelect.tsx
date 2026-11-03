@@ -27,6 +27,7 @@ const AttendanceClassSelect = ({
         router.push(`/list/attendance?${newParams.toString()}`);
       }}
       className="p-2 border rounded-md text-sm"
+      aria-label="Select Class"
     >
       {classes.map((cls) => (
         <option key={cls.id} value={cls.id}>

@@ -27,7 +27,8 @@ export default function SubjectFilter({ subjects, classes = [] }: Props) {
   const filteredSubjects =
     selectedClassId && selectedClass?.gradeId
       ? subjects.filter(
-          (subject) => String(subject.gradeId) === String(selectedClass.gradeId),
+          (subject) =>
+            String(subject.gradeId) === String(selectedClass.gradeId),
         )
       : subjects;
   const currentSubjectId = searchParams.get("subjectId") || "";
@@ -68,7 +69,8 @@ export default function SubjectFilter({ subjects, classes = [] }: Props) {
     <select
       value={selectedSubjectExists ? currentSubjectId : ""}
       onChange={(e) => handleChange(e.target.value)}
-      className="h-10 rounded-md border px-3 text-sm"
+      className="px-3 border rounded-md h-10 text-sm"
+      aria-label={t("allSubjects")}
     >
       <option value="">{t("allSubjects")}</option>
 

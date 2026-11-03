@@ -55,8 +55,9 @@ export default function FilterSortActions({
         <button
           type="button"
           onClick={handleFilterClick}
-          className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
+          className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark shadow-sm rounded-md w-8 h-8 text-academixInk hover:text-white transition"
           title={t("filter")}
+          aria-label={t("filter")}
         >
           <Filter className="w-[14px] h-[14px]" />
         </button>
@@ -65,8 +66,9 @@ export default function FilterSortActions({
       <button
         type="button"
         onClick={handleSortClick}
-        className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
+        className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark shadow-sm rounded-md w-8 h-8 text-academixInk hover:text-white transition"
         title={t("sort")}
+        aria-label={t("sort")}
       >
         <ArrowUpDown className="w-[14px] h-[14px]" />
       </button>

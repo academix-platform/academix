@@ -34,7 +34,8 @@ export default function GradeFilter({ grades }: Props) {
     <select
       defaultValue={searchParams.get("gradeId") || ""}
       onChange={(e) => handleChange(e.target.value)}
-      className="h-10 rounded-md border px-3 text-sm"
+      className="px-3 border rounded-md h-10 text-sm"
+      aria-label={t("allGrades")}
     >
       <option value="">{t("allGrades")}</option>
 

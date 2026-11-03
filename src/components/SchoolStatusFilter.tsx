@@ -27,6 +27,7 @@ const SchoolStatusFilter = () => {
       value={searchParams.get("status") ?? "ALL"}
       onChange={(e) => onChange(e.target.value)}
       className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+      aria-label={t("status") || "School Status"}
     >
       {statuses.map((status) => (
         <option key={status} value={status}>

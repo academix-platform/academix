@@ -14,8 +14,9 @@ const ExportButton = async ({ href, title }: ExportButtonProps) => {
   return (
     <Link
       href={href}
-      className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-academixPurpleDark hover:text-academixPurple transition"
+      className="flex justify-center items-center bg-academixPurple hover:bg-academixPurpleDark shadow-sm p-2 rounded-md w-8 h-8 text-academixInk hover:text-white transition"
       title={resolvedTitle}
+      aria-label={resolvedTitle}
     >
       <Download className="w-4 h-4" />
     </Link>
