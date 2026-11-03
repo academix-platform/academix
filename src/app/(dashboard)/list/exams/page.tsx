@@ -246,7 +246,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
             !isTimerExpired &&
             !hasExamEnded && (
               <Link href={`/list/exams/${item.id}/take`}>
-                <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
+                <button className="bg-amber-400 hover:bg-amber-500 px-3 py-2 rounded-md font-semibold text-gray-900 text-xs transition shadow-sm">
                   Continue
                 </button>
               </Link>

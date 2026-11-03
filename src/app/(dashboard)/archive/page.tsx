@@ -341,7 +341,7 @@ const ArchivePage = async ({
           </table>
           {rows.length > 5 && (
             <div className="flex justify-center mt-6">
-              <button className="bg-academixPurple hover:bg-academixPurpleDark px-5 py-2 rounded-xl font-medium text-white text-sm transition">
+              <button className="bg-academixPurpleDark hover:bg-academixInk px-5 py-2 rounded-xl font-medium text-white text-sm transition">
                 {archiveT("showMore")}
               </button>
             </div>

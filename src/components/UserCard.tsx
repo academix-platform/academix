@@ -5,10 +5,10 @@ import { getTranslations } from "next-intl/server";
 type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
 
 const roleIconMap: Record<SchoolDashboardRole, React.ReactNode> = {
-  admin: <ShieldCheck className="opacity-80 w-6 h-6 text-black" />,
-  teacher: <GraduationCap className="opacity-80 w-6 h-6 text-black" />,
-  student: <UserRound className="opacity-80 w-6 h-6 text-black" />,
-  parent: <Users className="opacity-80 w-6 h-6 text-black" />,
+  admin: <ShieldCheck className="opacity-90 w-6 h-6 text-current" />,
+  teacher: <GraduationCap className="opacity-90 w-6 h-6 text-current" />,
+  student: <UserRound className="opacity-90 w-6 h-6 text-current" />,
+  parent: <Users className="opacity-90 w-6 h-6 text-current" />,
 };
 
 type UserCardProps = {
@@ -21,10 +21,10 @@ const UserCard = async ({ type, count, currentYearName }: UserCardProps) => {
   const t = await getTranslations("dashboardCards");
 
   return (
-    <div className="even:bg-amber-300 odd:bg-academixPurpleDark/60 p-4 rounded-2xl">
+    <div className="even:bg-amber-300 even:text-academixInk odd:bg-academixPurpleDark odd:text-white p-4 rounded-2xl shadow-sm transition">
       <div className="flex justify-between items-center">
         {currentYearName && (
-          <span className="bg-white px-2 py-1 rounded-full text-[10px] text-green-600">
+          <span className="bg-white px-2 py-1 rounded-full text-[10px] font-semibold text-emerald-800">
             {currentYearName}
           </span>
         )}

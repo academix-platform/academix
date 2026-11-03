@@ -106,7 +106,7 @@ const LessonListPage = async ({
                 href={buildGradeHref(gradeLevel)}
                 className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
                   selectedGrade === gradeLevel
-                    ? "bg-academixPurple text-white border-academixPurple"
+                    ? "bg-academixPurpleDark text-white border-academixPurpleDark"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                 }`}
               >
@@ -129,7 +129,7 @@ const LessonListPage = async ({
                   href={buildTabHref(item.id)}
                   className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border transition-colors ${
                     isActive
-                      ? "bg-academixSky text-white border-academixSky"
+                      ? "bg-academixPurpleDark text-white border-academixPurpleDark"
                       : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
                   }`}
                 >
