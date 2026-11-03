@@ -21,6 +21,24 @@ import {
   Globe,
   Sliders,
   Maximize2,
+  Download,
+  Plus,
+  Trash2,
+  Mail,
+  Users,
+  GraduationCap,
+  Search,
+  Bell,
+  Settings,
+  Eye,
+  Check,
+  Calendar,
+  ArrowUpRight,
+  UserCheck,
+  AlertCircle,
+  ExternalLink,
+  HelpCircle,
+  ChevronRight,
 } from "lucide-react";
 import {
   primitives,
@@ -30,6 +48,59 @@ import {
   breakpoints,
   typography,
 } from "@/lib/design-system/tokens";
+import {
+  Button,
+  IconButton,
+  Input,
+  Textarea,
+  Select,
+  Checkbox,
+  Switch,
+  FormField,
+  Label,
+  HelperText,
+  ErrorMessage,
+  Badge,
+  Alert,
+  AlertTitle,
+  AlertDescription,
+  Tooltip,
+  Card,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardContent,
+  CardFooter,
+  StatCard,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+  Breadcrumbs,
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogBody,
+  DialogFooter,
+  ConfirmDialog,
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+  Avatar,
+  Skeleton,
+  EmptyState,
+} from "@/components/ui";
 
 type TabKey =
   | "overview"
@@ -49,6 +120,14 @@ export default function DesignSystemShowcasePage() {
   const [typoLang, setTypoLang] = useState<"en" | "ar" | "mixed">("en");
   const [selectedEnglishFont, setSelectedEnglishFont] = useState<"inter" | "poppins">("inter");
   const [selectedArabicFont, setSelectedArabicFont] = useState<"cairo" | "ibm">("cairo");
+
+  // Shared Components Playground State
+  const [componentLang, setComponentLang] = useState<"en" | "ar">("en");
+  const [demoDialogOpen, setDemoDialogOpen] = useState(false);
+  const [demoConfirmOpen, setDemoConfirmOpen] = useState(false);
+  const [demoSwitchChecked, setDemoSwitchChecked] = useState(true);
+  const [demoCheckboxChecked, setDemoCheckboxChecked] = useState(true);
+  const [demoButtonLoading, setDemoButtonLoading] = useState(false);
 
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text);
@@ -81,11 +160,11 @@ export default function DesignSystemShowcasePage() {
                 <div className="flex items-center gap-2">
                   <h1 className="font-bold text-base leading-none">Academix Design System</h1>
                   <span className="text-[11px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                    Phase 2: Bilingual Typography
+                    Phase 3: Shared Components
                   </span>
                 </div>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  Three-Tier Token Architecture & Bilingual Typography Engine
+                  Standardized Bilingual Component Library & Design Tokens
                 </p>
               </div>
             </div>
@@ -123,7 +202,7 @@ export default function DesignSystemShowcasePage() {
             { id: "colors", label: "Color Palette & Tokens", icon: Palette },
             { id: "surfaces", label: "Surfaces & Elevation", icon: Layers },
             { id: "spacing", label: "Spacing & Breakpoints", icon: LayoutGrid },
-            { id: "components", label: "Component Tokens", icon: Shield },
+            { id: "components", label: "Shared Components", icon: Shield },
             { id: "architecture", label: "Token Consumption Guide", icon: FileCode },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -853,18 +932,18 @@ export default function DesignSystemShowcasePage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
                 {[
                   { phase: "Phase 1", title: "Design System", status: "Completed ✓" },
-                  { phase: "Phase 2", title: "Bilingual Typography", status: "Active (Current)" },
-                  { phase: "Phase 3", title: "Shared Components", status: "Next Up" },
-                  { phase: "Phase 4", title: "Public Screens", status: "Pending" },
+                  { phase: "Phase 2", title: "Bilingual Typography", status: "Completed ✓" },
+                  { phase: "Phase 3", title: "Shared Components", status: "Active (Current)" },
+                  { phase: "Phase 4", title: "Public Screens", status: "Next Up" },
                   { phase: "Phase 5", title: "App Dashboards", status: "Pending" },
                   { phase: "Phase 6", title: "Final QA & Audit", status: "Pending" },
                 ].map((step, idx) => (
                   <div
                     key={idx}
                     className={`p-3.5 rounded-lg border text-xs ${
-                      idx === 1
+                      idx === 2
                         ? "border-purple-400 bg-purple-50/70 dark:bg-purple-950/40 font-semibold text-purple-900 dark:text-purple-200 shadow-xs"
-                        : idx === 0
+                        : idx < 2
                         ? "border-emerald-300 bg-emerald-50/50 dark:bg-emerald-950/20 text-emerald-800 dark:text-emerald-300 font-medium"
                         : "border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400"
                     }`}
@@ -1373,129 +1452,713 @@ export default function DesignSystemShowcasePage() {
         )}
 
         {/* =========================================================================
-         * TAB: COMPONENT TOKENS SPECIFICATIONS
+         * TAB: SHARED COMPONENTS SPECIFICATIONS & PLAYGROUND (PHASE 3)
          * ========================================================================= */}
         {activeTab === "components" && (
-          <div className="space-y-10">
-            {/* Interactive Buttons Preview */}
-            <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
-              <h3 className="font-bold text-base">Button Component Tokens</h3>
-              <div className="flex flex-wrap items-center gap-3">
-                <button className="px-4 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white font-medium text-xs transition shadow-sm focus:ring-2 focus:ring-purple-400 focus:outline-none">
-                  Primary Action
-                </button>
-                <button className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 font-medium text-xs transition shadow-xs">
-                  Secondary Action
-                </button>
-                <button className="px-4 py-2 rounded-lg bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 font-medium text-xs transition">
-                  Subtle Action
-                </button>
-                <button className="px-4 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-medium text-xs transition shadow-sm">
-                  Destructive Action
-                </button>
-              </div>
-            </div>
-
-            {/* Inputs & Form Controls */}
-            <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
-              <h3 className="font-bold text-base">Form Control Tokens</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Default Input
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Mathematics 101"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-xs focus:ring-2 focus:ring-purple-400 focus:border-purple-600 focus:outline-none transition shadow-xs"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Focused / Active State
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="Active focus indicator"
-                    className="w-full px-3 py-2 rounded-lg border border-purple-600 ring-2 ring-purple-400/30 bg-white dark:bg-slate-950 text-xs focus:outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                    Validation Error State
-                  </label>
-                  <input
-                    type="text"
-                    defaultValue="invalid@format"
-                    className="w-full px-3 py-2 rounded-lg border border-rose-500 ring-2 ring-rose-400/20 bg-white dark:bg-slate-950 text-xs focus:outline-none"
-                  />
-                  <span className="text-[11px] text-rose-600 dark:text-rose-400 block">
-                    Please provide a valid educational domain.
+          <div className="space-y-10" dir={componentLang === "ar" ? "rtl" : "ltr"}>
+            {/* Header Hero Banner with Bilingual Toggle */}
+            <div className="p-8 rounded-2xl bg-gradient-to-br from-[#24104f] via-purple-900 to-purple-800 text-white shadow-xl relative overflow-hidden">
+              <div className="relative z-10 max-w-3xl space-y-4">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white/10 text-purple-200 border border-white/15">
+                    <Shield className="w-3.5 h-3.5 text-purple-300" />
+                    {componentLang === "ar"
+                      ? "مكتبة المكونات المشتركة — المرحلة 3"
+                      : "Shared Component Library — Phase 3"}
                   </span>
+
+                  {/* Bilingual Direction Toggle for Playground */}
+                  <div className="flex items-center gap-2 bg-black/30 p-1 rounded-xl border border-white/10">
+                    <span className="text-xs text-purple-200 ps-2">Preview Direction:</span>
+                    <button
+                      type="button"
+                      onClick={() => setComponentLang("en")}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        componentLang === "en"
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "text-purple-200 hover:text-white"
+                      }`}
+                    >
+                      English (LTR)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setComponentLang("ar")}
+                      className={`px-3 py-1 rounded-lg text-xs font-semibold transition ${
+                        componentLang === "ar"
+                          ? "bg-purple-600 text-white shadow-xs"
+                          : "text-purple-200 hover:text-white"
+                      }`}
+                    >
+                      العربية (RTL)
+                    </button>
+                  </div>
+                </div>
+
+                <h2 className="text-3xl font-bold tracking-tight">
+                  {componentLang === "ar"
+                    ? "مكونات معيارية موحدة وعالية الجودة لكافة أدوار المنصة"
+                    : "Standardized, Accessible & Reusable Component System"}
+                </h2>
+                <p className="text-purple-200 text-sm leading-relaxed">
+                  {componentLang === "ar"
+                    ? "تغطي هذه المكتبة كافة الفئات السبع الأساسية: الأزرار، حقول الإدخال، التنبيهات، الأسطح والبطاقات، عناصر التنقل، الحوارات المنبثقة، وجداول البيانات مع دعم كامل للسمات المرئية واتجاهي النصوص."
+                    : "A comprehensive component library spanning Actions, Forms, Feedback, Surfaces, Navigation, Overlays, and Data Display. Built on semantic design tokens with WCAG AA compliance and bidirectional harmony."}
+                </p>
+              </div>
+            </div>
+
+            {/* A. ACTIONS (BUTTONS & ICON BUTTONS) */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                      Category A
+                    </span>
+                    <h3 className="font-bold text-base">Actions & Interactive Buttons</h3>
+                  </div>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Buttons feature 6 semantic variants, 4 sizing scales, optical alignment in RTL, and accessible focus states.
+                  </p>
+                </div>
+
+                <Button
+                  variant="subtle"
+                  size="sm"
+                  onClick={() => setDemoButtonLoading(!demoButtonLoading)}
+                >
+                  {demoButtonLoading ? "Reset Loading" : "Toggle Loading State"}
+                </Button>
+              </div>
+
+              {/* Variants Demo */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Semantic Variants
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button variant="primary" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "إجراء رئيسي" : "Primary Action"}
+                  </Button>
+                  <Button variant="secondary" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "إجراء ثانوي" : "Secondary Action"}
+                  </Button>
+                  <Button variant="outline" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "زر محدد" : "Outline Action"}
+                  </Button>
+                  <Button variant="subtle" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "زر خفيف" : "Subtle Action"}
+                  </Button>
+                  <Button variant="ghost" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "زر شبحي" : "Ghost Action"}
+                  </Button>
+                  <Button variant="destructive" loading={demoButtonLoading}>
+                    {componentLang === "ar" ? "إجراء حذف" : "Destructive Action"}
+                  </Button>
+                  <Button variant="primary" disabled>
+                    {componentLang === "ar" ? "معطل" : "Disabled State"}
+                  </Button>
+                </div>
+              </div>
+
+              {/* Sizes & Icons */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Sizes & Icon Slots
+                </span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button size="sm" leftIcon={<Plus className="w-3.5 h-3.5" />}>
+                    Small (32px)
+                  </Button>
+                  <Button size="md" leftIcon={<Download className="w-4 h-4" />}>
+                    Medium (36px)
+                  </Button>
+                  <Button size="lg" rightIcon={<ArrowRight className="w-4 h-4 rtl:rotate-180" />}>
+                    Large (44px)
+                  </Button>
+
+                  <div className="flex items-center gap-1.5 ms-4 ps-4 border-s border-slate-200 dark:border-slate-700">
+                    <IconButton variant="secondary" size="md" aria-label="Settings" title="Settings">
+                      <Settings className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton variant="subtle" size="md" aria-label="Notifications" title="Notifications">
+                      <Bell className="w-4 h-4" />
+                    </IconButton>
+                    <IconButton variant="destructive" size="md" aria-label="Delete item" title="Delete">
+                      <Trash2 className="w-4 h-4" />
+                    </IconButton>
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* Status Badges */}
-            <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
-              <h3 className="font-bold text-base">Status Badge Tokens</h3>
-              <div className="flex flex-wrap items-center gap-2.5">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
-                  <CheckCircle2 className="w-3 h-3" /> Active / Present
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-amber-50 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
-                  <AlertTriangle className="w-3 h-3" /> Pending Review
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-rose-50 dark:bg-rose-950/60 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800">
-                  <XCircle className="w-3 h-3" /> Absent / Paused
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-sky-50 dark:bg-sky-950/60 text-sky-700 dark:text-sky-300 border border-sky-200 dark:border-sky-800">
-                  <Info className="w-3 h-3" /> Grade 10 - Section B
-                </span>
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800">
-                  Published Exam
-                </span>
+            {/* B. FORM COMPONENTS */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category B
+                  </span>
+                  <h3 className="font-bold text-base">Form Controls & Validation</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Text inputs, password reveals, search, select dropdowns, textareas, checkboxes, and toggle switches.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Standard Input with Left Icon */}
+                <FormField
+                  label={componentLang === "ar" ? "الاسم الكامل للطالب" : "Student Full Name"}
+                  required
+                  htmlFor="demo-name"
+                  helperText={componentLang === "ar" ? "كما هو وارد في السجل الرسمي" : "As registered in official records"}
+                >
+                  <Input
+                    id="demo-name"
+                    placeholder={componentLang === "ar" ? "مثال: أحمد خليل" : "e.g. John Doe"}
+                    leftIcon={<UserCheck className="w-4 h-4" />}
+                  />
+                </FormField>
+
+                {/* Password Input with Reveal Toggle */}
+                <FormField
+                  label={componentLang === "ar" ? "كلمة المرور" : "Account Password"}
+                  required
+                  htmlFor="demo-password"
+                  helperText={componentLang === "ar" ? "8 خانات على الأقل" : "At least 8 characters"}
+                >
+                  <Input
+                    id="demo-password"
+                    type="password"
+                    defaultValue="SecurePass2026!"
+                  />
+                </FormField>
+
+                {/* Search Input with Icon */}
+                <FormField
+                  label={componentLang === "ar" ? "البحث في الشعب" : "Search Course Sections"}
+                  htmlFor="demo-search"
+                >
+                  <Input
+                    id="demo-search"
+                    type="search"
+                    placeholder={componentLang === "ar" ? "ابحث بالرمز أو المعلم..." : "Search by code or teacher..."}
+                  />
+                </FormField>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+                {/* Select Dropdown */}
+                <FormField
+                  label={componentLang === "ar" ? "المرحلة الدراسية" : "Academic Grade"}
+                  required
+                  htmlFor="demo-grade"
+                >
+                  <Select id="demo-grade" defaultValue="10">
+                    <option value="9">Grade 9 (Middle School)</option>
+                    <option value="10">Grade 10 (Secondary 1)</option>
+                    <option value="11">Grade 11 (Secondary 2)</option>
+                    <option value="12">Grade 12 (Tawjihi / Senior)</option>
+                  </Select>
+                </FormField>
+
+                {/* Validation Error State */}
+                <FormField
+                  label={componentLang === "ar" ? "البريد الإلكتروني المؤسسي" : "Institutional Email"}
+                  required
+                  htmlFor="demo-email-err"
+                  error={componentLang === "ar" ? "صيغة البريد الإلكتروني غير صالحة" : "Please provide a valid educational domain email."}
+                >
+                  <Input
+                    id="demo-email-err"
+                    defaultValue="invalid-format@"
+                    error
+                    leftIcon={<Mail className="w-4 h-4" />}
+                  />
+                </FormField>
+
+                {/* Textarea */}
+                <FormField
+                  label={componentLang === "ar" ? "ملاحظات التقييم" : "Evaluation Notes"}
+                  htmlFor="demo-notes"
+                  helperText={componentLang === "ar" ? "بحد أقصى 500 حرف" : "Max 500 characters"}
+                >
+                  <Textarea
+                    id="demo-notes"
+                    rows={2}
+                    placeholder={componentLang === "ar" ? "أدخل تفاصيل التقييم الدوري..." : "Write quarterly observations..."}
+                  />
+                </FormField>
+              </div>
+
+              {/* Toggles & Checkboxes */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-6">
+                <Checkbox
+                  id="demo-cb-1"
+                  label={componentLang === "ar" ? "تفعيل التنبيهات الفورية عبر البريد" : "Enable instant email alerts"}
+                  description={componentLang === "ar" ? "يتم إرسال إشعار فوري عند رصد علامة جديدة" : "Receive instant notifications when exam grades are published"}
+                  checked={demoCheckboxChecked}
+                  onChange={(e) => setDemoCheckboxChecked(e.target.checked)}
+                />
+
+                <Switch
+                  id="demo-sw-1"
+                  label={componentLang === "ar" ? "المؤقت التلقائي للاختبار" : "Automatic Exam Timer"}
+                  description={componentLang === "ar" ? "تسليم الاختبار تلقائياً عند انتهاء الوقت" : "Auto-submits student answers upon duration expiration"}
+                  checked={demoSwitchChecked}
+                  onChange={setDemoSwitchChecked}
+                />
               </div>
             </div>
 
-            {/* Table Row Specification Preview */}
-            <div className="p-6 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-4">
-              <h3 className="font-bold text-base">Data Table Design Tokens</h3>
-              <div className="border border-slate-200 dark:border-slate-800 rounded-lg overflow-hidden">
-                <table className="w-full text-xs text-left">
-                  <thead className="bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
-                    <tr>
-                      <th className="p-3">Student Name</th>
-                      <th className="p-3">Class</th>
-                      <th className="p-3">Latest Score</th>
-                      <th className="p-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                    <tr className="hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition">
-                      <td className="p-3 font-medium">Sarah Jenkins</td>
-                      <td className="p-3 text-slate-500">10-A (Science)</td>
-                      <td className="p-3 font-semibold text-purple-700 dark:text-purple-300">96 / 100</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                          Passed
-                        </span>
-                      </td>
-                    </tr>
-                    <tr className="hover:bg-purple-50/50 dark:hover:bg-purple-950/30 transition">
-                      <td className="p-3 font-medium">Omar Alsultan</td>
-                      <td className="p-3 text-slate-500">10-A (Science)</td>
-                      <td className="p-3 font-semibold text-purple-700 dark:text-purple-300">88 / 100</td>
-                      <td className="p-3">
-                        <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-300">
-                          Passed
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            {/* C. FEEDBACK (BADGES, ALERTS, TOOLTIPS) */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category C
+                  </span>
+                  <h3 className="font-bold text-base">Feedback, Status Badges & Alerts</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Badges with live status dots, semantic alerts, and accessible tooltips.
+                </p>
+              </div>
+
+              {/* Status Badges */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Status Badges (Pills)
+                </span>
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <Badge variant="primary" dot>
+                    {componentLang === "ar" ? "قيد الدراسة" : "In Progress"}
+                  </Badge>
+                  <Badge variant="success" dot>
+                    {componentLang === "ar" ? "حاضر / مكتمل" : "Present / Completed"}
+                  </Badge>
+                  <Badge variant="warning" dot>
+                    {componentLang === "ar" ? "قيد المراجعة" : "Pending Approval"}
+                  </Badge>
+                  <Badge variant="destructive" dot>
+                    {componentLang === "ar" ? "متغيب / ملغى" : "Absent / Overdue"}
+                  </Badge>
+                  <Badge variant="info">
+                    {componentLang === "ar" ? "الشعبة أ" : "Section 10-B"}
+                  </Badge>
+                  <Badge variant="secondary">
+                    {componentLang === "ar" ? "مسودة" : "Draft"}
+                  </Badge>
+                  <Badge variant="outline">
+                    {componentLang === "ar" ? "أرشيف 2025" : "Archived 2025"}
+                  </Badge>
+                </div>
+              </div>
+
+              {/* Alerts */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <Alert variant="info" onClose={() => {}}>
+                  <AlertTitle>
+                    {componentLang === "ar" ? "تحديث جدول الامتحانات النهائية" : "Exam Schedule Updated"}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {componentLang === "ar"
+                      ? "تم ترحيل موعد اختبار الفيزياء إلى يوم الثلاثاء 18 نوفمبر الساعة 09:00 صباحاً."
+                      : "Physics mid-term exam has been rescheduled to Tuesday, Nov 18 at 09:00 AM."}
+                  </AlertDescription>
+                </Alert>
+
+                <Alert variant="success" onClose={() => {}}>
+                  <AlertTitle>
+                    {componentLang === "ar" ? "تم اعتماد النتائج بنجاح" : "Grades Published Successfully"}
+                  </AlertTitle>
+                  <AlertDescription>
+                    {componentLang === "ar"
+                      ? "تم نشر كشوفات علامات الفصل الأول لطلاب الصف العاشر بعد تدقيقها."
+                      : "First semester report cards for Grade 10 have been verified and made available."}
+                  </AlertDescription>
+                </Alert>
+              </div>
+
+              {/* Tooltip Demonstration */}
+              <div className="flex items-center gap-4 pt-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Tooltips:
+                </span>
+                <Tooltip content={componentLang === "ar" ? "تنزيل الكشف بصيغة CSV" : "Export roster as CSV"} position="top">
+                  <Button variant="secondary" size="sm" leftIcon={<Download className="w-3.5 h-3.5" />}>
+                    Hover or Focus for Tooltip
+                  </Button>
+                </Tooltip>
+              </div>
+            </div>
+
+            {/* D. SURFACES & STAT CARDS */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category D
+                  </span>
+                  <h3 className="font-bold text-base">Surfaces, Panels & Metric StatCards</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Card surfaces and KPI display cards used across Admin, Teacher, and Student dashboards.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <StatCard
+                  title={componentLang === "ar" ? "إجمالي الطلاب" : "Total Students"}
+                  value="1,248"
+                  variant="purple"
+                  icon={<Users className="w-5 h-5" />}
+                  trend={{ value: "+12.4%", positive: true, label: componentLang === "ar" ? "مقارنة بالفصل السابق" : "vs last term" }}
+                />
+
+                <StatCard
+                  title={componentLang === "ar" ? "الكادر التدريسي" : "Teaching Staff"}
+                  value="86"
+                  variant="default"
+                  icon={<GraduationCap className="w-5 h-5" />}
+                  trend={{ value: "+4.1%", positive: true, label: componentLang === "ar" ? "أعضاء جدد" : "new faculty" }}
+                />
+
+                <StatCard
+                  title={componentLang === "ar" ? "نسبة الحضور اليومي" : "Daily Attendance"}
+                  value="96.8%"
+                  variant="default"
+                  icon={<UserCheck className="w-5 h-5" />}
+                  trend={{ value: "+1.2%", positive: true, label: componentLang === "ar" ? "هذا الأسبوع" : "this week" }}
+                />
+
+                <StatCard
+                  title={componentLang === "ar" ? "الامتحانات المجدولة" : "Scheduled Exams"}
+                  value="14"
+                  variant="subtle"
+                  icon={<Calendar className="w-5 h-5" />}
+                  trend={{ value: "-2", positive: false, label: componentLang === "ar" ? "متبقي للاكتمال" : "pending review" }}
+                />
+              </div>
+
+              {/* Standard Content Card */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle>
+                        {componentLang === "ar" ? "معلومات الفصل الدراسي الحالي" : "Current Academic Term Overview"}
+                      </CardTitle>
+                      <CardDescription>
+                        {componentLang === "ar"
+                          ? "العام الدراسي 2026/2027 — الفصل الدراسي الأول"
+                          : "Academic Year 2026/2027 — Semester 1"}
+                      </CardDescription>
+                    </div>
+                    <Badge variant="success" dot>Active Term</Badge>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-xs md:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                    {componentLang === "ar"
+                      ? "تتم المزامنة التلقائية للبيانات الأكاديمية مع قاعدة بيانات المدرسة المركزية. يتم تحديث السجلات كل 15 دقيقة."
+                      : "Automatic academic synchronization is enabled with the central institution repository. Grade and attendance records refresh every 15 minutes."}
+                  </p>
+                </CardContent>
+                <CardFooter className="justify-between">
+                  <span className="text-xs text-slate-500">Last synced: 2 minutes ago</span>
+                  <Button variant="outline" size="sm">
+                    {componentLang === "ar" ? "عرض التفاصيل الكاملة" : "View Term Details"}
+                  </Button>
+                </CardFooter>
+              </Card>
+            </div>
+
+            {/* E. NAVIGATION (TABS, BREADCRUMBS, DROPDOWNS) */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category E
+                  </span>
+                  <h3 className="font-bold text-base">Navigation, Tabs & Dropdown Menus</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Breadcrumbs with auto-mirrored chevrons in RTL, keyboard accessible tabs, and dropdown menus.
+                </p>
+              </div>
+
+              {/* Breadcrumbs */}
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-800">
+                <Breadcrumbs
+                  items={[
+                    { label: componentLang === "ar" ? "لوحة التحكم" : "Dashboard", href: "/admin" },
+                    { label: componentLang === "ar" ? "الصفوف والشعب" : "Classes", href: "/list/classes" },
+                    { label: componentLang === "ar" ? "الصف العاشر - أ" : "Grade 10 - Section A", isCurrent: true },
+                  ]}
+                />
+              </div>
+
+              {/* Interactive Tabs */}
+              <div className="space-y-3">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Interactive Tab Navigation
+                </span>
+                <Tabs defaultValue="tab-overview">
+                  <TabsList>
+                    <TabsTrigger value="tab-overview">
+                      {componentLang === "ar" ? "نظرة عامة" : "Overview"}
+                    </TabsTrigger>
+                    <TabsTrigger value="tab-students">
+                      {componentLang === "ar" ? "قائمة الطلاب (32)" : "Students (32)"}
+                    </TabsTrigger>
+                    <TabsTrigger value="tab-exams">
+                      {componentLang === "ar" ? "الامتحانات والنتائج" : "Exams & Results"}
+                    </TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="tab-overview">
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-300">
+                      {componentLang === "ar"
+                        ? "محتوى النظرة العامة: يتم عرض مؤشرات الأداء والجدول الأسبوعي هنا."
+                        : "Overview Tab Content: Displays weekly class timetable and attendance benchmarks."}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="tab-students">
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-300">
+                      {componentLang === "ar"
+                        ? "محتوى قائمة الطلاب: 32 طالباً مسجلين في الشعبة مع أرقام القيد الأكاديمي."
+                        : "Students Tab Content: 32 enrolled pupils with active status indicators."}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="tab-exams">
+                    <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-xs text-slate-600 dark:text-slate-300">
+                      {componentLang === "ar"
+                        ? "محتوى الامتحانات: 4 اختبارات مكتملة مع متوسط درجات 87.4%."
+                        : "Exams Tab Content: 4 completed assessments with average score 87.4%."}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+
+              {/* Dropdown Menu Demo */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center gap-4">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+                  Action Dropdown:
+                </span>
+                <DropdownMenu>
+                  <DropdownMenuTrigger className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-xs font-semibold border border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-200 transition">
+                    <span>Actions Menu</span>
+                    <ChevronRight className="w-3.5 h-3.5 rotate-90" />
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="start">
+                    <DropdownMenuItem onClick={() => {}}>
+                      <Download className="w-3.5 h-3.5" /> Export PDF Report
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => {}}>
+                      <Mail className="w-3.5 h-3.5" /> Send Group Announcement
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem destructive onClick={() => setDemoConfirmOpen(true)}>
+                      <Trash2 className="w-3.5 h-3.5" /> Archive Section
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            </div>
+
+            {/* F. OVERLAYS & MODALS */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category F
+                  </span>
+                  <h3 className="font-bold text-base">Overlays, Modals & Confirmation Dialogs</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  Backdrop blur, Escape key dismissal, focus trapping, and accessible dialog semantics.
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-4">
+                <Button variant="primary" size="md" onClick={() => setDemoDialogOpen(true)}>
+                  {componentLang === "ar" ? "فتح حوار تجريبي (Modal Dialog)" : "Open Standard Modal Dialog"}
+                </Button>
+
+                <Button variant="destructive" size="md" onClick={() => setDemoConfirmOpen(true)}>
+                  {componentLang === "ar" ? "فتح حوار تأكيد الحذف (Confirm Dialog)" : "Open Delete Confirmation Dialog"}
+                </Button>
+              </div>
+
+              {/* Standard Dialog Instance */}
+              <Dialog open={demoDialogOpen} onOpenChange={setDemoDialogOpen}>
+                <DialogContent size="md">
+                  <DialogHeader>
+                    <DialogTitle>
+                      {componentLang === "ar" ? "إضافة شعبة دراسية جديدة" : "Add New Academic Section"}
+                    </DialogTitle>
+                    <DialogDescription>
+                      {componentLang === "ar"
+                        ? "حدد اسم الشعبة والحد الأقصى للطلاب والمعلم المشرف."
+                        : "Configure the class name, capacity, and assigned homeroom teacher."}
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogBody>
+                    <div className="space-y-4">
+                      <FormField label="Section Code" required htmlFor="dlg-sec-code">
+                        <Input id="dlg-sec-code" defaultValue="SEC-10-C" />
+                      </FormField>
+                      <FormField label="Maximum Capacity" required htmlFor="dlg-cap">
+                        <Input id="dlg-cap" type="number" defaultValue="35" />
+                      </FormField>
+                    </div>
+                  </DialogBody>
+                  <DialogFooter>
+                    <Button variant="secondary" onClick={() => setDemoDialogOpen(false)}>
+                      Cancel
+                    </Button>
+                    <Button variant="primary" onClick={() => setDemoDialogOpen(false)}>
+                      Save Section
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              {/* Confirm Dialog Instance */}
+              <ConfirmDialog
+                open={demoConfirmOpen}
+                onOpenChange={setDemoConfirmOpen}
+                title={componentLang === "ar" ? "تأكيد حذف الشعبة" : "Confirm Section Deletion"}
+                description={
+                  componentLang === "ar"
+                    ? "هل أنت متأكد من حذف هذه الشعبة؟ سيتم نقل 32 طالباً مسجلين إلى قائمة الطلاب غير المعينين."
+                    : "Are you sure you want to delete this section? 32 enrolled students will be moved to unassigned status."
+                }
+                confirmLabel={componentLang === "ar" ? "نعم، حذف الشعبة" : "Yes, Delete Section"}
+                cancelLabel={componentLang === "ar" ? "إلغاء" : "Cancel"}
+                variant="destructive"
+                onConfirm={() => setDemoConfirmOpen(false)}
+              />
+            </div>
+
+            {/* G. DATA DISPLAY (TABLES, AVATARS, SKELETONS, EMPTY STATES) */}
+            <div className="p-6 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xs space-y-6">
+              <div className="border-b border-slate-100 dark:border-slate-800 pb-4">
+                <div className="flex items-center gap-2">
+                  <span className="px-2.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-950 text-purple-700 dark:text-purple-300 font-bold text-xs">
+                    Category G
+                  </span>
+                  <h3 className="font-bold text-base">Data Display, Tables & Avatars</h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-1">
+                  High-density responsive data tables, user avatars with initials and status, skeletons, and empty states.
+                </p>
+              </div>
+
+              {/* Avatars */}
+              <div className="space-y-2">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  User Avatars with Fallback Initials & Status Dots
+                </span>
+                <div className="flex flex-wrap items-center gap-4">
+                  <Avatar size="sm" name="Sarah Jenkins" status="online" />
+                  <Avatar size="md" name="Omar Alsultan" status="busy" />
+                  <Avatar size="lg" name="Hassan Al-Baqir" status="away" />
+                  <Avatar size="xl" name="Laila Noureddine" status="offline" />
+                </div>
+              </div>
+
+              {/* Standard Table */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Standardized Table Architecture
+                </span>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{componentLang === "ar" ? "الطالب" : "Student"}</TableHead>
+                      <TableHead>{componentLang === "ar" ? "المعرف الأكاديمي" : "Student ID"}</TableHead>
+                      <TableHead>{componentLang === "ar" ? "الشعبة" : "Section"}</TableHead>
+                      <TableHead>{componentLang === "ar" ? "النتيجة" : "Grade"}</TableHead>
+                      <TableHead>{componentLang === "ar" ? "الحالة" : "Status"}</TableHead>
+                      <TableHead className="text-end">{componentLang === "ar" ? "إجراءات" : "Actions"}</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {[
+                      { name: "Sarah Jenkins", id: "#STD-10941", sec: "10-A", score: "96.5%", status: "Passed", badge: "success" },
+                      { name: "Omar Alsultan", id: "#STD-10942", sec: "10-A", score: "89.0%", status: "Passed", badge: "success" },
+                      { name: "Hassan Al-Baqir", id: "#STD-10943", sec: "10-B", score: "54.0%", status: "Needs Review", badge: "warning" },
+                    ].map((row, idx) => (
+                      <TableRow key={idx}>
+                        <TableCell>
+                          <div className="flex items-center gap-2.5">
+                            <Avatar size="sm" name={row.name} />
+                            <span className="font-semibold text-slate-900 dark:text-slate-100">{row.name}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-mono text-purple-700 dark:text-purple-300">
+                          <bdi>{row.id}</bdi>
+                        </TableCell>
+                        <TableCell>{row.sec}</TableCell>
+                        <TableCell className="font-bold tabular-nums">{row.score}</TableCell>
+                        <TableCell>
+                          <Badge variant={row.badge as any} size="sm" dot>
+                            {row.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-end">
+                          <div className="flex items-center justify-end gap-1.5">
+                            <IconButton variant="ghost" size="sm" aria-label="View profile">
+                              <Eye className="w-3.5 h-3.5" />
+                            </IconButton>
+                            <IconButton variant="ghost" size="sm" aria-label="Send message">
+                              <Mail className="w-3.5 h-3.5" />
+                            </IconButton>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Skeletons Loading Placeholders */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Skeleton Loading Placeholders
+                </span>
+                <div className="p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 space-y-3">
+                  <div className="flex items-center gap-3">
+                    <Skeleton className="w-10 h-10 rounded-full" />
+                    <div className="space-y-1.5 flex-1">
+                      <Skeleton className="h-4 w-40" />
+                      <Skeleton className="h-3 w-24" />
+                    </div>
+                  </div>
+                  <Skeleton className="h-16 w-full rounded-lg" />
+                </div>
+              </div>
+
+              {/* Empty State */}
+              <div className="space-y-2 pt-2 border-t border-slate-100 dark:border-slate-800">
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider block">
+                  Empty State Representation
+                </span>
+                <EmptyState
+                  title={componentLang === "ar" ? "لا توجد واجبات دراسية مسندة" : "No Pending Assignments Found"}
+                  description={
+                    componentLang === "ar"
+                      ? "تم تسليم كافة الواجبات المطلوبة لهذا الأسبوع بنجاح."
+                      : "All coursework for this academic week has been completed and verified."
+                  }
+                  action={{
+                    label: componentLang === "ar" ? "تصفح الأرشيف الأكاديمي" : "Browse Archive",
+                    href: "/archive",
+                  }}
+                />
               </div>
             </div>
           </div>
