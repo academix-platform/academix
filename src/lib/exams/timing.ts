@@ -34,3 +34,14 @@ export const getExamEndsAt = (
 
 export const getTimeRemainingSeconds = (endsAt: Date, now: Date = new Date()) =>
   Math.max(0, Math.floor((endsAt.getTime() - now.getTime()) / 1000));
+
+/**
+ * How long after the deadline the server still accepts the browser's final
+ * saves and submit. When time runs out the page flushes unsaved answers and
+ * then submits; without this window those last saves would be refused.
+ */
+export const SUBMIT_GRACE_MS = 30_000;
+
+/** True once the grace window after the deadline has passed. */
+export const isPastSubmitWindow = (endsAt: Date, now: Date = new Date()) =>
+  now.getTime() > endsAt.getTime() + SUBMIT_GRACE_MS;
