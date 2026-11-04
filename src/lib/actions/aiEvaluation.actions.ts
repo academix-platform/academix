@@ -143,6 +143,38 @@ const approvalFields = (access: Access, score: number, feedback: string | null) 
   needsReview: false,
 });
 
+/**
+ * Marks the suggestion approved, but only if it is still SUGGESTED, so two
+ * approvals sent at once can't both apply a grade. Run inside the
+ * transaction that applies the grade; it throws to roll that back.
+ */
+const claimSuggestion = async (
+  tx: Prisma.TransactionClient,
+  evaluationId: number,
+  data: ReturnType<typeof approvalFields>,
+) => {
+  const claimed = await tx.aiEvaluation.updateMany({
+    where: { id: evaluationId, status: AiEvaluationStatus.SUGGESTED },
+    data,
+  });
+  if (claimed.count === 0) throw new SuggestionAlreadyHandledError();
+};
+
+class SuggestionAlreadyHandledError extends Error {}
+
+const ALREADY_HANDLED = "Only a new AI suggestion can be approved.";
+
+/** Runs an approval; a suggestion handled meanwhile becomes a normal error. */
+const runApproval = async (apply: () => Promise<unknown>) => {
+  try {
+    await apply();
+    return null;
+  } catch (err) {
+    if (err instanceof SuggestionAlreadyHandledError) return fail(ALREADY_HANDLED);
+    throw err;
+  }
+};
+
 // ─── Exam answers ─────────────────────────────────────────────────────────────
 
 const findManagedAnswer = async (answerId: number, access: Access) => {
@@ -258,7 +290,7 @@ export async function approveExamAnswerAiEvaluation(
   if (!evaluation || !answer) return fail("AI evaluation not found.");
 
   if (evaluation.status !== AiEvaluationStatus.SUGGESTED) {
-    return fail("Only a new AI suggestion can be approved.");
+    return fail(ALREADY_HANDLED);
   }
   if (answer.submission.status === "IN_PROGRESS") {
     return fail("This exam is still in progress.");
@@ -267,15 +299,21 @@ export async function approveExamAnswerAiEvaluation(
     return fail(`Score must be between 0 and ${answer.question.points}.`);
   }
 
-  await prisma.$transaction([
-    prisma.answer.update({ where: { id: answer.id }, data: { score } }),
-    prisma.aiEvaluation.update({
-      where: { id: evaluation.id },
-      data: approvalFields(access, score, feedback?.trim() || evaluation.feedback),
+  const failed = await runApproval(() =>
+    prisma.$transaction(async (tx) => {
+      await claimSuggestion(
+        tx,
+        evaluation.id,
+        approvalFields(access, score, feedback?.trim() || evaluation.feedback),
+      );
+      await tx.answer.update({ where: { id: answer.id }, data: { score } });
+      // The grade changed, so it has to be published again.
+      for (const write of unpublishExamGradeWrites(answer.submission, {}, tx)) {
+        await write;
+      }
     }),
-    // The grade changed, so it has to be published again.
-    ...unpublishExamGradeWrites(answer.submission),
-  ]);
+  );
+  if (failed) return failed;
   await finalizeGrade(answer.submission.id);
 
   revalidatePath(examSubmissionPath(answer));
@@ -419,7 +457,7 @@ export async function approveAssignmentSubmissionAiEvaluation(
   if (!evaluation || !submission) return fail("AI evaluation not found.");
 
   if (evaluation.status !== AiEvaluationStatus.SUGGESTED) {
-    return fail("Only a new AI suggestion can be approved.");
+    return fail(ALREADY_HANDLED);
   }
   if (!validScore(score, submission.assignment.maxScore)) {
     return fail(`Score must be between 0 and ${submission.assignment.maxScore}.`);
@@ -427,24 +465,28 @@ export async function approveAssignmentSubmissionAiEvaluation(
 
   const approvedFeedback = feedback?.trim() || evaluation.feedback;
 
-  await prisma.$transaction(async (tx) => {
-    await tx.assignmentSubmission.update({
-      where: { id: submission.id },
-      data: {
-        score,
-        teacherFeedback: approvedFeedback,
-        gradePublished: false,
-        gradedAt: new Date(),
-        gradedBy: access.userId,
-      },
-    });
-    await tx.aiEvaluation.update({
-      where: { id: evaluation.id },
-      data: approvalFields(access, score, approvedFeedback),
-    });
-    // The grade changed and is unpublished again, so the old Result goes too.
-    await deleteAssignmentResultsForSubmissions(tx, access.schoolId, [submission]);
-  });
+  const failed = await runApproval(() =>
+    prisma.$transaction(async (tx) => {
+      await claimSuggestion(
+        tx,
+        evaluation.id,
+        approvalFields(access, score, approvedFeedback),
+      );
+      await tx.assignmentSubmission.update({
+        where: { id: submission.id },
+        data: {
+          score,
+          teacherFeedback: approvedFeedback,
+          gradePublished: false,
+          gradedAt: new Date(),
+          gradedBy: access.userId,
+        },
+      });
+      // The grade changed and is unpublished again, so the old Result goes too.
+      await deleteAssignmentResultsForSubmissions(tx, access.schoolId, [submission]);
+    }),
+  );
+  if (failed) return failed;
 
   revalidateAssignment(submission.assignmentId);
   revalidatePath("/list/results");
