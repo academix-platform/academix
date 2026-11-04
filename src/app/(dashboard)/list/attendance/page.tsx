@@ -230,6 +230,8 @@ const AttendancePage = async ({
 
       {/* TABLE */}
       <AttendanceClient
+        // Unsaved changes belong to one class, day and page.
+        key={`${scope}-${effectiveClassId ?? "all"}-${selectedDate}-${p}`}
         data={paginatedData}
         selectedDate={selectedDate}
         isToday={isToday}

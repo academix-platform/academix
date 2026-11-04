@@ -30,6 +30,21 @@ export async function GET(req: NextRequest) {
     );
   }
 
+  // The year must be one of this school's, and every export is limited to it.
+  const yearId = Number.parseInt(academicYearId, 10);
+  const year = Number.isNaN(yearId)
+    ? null
+    : await prisma.academicYear.findFirst({
+        where: { id: yearId, schoolId: admin.schoolId },
+        select: { id: true },
+      });
+  if (!year) {
+    return NextResponse.json(
+      { error: "Academic year not found" },
+      { status: 404 }
+    );
+  }
+
   let data: Record<string, unknown>[] = [];
 
   switch (type) {
@@ -162,9 +177,8 @@ export async function GET(req: NextRequest) {
       data = await prisma.result
         .findMany({
           where: {
-            student: {
-              schoolId: admin.schoolId,
-            },
+            schoolId: admin.schoolId,
+            academicYearId: year.id,
           },
           select: {
             id: true,
@@ -191,10 +205,11 @@ export async function GET(req: NextRequest) {
       data = await prisma.attendance
         .findMany({
           where: {
-            student: {
-              schoolId: admin.schoolId,
-            },
+            schoolId: admin.schoolId,
+            academicYearId: year.id,
+            studentId: { not: null },
           },
+          orderBy: [{ date: "asc" }, { studentId: "asc" }],
           select: {
             id: true,
             date: true,
