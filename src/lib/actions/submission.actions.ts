@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { deleteAssignmentResultsForSubmissions } from "@/lib/assignments/results";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import {
@@ -138,29 +139,6 @@ const getBulkAssignmentSubmissions = async (
   return { ...group, submissions };
 };
 
-const deleteAssignmentResultsForSubmissions = async (
-  tx: Prisma.TransactionClient,
-  schoolId: number,
-  submissions: Array<{
-    assignmentId: number;
-    studentId: string;
-    academicYearId: number;
-  }>,
-) => {
-  if (submissions.length === 0) return;
-
-  await tx.result.deleteMany({
-    where: {
-      schoolId,
-      OR: submissions.map((submission) => ({
-        assignmentId: submission.assignmentId,
-        studentId: submission.studentId,
-        academicYearId: submission.academicYearId,
-      })),
-    },
-  });
-};
-
 async function uploadToCloudinary(file: File) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
@@ -243,7 +221,7 @@ export async function submitAssignment(
 
     const existing = await prisma.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId, studentId: userId } },
-      select: { fileUrl: true, academicYearId: true },
+      select: { id: true, fileUrl: true, academicYearId: true },
     });
 
     // رفع الملف الجديد
@@ -299,6 +277,10 @@ export async function submitAssignment(
           await deleteAssignmentResultsForSubmissions(tx, student.schoolId, [
             { assignmentId, studentId: userId, academicYearId: existing.academicYearId },
           ]);
+          // The AI suggestion was for the old file.
+          await tx.aiEvaluation.deleteMany({
+            where: { assignmentSubmissionId: existing.id },
+          });
         }
       });
     } catch (saveError) {

@@ -172,8 +172,12 @@ const renderRow = (
             <Download className="h-3.5 w-3.5" />
             {t("actions.download")}
           </a>
+        </div>
+        <div className="mt-2">
           <AssignmentSubmissionAiEvaluation
             submissionId={item.id}
+            maxScore={maxScore}
+            evaluation={item.aiEvaluation}
             disabled={!isPdfSubmission}
           />
         </div>
