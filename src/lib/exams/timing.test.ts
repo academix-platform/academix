@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { getExamEndsAt, getTimeRemainingSeconds } from "./timing";
+import {
+  getExamEndsAt,
+  getTimeRemainingSeconds,
+  isPastSubmitWindow,
+  SUBMIT_GRACE_MS,
+} from "./timing";
 
 const startedAt = new Date("2026-11-03T09:00:00Z");
 const endTime = new Date("2026-11-03T12:00:00Z");
@@ -62,5 +67,18 @@ describe("getTimeRemainingSeconds", () => {
   it("floors to whole seconds", () => {
     const now = new Date(endTime.getTime() - 1500);
     expect(getTimeRemainingSeconds(endTime, now)).toBe(1);
+  });
+});
+
+describe("isPastSubmitWindow", () => {
+  const endsAt = new Date("2026-11-03T10:00:00Z");
+
+  it("still accepts saves and submit just after the deadline", () => {
+    expect(isPastSubmitWindow(endsAt, new Date(endsAt.getTime() + 1))).toBe(false);
+    expect(isPastSubmitWindow(endsAt, new Date(endsAt.getTime() + SUBMIT_GRACE_MS))).toBe(false);
+  });
+
+  it("closes once the grace window has passed", () => {
+    expect(isPastSubmitWindow(endsAt, new Date(endsAt.getTime() + SUBMIT_GRACE_MS + 1))).toBe(true);
   });
 });

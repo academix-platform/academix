@@ -27,7 +27,11 @@ import {
   getPrivateExamFile,
 } from "../cloudinary";
 import { notifyNewExam } from "./notification.actions";
-import { getExamEndsAt, getTimeRemainingSeconds } from "../exams/timing";
+import {
+  getExamEndsAt,
+  getTimeRemainingSeconds,
+  isPastSubmitWindow,
+} from "../exams/timing";
 import {
   STUDENT_QUESTION_SELECT,
   buildExamSettingsData,
@@ -374,6 +378,23 @@ export const updateExamWorkflow = async (
     // Once any student has an attempt, questions and classes are frozen:
     // answers reference the questions, so only settings may change.
     if (submissionCount > 0) {
+      // Say so instead of saving the settings and silently dropping the
+      // class change.
+      const currentClassIds = new Set(
+        groupExams.flatMap((exam) => (exam.classId ? [exam.classId] : []))
+      );
+      const classesChanged =
+        currentClassIds.size !== selectedAssignmentsByClass.size ||
+        [...selectedAssignmentsByClass.keys()].some((id) => !currentClassIds.has(id));
+      if (classesChanged) {
+        return {
+          success: false,
+          error: true,
+          message:
+            "Students have already started this exam, so its classes can't change. Only the settings can be edited.",
+        };
+      }
+
       await prisma.$transaction(
         groupExams.map((exam) =>
           prisma.exam.update({
@@ -718,7 +739,9 @@ export const saveAnswer = async (
       return { success: false, error: true, message: "Exam already submitted." };
     }
 
-    if (new Date() > getExamEndsAt(submission, submission.exam)) {
+    // The page flushes unsaved answers when time runs out and only then
+    // submits, so the final saves land inside the same grace window as submit.
+    if (isPastSubmitWindow(getExamEndsAt(submission, submission.exam))) {
       return { success: false, error: true, message: "Exam time has expired." };
     }
 
@@ -806,9 +829,6 @@ export const saveAnswer = async (
 // 5. submitExam
 // ============================================================
 
-// Lets a submit sent just before the deadline still land.
-const SUBMIT_GRACE_MS = 30_000;
-
 export const submitExam = async (submissionId: number) => {
   const access = await requireActionAccess(["student"]);
   if ("error" in access) return { error: "Unauthorized" };
@@ -821,16 +841,17 @@ export const submitExam = async (submissionId: number) => {
     );
 
     if (!submission) return { error: "Submission not found." };
+    // `closed`: the attempt is over either way, so the page can leave.
     if (submission.status !== "IN_PROGRESS")
-      return { error: "Exam already submitted." };
+      return { error: "Exam already submitted.", closed: true };
 
-    const examEndsAt = getExamEndsAt(submission, submission.exam);
-    if (Date.now() > examEndsAt.getTime() + SUBMIT_GRACE_MS) {
-      return { error: "Submission window has closed." };
+    if (isPastSubmitWindow(getExamEndsAt(submission, submission.exam))) {
+      // Past the grace window; the auto-submit sweep closes the attempt.
+      return { error: "Submission window has closed.", closed: true };
     }
 
     const closed = await closeSubmission(submission, { autoSubmitted: false });
-    if (!closed) return { error: "Exam already submitted." };
+    if (!closed) return { error: "Exam already submitted.", closed: true };
 
     // The attempt is safely submitted; a grading failure is retried when a
     // teacher opens the submission.
