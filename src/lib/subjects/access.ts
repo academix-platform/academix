@@ -49,10 +49,17 @@ export function subjectClassContentWhere(
     academicYearId,
   };
 
+  // Content is linked to a class directly or only through its lesson
+  // (older rows have no classId), so both paths count.
+  const inClass = (students: Prisma.StudentWhereInput) => {
+    const classWhere = { students: { some: students } };
+    where.OR = [{ class: classWhere }, { lesson: { class: classWhere } }];
+  };
+
   if (role === "student") {
-    where.class = { students: { some: { id: userId ?? "" } } };
+    inClass({ id: userId ?? "" });
   } else if (role === "parent") {
-    where.class = { students: { some: { parentId: userId ?? "" } } };
+    inClass({ parentId: userId ?? "" });
   }
 
   return where;

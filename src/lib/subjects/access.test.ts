@@ -47,16 +47,18 @@ describe("subjectClassContentWhere", () => {
   });
 
   it("shows a student only their own classes", () => {
+    const inStudentClass = { students: { some: { id: "s1" } } };
     expect(subjectClassContentWhere("student", "s1", 7)).toEqual({
       academicYearId: 7,
-      class: { students: { some: { id: "s1" } } },
+      OR: [{ class: inStudentClass }, { lesson: { class: inStudentClass } }],
     });
   });
 
   it("shows a parent only their children's classes", () => {
+    const inChildClass = { students: { some: { parentId: "p1" } } };
     expect(subjectClassContentWhere("parent", "p1", 7)).toEqual({
       academicYearId: 7,
-      class: { students: { some: { parentId: "p1" } } },
+      OR: [{ class: inChildClass }, { lesson: { class: inChildClass } }],
     });
   });
 
