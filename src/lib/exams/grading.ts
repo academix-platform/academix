@@ -2,7 +2,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import prisma from "../prisma";
 import { getAutoGradeScore } from "../examAnswerUtils";
-import { getExamEndsAt } from "./timing";
+import { getExamEndsAt, isPastSubmitWindow } from "./timing";
 
 // Internal grading and submission helpers. This module is deliberately NOT a
 // "use server" file: nothing here checks the caller, so it must never be
@@ -168,7 +168,9 @@ export const autoSubmitExpiredSubmissions = async (
     let submitted = 0;
 
     for (const submission of submissions) {
-      if (now <= getExamEndsAt(submission, submission.exam)) continue;
+      // Wait out the grace window: the student's page may still be sending
+      // its final saves and submit.
+      if (!isPastSubmitWindow(getExamEndsAt(submission, submission.exam), now)) continue;
 
       const hasContent = submission.answers.some(
         (a) => (a.textAnswer && a.textAnswer.trim().length > 0) || a.fileUrl,

@@ -21,6 +21,9 @@ import QuestionRenderer from "./QuestionRenderer";
 // How long after the last keystroke a question's answer is saved.
 const AUTOSAVE_DELAY_MS = 1000;
 
+/** submitExam reports `closed` when the attempt is over and can't change. */
+const isAttemptClosed = (res: object) => "closed" in res && res.closed === true;
+
 interface ExamClientProps {
   exam: Exam;
   submission: any;
@@ -253,7 +256,9 @@ export default function ExamClient({
     const res = await submitExam(submission.id);
     if (res.error) {
       toast.error(res.error as string);
-      setIsSubmitting(false);
+      // Already submitted (another tab, the sweep): nothing left to do here.
+      if (isAttemptClosed(res)) router.push("/list/exams");
+      else setIsSubmitting(false);
     } else {
       toast.success(t("toast.submitted"));
       router.push("/list/exams");
@@ -268,7 +273,9 @@ export default function ExamClient({
     await flushPendingSaves();
 
     const res = await submitExam(submission.id);
-    if (res.error) {
+    // If the auto-submit sweep closed the attempt first, it is still over:
+    // leave the page instead of keeping the student on a finished exam.
+    if (res.error && !isAttemptClosed(res)) {
       toast.error(res.error as string);
       setIsSubmitting(false);
       return;
