@@ -293,6 +293,17 @@ export const updateResult = async (
       return { success: false, error: true, message: target.error };
     }
 
+    // Same rule as createResult: a grade for online work, including the
+    // Result its publishing created, changes only from its submissions page.
+    if (await hasOnlineSubmission(data)) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "This student handed this work in online. Grade and publish it from its submissions page.",
+      };
+    }
+
     const updated = await prisma.result.updateMany({
       where: { id: resultId, schoolId: access.schoolId },
       data: {

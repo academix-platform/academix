@@ -24,6 +24,10 @@ export type PromotionActionResult = {
   skippedCount?: number;
 };
 
+// The whole school is promoted in one transaction with a few writes per
+// student; Prisma's default 5 s limit isn't enough for a large school.
+const PROMOTION_TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 120_000 };
+
 const emptyCounts = {
   promotedCount: 0,
   graduatedCount: 0,
@@ -257,7 +261,7 @@ export const promoteStudentsByPerformance = async (
 
         promotedCount += 1;
       }
-    });
+    }, PROMOTION_TRANSACTION_OPTIONS);
 
     const summary = `Promotion run completed. Promoted: ${promotedCount}, Graduated: ${graduatedCount}, Repeated: ${repeatedCount}, Skipped: ${skippedCount}.`;
 
