@@ -3,7 +3,10 @@
 import AiEvaluationCard, {
   AiEvaluationCardData,
 } from "@/components/AiEvaluationCard";
-import { evaluateExamAnswerWithAi } from "@/lib/actions/aiEvaluation.actions";
+import {
+  approveExamAnswerAiEvaluation,
+  evaluateExamAnswerWithAi,
+} from "@/lib/actions/aiEvaluation.actions";
 
 type Props = {
   answerId: number;
@@ -24,6 +27,7 @@ export default function GradeAnswerAiEvaluation({
       evaluation={evaluation}
       disabledMessage={disabledMessage}
       onEvaluate={() => evaluateExamAnswerWithAi(answerId)}
+      onApprove={approveExamAnswerAiEvaluation}
     />
   );
 }

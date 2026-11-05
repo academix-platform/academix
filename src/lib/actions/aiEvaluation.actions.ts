@@ -1,14 +1,23 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { AiEvaluationStatus } from "@prisma/client";
+import { AiEvaluationStatus, Prisma } from "@prisma/client";
 import {
   downloadCloudinaryUrlToBuffer,
   downloadPrivateCloudinaryFileToBuffer,
 } from "@/lib/ai/cloudinaryFile";
-import { evaluatePdfWithGemini, evaluateWithGemini } from "@/lib/ai/geminiEvaluation";
+import { evaluateWithGemini } from "@/lib/ai/geminiEvaluation";
+import type { AiEvaluationSuggestion } from "@/lib/ai/evaluationPrompt";
+import { assignmentManagerWhere } from "@/lib/assignments/group";
+import { deleteAssignmentResultsForSubmissions } from "@/lib/assignments/results";
+import { canManageExamGroup } from "@/lib/exams/group";
+import { finalizeGrade, unpublishExamGradeWrites } from "@/lib/exams/grading";
 import prisma from "@/lib/prisma";
 import { requireActionAccess } from "./helpers";
+
+// An AI result is only a suggestion. Evaluating stores it on the AiEvaluation
+// row and never touches the grade; the grade changes only when a teacher
+// approves the suggestion (with the score and feedback they confirm).
 
 type AiActionResult = {
   success: boolean;
@@ -16,27 +25,47 @@ type AiActionResult = {
   message: string;
 };
 
+type Access = Exclude<Awaited<ReturnType<typeof requireActionAccess>>, { error: true }>;
+
+const fail = (message: string): AiActionResult => ({
+  success: false,
+  error: true,
+  message,
+});
+
+const SUGGESTION_SAVED =
+  "AI suggestion saved. Review it and approve it to apply the score.";
+
 const getFileExtension = (fileName?: string | null) =>
   fileName?.split(".").pop()?.toLowerCase() ?? "";
 
-const failEvaluation = async ({
-  schoolId,
-  answerId,
-  assignmentSubmissionId,
-  maxScore,
-  model = process.env.GEMINI_MODEL || "gemini-3.5-flash",
-  error,
-}: {
-  schoolId: number;
-  answerId?: number;
-  assignmentSubmissionId?: number;
-  maxScore: number;
-  model?: string;
-  error: string;
-}) => {
+const isPdf = (fileName?: string | null) => getFileExtension(fileName) === "pdf";
+
+const ensurePdf = (fileName?: string | null) => {
+  if (!isPdf(fileName)) {
+    throw new Error("AI evaluation currently supports PDF files only.");
+  }
+};
+
+const evaluationTarget = (
+  target: { answerId: number } | { assignmentSubmissionId: number },
+) =>
+  "answerId" in target
+    ? { where: { answerId: target.answerId }, create: { answerId: target.answerId } }
+    : {
+        where: { assignmentSubmissionId: target.assignmentSubmissionId },
+        create: { assignmentSubmissionId: target.assignmentSubmissionId },
+      };
+
+const recordFailure = async (
+  schoolId: number,
+  target: { answerId: number } | { assignmentSubmissionId: number },
+  maxScore: number,
+  error: string,
+) => {
   const data = {
     schoolId,
-    model,
+    model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
     status: AiEvaluationStatus.FAILED,
     score: null,
     maxScore,
@@ -46,45 +75,22 @@ const failEvaluation = async ({
     needsReview: true,
     error,
   };
-
-  if (answerId) {
-    await prisma.aiEvaluation.upsert({
-      where: { answerId },
-      create: { ...data, answerId },
-      update: data,
-    });
-  }
-
-  if (assignmentSubmissionId) {
-    await prisma.aiEvaluation.upsert({
-      where: { assignmentSubmissionId },
-      create: { ...data, assignmentSubmissionId },
-      update: data,
-    });
-  }
+  const { where, create } = evaluationTarget(target);
+  await prisma.aiEvaluation.upsert({
+    where,
+    create: { ...data, ...create },
+    update: data,
+  });
 };
 
-const saveEvaluation = async ({
-  schoolId,
-  answerId,
-  assignmentSubmissionId,
-  maxScore,
-  model,
-  suggestion,
-}: {
-  schoolId: number;
-  answerId?: number;
-  assignmentSubmissionId?: number;
-  maxScore: number;
-  model: string;
-  suggestion: {
-    score: number;
-    feedback: string;
-    strengths: string[];
-    weaknesses: string[];
-    needsReview: boolean;
-  };
-}) => {
+const saveSuggestion = (
+  db: Prisma.TransactionClient,
+  schoolId: number,
+  target: { answerId: number } | { assignmentSubmissionId: number },
+  maxScore: number,
+  model: string,
+  suggestion: AiEvaluationSuggestion,
+) => {
   const data = {
     schoolId,
     model,
@@ -101,153 +107,171 @@ const saveEvaluation = async ({
     approvedBy: null,
     approvedAt: null,
   };
-
-  if (answerId) {
-    return prisma.aiEvaluation.upsert({
-      where: { answerId },
-      create: { ...data, answerId },
-      update: data,
-    });
-  }
-
-  if (assignmentSubmissionId) {
-    return prisma.aiEvaluation.upsert({
-      where: { assignmentSubmissionId },
-      create: { ...data, assignmentSubmissionId },
-      update: data,
-    });
-  }
-};
-
-const ensurePdf = (fileName?: string | null) => {
-  if (getFileExtension(fileName) !== "pdf") {
-    throw new Error("AI evaluation currently supports PDF files only.");
-  }
-};
-
-const finalizeExamIfAllGraded = async (submissionId: number) => {
-  const answers = await prisma.answer.findMany({ where: { submissionId } });
-  if (!answers.every((answer) => answer.score !== null)) return;
-
-  const totalScore = answers.reduce((sum, answer) => sum + (answer.score ?? 0), 0);
-  await prisma.submission.update({
-    where: { id: submissionId },
-    data: { totalScore, status: "GRADED", gradePublished: false },
+  const { where, create } = evaluationTarget(target);
+  return db.aiEvaluation.upsert({
+    where,
+    create: { ...data, ...create },
+    update: data,
   });
 };
+
+const validScore = (score: number, maxScore: number) =>
+  Number.isFinite(score) && score >= 0 && score <= maxScore;
+
+const findPendingSuggestion = (
+  evaluationId: number,
+  schoolId: number,
+  kind: "answerId" | "assignmentSubmissionId",
+) =>
+  prisma.aiEvaluation.findFirst({
+    where: { id: evaluationId, schoolId, [kind]: { not: null } },
+    select: {
+      id: true,
+      status: true,
+      feedback: true,
+      answerId: true,
+      assignmentSubmissionId: true,
+    },
+  });
+
+const approvalFields = (access: Access, score: number, feedback: string | null) => ({
+  status: AiEvaluationStatus.APPROVED,
+  approvedScore: score,
+  approvedFeedback: feedback,
+  approvedBy: access.userId,
+  approvedAt: new Date(),
+  needsReview: false,
+});
+
+/**
+ * Marks the suggestion approved, but only if it is still SUGGESTED, so two
+ * approvals sent at once can't both apply a grade. Run inside the
+ * transaction that applies the grade; it throws to roll that back.
+ */
+const claimSuggestion = async (
+  tx: Prisma.TransactionClient,
+  evaluationId: number,
+  data: ReturnType<typeof approvalFields>,
+) => {
+  const claimed = await tx.aiEvaluation.updateMany({
+    where: { id: evaluationId, status: AiEvaluationStatus.SUGGESTED },
+    data,
+  });
+  if (claimed.count === 0) throw new SuggestionAlreadyHandledError();
+};
+
+class SuggestionAlreadyHandledError extends Error {}
+
+const ALREADY_HANDLED = "Only a new AI suggestion can be approved.";
+
+/** Runs an approval; a suggestion handled meanwhile becomes a normal error. */
+const runApproval = async (apply: () => Promise<unknown>) => {
+  try {
+    await apply();
+    return null;
+  } catch (err) {
+    if (err instanceof SuggestionAlreadyHandledError) return fail(ALREADY_HANDLED);
+    throw err;
+  }
+};
+
+// ─── Exam answers ─────────────────────────────────────────────────────────────
+
+const findManagedAnswer = async (answerId: number, access: Access) => {
+  const answer = await prisma.answer.findFirst({
+    where: { id: answerId, schoolId: access.schoolId },
+    include: {
+      question: true,
+      submission: {
+        select: {
+          id: true,
+          examId: true,
+          studentId: true,
+          schoolId: true,
+          status: true,
+          exam: { select: { groupId: true, schoolId: true } },
+        },
+      },
+    },
+  });
+  if (!answer) return null;
+
+  const { exam } = answer.submission;
+  return (await canManageExamGroup(exam.groupId, exam.schoolId, access))
+    ? answer
+    : null;
+};
+
+const examSubmissionPath = (answer: {
+  submission: { examId: number; id: number };
+}) => `/list/exams/${answer.submission.examId}/submissions/${answer.submission.id}`;
 
 export async function evaluateExamAnswerWithAi(
   answerId: number,
 ): Promise<AiActionResult> {
   const access = await requireActionAccess(["admin", "teacher"]);
-  if ("error" in access) {
-    return { success: false, error: true, message: access.message };
-  }
+  if ("error" in access) return fail(access.message);
 
-  const answer = await prisma.answer.findFirst({
-    where: {
-      id: answerId,
-      schoolId: access.schoolId,
-      submission: {
-        exam:
-          access.role === "teacher"
-            ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
-            : undefined,
-      },
-    },
-    include: {
-      question: true,
-      submission: { select: { examId: true } },
-    },
-  });
+  const answer = await findManagedAnswer(answerId, access);
+  if (!answer) return fail("Answer not found.");
 
-  if (!answer) {
-    return { success: false, error: true, message: "Answer not found." };
+  // Answers can still change while the attempt is open.
+  if (answer.submission.status === "IN_PROGRESS") {
+    return fail("This exam is still in progress.");
   }
 
   if (answer.question.type !== "TEXT" && answer.question.type !== "FILE") {
-    return {
-      success: false,
-      error: true,
-      message: "AI evaluation is only available for text and file answers.",
-    };
+    return fail("AI evaluation is only available for text and file answers.");
   }
 
+  const maxScore = answer.question.points;
+  const target = { answerId };
+  const modelAnswer =
+    answer.question.textAnswer || answer.question.correctAnswer?.join(", ") || null;
+
   try {
-    let evaluationResult: Awaited<ReturnType<typeof evaluateWithGemini>>;
+    let result: Awaited<ReturnType<typeof evaluateWithGemini>>;
 
     if (answer.question.type === "FILE") {
       ensurePdf(answer.fileOriginalName);
       if (!answer.filePublicId) throw new Error("No file was uploaded.");
-      const buffer = await downloadPrivateCloudinaryFileToBuffer(
+      const studentPdf = await downloadPrivateCloudinaryFileToBuffer(
         answer.filePublicId,
         getFileExtension(answer.fileOriginalName) || "pdf",
       );
-
-      evaluationResult = await evaluatePdfWithGemini({
+      result = await evaluateWithGemini({
         questionText: answer.question.text,
-        modelAnswer:
-          answer.question.textAnswer ||
-          answer.question.correctAnswer?.join(", ") ||
-          null,
-        pdfBuffer: buffer,
-        fileName: answer.fileOriginalName,
-        maxScore: answer.question.points,
+        modelAnswer,
+        maxScore,
+        studentPdf,
       });
     } else {
       const studentAnswer = answer.textAnswer ?? "";
-      if (!studentAnswer.trim()) {
-        throw new Error("Student answer is empty.");
-      }
-
-      evaluationResult = await evaluateWithGemini({
+      if (!studentAnswer.trim()) throw new Error("Student answer is empty.");
+      result = await evaluateWithGemini({
         questionText: answer.question.text,
-        modelAnswer:
-          answer.question.textAnswer ||
-          answer.question.correctAnswer?.join(", ") ||
-          null,
+        modelAnswer,
+        maxScore,
         studentAnswer,
-        maxScore: answer.question.points,
       });
     }
 
-    const { suggestion, model } = evaluationResult;
+    await saveSuggestion(
+      prisma,
+      access.schoolId,
+      target,
+      maxScore,
+      result.model,
+      result.suggestion,
+    );
 
-    await saveEvaluation({
-      schoolId: access.schoolId,
-      answerId,
-      maxScore: answer.question.points,
-      model,
-      suggestion,
-    });
-
-    await prisma.answer.update({
-      where: { id: answerId },
-      data: { score: suggestion.score, isOverridden: false },
-    });
-    await prisma.submission.update({
-      where: { id: answer.submissionId },
-      data: { gradePublished: false },
-    });
-    await finalizeExamIfAllGraded(answer.submissionId);
-
-    revalidatePath(`/list/exams/${answer.submission.examId}/submissions`);
-    return {
-      success: true,
-      error: false,
-      message: "AI evaluation saved and applied as a draft score.",
-    };
+    revalidatePath(examSubmissionPath(answer));
+    return { success: true, error: false, message: SUGGESTION_SAVED };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "AI evaluation failed.";
-    await failEvaluation({
-      schoolId: access.schoolId,
-      answerId,
-      maxScore: answer.question.points,
-      error: message,
-    });
-    revalidatePath(`/list/exams/${answer.submission.examId}/submissions`);
-    return { success: false, error: true, message };
+    const message = error instanceof Error ? error.message : "AI evaluation failed.";
+    await recordFailure(access.schoolId, target, maxScore, message);
+    revalidatePath(examSubmissionPath(answer));
+    return fail(message);
   }
 }
 
@@ -257,157 +281,160 @@ export async function approveExamAnswerAiEvaluation(
   feedback?: string,
 ): Promise<AiActionResult> {
   const access = await requireActionAccess(["admin", "teacher"]);
-  if ("error" in access) {
-    return { success: false, error: true, message: access.message };
+  if ("error" in access) return fail(access.message);
+
+  const evaluation = await findPendingSuggestion(evaluationId, access.schoolId, "answerId");
+  const answer = evaluation?.answerId
+    ? await findManagedAnswer(evaluation.answerId, access)
+    : null;
+  if (!evaluation || !answer) return fail("AI evaluation not found.");
+
+  if (evaluation.status !== AiEvaluationStatus.SUGGESTED) {
+    return fail(ALREADY_HANDLED);
+  }
+  if (answer.submission.status === "IN_PROGRESS") {
+    return fail("This exam is still in progress.");
+  }
+  if (!validScore(score, answer.question.points)) {
+    return fail(`Score must be between 0 and ${answer.question.points}.`);
   }
 
-  const evaluation = await prisma.aiEvaluation.findFirst({
+  const failed = await runApproval(() =>
+    prisma.$transaction(async (tx) => {
+      await claimSuggestion(
+        tx,
+        evaluation.id,
+        approvalFields(access, score, feedback?.trim() || evaluation.feedback),
+      );
+      await tx.answer.update({ where: { id: answer.id }, data: { score } });
+      // The grade changed, so it has to be published again.
+      for (const write of unpublishExamGradeWrites(answer.submission, {}, tx)) {
+        await write;
+      }
+    }),
+  );
+  if (failed) return failed;
+  await finalizeGrade(answer.submission.id);
+
+  revalidatePath(examSubmissionPath(answer));
+  return { success: true, error: false, message: "AI score approved and applied." };
+}
+
+// ─── Assignment submissions ───────────────────────────────────────────────────
+
+const findManagedAssignmentSubmission = (submissionId: number, access: Access) =>
+  prisma.assignmentSubmission.findFirst({
     where: {
-      id: evaluationId,
+      id: submissionId,
       schoolId: access.schoolId,
-      answer: {
-        submission: {
-          exam:
-            access.role === "teacher"
-              ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
-              : undefined,
+      assignment: assignmentManagerWhere(access),
+    },
+    select: {
+      id: true,
+      fileUrl: true,
+      fileName: true,
+      assignmentId: true,
+      studentId: true,
+      academicYearId: true,
+      assignment: {
+        select: {
+          title: true,
+          description: true,
+          rubric: true,
+          maxScore: true,
+          fileUrl: true,
+          fileName: true,
         },
       },
     },
-    include: {
-      answer: { include: { submission: true, question: true } },
-    },
   });
 
-  if (!evaluation?.answer) {
-    return { success: false, error: true, message: "AI evaluation not found." };
+/** The teacher's guidance: description and rubric together. */
+const assignmentGuide = (assignment: {
+  description: string | null;
+  rubric: string | null;
+}) =>
+  [
+    assignment.description?.trim() && `Description:\n${assignment.description.trim()}`,
+    assignment.rubric?.trim() && `Rubric:\n${assignment.rubric.trim()}`,
+  ]
+    .filter(Boolean)
+    .join("\n\n") || null;
+
+/** The assignment's attached instructions, when they are a PDF the model can read. */
+const loadInstructionsPdf = async (assignment: {
+  fileUrl: string | null;
+  fileName: string | null;
+}) => {
+  if (!assignment.fileUrl || !isPdf(assignment.fileName ?? assignment.fileUrl)) {
+    return null;
   }
-
-  if (!Number.isFinite(score) || score < 0 || score > evaluation.maxScore) {
-    return {
-      success: false,
-      error: true,
-      message: `Score must be between 0 and ${evaluation.maxScore}.`,
-    };
+  try {
+    return await downloadCloudinaryUrlToBuffer(assignment.fileUrl);
+  } catch {
+    // Grade without it rather than failing; the teacher still reviews.
+    console.warn("[evaluateAssignmentSubmissionWithAi] Could not load the assignment file.");
+    return null;
   }
+};
 
-  await prisma.$transaction(async (tx) => {
-    await tx.answer.update({
-      where: { id: evaluation.answerId! },
-      data: {
-        score,
-        isOverridden:
-          evaluation.answer!.question.type === "MCQ" ||
-          evaluation.answer!.question.type === "TRUE_FALSE",
-      },
-    });
-
-    await tx.aiEvaluation.update({
-      where: { id: evaluationId },
-      data: {
-        status: AiEvaluationStatus.APPROVED,
-        approvedScore: score,
-        approvedFeedback: feedback?.trim() || evaluation.feedback,
-        approvedBy: access.userId,
-        approvedAt: new Date(),
-        needsReview: false,
-      },
-    });
-
-    await tx.submission.update({
-      where: { id: evaluation.answer!.submissionId },
-      data: { gradePublished: false },
-    });
-  });
-
-  await finalizeExamIfAllGraded(evaluation.answer.submissionId);
-  revalidatePath(`/list/exams/${evaluation.answer.submission.examId}/submissions`);
-  return { success: true, error: false, message: "AI score approved." };
-}
+const revalidateAssignment = (assignmentId: number) => {
+  revalidatePath(`/list/assignments/${assignmentId}/submissions`);
+  revalidatePath("/list/assignments");
+};
 
 export async function evaluateAssignmentSubmissionWithAi(
   submissionId: number,
 ): Promise<AiActionResult> {
   const access = await requireActionAccess(["admin", "teacher"]);
-  if ("error" in access) {
-    return { success: false, error: true, message: access.message };
-  }
+  if ("error" in access) return fail(access.message);
 
-  const submission = await prisma.assignmentSubmission.findFirst({
-    where: {
-      id: submissionId,
-      schoolId: access.schoolId,
-      assignment:
-        access.role === "teacher"
-          ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
-          : undefined,
-    },
-    include: {
-      assignment: {
-        select: {
-          id: true,
-          title: true,
-          description: true,
-          rubric: true,
-          maxScore: true,
-        },
-      },
-    },
-  });
+  const submission = await findManagedAssignmentSubmission(submissionId, access);
+  if (!submission) return fail("Submission not found.");
 
-  if (!submission) {
-    return { success: false, error: true, message: "Submission not found." };
-  }
+  const { assignment } = submission;
+  const target = { assignmentSubmissionId: submissionId };
 
   try {
     ensurePdf(submission.fileName);
-    const buffer = await downloadCloudinaryUrlToBuffer(submission.fileUrl);
+    const [studentPdf, instructionsPdf] = await Promise.all([
+      downloadCloudinaryUrlToBuffer(submission.fileUrl),
+      loadInstructionsPdf(assignment),
+    ]);
 
-    const { suggestion, model } = await evaluatePdfWithGemini({
-      questionText: submission.assignment.title,
-      modelAnswer: submission.assignment.rubric || submission.assignment.description,
-      pdfBuffer: buffer,
-      fileName: submission.fileName,
-      maxScore: submission.assignment.maxScore,
+    const { suggestion, model } = await evaluateWithGemini({
+      questionText: assignment.title,
+      modelAnswer: assignmentGuide(assignment),
+      maxScore: assignment.maxScore,
+      studentPdf,
+      instructionsPdf,
     });
 
-    await saveEvaluation({
-      schoolId: access.schoolId,
-      assignmentSubmissionId: submissionId,
-      maxScore: submission.assignment.maxScore,
-      model,
-      suggestion,
+    // The student may have replaced the file while the model was working.
+    // Lock the row so a resubmission can't slip in between check and save;
+    // a resubmission deletes the suggestion, so it must run after this.
+    const saved = await prisma.$transaction(async (tx) => {
+      const rows = await tx.$queryRaw<{ fileUrl: string }[]>`
+        SELECT "fileUrl" FROM "AssignmentSubmission" WHERE "id" = ${submissionId} FOR UPDATE`;
+      if (rows[0]?.fileUrl !== submission.fileUrl) return false;
+
+      await saveSuggestion(tx, access.schoolId, target, assignment.maxScore, model, suggestion);
+      return true;
     });
 
-    await prisma.assignmentSubmission.update({
-      where: { id: submissionId },
-      data: {
-        score: suggestion.score,
-        teacherFeedback: suggestion.feedback,
-        gradePublished: false,
-        gradedAt: new Date(),
-        gradedBy: access.userId,
-      },
-    });
+    if (!saved) {
+      return fail(
+        "The student replaced the file during the evaluation. Run the AI evaluation again.",
+      );
+    }
 
-    revalidatePath(`/list/assignments/${submission.assignmentId}/submissions`);
-    revalidatePath("/list/assignments");
-    return {
-      success: true,
-      error: false,
-      message: "AI evaluation saved and applied as a draft score.",
-    };
+    revalidateAssignment(submission.assignmentId);
+    return { success: true, error: false, message: SUGGESTION_SAVED };
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "AI evaluation failed.";
-    await failEvaluation({
-      schoolId: access.schoolId,
-      assignmentSubmissionId: submissionId,
-      maxScore: submission.assignment.maxScore,
-      error: message,
-    });
-    revalidatePath(`/list/assignments/${submission.assignmentId}/submissions`);
-    return { success: false, error: true, message };
+    const message = error instanceof Error ? error.message : "AI evaluation failed.";
+    await recordFailure(access.schoolId, target, assignment.maxScore, message);
+    revalidateAssignment(submission.assignmentId);
+    return fail(message);
   }
 }
 
@@ -417,66 +444,51 @@ export async function approveAssignmentSubmissionAiEvaluation(
   feedback?: string,
 ): Promise<AiActionResult> {
   const access = await requireActionAccess(["admin", "teacher"]);
-  if ("error" in access) {
-    return { success: false, error: true, message: access.message };
-  }
+  if ("error" in access) return fail(access.message);
 
-  const evaluation = await prisma.aiEvaluation.findFirst({
-    where: {
-      id: evaluationId,
-      schoolId: access.schoolId,
-      assignmentSubmission: {
-        assignment:
-          access.role === "teacher"
-            ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
-            : undefined,
-      },
-    },
-    include: {
-      assignmentSubmission: true,
-    },
-  });
-
-  if (!evaluation?.assignmentSubmission) {
-    return { success: false, error: true, message: "AI evaluation not found." };
-  }
-
-  if (!Number.isFinite(score) || score < 0 || score > evaluation.maxScore) {
-    return {
-      success: false,
-      error: true,
-      message: `Score must be between 0 and ${evaluation.maxScore}.`,
-    };
-  }
-
-  await prisma.$transaction(async (tx) => {
-    await tx.assignmentSubmission.update({
-      where: { id: evaluation.assignmentSubmissionId! },
-      data: {
-        score,
-        teacherFeedback: feedback?.trim() || evaluation.feedback,
-        gradePublished: false,
-        gradedAt: new Date(),
-        gradedBy: access.userId,
-      },
-    });
-
-    await tx.aiEvaluation.update({
-      where: { id: evaluationId },
-      data: {
-        status: AiEvaluationStatus.APPROVED,
-        approvedScore: score,
-        approvedFeedback: feedback?.trim() || evaluation.feedback,
-        approvedBy: access.userId,
-        approvedAt: new Date(),
-        needsReview: false,
-      },
-    });
-  });
-
-  revalidatePath(
-    `/list/assignments/${evaluation.assignmentSubmission.assignmentId}/submissions`,
+  const evaluation = await findPendingSuggestion(
+    evaluationId,
+    access.schoolId,
+    "assignmentSubmissionId",
   );
-  revalidatePath("/list/assignments");
-  return { success: true, error: false, message: "AI score approved." };
+  const submission = evaluation?.assignmentSubmissionId
+    ? await findManagedAssignmentSubmission(evaluation.assignmentSubmissionId, access)
+    : null;
+  if (!evaluation || !submission) return fail("AI evaluation not found.");
+
+  if (evaluation.status !== AiEvaluationStatus.SUGGESTED) {
+    return fail(ALREADY_HANDLED);
+  }
+  if (!validScore(score, submission.assignment.maxScore)) {
+    return fail(`Score must be between 0 and ${submission.assignment.maxScore}.`);
+  }
+
+  const approvedFeedback = feedback?.trim() || evaluation.feedback;
+
+  const failed = await runApproval(() =>
+    prisma.$transaction(async (tx) => {
+      await claimSuggestion(
+        tx,
+        evaluation.id,
+        approvalFields(access, score, approvedFeedback),
+      );
+      await tx.assignmentSubmission.update({
+        where: { id: submission.id },
+        data: {
+          score,
+          teacherFeedback: approvedFeedback,
+          gradePublished: false,
+          gradedAt: new Date(),
+          gradedBy: access.userId,
+        },
+      });
+      // The grade changed and is unpublished again, so the old Result goes too.
+      await deleteAssignmentResultsForSubmissions(tx, access.schoolId, [submission]);
+    }),
+  );
+  if (failed) return failed;
+
+  revalidateAssignment(submission.assignmentId);
+  revalidatePath("/list/results");
+  return { success: true, error: false, message: "AI score approved and applied." };
 }

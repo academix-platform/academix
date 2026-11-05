@@ -1283,12 +1283,18 @@
     "saved": "AI evaluation saved.",
     "failed": "AI evaluation failed.",
     "manualFallback": "AI evaluation failed. Manual grading still works.",
-    "appliedDraftScore": "Applied draft score: {score} / {maxScore}",
     "needsReview": "Needs review",
     "noFeedback": "No feedback provided.",
     "strengths": "Strengths",
     "weaknesses": "Weaknesses",
-    "pdfSubmissionsOnly": "AI evaluation supports PDF submissions only."
+    "pdfSubmissionsOnly": "AI evaluation supports PDF submissions only.",
+    "suggestedScore": "Suggested score: {score} / {maxScore}",
+    "notApplied": "This is a suggestion. The grade changes only when you approve it.",
+    "approvedScore": "Approved: {score} / {maxScore}",
+    "score": "Score",
+    "feedback": "Feedback",
+    "approve": "Approve and apply",
+    "approved": "AI score approved."
   },
   "assignmentsPage": {
     "actions": {

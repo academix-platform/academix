@@ -137,12 +137,14 @@ type SubmissionRef = {
 export const unpublishExamGradeWrites = (
   submission: SubmissionRef,
   data: Prisma.SubmissionUpdateInput = {},
+  // Pass the transaction client when calling from an interactive transaction.
+  db: Prisma.TransactionClient = prisma,
 ) => [
-  prisma.submission.update({
+  db.submission.update({
     where: { id: submission.id },
     data: { ...data, gradePublished: false },
   }),
-  prisma.result.deleteMany({
+  db.result.deleteMany({
     where: {
       schoolId: submission.schoolId,
       examId: submission.examId,
