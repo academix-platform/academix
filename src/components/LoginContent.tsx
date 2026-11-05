@@ -6,8 +6,10 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 import { getRoleHome, type UserRole } from "@/lib/utils";
-import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Lock, User as UserIcon, Sparkles, ShieldCheck } from "lucide-react";
 import { useTranslations } from "next-intl";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
+import { Button } from "@/components/ui/button";
 
 const LoginContent = () => {
   const commonT = useTranslations("common");
@@ -56,30 +58,44 @@ const LoginContent = () => {
     }
   };
 
-  if (!isUserLoaded) return null;
+  if (!isUserLoaded) {
+    return (
+      <div className="relative min-h-screen flex items-center justify-center bg-canvas p-4 text-content-primary">
+        <div className="p-8 rounded-2xl bg-surface border border-outline shadow-xl flex items-center gap-3">
+          <span
+            className="border-2 border-brandPurple-600/30 border-t-brandPurple-600 rounded-full w-5 h-5 animate-spin"
+            aria-hidden="true"
+          />
+          <span className="text-sm font-medium text-content-secondary">
+            {t("loadingAuth")}
+          </span>
+        </div>
+      </div>
+    );
+  }
 
   if (user) {
     return (
-      <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
-        <div className="z-10 relative shadow-2xl backdrop-blur-sm px-10 py-9 border border-white/60 rounded-2xl w-[380px] text-gray-600">
-          <h1 className="flex items-center gap-2 mb-4 font-bold text-white text-xl">
+      <div className="relative flex justify-center items-center bg-canvas p-4 min-h-screen overflow-hidden">
+        <div className="z-10 relative shadow-xl px-10 py-9 border border-outline bg-surface rounded-2xl md:rounded-3xl w-full max-w-sm text-center">
+          <div className="flex items-center justify-center gap-2.5 mb-5 font-bold text-content-primary text-xl">
             <Image
-              src="/logo-white.png"
+              src="/logo-purple.png"
               alt="Academix logo"
-              className="w-[44px] h-[34px] rotate-[-15deg]"
-              width={40}
-              height={40}
+              className="w-9 h-7 object-contain rotate-[-12deg]"
+              width={36}
+              height={28}
             />
-            {commonT("brand")}
-          </h1>
-          <div className="flex items-center gap-3 bg-academixPurpleLight/40 px-4 py-3 rounded-xl">
+            <span>{commonT("brand")}</span>
+          </div>
+          <div className="flex items-center justify-center gap-3 bg-brandPurple-50 border border-brandPurple-200 px-4 py-3 rounded-xl">
             <span
-              className="border-2 border-academixPurple/30 border-t-white rounded-full w-5 h-5 animate-spin"
+              className="border-2 border-brandPurple-600/30 border-t-brandPurple-600 rounded-full w-5 h-5 animate-spin"
               aria-hidden="true"
             />
-            <div className="text-white">
-              <p className="font-medium text-sm">{t("welcomeBack")}</p>
-              <p className="text-xs">{t("redirecting")}</p>
+            <div className="text-start">
+              <p className="font-semibold text-sm text-content-primary">{t("welcomeBack")}</p>
+              <p className="text-xs text-content-muted">{t("redirecting")}</p>
             </div>
           </div>
         </div>
@@ -88,91 +104,133 @@ const LoginContent = () => {
   }
 
   return (
-    <div className="relative flex justify-center items-center bg-[radial-gradient(circle_at_top,_rgba(207,206,255,0.36),_transparent_46%),linear-gradient(135deg,#24104f,#4c1d95_54%,#7c3aed)] p-4 h-screen overflow-hidden">
-      <div className="z-10 relative flex flex-col gap-6 shadow-2xl backdrop-blur-sm p-10 md:p-12 border border-white/60 rounded-2xl w-full max-w-[460px]">
-        <div>
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2 mb-4 text-gray-200 hover:text-white text-sm transition-colors"
-          >
-            <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
-            {t("goHome")}
-          </Link>
-          <div>
-            <h1 className="flex items-center gap-2 mb-2 font-bold text-white text-2xl">
-              <Image
-                src="/logo-white.png"
-                alt="Academix logo"
-                className="w-[48px] h-[36px] rotate-[-15deg]"
-                width={40}
-                height={40}
-              />
+    <div className="relative min-h-screen flex flex-col justify-between bg-canvas p-4 sm:p-6 md:p-8 overflow-hidden text-content-primary">
+      {/* 1. Subtle Ambient Engineering Grid (Matching Hero) */}
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[linear-gradient(to_right,rgba(124,58,237,0.04)_1px,transparent_1px),linear-gradient(to_bottom,rgba(124,58,237,0.04)_1px,transparent_1px)] bg-[size:44px_44px] [mask-image:radial-gradient(ellipse_75%_65%_at_50%_35%,#000_60%,transparent_100%)] pointer-events-none"
+      />
+
+      {/* 2. Soft Ambient Radial Violet Glow */}
+      <div
+        aria-hidden="true"
+        className="absolute top-0 inset-x-0 h-[520px] bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,rgba(124,58,237,0.10),transparent_75%)] pointer-events-none"
+      />
+
+      {/* Top Bar with Back Link and LanguageSwitcher */}
+      <header className="relative z-10 w-full max-w-5xl mx-auto flex items-center justify-between py-2">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-lg bg-surface/90 hover:bg-surface border border-outline text-content-secondary hover:text-content-primary text-xs sm:text-sm font-medium shadow-2xs backdrop-blur-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
+        >
+          <ArrowLeft className="w-4 h-4 rtl:rotate-180" />
+          <span>{t("goHome")}</span>
+        </Link>
+        <LanguageSwitcher variant="compact" />
+      </header>
+
+      {/* Main Login Card */}
+      <div className="relative z-10 mx-auto my-auto w-full max-w-md bg-surface/95 backdrop-blur-md border border-outline/90 shadow-xl rounded-2xl md:rounded-3xl p-8 sm:p-10 overflow-hidden before:absolute before:inset-x-0 before:top-0 before:h-[2px] before:bg-gradient-to-r before:from-brandPurple-500/0 before:via-brandPurple-500/50 before:to-brandPurple-500/0">
+        <div className="flex flex-col items-center text-center mb-8">
+          <Link href="/" className="flex items-center gap-2.5 mb-3">
+            <Image
+              src="/logo-purple.png"
+              alt="Academix logo"
+              className="w-10 h-8 object-contain rotate-[-12deg]"
+              width={40}
+              height={32}
+            />
+            <span className="font-bold text-2xl tracking-tight text-content-primary">
               {commonT("brand")}
-            </h1>
-            <h2 className="ms-4 text-gray-300">{t("title")}</h2>
-          </div>
+            </span>
+          </Link>
+          <h1 className="font-bold text-xl text-content-primary tracking-tight">
+            {t("title")}
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-content-secondary">
+            {t("subtitle")}
+          </p>
         </div>
-        <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-          <div className="flex flex-col gap-1">
-            <label className="text-white text-xs" htmlFor="identifier">
+
+        <form className="flex flex-col gap-4.5" onSubmit={onSubmit}>
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-content-primary text-xs font-semibold uppercase tracking-wider"
+              htmlFor="identifier"
+            >
               {t("identifier")}
             </label>
-            <input
-              id="identifier"
-              type="text"
-              value={identifier}
-              onChange={(e) => setIdentifier(e.target.value)}
-              className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
-              required
-              autoComplete="username"
-            />
+            <div className="relative">
+              <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-content-muted">
+                <UserIcon className="w-4 h-4" />
+              </div>
+              <input
+                id="identifier"
+                type="text"
+                value={identifier}
+                onChange={(e) => setIdentifier(e.target.value)}
+                className="w-full h-11 ps-10 pe-4 rounded-xl bg-surface border border-outline text-content-primary placeholder:text-content-muted text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
+                placeholder={t("identifier")}
+                required
+                autoComplete="username"
+              />
+            </div>
             {errors?.fields?.identifier && (
-              <p role="alert" className="text-red-500 text-xs">
+              <p role="alert" className="text-red-500 text-xs font-medium">
                 {errors.fields.identifier.message}
               </p>
             )}
           </div>
 
-          <div className="flex flex-col gap-1">
-            <label className="text-white text-xs" htmlFor="password">
+          <div className="flex flex-col gap-1.5">
+            <label
+              className="text-content-primary text-xs font-semibold uppercase tracking-wider"
+              htmlFor="password"
+            >
               {t("password")}
             </label>
             <div className="relative">
+              <div className="absolute inset-y-0 start-0 ps-3.5 flex items-center pointer-events-none text-content-muted">
+                <Lock className="w-4 h-4" />
+              </div>
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="focus:bg-academixPurpleLight px-4 py-3 pe-20 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                className="w-full h-11 ps-10 pe-11 rounded-xl bg-surface border border-outline text-content-primary placeholder:text-content-muted text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
+                placeholder={t("password")}
                 required
                 autoComplete="current-password"
               />
               <button
                 type="button"
                 onClick={() => setShowPassword((v) => !v)}
-                className="end-2 absolute inset-y-0 text-gray-500 text-xs"
+                className="end-3 absolute inset-y-0 my-auto h-7 w-7 flex items-center justify-center text-content-muted hover:text-content-primary rounded-md transition-colors"
                 aria-label={
                   showPassword ? t("hidePassword") : t("showPassword")
                 }
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5" />
+                  <EyeOff className="w-4 h-4" />
                 ) : (
-                  <Eye className="w-5 h-5" />
+                  <Eye className="w-4 h-4" />
                 )}
               </button>
             </div>
             {errors?.fields?.password && (
-              <p role="alert" className="text-red-500 text-xs">
+              <p role="alert" className="text-red-500 text-xs font-medium">
                 {errors.fields.password.message}
               </p>
             )}
           </div>
 
-          <button
+          <Button
             type="submit"
             disabled={fetchStatus === "fetching"}
-            className="flex justify-center items-center gap-2 bg-academixPurpleDark hover:bg-academixPurpleMuted disabled:opacity-80 shadow-md mt-2 py-2.5 rounded-md text-white transition"
+            variant="primary"
+            size="lg"
+            className="w-full mt-2 font-semibold shadow-xs"
           >
             {fetchStatus === "fetching" ? (
               <>
@@ -180,20 +238,31 @@ const LoginContent = () => {
                   className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin"
                   aria-hidden="true"
                 />
-                {t("signingIn")}
+                <span>{t("signingIn")}</span>
               </>
             ) : (
-              t("signIn")
+              <span>{t("signIn")}</span>
             )}
-          </button>
+          </Button>
         </form>
-        <p className="text-white text-xs">
-          {t("newSchool")}{" "}
-          <Link href="/school-signup" className="text-gray-300 hover:underline">
-            {t("signupRequest")}
-          </Link>
-        </p>
+
+        <div className="mt-8 pt-5 border-t border-outline text-center">
+          <p className="text-content-secondary text-xs">
+            {t("newSchool")}{" "}
+            <Link
+              href="/school-signup"
+              className="text-brandPurple-600 hover:text-brandPurple-700 hover:underline font-semibold transition-colors"
+            >
+              {t("signupRequest")}
+            </Link>
+          </p>
+        </div>
       </div>
+
+      {/* Footer copyright */}
+      <footer className="relative z-10 text-center py-2 text-xs text-content-muted">
+        <span>{commonT("copyright")}</span>
+      </footer>
     </div>
   );
 };

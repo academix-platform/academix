@@ -29,6 +29,10 @@ const variantStyles: Record<NonNullable<IconButtonProps["variant"]>, string> = {
     "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs border border-transparent focus-visible:ring-rose-600",
   subtle:
     "bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 focus-visible:ring-purple-600",
+  inverted:
+    "bg-white hover:bg-purple-50 active:bg-purple-100 text-[#24104F] shadow-md border border-transparent focus-visible:ring-white",
+  glass:
+    "bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/20 focus-visible:ring-white/40",
 };
 
 export const IconButton = React.forwardRef<HTMLButtonElement, IconButtonProps>(

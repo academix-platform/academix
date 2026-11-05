@@ -4,8 +4,15 @@ import { createSchoolSignup } from "@/lib/actions/school.actions";
 import { useActionState } from "react";
 import Link from "next/link";
 import { useState } from "react";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import {
+  ArrowLeft,
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  ShieldCheck,
+} from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
 
 type SignupState = {
   success: boolean;
@@ -119,19 +126,30 @@ const SchoolSignupForm = () => {
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="w-full">
       {state.success ? (
-        <div className="flex flex-col space-y-4 h-full">
-          <h2 className="font-semibold text-2xl">{t("statusTitle")}</h2>
-          <p className="text-gray-700 text-sm leading-6">
+        <div className="flex flex-col items-center text-center p-6 sm:p-10 space-y-5">
+          <div className="w-16 h-16 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-600 flex items-center justify-center">
+            <CheckCircle2 className="w-8 h-8" />
+          </div>
+          <h2 className="font-bold text-2xl text-content-primary">
+            {t("statusTitle")}
+          </h2>
+          <p className="text-content-secondary text-sm leading-relaxed max-w-md">
             {t("statusDescription")}
           </p>
-          <Link
-            href="/sign-in"
-            className="inline-flex bg-academixPurpleDark px-4 py-2 rounded-md w-fit text-white text-sm"
-          >
-            {t("goToSignIn")}
-          </Link>
+          <div className="pt-4">
+            <Link href="/sign-in">
+              <Button
+                variant="primary"
+                size="lg"
+                className="font-semibold shadow-xs whitespace-nowrap"
+                rightIcon={<ArrowRight className="w-4 h-4 rtl:rotate-180 shrink-0" />}
+              >
+                {t("goToSignIn")}
+              </Button>
+            </Link>
+          </div>
         </div>
       ) : (
         <form
@@ -152,53 +170,80 @@ const SchoolSignupForm = () => {
               setStep(Object.keys(schoolErrors).length > 0 ? 1 : 2);
             }
           }}
-          className="relative flex flex-col space-y-6 h-full"
+          className="flex flex-col space-y-6"
         >
+          {/* Header & Step Tracker */}
           <div>
-            <h1 className="font-bold text-2xl">{t("title")}</h1>
-            <p className="mt-2 text-gray-600 text-sm">
-              {t("description")}
-            </p>
-          </div>
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-bold text-2xl text-content-primary tracking-tight">
+                  {t("title")}
+                </h2>
+                <p className="mt-1 text-content-secondary text-sm">
+                  {t("description")}
+                </p>
+              </div>
 
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className={`rounded-full w-12 h-1.5 transition-colors ${
-                step === 1
-                  ? "bg-academixPurpleDark"
-                  : "border border-gray-300 bg-transparent"
-              }`}
-            >
-              <span className="sr-only">{t("step", { number: 1 })}</span>
-            </button>
-            <button
-              type="button"
-              className={`rounded-full w-12 h-1.5 transition-colors ${
-                step === 2
-                  ? "bg-academixPurpleDark"
-                  : "border border-gray-300 bg-transparent"
-              }`}
-            >
-              <span className="sr-only">{t("step", { number: 2 })}</span>
-            </button>
+              {/* Step indicator pills */}
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    step === 1
+                      ? "bg-brandPurple-600 text-white shadow-xs"
+                      : "bg-surface-muted text-content-muted hover:text-content-primary"
+                  }`}
+                >
+                  <Building2 className="w-3.5 h-3.5" />
+                  <span>1</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={goToAdminStep}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                    step === 2
+                      ? "bg-brandPurple-600 text-white shadow-xs"
+                      : "bg-surface-muted text-content-muted hover:text-content-primary"
+                  }`}
+                >
+                  <ShieldCheck className="w-3.5 h-3.5" />
+                  <span>2</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Progress bar */}
+            <div className="w-full bg-outline h-1 rounded-full mt-4 overflow-hidden">
+              <div
+                className="bg-brandPurple-600 h-full transition-all duration-300 rounded-full"
+                style={{ width: step === 1 ? "50%" : "100%" }}
+              />
+            </div>
           </div>
 
           {step === 1 && (
-            <div className="flex flex-col flex-1 space-y-4 pb-20">
-              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
-                {t("schoolInfo")}
-              </h3>
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center gap-2 pb-1 border-b border-outline">
+                <Building2 className="w-4 h-4 text-brandPurple-600" />
+                <h3 className="font-bold text-xs text-content-primary uppercase tracking-wider">
+                  {t("schoolInfo")}
+                </h3>
+              </div>
+
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label htmlFor="schoolName" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.schoolName")}
+                  <label
+                    htmlFor="schoolName"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.schoolName")} *
                   </label>
                   <input
                     id="schoolName"
                     name="schoolName"
                     placeholder={t("fields.schoolName")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.schoolName}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -208,20 +253,24 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.schoolName && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.schoolName}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="registrationNumber" className="block font-medium text-gray-700 text-xs">
+                  <label
+                    htmlFor="registrationNumber"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
                     {t("fields.registrationNumber")}
                   </label>
                   <input
                     id="registrationNumber"
                     name="registrationNumber"
                     placeholder={t("fields.registrationNumber")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.registrationNumber}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -231,16 +280,20 @@ const SchoolSignupForm = () => {
                     }
                   />
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="contactEmail" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.schoolEmail")}
+                  <label
+                    htmlFor="contactEmail"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.schoolEmail")} *
                   </label>
                   <input
                     id="contactEmail"
                     name="contactEmail"
                     type="email"
                     placeholder={t("fields.schoolEmail")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.contactEmail}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -250,20 +303,24 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.contactEmail && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.contactEmail}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="contactPhone" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.schoolPhone")}
+                  <label
+                    htmlFor="contactPhone"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.schoolPhone")} *
                   </label>
                   <input
                     id="contactPhone"
                     name="contactPhone"
                     placeholder={t("fields.schoolPhone")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.contactPhone}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -273,20 +330,24 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.contactPhone && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.contactPhone}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="country" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.country")}
+                  <label
+                    htmlFor="country"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.country")} *
                   </label>
                   <input
                     id="country"
                     name="country"
                     placeholder={t("fields.country")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.country}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -296,20 +357,24 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.country && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.country}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="city" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.city")}
+                  <label
+                    htmlFor="city"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.city")} *
                   </label>
                   <input
                     id="city"
                     name="city"
                     placeholder={t("fields.city")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.city}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -319,21 +384,25 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.city && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.city}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1 md:col-span-2">
-                  <label htmlFor="website" className="block font-medium text-gray-700 text-xs">
+                  <label
+                    htmlFor="website"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
                     {t("fields.website")}
                   </label>
                   <input
                     id="website"
                     name="website"
                     type="url"
-                    placeholder={t("fields.website")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    placeholder="https://yourschool.edu"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     value={schoolForm.website}
                     onChange={(e) =>
                       setSchoolForm((prev) => ({
@@ -343,15 +412,19 @@ const SchoolSignupForm = () => {
                     }
                   />
                 </div>
+
                 <div className="space-y-1 md:col-span-2">
-                  <label htmlFor="schoolAddress" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.schoolAddress")}
+                  <label
+                    htmlFor="schoolAddress"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.schoolAddress")} *
                   </label>
                   <textarea
                     id="schoolAddress"
                     name="address"
                     placeholder={t("fields.schoolAddress")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full p-3.5 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted resize-none [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                     rows={3}
                     value={schoolForm.address}
                     onChange={(e) =>
@@ -362,29 +435,31 @@ const SchoolSignupForm = () => {
                     }
                   />
                   {schoolFieldErrors.address && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {schoolFieldErrors.address}
                     </p>
                   )}
                 </div>
               </div>
 
-              <div className="end-0 bottom-5 absolute">
-                <button
+              <div className="flex justify-end pt-4">
+                <Button
                   type="button"
                   onClick={goToAdminStep}
-                  aria-label={t("step", { number: 2 })}
-                  title={t("step", { number: 2 })}
-                  className="text-academixPurpleDark hover:underline transition p-2"
+                  variant="primary"
+                  size="md"
+                  className="font-semibold shadow-xs whitespace-nowrap"
+                  rightIcon={<ArrowRight className="w-4 h-4 rtl:rotate-180 shrink-0" />}
                 >
-                  <ArrowRight className="rtl:rotate-180" />
-                </button>
+                  {t("step", { number: 2 })}
+                </Button>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="flex flex-col flex-1 space-y-4 pb-20">
+            <div className="flex flex-col space-y-4">
+              {/* Carry forward Step 1 values */}
               <input
                 type="hidden"
                 name="schoolName"
@@ -409,28 +484,40 @@ const SchoolSignupForm = () => {
               <input type="hidden" name="city" value={schoolForm.city} />
               <input type="hidden" name="website" value={schoolForm.website} />
               <input type="hidden" name="address" value={schoolForm.address} />
-              <h3 className="font-semibold text-gray-800 text-sm uppercase tracking-wide">
-                {t("adminInfo")}
-              </h3>
+
+              <div className="flex items-center gap-2 pb-1 border-b border-outline">
+                <ShieldCheck className="w-4 h-4 text-brandPurple-600" />
+                <h3 className="font-bold text-xs text-content-primary uppercase tracking-wider">
+                  {t("adminInfo")}
+                </h3>
+              </div>
+
               <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
                 <div className="space-y-1">
-                  <label htmlFor="adminName" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.adminName")}
+                  <label
+                    htmlFor="adminName"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.adminName")} *
                   </label>
                   <input
                     id="adminName"
                     name="adminName"
                     placeholder={t("fields.adminName")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                   />
                   {adminFieldErrors.adminName && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {adminFieldErrors.adminName}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="adminEmail" className="block font-medium text-gray-700 text-xs">
+                  <label
+                    htmlFor="adminEmail"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
                     {t("fields.adminEmailOptional")}
                   </label>
                   <input
@@ -438,64 +525,89 @@ const SchoolSignupForm = () => {
                     name="adminEmail"
                     type="email"
                     placeholder={t("fields.adminEmailOptional")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                   />
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="adminUsername" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.adminUsername")}
+                  <label
+                    htmlFor="adminUsername"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.adminUsername")} *
                   </label>
                   <input
                     id="adminUsername"
                     name="adminUsername"
                     placeholder={t("fields.adminUsername")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                   />
                   {adminFieldErrors.adminUsername && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {adminFieldErrors.adminUsername}
                     </p>
                   )}
                 </div>
+
                 <div className="space-y-1">
-                  <label htmlFor="adminPassword" className="block font-medium text-gray-700 text-xs">
-                    {t("fields.adminPassword")}
+                  <label
+                    htmlFor="adminPassword"
+                    className="block text-xs font-semibold text-content-primary uppercase tracking-wider"
+                  >
+                    {t("fields.adminPassword")} *
                   </label>
                   <input
                     id="adminPassword"
                     name="adminPassword"
                     type="password"
                     placeholder={t("fields.adminPassword")}
-                    className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+                    className="w-full h-11 px-4 rounded-xl border border-outline bg-surface text-content-primary text-sm focus:outline-none focus:border-brandPurple-600 focus:ring-2 focus:ring-brandPurple-100 transition-all placeholder:text-content-muted [&:-webkit-autofill]:[box-shadow:0_0_0_1000px_var(--color-surface)_inset] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-content-primary)]"
                   />
                   {adminFieldErrors.adminPassword && (
-                    <p className="text-red-600 text-xs">
+                    <p className="text-red-500 text-xs font-medium">
                       {adminFieldErrors.adminPassword}
                     </p>
                   )}
                 </div>
               </div>
+
               {state.message && (
-                <p className="text-red-600 text-sm">{state.message}</p>
+                <p className="text-red-500 text-sm font-medium mt-2">
+                  {state.message}
+                </p>
               )}
 
-              <div className="inset-x-0 bottom-0 absolute bg-white/95 py-3 min-h-[64px]">
-                <button
+              <div className="flex items-center justify-between pt-4">
+                <Button
                   type="button"
                   onClick={() => setStep(1)}
-                  aria-label={t("step", { number: 1 })}
-                  title={t("step", { number: 1 })}
-                  className="top-1/2 start-0 absolute text-academixPurpleDark hover:underline transition -translate-y-1/2 p-2"
+                  variant="secondary"
+                  size="md"
+                  className="font-medium whitespace-nowrap"
+                  leftIcon={<ArrowLeft className="w-4 h-4 rtl:rotate-180 shrink-0" />}
                 >
-                  <ArrowLeft className="rtl:rotate-180" />
-                </button>
-                <button
+                  {t("step", { number: 1 })}
+                </Button>
+
+                <Button
                   type="submit"
                   disabled={pending}
-                  className="top-1/2 end-0 absolute bg-academixPurpleDark disabled:opacity-70 px-6 py-2.5 rounded-md text-white -translate-y-1/2"
+                  variant="primary"
+                  size="md"
+                  className="font-semibold shadow-xs whitespace-nowrap"
                 >
-                  {pending ? t("submitting") : t("submit")}
-                </button>
+                  {pending ? (
+                    <>
+                      <span
+                        className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin"
+                        aria-hidden="true"
+                      />
+                      <span>{t("submitting")}</span>
+                    </>
+                  ) : (
+                    <span>{t("submit")}</span>
+                  )}
+                </Button>
               </div>
             </div>
           )}

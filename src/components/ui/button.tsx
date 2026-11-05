@@ -9,7 +9,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
     | "outline"
     | "ghost"
     | "destructive"
-    | "subtle";
+    | "subtle"
+    | "inverted"
+    | "glass";
   size?: "sm" | "md" | "lg" | "icon";
   loading?: boolean;
   leftIcon?: React.ReactNode;
@@ -29,6 +31,10 @@ const variantStyles: Record<NonNullable<ButtonProps["variant"]>, string> = {
     "bg-rose-600 hover:bg-rose-700 active:bg-rose-800 text-white shadow-xs border border-transparent focus-visible:ring-rose-600",
   subtle:
     "bg-purple-50 hover:bg-purple-100 active:bg-purple-200 text-purple-700 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 focus-visible:ring-purple-600",
+  inverted:
+    "bg-white hover:bg-purple-50 active:bg-purple-100 text-[#24104F] shadow-md border border-transparent focus-visible:ring-white",
+  glass:
+    "bg-white/10 hover:bg-white/15 active:bg-white/20 text-white border border-white/20 focus-visible:ring-white/40",
 };
 
 const sizeStyles: Record<NonNullable<ButtonProps["size"]>, string> = {
@@ -63,7 +69,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={isDisabled}
         aria-disabled={isDisabled}
         className={cn(
-          "inline-flex justify-center items-center font-medium transition-all select-none",
+          "inline-flex justify-center items-center font-medium transition-all select-none whitespace-nowrap shrink-0",
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900",
           "disabled:opacity-50 disabled:pointer-events-none disabled:cursor-not-allowed",
           variantStyles[variant],
@@ -78,11 +84,11 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
             aria-hidden="true"
           />
         ) : (
-          leftIcon && <span className="leading-none shrink-0">{leftIcon}</span>
+          leftIcon && <span className="leading-none shrink-0 inline-flex items-center">{leftIcon}</span>
         )}
-        {children && <span>{children}</span>}
+        {children}
         {!loading && rightIcon && (
-          <span className="leading-none shrink-0">{rightIcon}</span>
+          <span className="leading-none shrink-0 inline-flex items-center">{rightIcon}</span>
         )}
       </button>
     );

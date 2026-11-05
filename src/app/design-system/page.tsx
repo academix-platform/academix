@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import {
   Palette,
   Layers,
@@ -112,6 +113,10 @@ type TabKey =
   | "architecture";
 
 export default function DesignSystemShowcasePage() {
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   const [activeTab, setActiveTab] = useState<TabKey>("typography");
   const [previewTheme, setPreviewTheme] = useState<"light" | "dark">("light");
   const [copiedHex, setCopiedHex] = useState<string | null>(null);

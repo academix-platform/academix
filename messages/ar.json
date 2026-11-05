@@ -2,7 +2,8 @@
   "common": {
     "brand": "أكاديميكس",
     "dashboard": "لوحة التحكم",
-    "search": "بحث..."
+    "search": "بحث...",
+    "copyright": "© 2026 أكاديميكس. جميع الحقوق محفوظة."
   },
   "states": {
     "loading": "جار التحميل...",
@@ -24,7 +25,8 @@
     "noStudentsLinked": "لم يتم العثور على طلاب",
     "noStudentsLinkedDescription": "لا يوجد طلاب مرتبطون بحساب ولي الأمر هذا بعد.",
     "noClassAssigned": "لا يوجد صف معين",
-    "selectedStudentNoClass": "الطالب المحدد غير معين إلى صف بعد."
+    "selectedStudentNoClass": "الطالب المحدد غير معين إلى صف بعد.",
+    "backHome": "العودة للرئيسية"
   },
   "sidebar": {
     "sections": {
@@ -98,12 +100,49 @@
       "closeMenu": "إغلاق القائمة"
     },
     "hero": {
-      "badge": "الآن مع مزايا الذكاء الاصطناعي الجديدة",
-      "title": "مرحبا بك في أكاديميكس",
+      "badge": "نظام إدارة مدارس متكامل",
+      "title": "مرحبًا بك في أكاديميكس",
       "highlight": "أكاديميكس",
       "description": "منصة حديثة لإدارة المدارس صممت لتبسيط سير العمل الأكاديمي للمديرين والمعلمين والطلاب وأولياء الأمور.",
       "signIn": "تسجيل الدخول",
-      "signUp": "إنشاء حساب"
+      "signUp": "إنشاء حساب",
+      "trustItem1": "دعم كامل للغة العربية والإنجليزية",
+      "trustItem2": "٤ بوابات مخصصة للأدوار",
+      "trustItem3": "تجربة موحدة",
+      "preview": {
+        "mockUrl": "academix.school/portal",
+        "browserTitle": "لوحة المدرسة الموحدة",
+        "schoolName": "مدرسة المستقبل الدولية",
+        "badge": "لوحة المؤسسة الأكاديمية",
+        "metricStudents": "إجمالي الطلاب",
+        "metricStudentsValue": "1,248",
+        "metricStudentsNote": "+8.5% عن الشهر الماضي",
+        "metricAttendance": "معدل الحضور",
+        "metricAttendanceValue": "96.8%",
+        "metricAttendanceNote": "+3.2% عن الشهر الماضي",
+        "metricTerm": "الفصل الدراسي",
+        "metricTermValue": "خريف 2026",
+        "metricTermNote": "12 أسبوع متبقي",
+        "shortcutsTitle": "الاختصارات السريعة",
+        "shortcutStudents": "إدارة الطلاب",
+        "shortcutSchedules": "الجداول الدراسية",
+        "shortcutAttendance": "تسجيل الحضور",
+        "shortcutExams": "الاختبارات",
+        "shortcutReports": "التقارير",
+        "shortcutMaterials": "المواد التعليمية",
+        "activityTitle": "النشاط الأكاديمي المباشر",
+        "activityBadge": "مباشر",
+        "activityItem1Title": "تم تسليم واجب الرياضيات للصف العاشر أ",
+        "activityItem1Detail": "منذ 5 دقائق",
+        "activityItem1Status": "واجب جديد",
+        "activityItem2Title": "تم تسجيل الحضور لجميع الصفوف",
+        "activityItem2Detail": "منذ 12 دقيقة",
+        "activityItem2Status": "تم الإنجاز",
+        "activityItem3Title": "تم نشر نتائج اختبار الفيزياء - الصف الحادي عشر",
+        "activityItem3Detail": "منذ 25 دقيقة",
+        "activityItem3Status": "نتائج متاحة",
+        "viewAllActivity": "عرض كل النشاط"
+      }
     },
     "about": {
       "title": "عن أكاديميكس",
@@ -121,11 +160,92 @@
           "title": "رؤى فورية",
           "description": "تابع الأداء والحضور والتفاعل من خلال لوحات مباشرة وتصدير البيانات."
         }
-      }
+      },
+      "badge": "جوهر أكاديميكس",
+      "previewTitle": "عمليات مدرسية متكاملة",
+      "previewSubtitle": "مزامنة فورية بين الإدارة والشؤون الأكاديمية والطلاب وأولياء الأمور.",
+      "previewPill1": "دعم ثنائي اللغة كامل (RTL/LTR)",
+      "previewPill2": "٤ بوابات مخصصة لكل دور",
+      "previewPill3": "سجلات وتقييمات أكاديمية متكاملة",
+      "previewPill4": "تصدير فوري للبيانات والتقارير"
     },
     "features": {
+      "badge": "إمكانات المنصة",
       "title": "المزايا الرئيسية",
       "description": "كل ما تحتاجه مؤسستك لتعمل بذكاء أكبر كل يوم.",
+      "studentSearchPlaceholder": "ابحث عن طالب بالاسم أو الرقم الأكاديمي...",
+      "studentActiveBadge": "١,٢٤٨ طالب نشط",
+      "studentPreview1Name": "سارة أحمد الشامي",
+      "studentPreview1Id": "#STU-2026-084",
+      "studentPreview1Class": "الصف العاشر - شعبة أ",
+      "studentPreview1Rate": "٩٨% حضور",
+      "studentPreview1Gpa": "٣.٩ / ٤.٠",
+      "studentPreview2Name": "عمر طارق النجار",
+      "studentPreview2Id": "#STU-2026-119",
+      "studentPreview2Class": "الصف الحادي عشر - علمي",
+      "studentPreview2Rate": "٩٦% حضور",
+      "studentPreview2Gpa": "٣.٨ / ٤.٠",
+      "studentViewRecord": "عرض السجل",
+      "studentSyncBadge": "مزامنة لحظية",
+      "studentTag1": "تحديث فوري لبيانات القيد",
+      "studentTag2": "ربط مباشر مع أولياء الأمور",
+      "studentTag3": "أرشفة السجلات الأكاديمية",
+      "assessmentBadge": "محرك التقييم الذكي",
+      "assessmentSubjectTag": "علمي",
+      "assessmentPreviewTitle": "اختبار الفيزياء المتقدمة",
+      "assessmentPreviewStatus": "تم الرصد ٩٤%",
+      "assessmentPreviewRatio": "٣٢ / ٣٤ تسليماً",
+      "assessmentAvgScore": "متوسط الدرجات: ٨٨.٥%",
+      "assessmentTrend": "+٤.٢%",
+      "assessmentRubric1": "١٥ سؤال اختيار من متعدد (مصححة آلياً)",
+      "assessmentRubric2": "٤ مسائل تحليلية تطبيقية",
+      "assessmentNotification": "إشعار فوري للدرجات متاح للطلاب",
+      "attendanceRate": "٩٦.٨%",
+      "attendanceRateNote": "نسبة الحضور الموثقة",
+      "attendanceLiveNote": "تحديثات حضور رقمية",
+      "attendanceLiveBadge": "مباشر",
+      "attendanceClassesSummary": "١٢ من ١٢ شعبة مسجلة اليوم",
+      "attendancePresent": "حاضر: ٩٦.٨%",
+      "attendanceExcused": "عذر: ٢.٤%",
+      "attendanceUnexcused": "غياب: ٠.٨%",
+      "attendanceFeatureTag": "رصد بيومتري ورقمي فوري",
+      "courseScheduleBadge": "جدول اليوم الدراسي النشط",
+      "courseTag1": "جداول الصفوف",
+      "courseTag2": "توزيع المعلمين",
+      "courseTag3": "المراحل الدراسية",
+      "courseTime1": "٨:٣٠ ص - ٩:١٥ ص",
+      "coursePreview1Title": "الرياضيات المتقدمة",
+      "coursePreview1Teacher": "أ. خالد رضوان",
+      "courseRoom1": "قاعة ١٠١ • شعبة أ",
+      "courseTime2": "٩:٢٠ ص - ١٠:٠٥ ص",
+      "coursePreview2Title": "الفيزياء التطبيقية",
+      "coursePreview2Teacher": "د. طارق منصور",
+      "courseRoom2": "مختبر ٢ • شعبة ب",
+      "courseFeatureTag": "توزيع ذكي للحصص بدون تعارض",
+      "sectionTagA": "شعبة أ",
+      "sectionTagB": "شعبة ب",
+      "reportsPreviewTerm": "معدل التحصيل العام",
+      "reportsPreviewGpa": "٩٢.٤%",
+      "reportsTrend": "+٣.٨% تحسن أكاديمي",
+      "reportsPreviewTierA": "ممتاز: ٤٤%",
+      "reportsPreviewTierB": "جيد جداً: ٣٨%",
+      "reportsTierC": "جيد: ١٨%",
+      "reportsExportNote": "تصدير فوري (Excel / PDF)",
+      "reportsDownloadCta": "تصدير الكشوف (Excel / PDF)",
+      "reportsSummary": "كشوف شاملة",
+      "reportsPreviewStatus": "كشوف معتمدة",
+      "learningCloudSync": "سحابة الموارد المشتركة",
+      "learningNote": "محتوى تعليمي وموارد مشتركة",
+      "learningBadge": "مساحة صفية",
+      "learningTag1": "مزامنة سحابية فورية",
+      "learningTag2": "دعم لجميع صيغ الملفات",
+      "learningTag3": "إعلانات صفية موجهة",
+      "learningPreview1Title": "دليل مراجعة الوحدة الأولى.pdf",
+      "learningPreview1Detail": "ملف دراسي مشترك • ٤.٢ م.ب • تم الرفع اليوم",
+      "learningPreview2Title": "إعلان: موعد تسليم مشروع العلوم",
+      "learningPreview2Detail": "نشر بواسطة أ. ليلى نور الدين • متبقي يومان",
+      "learningUrgent": "هام",
+      "learningActionDownload": "تحميل",
       "items": {
         "students": {
           "title": "إدارة الطلاب",
@@ -154,8 +274,43 @@
       }
     },
     "roles": {
+      "badge": "أدوار المنظومة",
       "title": "مصمم لكل دور",
-      "description": "تجارب مخصصة للمديرين والمعلمين والطلاب.",
+      "description": "تجارب مخصصة وموجهة للمديرين والمعلمين والطلاب وأولياء الأمور.",
+      "workspaceTitle": "معاينة مساحة العمل",
+      "adminWorkspaceBadge": "لوحة إدارة المدرسة",
+      "adminWorkspaceDetail": "إدارة الصفوف، صلاحيات المعلمين، والسجلات العامة",
+      "teacherWorkspaceBadge": "مساحة التدريس والتقييم",
+      "teacherWorkspaceDetail": "رصد الحضور، تسجيل الدرجات، ونشر الواجبات",
+      "studentWorkspaceBadge": "بوابة الطالب الأكاديمية",
+      "studentWorkspaceDetail": "تسليم الواجبات، مراجعة العلامات، والمواد الدراسية",
+      "parentWorkspaceBadge": "بوابة متابعة ولي الأمر",
+      "portalCta": "دخول البوابة",
+      "coreTasks": "المهام الأساسية والصلاحيات",
+      "adminItem1Label": "السنة الأكاديمية النشطة",
+      "adminItem1Val": "٢٠٢٦ / ٢٠٢٧",
+      "adminItem2Label": "المعلمون والكوادر",
+      "adminItem2Val": "٤٨ معلماً معتمداً",
+      "adminItem3Label": "إعدادات المدرسة والتراخيص",
+      "adminItem3Val": "مكتملة ومحدثة",
+      "teacherItem1Label": "الصف الحالي",
+      "teacherItem1Val": "الصف العاشر - فيزياء",
+      "teacherItem2Label": "تسجيل الحضور اليومي",
+      "teacherItem2Val": "تم الرصد بالكامل",
+      "teacherItem3Label": "تصحيح الواجبات",
+      "teacherItem3Val": "٢٨ / ٣٠ تسليماً مقيماً",
+      "studentItem1Label": "المواد المسجلة",
+      "studentItem1Val": "٧ مواد أكاديمية",
+      "studentItem2Label": "الواجب القادم: الكيمياء",
+      "studentItem2Val": "يستحق غداً",
+      "studentItem3Label": "متوسط الدرجات الفصلي",
+      "studentItem3Val": "٩٤.٢%",
+      "parentItem1Label": "الطالب المرتبط",
+      "parentItem1Val": "سارة أحمد الشامي",
+      "parentItem2Label": "حضور اليوم",
+      "parentItem2Val": "حاضر (٨:٠٠ ص)",
+      "parentItem3Label": "إشعارات المدرسة",
+      "parentItem3Val": "إشعار تقرير نصف الفصل",
       "items": {
         "administrator": {
           "title": "المدير",
@@ -186,37 +341,71 @@
             "grades": "متابعة الدرجات",
             "attendance": "مراجعة الحضور"
           }
+        },
+        "parent": {
+          "title": "ولي الأمر",
+          "description": "متابعة فورية للنشاط الأكاديمي، والتواصل المباشر مع المدرسة.",
+          "actions": {
+            "progress": "متابعة درجات الأبناء",
+            "attendance": "مراجعة الحضور اليومي",
+            "announcements": "تلقي إعلانات المدرسة",
+            "schedule": "متابعة مواعيد الامتحانات",
+            "communication": "تواصل فوري مع المدرسة",
+            "finances": "متابعة الرسوم والمدفوعات",
+            "calendar": "متابعة التقويم المدرسي"
+          }
         }
       }
     },
     "howItWorks": {
-      "title": "كيف تعمل",
+      "badge": "آلية العمل",
+      "title": "كيف تعمل المنصة",
       "description": "ابدأ مساحة مدرستك بخطوات موجهة قليلة.",
+      "stepProgressNote": "خطوة موجهة ومباشرة",
       "steps": {
         "account": {
           "title": "إنشاء حساب",
-          "description": "سجل مدرستك وادع فريقك خلال دقائق."
+          "description": "سجل مدرستك وادع فريقك خلال دقائق.",
+          "milestone": "تسجيل المدرسة وتعيين الأدوار"
         },
         "setup": {
           "title": "إعداد المدرسة",
-          "description": "اضبط الصفوف والمواد والأدوار والفترات الأكاديمية."
+          "description": "اضبط الصفوف والمواد والأدوار والفترات الأكاديمية.",
+          "milestone": "هيكلة الصفوف والمواد الدراسية"
         },
         "operations": {
           "title": "تشغيل العمليات",
-          "description": "أدر الحضور والامتحانات والتواصل وسير العمل اليومي."
+          "description": "أدر الحضور والامتحانات والتواصل وسير العمل اليومي.",
+          "milestone": "الحضور اليومي ورصد التقييمات"
         },
         "outcomes": {
           "title": "تحسين النتائج",
-          "description": "استخدم التقارير والتحليلات لاتخاذ قرارات أذكى."
+          "description": "استخدم التقارير والتحليلات لاتخاذ قرارات أذكى.",
+          "milestone": "التقارير وتحليلات التحصيل"
         }
       }
     },
     "cta": {
       "title": "هل أنت جاهز لتطوير مدرستك؟",
       "description": "انضم إلى أكاديميكس وبسّط عمليات المدرسة بمنصة واحدة للتعلم والتقييم والإدارة.",
-      "button": "ابدأ مجانا"
+      "button": "ابدأ مجانا",
+      "badge": "مؤسسات أكاديميكس",
+      "signIn": "تسجيل الدخول"
     },
     "footer": {
+      "tagline": "منصة موحدة وحديثة لإدارة العمليات المدرسية. صممت للمديرين والمعلمين والطلاب وأولياء الأمور بدعم سلس وثنائي اللغة بالكامل.",
+      "operational": "جميع الأنظمة تعمل بكفاءة",
+      "platformTitle": "المنصة",
+      "about": "عن أكاديميكس",
+      "features": "المزايا الرئيسية",
+      "roles": "مصممة لكل الأدوار",
+      "howItWorks": "كيف تعمل المنصة",
+      "portalsTitle": "البوابات والوصول",
+      "signIn": "تسجيل الدخول",
+      "registerSchool": "تسجيل مدرسة جديدة",
+      "designSystem": "دليل نظام التصميم",
+      "bilingualNote": "العربية (RTL) & English (LTR)",
+      "complianceNote": "متوافق مع معايير WCAG 2.1 AA",
       "copyright": "© 2026 أكاديميكس. جميع الحقوق محفوظة."
     }
   },
@@ -590,7 +779,10 @@
         "profile": "إرسال ملف المدرسة الكامل",
         "verification": "التحقق بواسطة أكاديميكس",
         "access": "منح الوصول إلى لوحة التحكم"
-      }
+      },
+      "badge": "تسجيل المؤسسات التعليمية",
+      "trustTenant": "مساحة مخصصة لكل مدرسة",
+      "trustBilingual": "دعم كامل للغة العربية والإنجليزية"
     }
   },
   "auth": {
@@ -606,7 +798,9 @@
       "signingIn": "جار تسجيل الدخول...",
       "signIn": "تسجيل الدخول",
       "newSchool": "مدرسة جديدة؟",
-      "signupRequest": "إرسال طلب تسجيل"
+      "signupRequest": "إرسال طلب تسجيل",
+      "loadingAuth": "جار التحقق من بيانات الدخول...",
+      "subtitle": "ادخل إلى لوحة التحكم الموحدة لإدارة العمليات المدرسية"
     },
     "signOut": {
       "signingOut": "جار تسجيل الخروج...",
