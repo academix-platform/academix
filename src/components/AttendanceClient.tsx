@@ -29,11 +29,14 @@ const AttendanceClient = ({
   const [changes, setChanges] = useState<Record<string, boolean>>({});
   const handledResultRef = useRef<string | null>(null);
 
-  const [state, formAction, isPending] = useActionState(saveDailyAttendance, {
-    success: false,
-    error: false,
-    message: "",
-  });
+  const [state, formAction, isPending] = useActionState(
+    async (prev: Awaited<ReturnType<typeof saveDailyAttendance>>, formData: FormData) => {
+      const result = await saveDailyAttendance(prev, formData);
+      if (result.success) setChanges({});
+      return result;
+    },
+    { success: false, error: false, message: "" },
+  );
 
   useEffect(() => {
     if (isPending) {
@@ -81,7 +84,16 @@ const AttendanceClient = ({
     <form action={formAction} className="flex flex-col gap-4 mt-4">
       <input type="hidden" name="date" value={selectedDate} />
       <input type="hidden" name="scope" value={scope} />
-      <input type="hidden" name="changes" value={JSON.stringify(changes)} />
+      {/* Every row on the page, so people shown as absent are saved too. */}
+      <input
+        type="hidden"
+        name="records"
+        value={JSON.stringify(
+          Object.fromEntries(
+            data.map((item) => [item.id, changes[item.id] ?? item.present]),
+          ),
+        )}
+      />
       <table className="w-full">
         <tbody>
           {data.map((item) => {

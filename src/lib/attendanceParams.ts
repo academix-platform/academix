@@ -1,11 +1,10 @@
 // lib/attendanceParams.ts
 import { getQueryParam } from "@/lib/pageParams";
+import { isIsoDate, todayInTimeZone } from "@/lib/attendanceRules";
 
-const normalizeDate = (raw?: string) => {
-  if (!raw) return new Date().toISOString().slice(0, 10);
-  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) return raw;
-  return new Date().toISOString().slice(0, 10);
-};
+// "Today" is the school's calendar day, not UTC's.
+const normalizeDate = (raw: string | undefined, today: string) =>
+  isIsoDate(raw) ? raw : today;
 
 export const getAttendanceParams = (resolved: any) => {
   const rawScope = getQueryParam(resolved.scope);
@@ -18,11 +17,11 @@ export const getAttendanceParams = (resolved: any) => {
   const currentPage = getQueryParam(resolved.page);
   const page = currentPage ? parseInt(currentPage) : 1;
 
-  const selectedDate = normalizeDate(getQueryParam(resolved.date));
+  const today = todayInTimeZone();
+  const selectedDate = normalizeDate(getQueryParam(resolved.date), today);
 
   const day = new Date(`${selectedDate}T00:00:00.000Z`);
 
-  const today = new Date().toISOString().slice(0, 10);
   const isToday = selectedDate === today;
 
   return {
