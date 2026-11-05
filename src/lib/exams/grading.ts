@@ -122,21 +122,56 @@ export const syncAutoGrades = async (submissionId: number) => {
   });
 };
 
+type SubmissionRef = {
+  id: number;
+  examId: number;
+  studentId: string;
+  schoolId: number;
+};
+
+/**
+ * Writes that mark an exam grade as needing to be published again. A Result
+ * row is what students, parents and final averages read as the published
+ * grade, so the old one is removed; publishing recreates it.
+ */
+export const unpublishExamGradeWrites = (
+  submission: SubmissionRef,
+  data: Prisma.SubmissionUpdateInput = {},
+) => [
+  prisma.submission.update({
+    where: { id: submission.id },
+    data: { ...data, gradePublished: false },
+  }),
+  prisma.result.deleteMany({
+    where: {
+      schoolId: submission.schoolId,
+      examId: submission.examId,
+      studentId: submission.studentId,
+    },
+  }),
+];
+
 /** Marks the submission GRADED once every answer has a score. */
 export const finalizeGrade = async (submissionId: number) => {
-  const answers = await prisma.answer.findMany({
-    where: { submissionId },
-    select: { score: true },
+  const submission = await prisma.submission.findUniqueOrThrow({
+    where: { id: submissionId },
+    select: {
+      id: true,
+      examId: true,
+      studentId: true,
+      schoolId: true,
+      answers: { select: { score: true } },
+    },
   });
 
+  const { answers } = submission;
   if (!answers.every((a) => a.score !== null)) return;
 
   const totalScore = answers.reduce((sum, a) => sum + (a.score ?? 0), 0);
 
-  await prisma.submission.update({
-    where: { id: submissionId },
-    data: { totalScore, status: "GRADED", gradePublished: false },
-  });
+  await prisma.$transaction(
+    unpublishExamGradeWrites(submission, { totalScore, status: "GRADED" }),
+  );
 };
 
 /**

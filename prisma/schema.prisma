@@ -472,7 +472,7 @@ model Result {
   id       Int    @id @default(autoincrement())
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id])
-  score    Int
+  score    Float
 
   examId       Int?
   exam         Exam?       @relation(fields: [examId], references: [id])
@@ -502,6 +502,8 @@ model StudentFinalResult {
   averageScore    Float
   assessmentCount Int    @default(0)
   status          String?
+  // Set when a teacher/admin edits the final grade by hand; promotion keeps it.
+  isManual        Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -528,7 +528,7 @@ export async function publishAssignmentGrades(
         });
 
         const resultData = {
-          score: Math.round(submission.score),
+          score: submission.score,
           schoolId: access.schoolId,
           studentId: submission.studentId,
           examId: null,

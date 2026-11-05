@@ -397,10 +397,11 @@ export type AssignmentSchema = z.infer<typeof assignmentSchema>;
 export const resultSchema = z.object({
   id: z.coerce.number().optional(),
   studentId: z.string().min(1, { message: "Student is required!" }),
+  // The upper bound depends on the assessment and is checked on the server.
   score: z.coerce
     .number()
-    .min(0, { message: "Score must be at least 0!" })
-    .max(100, { message: "Score cannot be greater than 100!" }),
+    .finite({ message: "Score must be a number!" })
+    .min(0, { message: "Score must be at least 0!" }),
   assessmentType: z.enum(["exam", "assignment"], {
     message: "Assessment type is required!",
   }),
