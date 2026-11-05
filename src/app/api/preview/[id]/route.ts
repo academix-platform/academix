@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import cloudinary from "@/lib/cloudinary";
 import prisma from "@/lib/prisma";
+import { getAuthUser } from "@/lib/auth";
+import { canAccessSubmissionFile } from "@/lib/fileAccess";
 
 type PreviewType = "submission";
 
 function extractResourceType(fileUrl: string): "image" | "video" | "raw" {
-  if (fileUrl.includes("/image/upload/")) return "image";
-  if (fileUrl.includes("/video/upload/")) return "video";
+  if (/\/image\/(?:upload|private|authenticated)\//.test(fileUrl)) return "image";
+  if (/\/video\/(?:upload|private|authenticated)\//.test(fileUrl)) return "video";
   return "raw";
 }
 
@@ -29,6 +31,7 @@ function extractCloudinaryAssetParts(fileUrl: string): {
 } | null {
   try {
     const url = new URL(fileUrl);
+    if (!url.hostname.endsWith(".cloudinary.com")) return null;
     const match = url.pathname.match(
       /\/(?:image|video|raw)\/(?:upload|private|authenticated)\/(?:v\d+\/)?(.+)$/,
     );
@@ -50,15 +53,11 @@ function extractCloudinaryAssetParts(fileUrl: string): {
 
 function buildPreviewUrlsToTry(fileUrl: string): string[] {
   try {
-    const url = new URL(fileUrl);
-    url.protocol = "https:";
-    const originalUrl = url.toString();
-
     const resourceType = extractResourceType(fileUrl);
     const deliveryType = extractDeliveryType(fileUrl);
     const assetParts = extractCloudinaryAssetParts(fileUrl);
 
-    if (!assetParts) return [originalUrl];
+    if (!assetParts || deliveryType === "upload") return [];
 
     const signedPrimary = cloudinary.utils.private_download_url(
       assetParts.publicIdNoExt,
@@ -71,20 +70,9 @@ function buildPreviewUrlsToTry(fileUrl: string): string[] {
       },
     );
 
-    const signedRawUpload = cloudinary.utils.private_download_url(
-      assetParts.publicIdNoExt,
-      assetParts.format,
-      {
-        resource_type: "raw",
-        type: "upload",
-        expires_at: Math.floor(Date.now() / 1000) + 300,
-        attachment: false,
-      },
-    );
-
-    return [originalUrl, signedPrimary, signedRawUpload];
+    return [signedPrimary];
   } catch {
-    return [fileUrl];
+    return [];
   }
 }
 
@@ -108,6 +96,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const user = await getAuthUser();
+    if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") as PreviewType;
     const { id: idRaw } = await params;
@@ -119,18 +110,29 @@ export async function GET(
 
     const submission = await prisma.assignmentSubmission.findUnique({
       where: { id },
-      select: { fileUrl: true, fileName: true },
+      include: {
+        assignment: {
+          select: {
+            schoolId: true,
+            teacherId: true,
+            classId: true,
+            lesson: { select: { teacherId: true, classId: true } },
+          },
+        },
     });
 
     if (!submission) {
       return new NextResponse("Submission not found", { status: 404 });
     }
 
-    const urlsToTry =
-      submission.fileUrl.includes("cloudinary.com") ||
-      submission.fileUrl.includes("res.cloudinary")
-        ? buildPreviewUrlsToTry(submission.fileUrl)
-        : [submission.fileUrl];
+    if (!(await canAccessSubmissionFile(user, submission))) {
+      return new NextResponse("Forbidden", { status: 403 });
+    }
+
+    const urlsToTry = buildPreviewUrlsToTry(submission.fileUrl);
+    if (urlsToTry.length === 0) {
+      return new NextResponse("File is not stored privately", { status: 502 });
+    }
 
     let response: Response | null = null;
 
@@ -163,7 +165,7 @@ export async function GET(
       `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     );
     headers.set("Content-Length", buffer.length.toString());
-    headers.set("Cache-Control", "private, max-age=300");
+    headers.set("Cache-Control", "private, no-store, max-age=0");
 
     return new NextResponse(buffer, { status: 200, headers });
   } catch (error) {

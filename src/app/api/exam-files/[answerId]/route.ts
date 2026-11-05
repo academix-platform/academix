@@ -107,7 +107,9 @@ export async function GET(
 
     const signedUrl = generatePrivateDownloadUrl(answer.filePublicId, format);
 
-    return NextResponse.redirect(signedUrl, { status: 302 });
+    const response = NextResponse.redirect(signedUrl, { status: 302 });
+    response.headers.set("Cache-Control", "private, no-store, max-age=0");
+    return response;
   } catch (err) {
     console.error("[exam-files]", err);
     return NextResponse.json(

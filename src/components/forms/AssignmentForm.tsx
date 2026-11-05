@@ -31,13 +31,13 @@ const toDatetimeLocalValue = (value: unknown) => {
 // ─── مكون رفع الملفات الداخلي ──────────────────────────────────────────
 function FileUploadSection({
   assignmentId,
-  currentFileUrl,
+  hasCurrentFile,
   currentFileName,
   onFileSelect,
   onRemoveExisting,
 }: {
   assignmentId?: number;
-  currentFileUrl?: string | null;
+  hasCurrentFile?: boolean;
   currentFileName?: string | null;
   onFileSelect: (file: File | null) => void;
   onRemoveExisting: () => void;
@@ -50,7 +50,7 @@ function FileUploadSection({
     const file = e.target.files?.[0] || null;
     setSelectedFile(file);
     onFileSelect(file);
-    if (file && currentFileUrl) {
+    if (file && hasCurrentFile) {
       setRemoveCurrent(true);
       onRemoveExisting();
     }
@@ -73,7 +73,7 @@ function FileUploadSection({
       </label>
 
       {/* الملف الحالي (في حالة التعديل) */}
-      {currentFileUrl && !removeCurrent && !selectedFile && (
+      {hasCurrentFile && !removeCurrent && !selectedFile && (
         <div className="flex items-center justify-between bg-gray-50 p-2 rounded">
           <span className="text-sm truncate">
             {currentFileName || t("currentFile")}
@@ -108,7 +108,7 @@ function FileUploadSection({
           <Upload className="w-4 h-4" />
           {selectedFile
             ? t("changeFile")
-            : currentFileUrl && !removeCurrent
+            : hasCurrentFile && !removeCurrent
             ? t("replaceFile")
             : t("uploadFile")}
           <input type="file" onChange={handleFileChange} className="hidden" />
@@ -128,10 +128,10 @@ function FileUploadSection({
         </button>
       )}
 
-      {!currentFileUrl && !selectedFile && (
+      {!hasCurrentFile && !selectedFile && (
         <p className="text-xs text-gray-400">{t("noFileAttached")}</p>
       )}
-      {(removeCurrent || (currentFileUrl && selectedFile)) && (
+      {(removeCurrent || (hasCurrentFile && selectedFile)) && (
         <p className="text-xs text-amber-600">
           {t("currentFileWillBeReplaced")}
         </p>
@@ -200,7 +200,7 @@ const AssignmentForm = ({
     if (selectedFile) {
       formData.append("file", selectedFile);
     }
-    if (shouldRemoveFile && data?.fileUrl) {
+    if (shouldRemoveFile && data?.hasFile) {
       formData.append("removeFile", "true");
     }
 
@@ -561,7 +561,7 @@ const AssignmentForm = ({
       <div className="col-span-full">
         <FileUploadSection
           assignmentId={data?.id}
-          currentFileUrl={data?.fileUrl}
+          hasCurrentFile={data?.hasFile}
           currentFileName={data?.fileName}
           onFileSelect={setSelectedFile}
           onRemoveExisting={() => setShouldRemoveFile(true)}

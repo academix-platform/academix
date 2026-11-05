@@ -23,7 +23,6 @@ type Props = {
   allowLateSubmission: boolean; // ✅ prop جديد
   existingSubmission?: {
     id?: number;
-    fileUrl: string;
     fileName: string;
     createdAt: Date;
     note?: string | null;

@@ -17,6 +17,40 @@ cloudinary.config({
 
 export default cloudinary;
 
+export type CloudinaryAssetDetails = {
+  publicId: string;
+  resourceType: "image" | "video" | "raw";
+  deliveryType: "upload" | "private" | "authenticated";
+  format: string;
+};
+
+export const getCloudinaryAssetDetails = (
+  fileUrl: string,
+): CloudinaryAssetDetails | null => {
+  try {
+    const url = new URL(fileUrl);
+    if (!url.hostname.endsWith(".cloudinary.com")) return null;
+
+    const match = url.pathname.match(
+      /\/(image|video|raw)\/(upload|private|authenticated)\/(?:v\d+\/)?(.+)$/,
+    );
+    if (!match) return null;
+
+    const path = decodeURIComponent(match[3]);
+    const extensionIndex = path.lastIndexOf(".");
+    if (extensionIndex <= 0 || extensionIndex === path.length - 1) return null;
+
+    return {
+      publicId: path.slice(0, extensionIndex),
+      resourceType: match[1] as CloudinaryAssetDetails["resourceType"],
+      deliveryType: match[2] as CloudinaryAssetDetails["deliveryType"],
+      format: path.slice(extensionIndex + 1).toLowerCase(),
+    };
+  } catch {
+    return null;
+  }
+};
+
 export const generateProfileImageUploadSignature = (
   schoolId: number,
 ): {
@@ -57,7 +91,7 @@ export const generatePrivateDownloadUrl = (publicId: string, format: string): st
   return cloudinary.utils.private_download_url(publicId, format, {
     resource_type: "raw",
     type: "private",
-    expires_at: Math.floor(Date.now() / 1000) + 3600,
+    expires_at: Math.floor(Date.now() / 1000) + 300,
     attachment: true,
   });
 };

@@ -11,7 +11,7 @@ import {
   requireActionAccess,
   successResult,
 } from "./helpers";
-import cloudinary from "@/lib/cloudinary";
+import cloudinary, { getCloudinaryAssetDetails } from "@/lib/cloudinary";
 import { notifyNewAssignment, notifyAssignmentUpdated } from "./notification.actions";
 
 async function uploadAssignmentFile(file: File, folder = "assignments"): Promise<{ url: string; name: string }> {
@@ -20,7 +20,12 @@ async function uploadAssignmentFile(file: File, folder = "assignments"): Promise
 
   return new Promise((resolve, reject) => {
     const uploadStream = cloudinary.uploader.upload_stream(
-      { folder, resource_type: "auto", filename_override: file.name },
+      {
+        folder,
+        resource_type: "auto",
+        type: "authenticated",
+        filename_override: file.name,
+      },
       (error, result) => {
         if (error || !result) reject(error || new Error("Upload failed"));
         else resolve({ url: result.secure_url, name: file.name });
@@ -31,12 +36,13 @@ async function uploadAssignmentFile(file: File, folder = "assignments"): Promise
 }
 
 async function deleteAssignmentFile(fileUrl: string) {
-  if (!fileUrl.includes("cloudinary")) return;
+  const asset = getCloudinaryAssetDetails(fileUrl);
+  if (!asset) return;
   try {
-    const parts = fileUrl.split('/');
-    const publicIdWithExt = parts.slice(7).join('/');
-    const publicId = publicIdWithExt.substring(0, publicIdWithExt.lastIndexOf('.'));
-    await cloudinary.uploader.destroy(publicId);
+    await cloudinary.uploader.destroy(asset.publicId, {
+      resource_type: asset.resourceType,
+      type: asset.deliveryType,
+    });
   } catch (error) {
     console.error("Failed to delete file from Cloudinary:", error);
   }

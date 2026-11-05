@@ -27,7 +27,6 @@ type AssignmentList = Assignment & {
   lesson: { teacher: Pick<Teacher, "name"> } | null;
   assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
     id: number;
-    fileUrl: string;
     fileName: string;
     createdAt: Date;
     note: string | null;
@@ -156,7 +155,6 @@ const renderRow = (
               allowLateSubmission={item.allowLateSubmission} // ✅
               existingSubmission={mySubmission ? {
                 id: mySubmission.id,
-                fileUrl: mySubmission.fileUrl,
                 fileName: mySubmission.fileName,
                 createdAt: mySubmission.createdAt,
                 note: mySubmission.note,
@@ -177,7 +175,11 @@ const renderRow = (
           )}
           {(role === "admin" || role === "teacher") && (
             <>
-              <FormContainer table="assignment" type="update" data={item} />
+              <FormContainer
+                table="assignment"
+                type="update"
+                data={{ ...item, hasFile: Boolean(item.fileUrl), fileUrl: null }}
+              />
               <FormContainer table="assignment" type="delete" id={item.id} />
             </>
           )}
@@ -235,7 +237,7 @@ const AssignmentListPage = async ({
         lesson: { select: { teacher: { select: { name: true } } } },
         teacher: { select: { name: true } },
         assignmentSubmissions: role === "student" && userId
-          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true, score: true, gradePublished: true } }
+          ? { where: { studentId: userId }, select: { id: true, fileName: true, createdAt: true, note: true, teacherFeedback: true, score: true, gradePublished: true } }
           : false,
         _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },

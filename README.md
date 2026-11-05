@@ -86,6 +86,26 @@ Academix is a modern **School Management and Assessment System** designed to str
 
 ---
 
+## Local database setup
+
+Start the PostgreSQL service configured in `docker-compose.yml`, then copy `.env.example` to `.env`:
+
+```powershell
+docker compose up -d postgres
+Copy-Item .env.example .env
+```
+
+The example `DATABASE_URL` uses the local Docker credentials and port. Apply migrations before seeding:
+
+```powershell
+npx prisma migrate deploy
+npx prisma db seed
+```
+
+For another database, set `DATABASE_URL` in `.env` to a PostgreSQL connection URL that includes the database username and password.
+
+---
+
 ## 📸 Screenshots
 
 ### Admin & Student Portals

@@ -2,11 +2,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/prisma";
 import cloudinary from "@/lib/cloudinary";
+import { getAuthUser } from "@/lib/auth";
+import {
+  canAccessAssignmentFile,
+  canAccessStudyMaterialFile,
+  canAccessSubmissionFile,
+} from "@/lib/fileAccess";
 
 // ========== استخراج resource_type من URL ==========
 function extractResourceType(fileUrl: string): "image" | "video" | "raw" {
-  if (fileUrl.includes("/image/upload/")) return "image";
-  if (fileUrl.includes("/video/upload/")) return "video";
+  if (/\/image\/(?:upload|private|authenticated)\//.test(fileUrl)) return "image";
+  if (/\/video\/(?:upload|private|authenticated)\//.test(fileUrl)) return "video";
   return "raw";
 }
 
@@ -31,6 +37,7 @@ function extractCloudinaryAssetParts(fileUrl: string): {
 } | null {
   try {
     const url = new URL(fileUrl);
+    if (!url.hostname.endsWith(".cloudinary.com")) return null;
     const match = url.pathname.match(
       /\/(?:image|video|raw)\/(?:upload|private|authenticated)\/(?:v\d+\/)?(.+)$/,
     );
@@ -53,24 +60,12 @@ function extractCloudinaryAssetParts(fileUrl: string): {
 // ========== بناء قائمة URLs ==========
 function buildUrlsToTry(fileUrl: string): string[] {
   try {
-    const url = new URL(fileUrl);
-    url.protocol = "https:";
-
     const resourceType = extractResourceType(fileUrl);
     const deliveryType = extractDeliveryType(fileUrl);
     const assetParts = extractCloudinaryAssetParts(fileUrl);
 
-    console.log("[Download] resourceType:", resourceType);
-    console.log("[Download] deliveryType:", deliveryType);
-    console.log("[Download] assetParts:", assetParts);
+    if (!assetParts || deliveryType === "upload") return [];
 
-    // URL أصلي كما هو (بالـ version)
-    url.protocol = "https:";
-    const originalUrl = url.toString();
-
-    if (!assetParts) return [originalUrl];
-
-    // Cloudinary SDK-generated signed download URLs (more reliable than manual signing).
     const signedPrimary = cloudinary.utils.private_download_url(
       assetParts.publicIdNoExt,
       assetParts.format,
@@ -82,21 +77,9 @@ function buildUrlsToTry(fileUrl: string): string[] {
       },
     );
 
-    const signedRawUpload = cloudinary.utils.private_download_url(
-      assetParts.publicIdNoExt,
-      assetParts.format,
-      {
-        resource_type: "raw",
-        type: "upload",
-        expires_at: Math.floor(Date.now() / 1000) + 300,
-        attachment: true,
-      },
-    );
-
-    // Try original first (public assets), then signed fallbacks.
-    return [originalUrl, signedPrimary, signedRawUpload];
+    return [signedPrimary];
   } catch {
-    return [fileUrl];
+    return [];
   }
 }
 
@@ -189,6 +172,9 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const user = await getAuthUser();
+    if (!user) return new NextResponse("Unauthorized", { status: 401 });
+
     const { searchParams } = new URL(request.url);
     const type = searchParams.get("type") as DownloadType;
     const { id: idStr } = await params;
@@ -206,10 +192,21 @@ export async function GET(
     if (type === "assignment") {
       const assignment = await prisma.assignment.findUnique({
         where: { id: recordId },
-        select: { fileUrl: true, title: true, fileName: true },
+        select: {
+          schoolId: true,
+          teacherId: true,
+          classId: true,
+          lesson: { select: { teacherId: true, classId: true } },
+          fileUrl: true,
+          title: true,
+          fileName: true,
+        },
       });
       if (!assignment)
         return new NextResponse("Assignment not found", { status: 404 });
+      if (!(await canAccessAssignmentFile(user, assignment))) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
       if (!assignment.fileUrl)
         return new NextResponse("This assignment has no attached file", {
           status: 404,
@@ -220,10 +217,22 @@ export async function GET(
     } else if (type === "studyMaterial") {
       const material = await prisma.studyMaterial.findUnique({
         where: { id: recordId },
-        select: { fileUrl: true, title: true, fileName: true },
+        select: {
+          schoolId: true,
+          teacherId: true,
+          subject: {
+            select: { gradeId: true, teachers: { select: { id: true } } },
+          },
+          fileUrl: true,
+          title: true,
+          fileName: true,
+        },
       });
       if (!material)
         return new NextResponse("Study material not found", { status: 404 });
+      if (!(await canAccessStudyMaterialFile(user, material))) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
       if (!material.fileUrl)
         return new NextResponse("This material has no attached file", {
           status: 404,
@@ -236,11 +245,22 @@ export async function GET(
         where: { id: recordId },
         include: {
           student: { select: { name: true } },
-          assignment: { select: { title: true } },
+          assignment: {
+            select: {
+              title: true,
+              schoolId: true,
+              teacherId: true,
+              classId: true,
+              lesson: { select: { teacherId: true, classId: true } },
+            },
+          },
         },
       });
       if (!submission)
         return new NextResponse("Submission not found", { status: 404 });
+      if (!(await canAccessSubmissionFile(user, submission))) {
+        return new NextResponse("Forbidden", { status: 403 });
+      }
       if (!submission.fileUrl)
         return new NextResponse("This submission has no attached file", {
           status: 404,
@@ -255,13 +275,11 @@ export async function GET(
     }
 
     // ========== 2. بناء قائمة URLs ==========
-    const isCloudinaryUrl =
-      fileUrl.includes("cloudinary.com") || fileUrl.includes("res.cloudinary");
+    const urlsToTry = buildUrlsToTry(fileUrl);
 
-    const urlsToTry = isCloudinaryUrl ? buildUrlsToTry(fileUrl) : [fileUrl];
-
-    console.log("[Download] fileUrl from DB:", fileUrl);
-    console.log("[Download] urlsToTry:", urlsToTry);
+    if (urlsToTry.length === 0) {
+      return new NextResponse("File is not stored privately", { status: 502 });
+    }
 
     // ========== 3. جلب الملف ==========
     let fileResponse: Response | null = null;
@@ -274,7 +292,6 @@ export async function GET(
           redirect: "follow",
           headers: { "User-Agent": "Mozilla/5.0 (compatible; SchoolApp/1.0)" },
         });
-        console.log("[Download] tried:", url, "->", res.status);
         if (res.ok) {
           fileResponse = res;
           break;
@@ -282,7 +299,7 @@ export async function GET(
         lastStatus = res.status;
         lastUrl = url;
       } catch (err) {
-        console.error("[Download] fetch error for:", url, err);
+        console.error("[Download] Signed storage fetch failed", err);
       }
     }
 

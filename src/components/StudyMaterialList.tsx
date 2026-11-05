@@ -25,7 +25,6 @@ export type StudyMaterialItem = {
   id: number;
   title: string;
   description: string | null;
-  fileUrl: string;
   fileType: string;
   fileName: string;
   createdAt: Date;

@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
+import { getCloudinaryAssetDetails } from "@/lib/cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import {
   errorResult,
@@ -185,6 +186,7 @@ async function uploadToCloudinary(file: File) {
   const result = await cloudinary.uploader.upload(dataUri, {
     folder: "submissions",
     resource_type: "auto",
+    type: "authenticated",
     use_filename: true,
     unique_filename: true,
   });
@@ -196,21 +198,17 @@ async function uploadToCloudinary(file: File) {
   };
 }
 
-async function deleteFromCloudinary(publicId: string) {
+async function deleteFromCloudinary(fileUrl: string) {
+  const asset = getCloudinaryAssetDetails(fileUrl);
+  if (!asset) return;
   try {
-    await cloudinary.uploader.destroy(publicId);
+    await cloudinary.uploader.destroy(asset.publicId, {
+      resource_type: asset.resourceType,
+      type: asset.deliveryType,
+    });
   } catch (error) {
     console.error("Failed to delete old file:", error);
   }
-}
-
-function extractPublicIdFromUrl(url: string): string | null {
-  const parts = url.split('/');
-  const uploadIndex = parts.findIndex(p => p === 'upload');
-  if (uploadIndex === -1 || uploadIndex + 2 >= parts.length) return null;
-  const publicIdParts = parts.slice(uploadIndex + 2);
-  const publicId = publicIdParts.join('/').split('.')[0];
-  return publicId;
 }
 
 export async function submitAssignment(
@@ -296,8 +294,7 @@ export async function submitAssignment(
 
     // حذف الملف القديم إذا وجد
     if (existing?.fileUrl) {
-      const oldPublicId = extractPublicIdFromUrl(existing.fileUrl);
-      if (oldPublicId) await deleteFromCloudinary(oldPublicId);
+      await deleteFromCloudinary(existing.fileUrl);
     }
 
     const note = formData.get("note") as string | null;

@@ -343,8 +343,13 @@ export default async function SubjectDetailPage({
   ]).size;
 
   const materials: StudyMaterialItem[] = subject.studyMaterials.map((m) => ({
-    ...m,
+    id: m.id,
+    title: m.title,
+    description: m.description,
+    fileType: m.fileType,
+    fileName: m.fileName,
     createdAt: new Date(m.createdAt),
+    teacher: m.teacher,
   }));
 
   // إعدادات الصفحة

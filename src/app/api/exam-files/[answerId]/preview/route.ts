@@ -145,7 +145,7 @@ export async function GET(
       `inline; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     );
     headers.set("Content-Length", buffer.length.toString());
-    headers.set("Cache-Control", "private, max-age=300");
+    headers.set("Cache-Control", "private, no-store, max-age=0");
 
     return new NextResponse(buffer, { status: 200, headers });
   } catch (err) {

@@ -4,7 +4,7 @@ import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
-import { v2 as cloudinary } from "cloudinary";
+import cloudinary, { getCloudinaryAssetDetails } from "@/lib/cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 
 // ─── Cloudinary config ────────────────────────────────────────────────────────
@@ -41,6 +41,7 @@ async function uploadToCloudinary(file: File) {
   const result = await cloudinary.uploader.upload(dataUri, {
     folder: "study-materials",
     resource_type: isImage ? "image" : "raw",
+    type: "authenticated",
     use_filename: true,
     unique_filename: true,
   });
@@ -188,17 +189,13 @@ export async function deleteStudyMaterial(
 
     // حذف من Cloudinary (non-blocking)
     try {
-      const urlParts = material.fileUrl.split("/");
-      const fileWithExt = urlParts[urlParts.length - 1];
-      const fileNameOnly = fileWithExt.split(".")[0];
-      const folder = urlParts[urlParts.length - 2];
-      const publicId = `${folder}/${fileNameOnly}`;
-      const isImage = ["jpg", "jpeg", "png", "gif", "webp"].includes(
-        material.fileType
-      );
-      await cloudinary.uploader.destroy(publicId, {
-        resource_type: isImage ? "image" : "raw",
-      });
+      const asset = getCloudinaryAssetDetails(material.fileUrl);
+      if (asset) {
+        await cloudinary.uploader.destroy(asset.publicId, {
+          resource_type: asset.resourceType,
+          type: asset.deliveryType,
+        });
+      }
     } catch {
       console.warn("[deleteStudyMaterial] Cloudinary delete failed");
     }
