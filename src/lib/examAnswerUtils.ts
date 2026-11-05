@@ -80,28 +80,6 @@ export const normalizeStoredAnswer = (
   return items.length > 0 ? JSON.stringify(items) : "";
 };
 
-export const answersMatch = (
-  studentAnswer: string | null | undefined,
-  correctAnswers: string[],
-  allowMultiple: boolean
-): boolean => {
-  const student = parseStoredAnswer(studentAnswer, allowMultiple);
-  const correct = [...correctAnswers]
-    .map((item) => item.trim())
-    .filter((item) => item.length > 0);
-
-  if (!allowMultiple) {
-    return student.length === 1 && correct.length === 1 && student[0] === correct[0];
-  }
-
-  const normalizedStudent = [...student].sort();
-  const normalizedCorrect = [...correct].sort();
-
-  if (normalizedStudent.length !== normalizedCorrect.length) return false;
-
-  return normalizedStudent.every((item, index) => item === normalizedCorrect[index]);
-};
-
 export const getAutoGradeScore = (
   studentAnswer: string | null | undefined,
   correctAnswers: string[],

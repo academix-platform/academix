@@ -1,5 +1,6 @@
 import Table from "@/components/Table";
-import { autoSubmitExpiredSubmissions } from "@/lib/actions/examWorkflow.actions";
+import { autoSubmitExpiredSubmissions } from "@/lib/exams/grading";
+import { examGroupWhere, teacherExamAccessWhere } from "@/lib/exams/group";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -130,9 +131,7 @@ const ExamSubmissionsPage = async ({
     where: {
       id: examId,
       schoolId,
-      ...(role === "teacher"
-        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-        : {}),
+      ...(role === "teacher" ? teacherExamAccessWhere(userId) : {}),
     },
     include: {
       subject: { select: { name: true } },
@@ -143,25 +142,14 @@ const ExamSubmissionsPage = async ({
   if (!exam) redirect("/list/exams");
   const maxScore = exam.questions.reduce((sum, q) => sum + q.points, 0);
 
-  await autoSubmitExpiredSubmissions(examId).catch(() => {});
-
   const groupExams = await prisma.exam.findMany({
-    where: {
-      title: exam.title,
-      startTime: exam.startTime,
-      endTime: exam.endTime,
-      subjectId: exam.subjectId,
-      schoolId,
-      academicYearId: exam.academicYearId,
-      ...(role === "teacher"
-        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-        : {}),
-    },
+    where: examGroupWhere(exam.groupId, { userId, role, schoolId }),
     include: { class: { select: { id: true, name: true } } },
     orderBy: { class: { name: "asc" } },
   });
 
   const examIds = groupExams.map((e) => e.id);
+  await autoSubmitExpiredSubmissions(examIds);
   const classOptions = groupExams
     .map((item) => item.class)
     .filter((item): item is { id: number; name: string } => Boolean(item));

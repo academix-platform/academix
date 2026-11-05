@@ -494,6 +494,10 @@ export type MessageSchema = z.infer<typeof messageSchema>;
 ////////////////////////////////////////////////////////////////////////////////////
 
 export const EXAM_FILE_MAX_SIZE_MB = 10;
+export const EXAM_MAX_DURATION_MINUTES = 24 * 60;
+export const EXAM_MAX_QUESTIONS_PER_PAGE = 100;
+export const EXAM_MAX_EXTRA_MINUTES = 600;
+export const EXAM_MAX_TEXT_ANSWER_LENGTH = 50_000;
 
 export const BLOCKED_EXTENSIONS = new Set([
   "exe", "sh", "bat", "cmd", "ps1", "vbs", "js", "mjs", "cjs",
@@ -529,8 +533,8 @@ export const fileConfigSchema = z.object({
 export const questionSchema = z.object({
   text: z.string().min(1, "Question text is required"),
   type: z.enum(["TRUE_FALSE", "MCQ", "TEXT", "FILE"]),
-  points: z.coerce.number().min(1).default(1),
-  order: z.coerce.number().min(1),
+  points: z.coerce.number().min(1).max(1000).default(1),
+  order: z.coerce.number().int().min(1),
   options: z.preprocess(
     (val) => {
       if (Array.isArray(val)) {
@@ -625,23 +629,25 @@ export const createExamWorkflowSchema = z.object({
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   subjectId: z.coerce.number().min(1, "Subject is required"),
-  classIds: z.array(z.coerce.number()).min(1, "At least one class is required"),
+  classIds: z.array(z.coerce.number().int().positive()).min(1, "At least one class is required"),
 
   // Settings
   enableTimer: z.boolean().default(true),
   duration: z.coerce.number().optional(),
   enableNavigation: z.boolean().default(true),
   enableAutoSave: z.boolean().default(true),
-  autoSaveInterval: z.coerce.number().min(10).default(30),
-  enableAutoSubmit: z.boolean().default(true),
-  questionsPerPage: z.coerce.number().min(1).default(1),
+  autoSaveInterval: z.coerce.number().int().min(10).max(3600).default(30),
+  questionsPerPage: z.coerce.number().int().min(1).max(EXAM_MAX_QUESTIONS_PER_PAGE).default(1),
 
   questions: z.array(questionSchema).min(1, "At least one question is required"),
 }).superRefine((data, ctx) => {
   if (data.endTime <= data.startTime) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "End time must be after start time", path: ["endTime"] });
   }
-  if (data.enableTimer && (!data.duration || data.duration < 1)) {
+  if (
+    data.enableTimer &&
+    (!data.duration || !Number.isInteger(data.duration) || data.duration < 1 || data.duration > EXAM_MAX_DURATION_MINUTES)
+  ) {
     ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Duration is required when timer is enabled", path: ["duration"] });
   }
 });
@@ -649,12 +655,15 @@ export const createExamWorkflowSchema = z.object({
 export type CreateExamWorkflowSchema = z.infer<typeof createExamWorkflowSchema>;
 
 export const saveAnswerSchema = z.object({
-  submissionId: z.coerce.number().min(1),
-  questionId: z.coerce.number().min(1),
-  textAnswer: z.string().nullable().optional(),
+  submissionId: z.coerce.number().int().min(1),
+  questionId: z.coerce.number().int().min(1),
+  textAnswer: z.string().max(EXAM_MAX_TEXT_ANSWER_LENGTH).nullable().optional(),
+  // File fields: `undefined` leaves the stored file alone, `null` removes it.
+  // Only the public id and original name are used; the server looks up the
+  // URL and size in Cloudinary itself.
   fileUrl: z.string().nullable().optional(),
-  filePublicId: z.string().nullable().optional(),
-  fileOriginalName: z.string().nullable().optional(),
+  filePublicId: z.string().max(512).nullable().optional(),
+  fileOriginalName: z.string().max(255).nullable().optional(),
   fileMimeType: z.string().nullable().optional(),
   fileSizeBytes: z.coerce.number().nullable().optional(),
 });
@@ -662,15 +671,15 @@ export const saveAnswerSchema = z.object({
 export type SaveAnswerSchema = z.infer<typeof saveAnswerSchema>;
 
 export const gradeAnswerSchema = z.object({
-  answerId: z.coerce.number().min(1),
-  score: z.coerce.number().min(0),
+  answerId: z.coerce.number().int().min(1),
+  score: z.coerce.number().finite().min(0),
 });
 
 export type GradeAnswerSchema = z.infer<typeof gradeAnswerSchema>;
 
 export const extendTimeSchema = z.object({
-  submissionId: z.coerce.number().min(1),
-  extraMinutes: z.coerce.number().min(1),
+  submissionId: z.coerce.number().int().min(1),
+  extraMinutes: z.coerce.number().int().min(1).max(EXAM_MAX_EXTRA_MINUTES),
 });
 
 export type ExtendTimeSchema = z.infer<typeof extendTimeSchema>;

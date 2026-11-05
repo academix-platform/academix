@@ -1,4 +1,5 @@
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
+import { examGroupWhere } from "@/lib/exams/group";
 import prisma from "@/lib/prisma";
 import ExamWorkflowForm from "@/components/forms/ExamWorkflowForm";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
@@ -61,15 +62,8 @@ export default async function CreateExamWorkflowPage({
   const relatedExams = exam
     ? await prisma.exam.findMany({
         where: {
-          title: exam.title,
-          startTime: exam.startTime,
-          endTime: exam.endTime,
-          subjectId: exam.subjectId,
+          ...examGroupWhere(exam.groupId, { userId, role, schoolId }),
           academicYearId,
-          schoolId,
-          ...(role === "teacher"
-            ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-            : {}),
         },
         select: { classId: true },
       })
@@ -97,7 +91,6 @@ export default async function CreateExamWorkflowPage({
         enableNavigation: exam.enableNavigation,
         enableAutoSave: exam.enableAutoSave,
         autoSaveInterval: exam.autoSaveInterval,
-        enableAutoSubmit: exam.enableAutoSubmit,
         questionsPerPage: exam.questionsPerPage,
         questions: exam.questions.map((question) => ({
           type: question.type,

@@ -9,8 +9,9 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",
-  "/api/cron(.*)",
 ]);
+// تحديد أن مسارات الـ API والـ Cron لا تحتاج لفحص Clerk
+const isCronRoute = createRouteMatcher(['/api/cron(.*)']);
 
 const matchers = (
   Object.entries(routePermissions) as [string, UserRole[]][]
@@ -22,6 +23,10 @@ const matchers = (
 export default clerkMiddleware(async (auth, req) => {
   const { userId, sessionClaims } = await auth();
 
+  // إذا كان الطلب لمسار الكرون، اتركه يمر دون أي تدخل من Clerk
+  if (isCronRoute(req)) {
+    return;
+  }
   const role =
     (sessionClaims?.metadata as { role?: UserRole } | undefined)?.role ?? null;
 
