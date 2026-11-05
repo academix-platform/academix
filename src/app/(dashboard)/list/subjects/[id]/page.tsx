@@ -12,6 +12,12 @@ import {
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
+import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  subjectAccessWhere,
+  subjectClassContentWhere,
+  subjectMaterialWhere,
+} from "@/lib/subjects/access";
 import StudyMaterialList, {
   StudyMaterialItem,
 } from "@/components/StudyMaterialList";
@@ -268,23 +274,21 @@ export default async function SubjectDetailPage({
 
   const { userId, role, schoolId } = await requireAuth();
   const roleStr = role as string;
+  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  // الواجبات والامتحانات: السنة الحالية فقط، وللطالب وولي الأمر صفوفهم فقط
+  const classContentWhere = subjectClassContentWhere(
+    roleStr,
+    userId,
+    academicYearId,
+  );
 
   // جلب المادة مع كل البيانات + إعدادات الصفحة
+  // المعلم: المواد المسندة إليه فقط — الطالب وولي الأمر: مواد مستوى الطالب فقط
   const subject = await prisma.subject.findFirst({
     where: {
       id: subjectId,
       schoolId,
-      ...(roleStr === "student"
-        ? {
-            grade: {
-              students: {
-                some: {
-                  id: userId,
-                },
-              },
-            },
-          }
-        : {}),
+      ...subjectAccessWhere(roleStr, userId),
     },
     include: {
       grade: { select: { level: true } },
@@ -292,12 +296,14 @@ export default async function SubjectDetailPage({
         select: { id: true, name: true, img: true },
       },
       studyMaterials: {
+        where: subjectMaterialWhere(academicYearId),
         include: {
           teacher: { select: { id: true, name: true } },
         },
         orderBy: { createdAt: "desc" },
       },
       assignments: {
+        where: classContentWhere,
         select: {
           id: true,
           title: true,
@@ -314,6 +320,7 @@ export default async function SubjectDetailPage({
         orderBy: { id: "desc" },
       },
       exams: {
+        where: classContentWhere,
         select: {
           id: true,
           title: true,

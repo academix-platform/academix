@@ -295,7 +295,8 @@ model Subject {
   studyMaterials StudyMaterial[]
   pageSettings   SubjectPageSettings[]
 
-  @@unique([schoolId, name])
+  // The same name may exist once per grade (e.g. "Math" in every grade).
+  @@unique([schoolId, gradeId, name])
   @@index([schoolId])
 }
 
