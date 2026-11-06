@@ -1,11 +1,13 @@
 import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import { ATTENDING_STUDENT_STATUSES } from "@/lib/attendanceRules";
 
 export const getAttendanceData = async ({
   role,
   userId,
   scope,
   classId,
+  gradeId,
   day,
   schoolId,
 }: {
@@ -13,6 +15,7 @@ export const getAttendanceData = async ({
   userId: string | null;
   scope: "students" | "teachers";
   classId?: number;
+  gradeId?: number;
   day: Date;
   schoolId: number;
 }) => {
@@ -60,7 +63,10 @@ export const getAttendanceData = async ({
     const students = await prisma.student.findMany({
       where: {
         schoolId,
+        // Graduated or departed students can stay linked to their last class.
+        status: { in: [...ATTENDING_STUDENT_STATUSES] },
         ...(classId ? { classId } : {}),
+        ...(!classId && gradeId ? { class: { gradeId } } : {}),
       },
       include: {
         class: { select: { name: true } },

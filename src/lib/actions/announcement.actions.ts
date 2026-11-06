@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyNewAnnouncement, notifyParentsNewAnnouncement } from "./notification.actions";
 import { AnnouncementSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -33,6 +34,20 @@ export const createAnnouncement = async (
         },
       },
     });
+
+    // ✅ إشعار الطلاب والمعلمين بالإعلان الجديد
+    await notifyNewAnnouncement({
+      schoolId: access.schoolId,
+      announcementTitle: data.title,
+      targetClassIds: data.classIds.length > 0 ? data.classIds : undefined,
+    }).catch(() => {});
+
+    // ✅ إشعار الأولياء بالإعلان الجديد
+    await notifyParentsNewAnnouncement({
+      schoolId: access.schoolId,
+      announcementTitle: data.title,
+      targetClassIds: data.classIds.length > 0 ? data.classIds : undefined,
+    }).catch(() => {});
 
     return successResult(["/list/announcements"]);
   } catch (err) {

@@ -1,44 +1,45 @@
+import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { buildClassQuery } from "@/lib/query-builders/class-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
-import { Class, Prisma, Teacher } from "@prisma/client";
+import { Class, Teacher } from "@prisma/client";
+import type { PageSearchParams } from "@/lib/pageParams";
 
 type ClassList = Class & {
   supervisor: Teacher | null;
   grade: {
     level: number;
-  };
+  } | null;
 };
 
-const getColumns = (role: UserRole | null) => [
+const getColumns = (role: UserRole | null, th: (key: string) => string) => [
+  { header: th("className"), accessor: "name" },
   {
-    header: "Class Name",
-    accessor: "name",
-  },
-  {
-    header: "Capacity",
+    header: th("capacity"),
     accessor: "capacity",
     className: "hidden md:table-cell",
   },
   {
-    header: "Grade",
+    header: th("grade"),
     accessor: "grade",
     className: "hidden md:table-cell",
   },
   {
-    header: "Supervisor",
+    header: th("supervisor"),
     accessor: "supervisor",
     className: "hidden md:table-cell",
   },
   {
-    header: role === "admin" ? "Actions" : "",
+    header: role === "admin" ? th("actions") : "",
     accessor: "action",
   },
 ];
@@ -49,11 +50,15 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
     className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
   >
     <td className="flex items-center gap-4 p-4">{item.name}</td>
+
     <td className="hidden md:table-cell">{item.capacity}</td>
-    <td className="hidden md:table-cell">{item.grade?.level}</td>
+
+    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
+
     <td className="hidden md:table-cell">
       {item.supervisor?.name ?? "No supervisor"}
     </td>
+
     <td>
       <div className="flex items-center gap-2">
         {role === "admin" && (
@@ -66,48 +71,39 @@ const renderRow = (item: ClassList, role: UserRole | null) => (
     </td>
   </tr>
 );
+
 const ClassListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const { role, schoolId } = await enforceRouteAccess("/list/classes");
+  const t = await getTranslations("pages");
+  const th = await getTranslations("tableHeaders");
+  const emptyT = await getTranslations("emptyStates");
+  const { role, userId, schoolId } = await enforceRouteAccess("/list/classes");
 
   const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.ClassWhereInput = {
+  const {
+    query,
+    orderBy,
+    page: p,
+  } = await buildClassQuery({
+    searchParams,
     schoolId,
-  };
-  const conditions: Prisma.ClassWhereInput[] = [];
+    role,
+    userId,
+  });
 
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-
-      if (value !== undefined) {
-        switch (key) {
-          case "supervisorId":
-            conditions.push({
-              supervisorId: value,
-            });
-            break;
-
-          case "search":
-            conditions.push({
-              name: { contains: value, mode: "insensitive" },
-            });
-            break;
-        }
+  const exportQuery = new URLSearchParams(
+    Object.entries(resolvedSearchParams).flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => [key, item]);
       }
-    }
-  }
 
-  if (conditions.length > 0) {
-    query.AND = conditions;
-  }
+      return value ? [[key, value]] : [];
+    }),
+  );
 
   const [data, count] = await prisma.$transaction([
     prisma.class.findMany({
@@ -120,7 +116,7 @@ const ClassListPage = async ({
           },
         },
       },
-      orderBy: { name: "asc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
@@ -128,26 +124,48 @@ const ClassListPage = async ({
       where: query,
     }),
   ]);
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
+
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Classes</h1>
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">{t("allClasses")}</h1>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
-            {role === "admin" && <FormContainer table="class" type="create" />}
+          {role === "admin" && <GradeFilter grades={grades} />}
+
+          <div className="flex items-center self-end gap-2">
+            <FilterSortActions sortKey="sort" />
+
+            {role === "admin" && (
+              <>
+                <ExportButton
+                  href={`/api/admin/classes/export?${exportQuery.toString()}`}
+                />
+
+                <FormContainer table="class" type="create" />
+              </>
+            )}
           </div>
         </div>
       </div>
-      {/* LIST */}
+
       <Table
-        columns={getColumns(role)}
+        columns={getColumns(role, th)}
         renderRow={(item) => renderRow(item, role)}
         data={data}
+        emptyTitle={emptyT("classes")}
+        emptyDescription={emptyT("filterDescription")}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );

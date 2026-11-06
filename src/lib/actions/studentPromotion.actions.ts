@@ -2,6 +2,12 @@
 
 import prisma from "../prisma";
 import {
+  calculateFinalResultSummary,
+  PASSING_AVERAGE,
+  type AssessmentScore,
+} from "../finalResults";
+import { isAcademicYearFinished } from "../promotion";
+import {
   errorResult,
   requireActionAccess,
   successResult,
@@ -18,6 +24,17 @@ export type PromotionActionResult = {
   skippedCount?: number;
 };
 
+// The whole school is promoted in one transaction with a few writes per
+// student; Prisma's default 5 s limit isn't enough for a large school.
+const PROMOTION_TRANSACTION_OPTIONS = { maxWait: 10_000, timeout: 120_000 };
+
+const emptyCounts = {
+  promotedCount: 0,
+  graduatedCount: 0,
+  repeatedCount: 0,
+  skippedCount: 0,
+};
+
 export const promoteStudentsByPerformance = async (
   currentState: CurrentState,
 ): Promise<PromotionActionResult> => {
@@ -25,103 +42,70 @@ export const promoteStudentsByPerformance = async (
   if ("error" in access) return access;
 
   try {
-    const currentAcademicYearId = (
-      await prisma.academicYear.findFirst({
-        where: { schoolId: access.schoolId, isCurrent: true },
-        select: { id: true },
-      })
-    )?.id ?? null;
+    const currentAcademicYear = await prisma.academicYear.findFirst({
+      where: { schoolId: access.schoolId, isCurrent: true },
+      select: { id: true, endDate: true },
+    });
 
-    if (!currentAcademicYearId) {
+    if (!currentAcademicYear) {
       return {
         success: false,
         error: true,
         message: "No current academic year selected.",
-        promotedCount: 0,
-        graduatedCount: 0,
-        repeatedCount: 0,
-        skippedCount: 0,
+        ...emptyCounts,
       };
     }
 
-    const [grades, classes, enrollments] = await prisma.$transaction(
-      async (tx) => {
-        const localGrades = await tx.grade.findMany({
-          select: { id: true, level: true },
-          orderBy: { level: "asc" },
-          where: { schoolId: access.schoolId },
-        });
+    // The button checks this too, but the action is callable directly.
+    if (!isAcademicYearFinished(currentAcademicYear.endDate)) {
+      return {
+        success: false,
+        error: true,
+        message: "Students can only be promoted after the academic year has ended.",
+        ...emptyCounts,
+      };
+    }
 
-        const localClasses = await tx.class.findMany({
-          select: { id: true, gradeId: true },
-          orderBy: { id: "asc" },
-          where: { schoolId: access.schoolId },
-        });
+    const currentAcademicYearId = currentAcademicYear.id;
 
-        const localEnrollments = await (
-          tx as unknown as {
-            studentAcademicYear: {
-              findMany: (args: {
-                where: {
-                  academicYearId: number;
-                  schoolId?: number;
-                  performanceStatus: { in: Array<"PASS" | "FAIL"> };
-                  student: {
-                    schoolId?: number;
-                    status: { in: Array<"ACTIVE" | "REPEATED"> };
-                  };
-                };
-                select: {
-                  id: boolean;
-                  performanceStatus: boolean;
-                  gradeId: boolean;
-                  classId: boolean;
-                  studentId: boolean;
-                };
-              }) => Promise<
-                Array<{
-                  id: number;
-                  performanceStatus: "PASS" | "FAIL" | null;
-                  gradeId: number;
-                  classId: number | null;
-                  studentId: string;
-                }>
-              >;
-            };
-          }
-        ).studentAcademicYear.findMany({
-          where: {
-            academicYearId: currentAcademicYearId,
+    const [grades, classes, enrollments] = await prisma.$transaction([
+      prisma.grade.findMany({
+        select: { id: true, level: true },
+        orderBy: { level: "asc" },
+        where: { schoolId: access.schoolId },
+      }),
+      prisma.class.findMany({
+        select: { id: true, gradeId: true },
+        orderBy: { id: "asc" },
+        where: { schoolId: access.schoolId },
+      }),
+      prisma.studentAcademicYear.findMany({
+        where: {
+          academicYearId: currentAcademicYearId,
+          schoolId: access.schoolId,
+          // Each enrollment records its outcome once processed, so running
+          // promotion again doesn't promote twice or bump repeatCount again.
+          performanceStatus: null,
+          student: {
             schoolId: access.schoolId,
-            performanceStatus: { in: ["PASS", "FAIL"] },
-            student: {
-              schoolId: access.schoolId,
-              status: { in: ["ACTIVE", "REPEATED"] },
-            },
+            status: { in: ["ACTIVE", "REPEATED"] },
           },
-          select: {
-            id: true,
-            performanceStatus: true,
-            gradeId: true,
-            classId: true,
-            studentId: true,
-          },
-        });
-
-        return [localGrades, localClasses, localEnrollments] as const;
-      },
-    );
+        },
+        select: {
+          id: true,
+          gradeId: true,
+          studentId: true,
+        },
+      }),
+    ]);
 
     if (enrollments.length === 0) {
       return {
         success: false,
         error: true,
         message:
-          "No active or repeated students with PASS/FAIL performance status were found for the current academic year.",
-        promotedCount: 0,
-        graduatedCount: 0,
-        repeatedCount: 0,
-        skippedCount: 0,
+          "No students are waiting for promotion in the current academic year.",
+        ...emptyCounts,
       };
     }
 
@@ -141,48 +125,128 @@ export const promoteStudentsByPerformance = async (
     let repeatedCount = 0;
     let skippedCount = 0;
 
+    const studentIds = enrollments.map((enrollment) => enrollment.studentId);
+
+    const [results, manualFinalResults] = await Promise.all([
+      prisma.result.findMany({
+        where: {
+          schoolId: access.schoolId,
+          academicYearId: currentAcademicYearId,
+          studentId: { in: studentIds },
+        },
+        select: {
+          studentId: true,
+          score: true,
+          assignment: { select: { maxScore: true } },
+          exam: { select: { questions: { select: { points: true } } } },
+        },
+      }),
+      prisma.studentFinalResult.findMany({
+        where: {
+          schoolId: access.schoolId,
+          academicYearId: currentAcademicYearId,
+          studentId: { in: studentIds },
+          isManual: true,
+        },
+        select: { studentId: true, averageScore: true },
+      }),
+    ]);
+
+    // A final grade a teacher or admin set by hand wins over the computed one.
+    const manualAverageByStudent = new Map(
+      manualFinalResults.map((result) => [result.studentId, result.averageScore]),
+    );
+
+    const scoresByStudent = new Map<string, AssessmentScore[]>();
+
+    for (const result of results) {
+      const examMaxScore =
+        result.exam?.questions.reduce(
+          (sum, question) => sum + question.points,
+          0,
+        ) ?? null;
+      const maxScore = result.assignment?.maxScore ?? examMaxScore;
+      const existingScores = scoresByStudent.get(result.studentId) ?? [];
+
+      existingScores.push({
+        score: result.score,
+        maxScore,
+      });
+      scoresByStudent.set(result.studentId, existingScores);
+    }
+
     await prisma.$transaction(async (tx) => {
       for (const enrollment of enrollments) {
         const currentGrade = gradeById.get(enrollment.gradeId);
-        if (!currentGrade || !enrollment.performanceStatus) {
+        const manualAverage = manualAverageByStudent.get(enrollment.studentId);
+        const finalSummary = calculateFinalResultSummary(
+          scoresByStudent.get(enrollment.studentId) ?? [],
+        );
+        const averageScore = manualAverage ?? finalSummary.averageScore;
+
+        if (!currentGrade || averageScore === null) {
           skippedCount += 1;
           continue;
         }
 
-        if (enrollment.performanceStatus === "FAIL") {
+        const passed = averageScore >= PASSING_AVERAGE;
+        const isFinalGrade = currentGrade.level >= highestGradeLevel;
+        const nextGrade = gradeByLevel.get(currentGrade.level + 1);
+
+        // Leave the enrollment unprocessed so a later run can pick it up.
+        if (passed && !isFinalGrade && !nextGrade) {
+          skippedCount += 1;
+          continue;
+        }
+
+        if (manualAverage === undefined && finalSummary.averageScore !== null) {
+          const computed = {
+            averageScore: finalSummary.averageScore,
+            assessmentCount: finalSummary.assessmentCount,
+            status: passed ? "PASS" : "FAIL",
+          };
+
+          await tx.studentFinalResult.upsert({
+            where: {
+              schoolId_studentId_academicYearId: {
+                schoolId: access.schoolId,
+                studentId: enrollment.studentId,
+                academicYearId: currentAcademicYearId,
+              },
+            },
+            create: {
+              schoolId: access.schoolId,
+              studentId: enrollment.studentId,
+              academicYearId: currentAcademicYearId,
+              ...computed,
+            },
+            update: computed,
+          });
+        }
+
+        await tx.studentAcademicYear.update({
+          where: { id: enrollment.id },
+          data: { performanceStatus: passed ? "PASS" : "FAIL" },
+        });
+
+        if (!passed) {
           await tx.student.update({
             where: { id: enrollment.studentId },
             data: {
               status: "REPEATED",
               repeatCount: { increment: 1 },
             },
-          } as any);
-          await tx.studentAcademicYear.update({
-            where: { id: enrollment.id },
-            data: { performanceStatus: null },
           });
           repeatedCount += 1;
           continue;
         }
 
-        if (currentGrade.level >= highestGradeLevel) {
+        if (isFinalGrade || !nextGrade) {
           await tx.student.update({
             where: { id: enrollment.studentId },
-            data: {
-              status: "GRADUATED",
-            },
-          } as any);
-          await tx.studentAcademicYear.update({
-            where: { id: enrollment.id },
-            data: { performanceStatus: null },
+            data: { status: "GRADUATED" },
           });
           graduatedCount += 1;
-          continue;
-        }
-
-        const nextGrade = gradeByLevel.get(currentGrade.level + 1);
-        if (!nextGrade) {
-          skippedCount += 1;
           continue;
         }
 
@@ -193,15 +257,11 @@ export const promoteStudentsByPerformance = async (
             gradeId: nextGrade.id,
             classId: firstClassByGradeId.get(nextGrade.id) ?? undefined,
           },
-        } as any);
-        await tx.studentAcademicYear.update({
-          where: { id: enrollment.id },
-          data: { performanceStatus: null },
         });
 
         promotedCount += 1;
       }
-    });
+    }, PROMOTION_TRANSACTION_OPTIONS);
 
     const summary = `Promotion run completed. Promoted: ${promotedCount}, Graduated: ${graduatedCount}, Repeated: ${repeatedCount}, Skipped: ${skippedCount}.`;
 

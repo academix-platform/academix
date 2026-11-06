@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyTeacherAssignedSupervisor } from "./notification.actions";
 import { ClassSchema, classSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
 import {
@@ -58,12 +59,30 @@ export const updateClass = async (
   }
 
   try {
+    // جلب البيانات القديمة للمقارنة
+    const existingClass = await prisma.class.findUnique({
+      where: { id: data.id, schoolId: access.schoolId },
+      select: { supervisorId: true, name: true },
+    });
+
     const updated = await prisma.class.updateMany({
       where: { id: data.id, schoolId: access.schoolId },
       data,
     });
     if (updated.count === 0) {
       return { success: false, error: true, message: "Class not found." };
+    }
+
+    // ✅ إشعار المعلم إذا تغير المشرف
+    if (
+      data.supervisorId &&
+      existingClass?.supervisorId !== data.supervisorId
+    ) {
+      await notifyTeacherAssignedSupervisor({
+        schoolId: access.schoolId,
+        teacherId: data.supervisorId,
+        className: data.name ?? existingClass?.name ?? "Unknown",
+      }).catch(() => {});
     }
 
     return successResult(["/list/classes"]);

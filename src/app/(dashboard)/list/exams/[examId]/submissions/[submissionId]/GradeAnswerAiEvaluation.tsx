@@ -1,0 +1,33 @@
+"use client";
+
+import AiEvaluationCard, {
+  AiEvaluationCardData,
+} from "@/components/AiEvaluationCard";
+import {
+  approveExamAnswerAiEvaluation,
+  evaluateExamAnswerWithAi,
+} from "@/lib/actions/aiEvaluation.actions";
+
+type Props = {
+  answerId: number;
+  maxScore: number;
+  evaluation: AiEvaluationCardData | null;
+  disabledMessage?: string;
+};
+
+export default function GradeAnswerAiEvaluation({
+  answerId,
+  maxScore,
+  evaluation,
+  disabledMessage,
+}: Props) {
+  return (
+    <AiEvaluationCard
+      maxScore={maxScore}
+      evaluation={evaluation}
+      disabledMessage={disabledMessage}
+      onEvaluate={() => evaluateExamAnswerWithAi(answerId)}
+      onApprove={approveExamAnswerAiEvaluation}
+    />
+  );
+}

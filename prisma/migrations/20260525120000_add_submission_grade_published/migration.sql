@@ -1,0 +1,1 @@
+ALTER TABLE "Submission" ADD COLUMN IF NOT EXISTS "gradePublished" BOOLEAN NOT NULL DEFAULT false;

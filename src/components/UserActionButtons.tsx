@@ -22,10 +22,10 @@ export default function UserActionButtons({
       <button
         type="button"
         onClick={() => setMessageOpen(true)}
-        className={`p-2 flex items-center justify-center text-academixPurpleDark hover:bg-gray-100 rounded-md transition bg-academixPurple`}
+        className={`p-2 flex items-center justify-center bg-academixPurpleDark hover:scale-[1.05] rounded-md transition text-white`}
         title="Send message"
       >
-        <Mail className="w-4 h-4 text-academixPurpleDark" />
+        <Mail className="w-4 h-4" />
       </button>
 
       {/* Message Modal */}

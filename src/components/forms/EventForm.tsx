@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { createEvent, updateEvent } from "@/lib/actions";
 import { eventSchema } from "@/lib/formValidationSchemas";
 import InputField from "../InputField";
+import { useTranslations } from "next-intl";
 
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";
@@ -44,6 +45,9 @@ const EventForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.event");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const nowDefault = toDatetimeLocalValue(new Date());
   const startDefaultValue =
     type === "create" ? nowDefault : toDatetimeLocalValue(data?.startDate);
@@ -81,15 +85,15 @@ const EventForm = ({
         const result = await action({ success: false, error: false }, parsed);
 
         if (result.success) {
-          toast(`Event has been ${type === "create" ? "created" : "updated"}!`);
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       } catch {
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -150,27 +154,27 @@ const EventForm = ({
   };
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
-        {type === "create" ? "Create a new event" : "Update the event"}
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
 
       {type === "update" && (
         <input type="hidden" {...register("id")} defaultValue={data?.id} />
       )}
 
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         <InputField
-          label="Event Title"
+          label={t("title")}
           name="title"
           defaultValue={data?.title}
           register={register}
           error={errors?.title}
-          inputProps={{ placeholder: "e.g. Sports Day" }}
+          inputProps={{ placeholder: t("titlePlaceholder") }}
         />
 
         <InputField
-          label="Start Date"
+          label={commonT("startDate")}
           name="startDate"
           type="datetime-local"
           defaultValue={startDefaultValue}
@@ -179,7 +183,7 @@ const EventForm = ({
         />
 
         <InputField
-          label="End Date"
+          label={commonT("endDate")}
           name="endDate"
           type="datetime-local"
           defaultValue={endDefaultValue}
@@ -187,8 +191,10 @@ const EventForm = ({
           error={errors?.endDate}
         />
 
-        <div className="flex flex-col gap-2 w-full md:w-1/3">
-          <label className="text-gray-500 text-xs">Classes</label>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {commonT("classes")}
+          </label>
           <div className="flex flex-col gap-2 p-3 rounded-md ring-[1.5px] ring-gray-300 max-h-[220px] overflow-y-auto">
             <label className="flex items-center gap-2 mb-4 text-gray-700 text-sm">
               <input
@@ -198,7 +204,7 @@ const EventForm = ({
                 disabled={classIds.length === 0}
                 className="border-gray-300 rounded focus:ring-blue-500 w-4 h-4 text-blue-500"
               />
-              <span className="font-medium">Select all</span>
+              <span className="font-medium">{commonT("selectAll")}</span>
             </label>
             {classes.map((cls: { id: number; name: string }) => (
               <label
@@ -219,29 +225,31 @@ const EventForm = ({
           </div>
           {selectedClassIdsAsNumbers.length > 0 && (
             <p className="text-gray-400 text-xs">
-              {selectedClassIdsAsNumbers.length} class
-              {selectedClassIdsAsNumbers.length === 1 ? " is" : "es are"}{" "}
-              selected
+              {commonT("selectedClasses", {
+                count: selectedClassIdsAsNumbers.length,
+              })}
             </p>
           )}
           {errors.classIds?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.classIds.message.toString()}
             </p>
           )}
         </div>
 
         <div className="flex flex-col gap-2 w-full">
-          <label className="text-gray-500 text-xs">Description</label>
+          <label className="font-medium text-gray-700 text-sm">
+            {commonT("description")}
+          </label>
           <textarea
             {...register("description")}
             defaultValue={data?.description}
             rows={4}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            placeholder="Event description"
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+            placeholder={t("descriptionPlaceholder")}
           />
           {errors.description?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.description.message.toString()}
             </p>
           )}
@@ -249,13 +257,19 @@ const EventForm = ({
       </div>
 
       <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
         disabled={isSubmitting}
       >
-        {type === "create" ? "Create" : "Update"}
+        {isSubmitting
+          ? commonT("submitting")
+          : type === "create"
+            ? actionsT("create")
+            : actionsT("update")}
       </button>
     </form>
   );
 };
 
 export default EventForm;
+
+

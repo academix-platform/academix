@@ -2,6 +2,7 @@
 
 import { useClerk } from "@clerk/nextjs";
 import Image from "next/image";
+import { useTranslations } from "next-intl";
 import { useEffect, useRef, useState } from "react";
 
 type UserAvatarMenuProps = {
@@ -17,6 +18,8 @@ const UserAvatarMenu = ({
   initials,
   imageUrl,
 }: UserAvatarMenuProps) => {
+  const t = useTranslations("navbar.userMenu");
+  const actionsT = useTranslations("actions");
   const { signOut } = useClerk();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isSigningOut, setIsSigningOut] = useState(false);
@@ -46,12 +49,12 @@ const UserAvatarMenu = ({
         type="button"
         onClick={() => setIsMenuOpen((prev) => !prev)}
         className="border border-gray-200 rounded-full w-9 h-9 overflow-hidden"
-        aria-label="Open user menu"
+        aria-label={t("open")}
       >
         {imageUrl ? (
           <Image
             src={imageUrl}
-            alt="User avatar"
+            alt={t("avatarAlt")}
             width={36}
             height={36}
             className="w-full h-full object-cover"
@@ -64,17 +67,17 @@ const UserAvatarMenu = ({
       </button>
 
       {isMenuOpen && (
-        <div className="right-0 z-50 absolute bg-white shadow-lg mt-2 border border-gray-100 rounded-md w-52 overflow-hidden">
+        <div className="end-0 z-50 absolute bg-white shadow-lg mt-2 border border-gray-100 rounded-md w-52 overflow-hidden">
           <div className="px-3 py-2 border-gray-100 border-b">
             <p className="font-medium text-gray-700 text-sm">{fullName}</p>
-            <p className="text-gray-500 text-xs">{role || "No role"}</p>
+            <p className="text-gray-500 text-xs">{role || t("noRole")}</p>
           </div>
 
           <button
             type="button"
             onClick={handleSignOut}
             disabled={isSigningOut}
-            className="hover:bg-gray-50 disabled:opacity-70 px-3 py-2 w-full text-red-600 text-sm text-left"
+            className="hover:bg-gray-50 disabled:opacity-70 px-3 py-2 w-full text-red-600 text-sm text-start"
           >
             {isSigningOut ? (
               <span className="flex items-center gap-2">
@@ -82,10 +85,10 @@ const UserAvatarMenu = ({
                   className="border-2 border-red-300 border-t-red-600 rounded-full w-3.5 h-3.5 animate-spin"
                   aria-hidden="true"
                 />
-                Signing out...
+                {actionsT("signingOut")}
               </span>
             ) : (
-              "Sign out"
+              actionsT("signOut")
             )}
           </button>
         </div>

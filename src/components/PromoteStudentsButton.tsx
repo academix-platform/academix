@@ -1,9 +1,11 @@
 "use client";
 
 import { promoteStudentsByPerformance } from "@/lib/actions";
+import { isAcademicYearFinished } from "@/lib/promotion";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { X } from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 
 type PromoteStudentsButtonProps = {
   academicYearName: string;
@@ -18,26 +20,18 @@ type PromotionOutcome = {
   repeatedCount?: number;
 };
 
-const formatDate = (value: string) =>
-  new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(
+const formatDate = (value: string, locale: string) =>
+  new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(
     new Date(`${value}T00:00:00`),
   );
-
-const getTodayIsoDate = () => {
-  const today = new Date();
-  const month = String(today.getMonth() + 1).padStart(2, "0");
-  const day = String(today.getDate()).padStart(2, "0");
-
-  return `${today.getFullYear()}-${month}-${day}`;
-};
-
-const isAcademicYearFinished = (academicYearEndDate: string) =>
-  getTodayIsoDate() > academicYearEndDate;
 
 const PromoteStudentsButton = ({
   academicYearName,
   academicYearEndDate,
 }: PromoteStudentsButtonProps) => {
+  const t = useTranslations("promotion");
+  const actionsT = useTranslations("actions");
+  const locale = useLocale();
   const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [modalView, setModalView] = useState<"info" | "confirm" | "result">(
@@ -86,7 +80,7 @@ const PromoteStudentsButton = ({
       if (response.success) {
         setResult({
           success: true,
-          message: response.message ?? "Students promoted successfully.",
+          message: response.message ?? t("successFallback"),
           promotedCount: response.promotedCount ?? 0,
           graduatedCount: response.graduatedCount ?? 0,
           repeatedCount: response.repeatedCount ?? 0,
@@ -94,7 +88,7 @@ const PromoteStudentsButton = ({
       } else {
         setResult({
           success: false,
-          message: response.message ?? "Something went wrong!",
+          message: response.message ?? actionsT("somethingWentWrong"),
         });
       }
 
@@ -106,23 +100,24 @@ const PromoteStudentsButton = ({
 
   const title =
     modalView === "info"
-      ? "Academic year is still in progress"
+      ? t("stillInProgress")
       : modalView === "confirm"
-        ? "Confirm student promotion"
+        ? t("confirmTitle")
         : result?.success
-          ? "Promotion completed"
-          : "Promotion could not be completed";
+          ? t("completed")
+          : t("failed");
 
   const body =
     modalView === "info" ? (
       <p className="text-gray-600 text-sm leading-6">
-        The academic year {academicYearName} ends on {formatDate(academicYearEndDate)}.
-        You can update the students once the last day has passed.
+        {t("notFinishedBody", {
+          year: academicYearName,
+          date: formatDate(academicYearEndDate, locale),
+        })}
       </p>
     ) : modalView === "confirm" ? (
       <p className="text-gray-600 text-sm leading-6">
-        The academic year {academicYearName} has finished. Confirm this action to update
-        students based on their final performance results.
+        {t("confirmBody", { year: academicYearName })}
       </p>
     ) : result?.success ? (
       <div className="flex flex-col gap-4">
@@ -130,7 +125,7 @@ const PromoteStudentsButton = ({
         <div className="gap-3 grid grid-cols-1 sm:grid-cols-3">
           <div className="bg-emerald-50 p-4 rounded-lg">
             <p className="text-emerald-700 text-xs uppercase tracking-wide">
-              Promoted
+              {t("promoted")}
             </p>
             <p className="mt-2 font-semibold text-emerald-900 text-2xl">
               {result.promotedCount ?? 0}
@@ -138,7 +133,7 @@ const PromoteStudentsButton = ({
           </div>
           <div className="bg-blue-50 p-4 rounded-lg">
             <p className="text-blue-700 text-xs uppercase tracking-wide">
-              Graduated
+              {t("graduated")}
             </p>
             <p className="mt-2 font-semibold text-blue-900 text-2xl">
               {result.graduatedCount ?? 0}
@@ -146,7 +141,7 @@ const PromoteStudentsButton = ({
           </div>
           <div className="bg-amber-50 p-4 rounded-lg">
             <p className="text-amber-700 text-xs uppercase tracking-wide">
-              Repeated
+              {t("repeated")}
             </p>
             <p className="mt-2 font-semibold text-amber-900 text-2xl">
               {result.repeatedCount ?? 0}
@@ -156,7 +151,7 @@ const PromoteStudentsButton = ({
       </div>
     ) : (
       <p className="text-gray-600 text-sm leading-6">
-        {result?.message ?? "Something went wrong!"}
+        {result?.message ?? actionsT("somethingWentWrong")}
       </p>
     );
 
@@ -164,10 +159,10 @@ const PromoteStudentsButton = ({
     <>
       <button
         type="button"
-        className="bg-academixPurpleDark p-3 rounded-md text-white text-sm"
+        className="hidden md:block bg-academixPurpleDark p-2 rounded-md text-white text-sm transition hover:scale[1.05]"
         onClick={openModal}
       >
-        Update Students Grades
+        {t("button")}
       </button>
 
       {isOpen && (
@@ -175,9 +170,9 @@ const PromoteStudentsButton = ({
           <div className="relative bg-white shadow-lg p-6 rounded-md w-full max-w-lg">
             <button
               type="button"
-              className="top-4 right-4 absolute disabled:opacity-50 text-gray-500 hover:text-gray-800 disabled:cursor-not-allowed"
+              className="top-4 end-4 absolute disabled:opacity-50 text-gray-500 hover:text-gray-800 disabled:cursor-not-allowed"
               onClick={closeModal}
-              aria-label="Close promotion dialog"
+              aria-label={t("close")}
               disabled={isSubmitting}
             >
               <X className="w-4 h-4" />
@@ -186,7 +181,7 @@ const PromoteStudentsButton = ({
             <div className="flex flex-col gap-6">
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wide">
-                  Academic Year
+                  {t("academicYear")}
                 </p>
                 <h2 className="mt-1 font-semibold text-gray-900 text-xl">
                   {academicYearName}
@@ -195,7 +190,7 @@ const PromoteStudentsButton = ({
 
               <div>
                 <p className="text-gray-500 text-xs uppercase tracking-wide">
-                  Status
+                  {t("status")}
                 </p>
                 <h3 className="mt-1 font-medium text-gray-900 text-lg">
                   {title}
@@ -214,10 +209,10 @@ const PromoteStudentsButton = ({
                     {isSubmitting ? (
                       <span className="inline-flex justify-center items-center gap-2">
                         <span className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin" />
-                        Updating...
+                        {t("updating")}
                       </span>
                     ) : (
-                      "Confirm"
+                      t("confirm")
                     )}
                   </button>
                 </div>
@@ -230,7 +225,7 @@ const PromoteStudentsButton = ({
                     className="bg-gray-800 px-4 py-2 rounded-md text-white"
                     onClick={closeModal}
                   >
-                    Ok
+                    {t("ok")}
                   </button>
                 </div>
               )}

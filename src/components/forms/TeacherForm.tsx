@@ -3,14 +3,22 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import InputField from "../InputField";
-import Image from "next/image";
 import { teacherSchema, TeacherSchema } from "@/lib/formValidationSchemas";
-import { startTransition, useEffect, useState } from "react";
+import { useEffect, useTransition, useState } from "react";
 import { createTeacher, updateTeacher } from "@/lib/actions";
 import { useRouter } from "next/navigation";
 import { toast } from "react-toastify";
-import { CldUploadWidget } from "next-cloudinary";
-import { Eye, EyeOff, Search, X } from "lucide-react";
+import {
+  BookOpen,
+  Eye,
+  EyeOff,
+  Search,
+  ShieldCheck,
+  UserRound,
+  X,
+} from "lucide-react";
+import { useTranslations } from "next-intl";
+import ProfileImageUpload from "./ProfileImageUpload";
 
 type TeacherFormState = {
   success: boolean;
@@ -40,6 +48,8 @@ const TeacherForm = ({
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.teacher");
+  const commonT = useTranslations("forms.common");
   const subjects: SubjectOption[] = relatedData?.subjects ?? [];
 
   const buildInitialPairs: SubjectClassPair[] =
@@ -79,9 +89,12 @@ const TeacherForm = ({
     name: "subjectClassPairs",
   }) as SubjectClassPair[] | undefined;
 
+  const [isSubmitting, startTransition] = useTransition();
+
   const onSubmit = handleSubmit((formValues) => {
     const payload = {
       ...formValues,
+      img: img || formValues.img || "",
       password:
         formValues.password === PASSWORD_MASK ? "" : formValues.password,
     };
@@ -95,15 +108,13 @@ const TeacherForm = ({
         );
 
         if (result.success) {
-          toast(
-            `${type === "create" ? "Teacher created" : "Teacher updated"} successfully!`,
-          );
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       })();
     });
   });
@@ -142,132 +153,160 @@ const TeacherForm = ({
   };
 
   return (
-    <form className="flex flex-col gap-4" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">{`${type === "create" ? "Create" : "Update"} Teacher`}</h1>
-      <span className="font-medium text-gray-400 text-xs">
-        Authentication Information
-      </span>
-      <div className="flex flex-wrap justify-between gap-4">
-        <InputField
-          label="Username"
-          name="username"
-          defaultValue={data?.username}
-          register={register}
-          error={errors?.username}
-        />
-        <InputField
-          label="Email"
-          name="email"
-          defaultValue={data?.email}
-          register={register}
-          error={errors?.email}
-        />
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Password</label>
-          <div className="relative">
-            <input
-              type={showPassword ? "text" : "password"}
-              {...register("password")}
-              className="p-2 pr-10 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            />
-            <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              aria-label={showPassword ? "Hide password" : "Show password"}
-              className="top-1/2 right-3 absolute text-gray-500 hover:text-gray-700 -translate-y-1/2"
-            >
-              {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <div>
+        <h1 className="font-bold text-gray-900 text-2xl">
+          {type === "create" ? t("createTitle") : t("updateTitle")}
+        </h1>
+      </div>
+
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
+          <ShieldCheck size={16} />
+          {commonT("authenticationInfo")}
+        </span>
+        <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <InputField
+            label={commonT("username")}
+            name="username"
+            defaultValue={data?.username}
+            register={register}
+            error={errors?.username}
+          />
+          <InputField
+            label={commonT("email")}
+            name="email"
+            defaultValue={data?.email}
+            register={register}
+            error={errors?.email}
+          />
+          <div className="flex flex-col gap-2 w-full">
+            <label className="font-medium text-gray-700 text-sm">
+              {commonT("password")}
+            </label>
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                {...register("password")}
+                className="focus:bg-academixPurpleLight px-4 py-3 pe-10 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all placeholder-gray-400"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={
+                  showPassword
+                    ? commonT("hidePassword")
+                    : commonT("showPassword")
+                }
+                className="top-1/2 end-3 absolute text-gray-400 hover:text-academixPurpleDark transition-colors -translate-y-1/2"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
+            {errors?.password?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.password.message.toString()}
+              </p>
+            )}
           </div>
-          {errors?.password?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.password.message.toString()}
-            </p>
-          )}
         </div>
       </div>
-      <span className="font-medium text-gray-400 text-xs">
-        Personal Information
-      </span>
-      <div className="flex flex-wrap justify-between gap-4">
-        <InputField
-          label="Name"
-          name="name"
-          defaultValue={data?.name}
-          register={register}
-          error={errors.name}
-        />
-        <InputField
-          label="Phone"
-          name="phone"
-          defaultValue={data?.phone}
-          register={register}
-          error={errors.phone}
-        />
-        <InputField
-          label="Address"
-          name="address"
-          defaultValue={data?.address}
-          register={register}
-          error={errors.address}
-        />
-        <InputField
-          label="Blood Type"
-          name="bloodType"
-          defaultValue={data?.bloodType}
-          register={register}
-          error={errors.bloodType}
-        />
-        <InputField
-          label="Birthday"
-          name="birthday"
-          defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
-          register={register}
-          error={errors.birthday}
-          type="date"
-        />
-        {type === "update" && (
-          <input type="hidden" {...register("id")} defaultValue={data?.id} />
-        )}
-        <div className="flex flex-col gap-2 w-full md:w-1/4">
-          <label className="text-gray-500 text-xs">Sex</label>
-          <select
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            {...register("sex")}
-            defaultValue={data?.sex}
-          >
-            <option value="MALE">Male</option>
-            <option value="FEMALE">Female</option>
-          </select>
-          {errors.sex?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.sex.message.toString()}
-            </p>
-          )}
-        </div>
 
-        <div className="flex flex-col gap-3 w-full md:w-3/5 subject-search">
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <span className="inline-flex items-center gap-2 font-semibold text-gray-700 text-sm">
+          <UserRound size={16} />
+          {commonT("personalInfo")}
+        </span>
+        <div className="gap-4 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+          <InputField
+            label={commonT("name")}
+            name="name"
+            defaultValue={data?.name}
+            register={register}
+            error={errors.name}
+          />
+          <InputField
+            label={commonT("phone")}
+            name="phone"
+            defaultValue={data?.phone}
+            register={register}
+            error={errors.phone}
+          />
+          <InputField
+            label={commonT("address")}
+            name="address"
+            defaultValue={data?.address}
+            register={register}
+            error={errors.address}
+          />
+          <InputField
+            label={commonT("bloodType")}
+            name="bloodType"
+            defaultValue={data?.bloodType}
+            register={register}
+            error={errors.bloodType}
+          />
+          <InputField
+            label={commonT("birthday")}
+            name="birthday"
+            defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
+            register={register}
+            error={errors.birthday}
+            type="date"
+          />
+          {type === "update" && (
+            <input type="hidden" {...register("id")} defaultValue={data?.id} />
+          )}
+          <div className="flex flex-col gap-2 w-full">
+            <label className="font-medium text-gray-700 text-sm">
+              {commonT("sex")}
+            </label>
+            <select
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+              {...register("sex")}
+              defaultValue={data?.sex}
+            >
+              <option value="">{commonT("selectSex")}</option>
+              <option value="MALE">{commonT("male")}</option>
+              <option value="FEMALE">{commonT("female")}</option>
+            </select>
+            {errors.sex?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.sex.message.toString()}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <div className="flex flex-col gap-3 w-full subject-search">
           <div className="flex justify-between items-end gap-4">
             <div>
-              <label className="text-gray-500 text-xs">Subjects</label>
-              <p className="text-[11px] text-gray-400">
-                Choose one or more subjects this teacher will teach.
+              <label className="inline-flex items-center gap-2 font-medium text-gray-700 text-sm">
+                <BookOpen size={16} />
+                {t("subjects")}
+              </label>
+              <p className="mt-1 font-medium text-gray-700 text-sm">
+                {t("subjectsHelp")}
               </p>
             </div>
-            <span className="bg-slate-100 px-3 py-1 rounded-full font-medium text-[11px] text-gray-600 text-center">
-              {(subjectClassPairsWatch ?? []).length} selected
+            <span className="bg-academixPurpleLight px-4 py-2 rounded-full font-semibold text-academixPurpleDark text-xs">
+              {commonT("selected", {
+                count: (subjectClassPairsWatch ?? []).length,
+              })}
             </span>
           </div>
 
           <div className="relative">
-            <div className="flex items-center gap-2 bg-white px-4 py-2 border border-gray-200 focus-within:border-blue-400 rounded-xl focus-within:ring-2 focus-within:ring-blue-100">
+            <div className="flex items-center gap-2 bg-white focus-within:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus-within:border-academixPurpleDark rounded-lg focus-within:ring-0 transition-all">
               <input
                 type="search"
                 value={subjectSearch}
                 onChange={(event) => setSubjectSearch(event.target.value)}
-                placeholder="Search subjects..."
-                aria-label="Search subjects"
-                className="bg-transparent outline-none w-full text-sm"
+                placeholder={commonT("searchSubjects")}
+                aria-label={commonT("searchSubjects")}
+                className="bg-transparent outline-none w-full text-sm placeholder-gray-400"
               />
               <button
                 type="button"
@@ -284,36 +323,36 @@ const TeacherForm = ({
                   setFilteredSubjectOptions(results);
                   setShowSubjectDropdown(true);
                 }}
-                className="text-gray-500 hover:text-gray-700"
-                aria-label="Search subjects"
+                className="text-gray-400 hover:text-academixPurpleDark transition-colors"
+                aria-label={commonT("searchSubjects")}
               >
-                <Search className="w-4 h-4" />
+                <Search className="w-5 h-5" />
               </button>
             </div>
 
             {showSubjectDropdown && (
-              <div className="top-full right-0 left-0 z-10 absolute bg-white shadow-lg mt-1 border border-gray-300 rounded-md max-h-56 overflow-y-auto">
+              <div className="top-full inset-x-0 z-10 absolute bg-white shadow-xl mt-2 border border-gray-200 rounded-lg max-h-56 overflow-y-auto">
                 {filteredSubjectOptions.length > 0 ? (
                   filteredSubjectOptions.map((subject) => (
                     <button
                       key={subject.id}
                       type="button"
-                      className="hover:bg-blue-100 px-3 py-2 w-full text-sm text-left"
+                      className="hover:bg-academixPurpleLight px-4 py-3 w-full hover:text-academixPurpleDark text-sm text-start transition-colors"
                       onClick={() => handleSubjectSelect(String(subject.id))}
                     >
                       {subject.name}
                     </button>
                   ))
                 ) : (
-                  <div className="px-3 py-2 text-gray-500 text-sm">
-                    No subjects found
+                  <div className="px-4 py-3 text-gray-500 text-sm">
+                    {commonT("noSubjectsFound")}
                   </div>
                 )}
               </div>
             )}
           </div>
 
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {(subjectClassPairsWatch ?? []).length > 0 ? (
               (subjectClassPairsWatch ?? []).map(
                 (pair: SubjectClassPair, index: number) => {
@@ -322,14 +361,16 @@ const TeacherForm = ({
                   return (
                     <div
                       key={fields[index]?.id ?? pair.subjectId}
-                      className="flex items-center gap-2 bg-blue-100 px-3 py-1 rounded-full text-blue-800 text-sm"
+                      className="flex items-center gap-2 bg-academixPurpleLight px-4 py-2 rounded-full font-medium text-academixPurpleDark text-sm"
                     >
                       <span>{subject?.name ?? pair.subjectId}</span>
                       <button
                         type="button"
                         onClick={() => remove(index)}
-                        className="text-blue-600 hover:text-blue-900"
-                        aria-label={`Remove ${subject?.name ?? "subject"}`}
+                        className="text-academixPurpleDark hover:text-red-500 transition-colors"
+                        aria-label={t("removeSubject", {
+                          subject: subject?.name ?? t("subjects"),
+                        })}
                       >
                         <X size={16} />
                       </button>
@@ -338,68 +379,48 @@ const TeacherForm = ({
                 },
               )
             ) : (
-              <div className="bg-gray-50 px-4 py-3 border border-gray-300 border-dashed rounded-xl text-gray-500 text-sm">
-                No subjects selected yet.
+              <div className="bg-white px-4 py-3 border-2 border-gray-300 border-dashed rounded-lg w-full text-gray-500 text-sm">
+                {t("noSubjectsSelected")}
               </div>
             )}
           </div>
 
           {errors.subjectClassPairs?.message && (
-            <p className="text-red-400 text-xs">
+            <p className="font-medium text-red-500 text-xs">
               {errors.subjectClassPairs.message.toString()}
             </p>
           )}
         </div>
 
-        <input type="hidden" {...register("img")} defaultValue={img} />
-        <CldUploadWidget
-          uploadPreset="school"
-          onSuccess={(result, widget) => {
-            const secureUrl =
-              (result.info as { secure_url?: string })?.secure_url ?? "";
-            setImg(secureUrl);
-            setValue("img", secureUrl, { shouldDirty: true });
-            widget.close();
-          }}
-        >
-          {({ open }) => {
-            return (
-              <div className="flex flex-col gap-2 text-gray-500 text-xs">
-                <div
-                  onClick={() => open()}
-                  className="flex items-center gap-2 cursor-pointer"
-                >
-                  <Image src="/upload.png" alt="" width={28} height={28} />
-                  <span>Upload a photo</span>
-                </div>
-                {img && (
-                  <div className="flex items-end gap-3">
-                    <Image
-                      src={img}
-                      alt="Teacher preview"
-                      width={64}
-                      height={64}
-                      className="border border-gray-200 rounded-md w-16 h-16 object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setImg("");
-                        setValue("img", "", { shouldDirty: true });
-                      }}
-                      className="text-red-400 hover:text-red-600"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          }}
-        </CldUploadWidget>
+        <div className="pt-6 border-gray-200 border-t">
+          <input type="hidden" {...register("img")} defaultValue={img} />
+          <ProfileImageUpload
+            value={img}
+            uploadLabel={t("uploadPhoto")}
+            previewAlt={t("previewAlt")}
+            photoUploadedLabel={commonT("photoUploaded")}
+            removePhotoLabel={commonT("removePhoto")}
+            errorMessage={commonT("somethingWentWrong")}
+            onChange={(secureUrl) => {
+              setImg(secureUrl);
+              setValue("img", secureUrl, {
+                shouldDirty: true,
+                shouldValidate: true,
+              });
+            }}
+          />
+        </div>
       </div>
-      <button className="bg-blue-400 p-2 rounded-md text-white">
-        {type === "create" ? "Create" : "Update"}
+
+      <button
+        disabled={isSubmitting}
+        className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
+      >
+        {isSubmitting
+          ? commonT("submitting")
+          : type === "create"
+            ? t("create")
+            : t("update")}
       </button>
     </form>
   );

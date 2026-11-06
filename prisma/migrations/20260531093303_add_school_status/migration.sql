@@ -1,0 +1,3 @@
+-- This migration is intentionally empty.
+-- The school status fields were already introduced by
+-- 20260525120734_add_notifications in the merged migration history.

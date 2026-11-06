@@ -20,20 +20,23 @@ const InputField = ({
   inputProps,
 }: InputFieldProps) => {
   return (
-    <div className="flex flex-col gap-2 w-full md:w-1/3">
-      <label className="text-gray-500 text-xs">{label}</label>
+    <div className="flex flex-col gap-2 w-full">
+      <label className="font-medium text-gray-700 text-sm">{label}</label>
       <input
         type={type}
         {...register(name)}
-        className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
+        className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all placeholder-gray-400"
         {...inputProps}
         defaultValue={defaultValue}
       />
       {error?.message && (
-        <p className="text-red-400 text-xs">{error.message.toString()}</p>
+        <p className="font-medium text-red-500 text-xs">
+          {error.message.toString()}
+        </p>
       )}
     </div>
   );
 };
 
 export default InputField;
+

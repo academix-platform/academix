@@ -1,25 +1,73 @@
 "use client";
 
-import { Search, MessageCircle, Bell } from "lucide-react";
+import {
+  Menu,
+  MessageCircle,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+} from "lucide-react";
+import NotificationBell from "./NotificationBell";
 import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
 import UserAvatarMenu from "./UserAvatarMenu";
 import { AuthUser } from "@/lib/auth";
+import Link from "next/link";
+import LanguageSwitcher from "./LanguageSwitcher";
+import { useLocale, useTranslations } from "next-intl";
 
 type NavbarProps = {
   authUser: AuthUser | null;
   schoolName: string | null;
+  isMenuCollapsed?: boolean;
+  onMenuClick?: () => void;
+  onMenuCollapseToggle?: () => void;
 };
 
-const Navbar = ({ authUser, schoolName }: NavbarProps) => {
+const Navbar = ({
+  authUser,
+  schoolName,
+  isMenuCollapsed = false,
+  onMenuClick,
+  onMenuCollapseToggle,
+}: NavbarProps) => {
+  const locale = useLocale();
+  const t = useTranslations("navbar");
+  const roleT = useTranslations("roles");
   const { user, isLoaded } = useUser();
+  const [messageCount, setMessageCount] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
 
-  const fallbackName = "User";
+  useEffect(() => {
+    const fetchMessageCount = async () => {
+      try {
+        const response = await fetch("/api/messages/count");
+        if (response.ok) {
+          const data = await response.json();
+          setMessageCount(data.count);
+        }
+      } catch (error) {
+        console.error("Failed to fetch message count:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (authUser) {
+      fetchMessageCount();
+    }
+  }, [authUser]);
+
+  const fallbackName = t("userFallback");
   const fallbackRole = authUser?.role ?? null;
 
   const fullName =
     (isLoaded && user?.fullName) ||
     (isLoaded && [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
+    authUser?.displayName ||
     fallbackName;
+  const imageUrl = authUser?.profileImageUrl || (isLoaded ? user?.imageUrl : undefined);
 
   const role =
     (isLoaded &&
@@ -27,9 +75,11 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
         null)) ||
     fallbackRole;
 
-  const formattedRole = role
-    ? role.charAt(0).toUpperCase() + role.slice(1)
-    : "";
+  const formattedRole = role ? roleT(role) : "";
+  const normalizedRole = role?.toLowerCase().replace(/[\s_]/g, "");
+  const canViewMessages =
+    normalizedRole !== "admin" && normalizedRole !== "superadmin";
+  const isRtl = locale === "ar";
 
   const initials =
     fullName
@@ -40,51 +90,75 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
       .join("") || "U";
 
   return (
-    <div className="flex justify-between items-center p-4">
+    <div className="flex items-center justify-between gap-2 p-3 sm:gap-4 sm:p-4">
       {/* SEARCH */}
-      <div className="flex items-center gap-4 text-xs">
-        {schoolName && (
-          <span className="ml-2 font-bold text-academixPurpleDark text-lg whitespace-nowrap">
-            {schoolName}
-          </span>
+      <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+        {onMenuClick && (
+          <button
+            type="button"
+            aria-label={t("openMenu")}
+            onClick={onMenuClick}
+            className="lg:hidden flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/80 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
         )}
-
-        <div className="hidden md:flex items-center gap-4 px-3 py-1 rounded-full ring-[1.5px] ring-gray-300 text-xs">
-          <Search className="w-4 h-4 text-gray-500" />
-
-          <input
-            type="text"
-            placeholder="Search..."
-            className="bg-transparent outline-none w-[140px]"
-          />
-        </div>
+        {onMenuCollapseToggle && (
+          <button
+            type="button"
+            aria-label={isMenuCollapsed ? t("expandMenu") : t("collapseMenu")}
+            onClick={onMenuCollapseToggle}
+            className="hidden lg:flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/70 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+          >
+            {isRtl ? (
+              isMenuCollapsed ? (
+                <PanelRightOpen className="w-5 h-5" />
+              ) : (
+                <PanelRightClose className="w-5 h-5" />
+              )
+            ) : isMenuCollapsed ? (
+              <PanelLeftOpen className="w-5 h-5" />
+            ) : (
+              <PanelLeftClose className="w-5 h-5" />
+            )}
+          </button>
+        )}
+        {schoolName && authUser?.role !== "superAdmin" && (
+          <div className="ms-0 flex min-w-0 items-center gap-3 rounded-md bg-gradient-to-r from-academixYellow via-academixYellow/50 to-academixYellow/30 px-3 py-2 text-xs sm:ms-2 sm:px-4 sm:py-3">
+            <span className="min-w-0 truncate text-[13px] font-bold uppercase text-academixPurpleDeep sm:text-[16px]">
+              {schoolName}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* RIGHT */}
-      <div className="flex justify-end items-center gap-6 w-full">
-        <div className="flex items-center gap-2">
-          <button
-            aria-label="Messages"
-            className="flex justify-center items-center bg-white rounded-full w-7 h-7"
-          >
-            <MessageCircle className="w-5 h-5 text-gray-600" />
-          </button>
+      <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-4 lg:gap-6">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <LanguageSwitcher />
 
-          <button
-            aria-label="Notifications"
-            className="relative flex justify-center items-center bg-white rounded-full w-7 h-7"
-          >
-            <Bell className="w-5 h-5 text-gray-600" />
-            <div className="-top-3 -right-3 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs">
-              1
-            </div>
-          </button>
+          {canViewMessages && (
+            <Link
+              href="/list/messages"
+              aria-label={t("messages")}
+              className="relative w-7 h-7"
+            >
+              <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
+              {messageCount > 0 && (
+                <div className="-top-2.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs -end-1.5">
+                  {messageCount > 99 ? "99+" : messageCount}
+                </div>
+              )}
+            </Link>
+          )}
+
+          {authUser?.role !== "superAdmin" && <NotificationBell />}
         </div>
 
         {/* USER INFO */}
-        <div className="flex flex-col">
+        <div className="hidden sm:flex flex-col">
           <span className="font-medium text-xs leading-3">{fullName}</span>
-          <span className="text-[10px] text-gray-500 text-right">
+          <span className="text-[10px] text-gray-500 text-end">
             {formattedRole}
           </span>
         </div>
@@ -93,7 +167,7 @@ const Navbar = ({ authUser, schoolName }: NavbarProps) => {
           fullName={fullName}
           role={formattedRole}
           initials={initials}
-          imageUrl={isLoaded ? user?.imageUrl : undefined}
+          imageUrl={imageUrl}
         />
       </div>
     </div>

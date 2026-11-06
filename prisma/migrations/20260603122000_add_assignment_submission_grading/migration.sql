@@ -1,0 +1,5 @@
+ALTER TABLE "AssignmentSubmission"
+ADD COLUMN "score" DOUBLE PRECISION,
+ADD COLUMN "gradePublished" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN "gradedAt" TIMESTAMP(3),
+ADD COLUMN "gradedBy" TEXT;

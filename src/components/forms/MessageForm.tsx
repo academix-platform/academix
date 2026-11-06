@@ -10,6 +10,7 @@ import { messageSchema, MessageSchema } from "@/lib/formValidationSchemas";
 import InputField from "../InputField";
 import MessageClassSelector from "./message/MessageClassSelector";
 import RecipientPicker from "./message/RecipientPicker";
+import { useTranslations } from "next-intl";
 
 const EMPTY_STRING_ARRAY: string[] = [];
 const EMPTY_CLASS_ARRAY: Array<string | number> = [];
@@ -25,6 +26,9 @@ const MessageForm = ({
   setOpen: Dispatch<SetStateAction<boolean>>;
   relatedData?: any;
 }) => {
+  const t = useTranslations("forms.message");
+  const commonT = useTranslations("forms.common");
+  const actionsT = useTranslations("actions");
   const {
     register,
     handleSubmit,
@@ -64,17 +68,15 @@ const MessageForm = ({
         );
 
         if (result.success) {
-          toast(
-            `Message has been ${type === "create" ? "created" : "updated"}!`,
-          );
+          toast(type === "create" ? t("created") : t("updated"));
           setOpen(false);
           router.refresh();
           return;
         }
 
-        toast.error(result.message ?? "Something went wrong!");
+        toast.error(result.message ?? commonT("somethingWentWrong"));
       } catch {
-        toast.error("Something went wrong!");
+        toast.error(commonT("somethingWentWrong"));
       }
     });
   });
@@ -146,33 +148,39 @@ const MessageForm = ({
   }, [selectedClassIdsAsNumbers, teachers]);
 
   return (
-    <form className="flex flex-col gap-8" onSubmit={onSubmit}>
-      <h1 className="font-semibold text-xl">
-        {type === "create" ? "Create a new message" : "Update the message"}
+    <form className="flex flex-col gap-6" onSubmit={onSubmit}>
+      <h1 className="font-bold text-gray-900 text-2xl">
+        {type === "create" ? t("createTitle") : t("updateTitle")}
       </h1>
 
       {type === "update" && (
         <input type="hidden" {...register("id")} defaultValue={data?.id} />
       )}
 
-      <div className="flex flex-wrap justify-between gap-4">
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
         {type === "create" && (
           <>
             <input type="hidden" {...register("classIds")} />
-            <MessageClassSelector
-              classes={classes}
-              selectedClassIds={selectedClassIdsAsNumbers}
-              onChange={(nextClassIds) =>
-                setValue("classIds", nextClassIds, {
-                  shouldDirty: true,
-                  shouldValidate: true,
-                })
-              }
-            />
+            <span className="block font-semibold text-gray-700 text-sm">
+              {t("recipients")}
+            </span>
 
-            <div className="flex flex-wrap justify-between items-center gap-2 w-full">
+            <div className="gap-4 grid grid-cols-1 lg:grid-cols-3">
+              <div className="lg:col-span-3">
+                <MessageClassSelector
+                  classes={classes}
+                  selectedClassIds={selectedClassIdsAsNumbers}
+                  onChange={(nextClassIds) =>
+                    setValue("classIds", nextClassIds, {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    })
+                  }
+                />
+              </div>
+
               <RecipientPicker
-                label="Student recipients"
+                label={t("studentRecipients")}
                 items={eligibleStudents}
                 selectedIds={selectedStudentIds}
                 onChange={(nextIds) =>
@@ -184,7 +192,7 @@ const MessageForm = ({
               />
 
               <RecipientPicker
-                label="Parent recipients"
+                label={t("parentRecipients")}
                 items={eligibleParents}
                 selectedIds={selectedParentIds}
                 onChange={(nextIds) =>
@@ -196,7 +204,7 @@ const MessageForm = ({
               />
 
               <RecipientPicker
-                label="Teacher recipients"
+                label={t("teacherRecipients")}
                 items={eligibleTeachers}
                 selectedIds={selectedTeacherIds}
                 onChange={(nextIds) =>
@@ -219,43 +227,58 @@ const MessageForm = ({
           </>
         )}
 
-        <InputField
-          label="Message Title"
-          name="title"
-          defaultValue={data?.title}
-          register={register}
-          error={errors?.title}
-          inputProps={{ placeholder: "e.g. Reminder" }}
-        />
+        <span className="block font-semibold text-gray-700 text-sm">
+          {t("content")}
+        </span>
+        <div className="flex items-center gap-4">
+          <div className="lg:col-span-1">
+            <InputField
+              label={t("title")}
+              name="title"
+              defaultValue={data?.title}
+              register={register}
+              error={errors?.title}
+              inputProps={{ placeholder: t("titlePlaceholder") }}
+            />
+          </div>
 
-        <div className="flex flex-col gap-2 w-full">
-          <label className="text-gray-500 text-xs">Description</label>
-          <textarea
-            {...register("description")}
-            defaultValue={data?.description}
-            rows={4}
-            className="p-2 rounded-md ring-[1.5px] ring-gray-300 w-full text-sm"
-            placeholder="Message details"
-          />
-          {errors.description?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.description.message.toString()}
-            </p>
-          )}
-          {errors.studentIds?.message && (
-            <p className="text-red-400 text-xs">
-              {errors.studentIds.message.toString()}
-            </p>
-          )}
+          <div className="flex flex-col gap-2 lg:col-span-2 w-full">
+            <label className="font-medium text-gray-700 text-sm">
+              {commonT("description")}
+            </label>
+            <textarea
+              {...register("description")}
+              defaultValue={data?.description}
+              rows={4}
+              className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+              placeholder={t("descriptionPlaceholder")}
+            />
+            {errors.description?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.description.message.toString()}
+              </p>
+            )}
+            {errors.studentIds?.message && (
+              <p className="font-medium text-red-500 text-xs">
+                {errors.studentIds.message.toString()}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
-      <button
-        className="bg-blue-400 disabled:opacity-60 p-2 rounded-md text-white"
-        disabled={isSubmitting}
-      >
-        {type === "create" ? "Create" : "Update"}
-      </button>
+      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
+        <button
+          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
+          disabled={isSubmitting}
+        >
+          {isSubmitting
+            ? commonT("submitting")
+            : type === "create"
+              ? actionsT("create")
+              : actionsT("update")}
+        </button>
+      </div>
     </form>
   );
 };

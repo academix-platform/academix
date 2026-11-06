@@ -1,5 +1,6 @@
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { syncAutoGrades } from "@/lib/actions/examWorkflow.actions";
+import { examGroupWhere, teacherExamAccessWhere } from "@/lib/exams/group";
+import { syncAutoGrades } from "@/lib/exams/grading";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import GradeClient from "./GradeClient";
@@ -20,29 +21,49 @@ const GradeSubmissionPage = async ({
   if (isNaN(examId) || isNaN(submissionId)) redirect("/list/exams");
 
   // Check that the teacher owns the exam
-  const exam = await prisma.exam.findFirst({
+  const urlExam = await prisma.exam.findFirst({
     where: {
       id: examId,
       schoolId,
-      ...(role === "teacher"
-        ? { lesson: { teacherId: userId } }
-        : {}),
+      ...(role === "teacher" ? teacherExamAccessWhere(userId) : {}),
     },
-    select: { id: true, title: true },
+    select: { id: true, title: true, groupId: true },
   });
 
-  if (!exam) redirect("/list/exams");
+  if (!urlExam) redirect("/list/exams");
+
+  // Find all exams in the same group
+  const groupExams = await prisma.exam.findMany({
+    where: examGroupWhere(urlExam.groupId, { userId, role, schoolId }),
+    select: { id: true },
+  });
+  const allowedExamIds = groupExams.map((e) => e.id);
+
+  // Authorise the submission before re-scoring it.
+  const allowedSubmission = await prisma.submission.findFirst({
+    where: { id: submissionId, examId: { in: allowedExamIds }, schoolId },
+    select: { status: true },
+  });
+
+  if (!allowedSubmission || allowedSubmission.status === "IN_PROGRESS") {
+    redirect(`/list/exams/${examId}/submissions`);
+  }
 
   await syncAutoGrades(submissionId);
 
   // Load the submission with its answers
   const submission = await prisma.submission.findFirst({
-    where: { id: submissionId, examId, schoolId },
+    where: {
+      id: submissionId,
+      examId: { in: allowedExamIds },
+      schoolId,
+    },
     include: {
       student: { select: { name: true, username: true } },
       answers: {
         include: {
           question: true,
+          aiEvaluation: true,
         },
       },
     },
@@ -58,7 +79,7 @@ const GradeSubmissionPage = async ({
     <GradeClient
       submission={submission}
       answers={submission.answers}
-      examTitle={exam.title}
+      examTitle={urlExam.title}
       examId={examId}
     />
   );

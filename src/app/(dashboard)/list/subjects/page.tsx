@@ -1,149 +1,55 @@
+import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
-import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
+import { buildSubjectQuery } from "@/lib/query-builders/subject-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
-import { Prisma, Subject, Teacher } from "@prisma/client";
+import { Subject, Teacher } from "@prisma/client";
+import type { PageSearchParams } from "@/lib/pageParams";
+import Link from "next/link";
+import { BookText } from "lucide-react";
 
 type SubjectList = Subject & {
   teachers: Teacher[];
   grade: { id: number; level: number } | null;
 };
 
-const getColumns = (role: UserRole | null) => [
-  {
-    header: "Subject Name",
-    accessor: "name",
-  },
-  {
-    header: "Grade",
-    accessor: "grade",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: "Teachers",
-    accessor: "teachers",
-    className: "hidden md:table-cell",
-  },
-  {
-    header: role === "admin" ? "Actions" : "",
-    accessor: "action",
-  },
-];
-
-const renderRow = (item: SubjectList, role: UserRole | null) => (
-  <tr
-    key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
-  >
-    <td className="flex items-center gap-4 p-4">{item.name}</td>
-    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
-    <td className="hidden md:table-cell">
-      {item.teachers.map((t) => t.name).join(", ")}
-    </td>
-    <td>
-      <div className="flex items-center gap-2">
-        {role === "admin" && (
-          <>
-            <FormContainer table="subject" type="update" data={item} />
-            <FormContainer table="subject" type="delete" id={item.id} />
-          </>
-        )}
-      </div>
-    </td>
-  </tr>
-);
 const SubjectListPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
+  const t = await getTranslations("pages");
+  const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
+
+  const {
+    query,
+    orderBy,
+    page: p,
+  } = await buildSubjectQuery({
+    searchParams,
+    schoolId,
+    role,
+    userId,
+  });
+
   const resolvedSearchParams = await searchParams;
-  const { page, ...queryParams } = resolvedSearchParams;
-  const currentPage = getQueryParam(page);
-  const p = currentPage ? parseInt(currentPage) : 1;
 
-  const query: Prisma.SubjectWhereInput = { schoolId };
-  const conditions: Prisma.SubjectWhereInput[] = [];
-  if (queryParams) {
-    for (const [key, rawValue] of Object.entries(queryParams)) {
-      const value = getQueryParam(rawValue);
-
-      if (value !== undefined) {
-        switch (key) {
-          case "search":
-            conditions.push({
-              name: { contains: value, mode: "insensitive" },
-            });
-            break;
-        }
+  const exportQuery = new URLSearchParams(
+    Object.entries(resolvedSearchParams).flatMap(([key, value]) => {
+      if (Array.isArray(value)) {
+        return value.map((item) => [key, item]);
       }
-    }
-  }
-
-  // ROLE CONDITIONS
-  switch (role) {
-    case "admin":
-      break;
-
-    case "teacher":
-      if (!userId) throw new Error("Unauthorized");
-
-      conditions.push({
-        teachers: {
-          some: { id: userId },
-        },
-      });
-      break;
-
-    case "student":
-      if (!userId) throw new Error("Unauthorized");
-
-      const student = await prisma.student.findUnique({
-        where: { id: userId },
-        select: { gradeId: true },
-      });
-
-      if (student?.gradeId) {
-        conditions.push({
-          gradeId: student.gradeId,
-        });
-      }
-      break;
-
-    case "parent":
-      if (!userId) throw new Error("Unauthorized");
-
-      const children = await prisma.student.findMany({
-        where: { parentId: userId },
-        select: { gradeId: true },
-      });
-
-      const gradeIds = children.map((c) => c.gradeId);
-
-      if (gradeIds.length > 0) {
-        conditions.push({
-          gradeId: { in: gradeIds },
-        });
-      } else {
-        conditions.push({ id: -1 });
-      }
-
-      break;
-
-    default:
-      break;
-  }
-
-  if (conditions.length > 0) {
-    query.AND = conditions;
-  }
+      return value ? [[key, value]] : [];
+    }),
+  );
 
   const [data, count] = await prisma.$transaction([
     prisma.subject.findMany({
@@ -152,36 +58,115 @@ const SubjectListPage = async ({
         teachers: true,
         grade: true,
       },
-      orderBy: { name: "asc" },
+      orderBy,
       take: ITEM_PER_PAGE,
       skip: (p - 1) * ITEM_PER_PAGE,
     }),
-    prisma.subject.count({
-      where: query,
-    }),
+    prisma.subject.count({ where: query }),
   ]);
+  const grades =
+    role === "admin"
+      ? await prisma.grade.findMany({
+          where: { schoolId },
+          select: { id: true, level: true },
+          orderBy: { level: "asc" },
+        })
+      : [];
+
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex justify-between items-center">
-        <h1 className="hidden md:block font-semibold text-lg">All Subjects</h1>
-        <div className="flex md:flex-row flex-col items-center gap-4 w-full md:w-auto">
+      <div className="flex flex-wrap justify-between items-center gap-4">
+        <h1 className="font-semibold text-lg">{t("allSubjects")}</h1>
+
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
           <TableSearch />
-          <div className="flex items-center self-end gap-4">
-            <FilterSortActions />
+          {role === "admin" && <GradeFilter grades={grades} />}
+
+          <div className="flex items-center self-end gap-2">
+            <FilterSortActions sortKey="sort" />
+
             {role === "admin" && (
-              <FormContainer table="subject" type="create" />
+              <>
+                <ExportButton
+                  href={`/api/admin/subjects/export?${exportQuery.toString()}`}
+                />
+                <FormContainer table="subject" type="create" />
+              </>
             )}
           </div>
         </div>
       </div>
-      {/* LIST */}
-      <Table
-        columns={getColumns(role)}
-        renderRow={(item) => renderRow(item, role)}
-        data={data}
-      />
-      {/* PAGINATION */}
+
+      {data.length === 0 ? (
+        <div className="flex flex-col justify-center items-center bg-gray-50 mt-6 p-10 rounded-xl text-center">
+          <h3 className="font-semibold text-gray-700 text-base">
+            {emptyT("subjects")}
+          </h3>
+          <p className="mt-1 text-gray-400 text-sm">
+            {emptyT("filterDescription")}
+          </p>
+        </div>
+      ) : (
+        <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
+          {data.map((item: SubjectList) => (
+            <article
+              key={item.id}
+              className="group relative flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 rounded-xl min-h-[150px] transition-shadow"
+            >
+              <Link
+                href={`/list/subjects/${item.id}`}
+                aria-label={item.name}
+                className="absolute inset-0 z-0 rounded-xl"
+              />
+
+              <div className="z-10 relative space-y-8 pointer-events-none">
+                <div className="flex justify-between items-start">
+                  {" "}
+                  <div className="flex items-center gap-1 font-semibold text-white group-hover:text-purple-600 text-lg transition-colors">
+                    <BookText className="inline mr-1 w-5 h-5" />
+                    {item.name}
+                  </div>
+                  {role === "admin" && (
+                    <div className="flex items-center gap-2 pointer-events-auto">
+                      <FormContainer
+                        table="subject"
+                        type="update"
+                        data={item}
+                      />
+                      <FormContainer
+                        table="subject"
+                        type="delete"
+                        id={item.id}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <p className="text-black text-sm">
+                    Grade:{" "}
+                    <span className="font-medium text-gray-700">
+                      {item.grade?.level ?? "-"}
+                    </span>
+                  </p>
+
+                  <p className="text-black text-sm line-clamp-2">
+                    Teachers:{" "}
+                    <span className="font-medium text-gray-700">
+                      {item.teachers.length > 0
+                        ? item.teachers
+                            .map((teacher) => teacher.name)
+                            .join(", ")
+                        : "-"}
+                    </span>
+                  </p>
+                </div>
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
       <Pagination page={p} count={count} />
     </div>
   );

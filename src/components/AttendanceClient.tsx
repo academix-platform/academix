@@ -1,9 +1,12 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { toast } from "react-toastify";
+import { Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { saveDailyAttendance } from "@/lib/actions";
+import EmptyState from "@/components/states/EmptyState";
+import { useTranslations } from "next-intl";
 
 const AttendanceClient = ({
   data,
@@ -18,32 +21,79 @@ const AttendanceClient = ({
   hasAttendance: boolean;
   scope: "students" | "teachers";
 }) => {
+  const t = useTranslations("attendance");
+  const filtersT = useTranslations("filters");
+  const actionsT = useTranslations("actions");
   const router = useRouter();
 
   const [changes, setChanges] = useState<Record<string, boolean>>({});
+  const handledResultRef = useRef<string | null>(null);
 
-  const [state, formAction] = useActionState(saveDailyAttendance, {
-    success: false,
-    error: false,
-    message: "",
-  });
+  const [state, formAction, isPending] = useActionState(
+    async (prev: Awaited<ReturnType<typeof saveDailyAttendance>>, formData: FormData) => {
+      const result = await saveDailyAttendance(prev, formData);
+      if (result.success) setChanges({});
+      return result;
+    },
+    { success: false, error: false, message: "" },
+  );
 
   useEffect(() => {
-    if (state.success) {
-      toast.success(state.message || "Attendance saved");
-      router.refresh();
+    if (isPending) {
+      handledResultRef.current = null;
+      return;
     }
 
-    if (state.error) {
-      toast.error(state.message || "Something went wrong");
+    const resultKey = `${state.success}:${state.error}:${state.message}`;
+    if (handledResultRef.current === resultKey) {
+      return;
     }
-  }, [state, router]);
+
+    handledResultRef.current = resultKey;
+
+    if (state.success) {
+      toast.success(state.message || t("saved"));
+      router.refresh();
+    } else if (state.error) {
+      toast.error(state.message || actionsT("somethingWentWrong"));
+    }
+  }, [
+    state.success,
+    state.error,
+    state.message,
+    isPending,
+    router,
+    t,
+    actionsT,
+  ]);
+
+  if (data.length === 0) {
+    return (
+      <EmptyState
+        title={
+          hasAttendance
+            ? t("noRecordsPage")
+            : t("noScopeFound", { scope: filtersT(scope) })
+        }
+        description={hasAttendance ? t("tryAnotherPage") : t("noRecordsDate")}
+      />
+    );
+  }
 
   return (
     <form action={formAction} className="flex flex-col gap-4 mt-4">
       <input type="hidden" name="date" value={selectedDate} />
       <input type="hidden" name="scope" value={scope} />
-      <input type="hidden" name="changes" value={JSON.stringify(changes)} />
+      {/* Every row on the page, so people shown as absent are saved too. */}
+      <input
+        type="hidden"
+        name="records"
+        value={JSON.stringify(
+          Object.fromEntries(
+            data.map((item) => [item.id, changes[item.id] ?? item.present]),
+          ),
+        )}
+      />
       <table className="w-full">
         <tbody>
           {data.map((item) => {
@@ -72,7 +122,7 @@ const AttendanceClient = ({
                           checked ? "text-green-600" : "text-red-600"
                         }`}
                       >
-                        {checked ? "Present" : "Absent"}
+                        {checked ? t("present") : t("absent")}
                       </span>
                     </>
                   ) : (
@@ -83,7 +133,7 @@ const AttendanceClient = ({
                           : "bg-red-100 text-red-700"
                       }`}
                     >
-                      {item.present ? "Present" : "Absent"}
+                      {item.present ? t("present") : t("absent")}
                     </span>
                   )}
                 </td>
@@ -93,8 +143,15 @@ const AttendanceClient = ({
         </tbody>
       </table>
       {isToday && (
-        <button className="bg-academixPurpleDark px-4 py-2 rounded-md w-max text-white">
-          Save Attendance
+        <button
+          type="submit"
+          disabled={isPending}
+          className="bg-academixPurpleDark disabled:opacity-70 px-2 py-2 rounded-md w-max text-white disabled:cursor-not-allowed"
+        >
+          <span className="inline-flex items-center gap-2">
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isPending ? actionsT("saving") : t("save")}
+          </span>
         </button>
       )}
     </form>

@@ -3,8 +3,12 @@ import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
+import Link from "next/link";
+import { getTranslations } from "next-intl/server";
 
 const Announcements = async () => {
+  const t = await getTranslations("pages");
+  const widgetsT = await getTranslations("widgets");
   const user = await requireAuth();
   const { role, userId, schoolId } = user;
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
@@ -39,8 +43,13 @@ const Announcements = async () => {
   return (
     <div className="bg-white p-4 rounded-md">
       <div className="flex justify-between items-center">
-        <h1 className="font-semibold text-xl">Announcements</h1>
-        <span className="text-gray-400 text-xs">View All</span>
+        <h1 className="font-semibold text-xl">{t("announcements")}</h1>
+        <Link
+          href="/list/announcements"
+          className="text-gray-400 text-xs hover:underline transition"
+        >
+          {widgetsT("viewAll")}
+        </Link>
       </div>
       <div className="flex flex-col gap-4 mt-4">
         {data[0] && (

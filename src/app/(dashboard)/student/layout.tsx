@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getAuthUser, requireRole } from "@/lib/auth";
+import { enforceAdminSchoolAccess, getAuthUser, requireRole } from "@/lib/auth";
 
 export default async function StudentLayout({
   children,
@@ -13,6 +13,7 @@ export default async function StudentLayout({
   }
 
   requireRole(user, ["student"]);
+  await enforceAdminSchoolAccess(user);
 
   return <>{children}</>;
 }

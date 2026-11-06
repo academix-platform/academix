@@ -1,45 +1,39 @@
-import { requireAuth } from "@/lib/auth";
-import prisma from "@/lib/prisma";
 import { UserRole } from "@/lib/utils";
-import { MoreHorizontal } from "lucide-react";
+import { ShieldCheck, GraduationCap, Users, UserRound } from "lucide-react";
+import { getTranslations } from "next-intl/server";
 
-const UserCard = async ({ type }: { type: UserRole }) => {
-  const user = requireAuth();
+type SchoolDashboardRole = Exclude<UserRole, "superAdmin">;
 
-  const countByRole: Record<UserRole, () => Promise<number>> = {
-    admin: async () =>
-      prisma.admin.count({
-        where: { schoolId: (await user).schoolId },
-      }),
+const roleIconMap: Record<SchoolDashboardRole, React.ReactNode> = {
+  admin: <ShieldCheck className="opacity-80 w-6 h-6 text-black" />,
+  teacher: <GraduationCap className="opacity-80 w-6 h-6 text-black" />,
+  student: <UserRound className="opacity-80 w-6 h-6 text-black" />,
+  parent: <Users className="opacity-80 w-6 h-6 text-black" />,
+};
 
-    teacher: async () =>
-      prisma.teacher.count({
-        where: { schoolId: (await user).schoolId },
-      }),
+type UserCardProps = {
+  type: SchoolDashboardRole;
+  count: number;
+  currentYearName?: string | null;
+};
 
-    student: async () =>
-      prisma.student.count({
-        where: { schoolId: (await user).schoolId },
-      }),
-
-    parent: async () =>
-      prisma.parent.count({
-        where: { schoolId: (await user).schoolId },
-      }),
-  };
-
-  const data = await countByRole[type]();
+const UserCard = async ({ type, count, currentYearName }: UserCardProps) => {
+  const t = await getTranslations("dashboardCards");
 
   return (
-    <div className="flex-1 even:bg-academixYellow odd:bg-academixPurple p-4 rounded-2xl min-w-[130px]">
+    <div className="even:bg-amber-300 odd:bg-academixPurpleDark/60 p-4 rounded-2xl">
       <div className="flex justify-between items-center">
-        <span className="bg-white px-2 py-1 rounded-full text-[10px] text-green-600">
-          2024/25
-        </span>
-        <MoreHorizontal className="w-5 h-5 text-gray-500" />
+        {currentYearName && (
+          <span className="bg-white px-2 py-1 rounded-full text-[10px] text-green-600">
+            {currentYearName}
+          </span>
+        )}
+        <div>{roleIconMap[type]}</div>
       </div>
-      <h1 className="my-4 font-semibold text-2xl">{data}</h1>
-      <h2 className="font-medium text-gray-500 text-sm capitalize">{type}s</h2>
+      <div className="flex md:flex-col items-center md:items-start gap-4 mt-4">
+        <p className="font-semibold text-2xl">{count}</p>
+        <p className="font-medium text-sm">{t(type)}</p>
+      </div>
     </div>
   );
 };

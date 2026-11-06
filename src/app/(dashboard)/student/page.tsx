@@ -1,8 +1,10 @@
 import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
+import EmptyState from "@/components/states/EmptyState";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 const StudentPage = async ({
   searchParams,
@@ -10,6 +12,8 @@ const StudentPage = async ({
   searchParams: Promise<{ [key: string]: string }>;
 }) => {
   const user = requireAuth();
+  const t = await getTranslations("sidebar.items");
+  const statesT = await getTranslations("states");
 
   const studentClass = await prisma.class.findFirst({
     where: {
@@ -30,18 +34,22 @@ const StudentPage = async ({
       {/* LEFT */}
       <div className="w-full xl:w-2/3">
         <div className="bg-white p-4 rounded-md h-full">
-          <h1 className="font-semibold text-xl">Schedule</h1>
+          <h1 className="font-semibold text-xl">{t("schedules")}</h1>
 
           {classId ? (
             <BigCalendarContainer type="classId" id={classId} />
           ) : (
-            <div>No class found</div>
+            <EmptyState
+              title={statesT("noClassAssigned")}
+              description={statesT("selectedStudentNoClass")}
+              className="py-8"
+            />
           )}
         </div>
       </div>
 
       {/* RIGHT */}
-      <div className="flex flex-col gap-8 w-full xl:w-1/3">
+      <div className="flex flex-col justify-between w-full lg:w-1/3">
         <EventCalendarContainer searchParams={searchParams} />
         <Announcements />
       </div>

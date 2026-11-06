@@ -23,6 +23,8 @@ const AttendanceClassSelect = ({
         newParams.set("classId", e.target.value);
         newParams.set("scope", "students");
         newParams.set("date", selectedDate);
+        // A new class starts on its first page.
+        newParams.delete("page");
 
         router.push(`/list/attendance?${newParams.toString()}`);
       }}

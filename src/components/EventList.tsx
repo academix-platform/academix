@@ -2,9 +2,11 @@ import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { getAuthUser, requireAuth } from "@/lib/auth";
+import { getTranslations } from "next-intl/server";
 
 const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   const user = requireAuth();
+  const t = await getTranslations("widgets");
 
   const baseDate = dateParam ? new Date(dateParam) : new Date();
 
@@ -23,7 +25,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
   endOfDay.setHours(23, 59, 59, 999);
 
   const data = await prisma.event.findMany({
-    take: 3,
+    take: 1,
     orderBy: { startDate: "desc" },
     where: {
       schoolId: (await user).schoolId,
@@ -34,6 +36,13 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
       },
     },
   });
+  if (data.length === 0) {
+    return (
+      <div className="p-4 rounded-md text-center">
+        <p className="text-gray-500 text-sm">{t("noEventsForDay")}</p>
+      </div>
+    );
+  }
 
   return (
     <div>
