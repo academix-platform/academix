@@ -1,97 +1,13 @@
 import { describe, expect, it } from "vitest";
-import {
-  ManualResultDb,
-  hasOnlineSubmission,
-  resolveManualResult,
-} from "./manualResult";
+import { hasOnlineSubmission, resolveManualResult } from "./manualResult";
+import { FakeData, fakeAssignment, fakeExam, fakeResultDb } from "./testing/fakeResultDb";
 
-// An in-memory stand-in for the few Prisma queries these rules make. It
-// applies the same filters, so school and teacher scoping are really tested.
-type Owner = { teacherId: string | null; lesson: { teacherId: string; classId: number } | null };
-type FakeExam = Owner & {
-  id: number;
-  schoolId: number;
-  academicYearId: number;
-  classId: number | null;
-  questions: { points: number }[];
-};
-type FakeAssignment = Owner & {
-  id: number;
-  schoolId: number;
-  academicYearId: number;
-  classId: number | null;
-  maxScore: number;
-};
-type FakeData = {
-  exams?: FakeExam[];
-  assignments?: FakeAssignment[];
-  students?: { id: string; schoolId: number; classId: number }[];
-  results?: { id: number; schoolId: number; studentId: string; examId?: number; assignmentId?: number }[];
-  submissions?: { examId: number; studentId: string }[];
-  assignmentSubmissions?: { assignmentId: number; studentId: string }[];
-};
-
-type Where = Record<string, unknown> & {
-  OR?: { teacherId?: string; lesson?: { teacherId: string } }[];
-  NOT?: { id: number };
-};
-
-const ownedBy = (row: Owner, where: Where) =>
-  !where.OR ||
-  where.OR.some(
-    (rule) =>
-      (rule.teacherId !== undefined && row.teacherId === rule.teacherId) ||
-      (rule.lesson !== undefined && row.lesson?.teacherId === rule.lesson.teacherId),
-  );
-
-const matches = (row: Record<string, unknown>, where: Where) =>
-  Object.entries(where).every(([key, value]) => {
-    if (key === "OR") return ownedBy(row as unknown as Owner, where);
-    if (key === "NOT") return row.id !== where.NOT?.id;
-    return row[key] === value;
-  });
-
-const fakeDb = (data: FakeData) => {
-  const finder = <T,>(rows: T[] = []) => ({
-    findFirst: async ({ where }: { where: Where }) =>
-      rows.find((row) => matches(row as Record<string, unknown>, where)) ?? null,
-    count: async ({ where }: { where: Where }) =>
-      rows.filter((row) => matches(row as Record<string, unknown>, where)).length,
-  });
-  return {
-    exam: finder(data.exams),
-    assignment: finder(data.assignments),
-    student: finder(data.students),
-    result: finder(data.results),
-    submission: finder(data.submissions),
-    assignmentSubmission: finder(data.assignmentSubmissions),
-  } as unknown as ManualResultDb;
-};
+const fakeDb = (data: FakeData) => fakeResultDb(data).db;
+const exam = fakeExam;
+const assignment = fakeAssignment;
 
 const admin = { userId: "admin_1", role: "admin", schoolId: 1 };
 const teacher = { userId: "teacher_1", role: "teacher", schoolId: 1 };
-
-const exam = (fields: Partial<FakeExam> = {}): FakeExam => ({
-  id: 10,
-  schoolId: 1,
-  academicYearId: 5,
-  classId: 3,
-  teacherId: "teacher_1",
-  lesson: null,
-  questions: [{ points: 15 }, { points: 5 }],
-  ...fields,
-});
-
-const assignment = (fields: Partial<FakeAssignment> = {}): FakeAssignment => ({
-  id: 20,
-  schoolId: 1,
-  academicYearId: 5,
-  classId: 3,
-  teacherId: "teacher_1",
-  lesson: null,
-  maxScore: 10,
-  ...fields,
-});
 
 const student = { id: "student_1", schoolId: 1, classId: 3 };
 
