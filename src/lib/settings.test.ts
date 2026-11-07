@@ -15,6 +15,10 @@ describe("routePermissions", () => {
     },
   );
 
+  it("keeps students and parents away from printed sheets", () => {
+    expect(rolesFor("/list/entry-sheets/abc/print")).toEqual(["admin", "teacher"]);
+  });
+
   it("still lets students and parents see their results", () => {
     expect(rolesFor("/list/results")).toEqual(["admin", "teacher", "student", "parent"]);
   });

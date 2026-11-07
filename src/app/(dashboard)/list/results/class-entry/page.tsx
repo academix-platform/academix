@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import ClassEntryGrid from "@/components/entrySheets/ClassEntryGrid";
+import PrintSheetButton from "@/components/entrySheets/PrintSheetButton";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import EmptyState from "@/components/states/EmptyState";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
@@ -69,9 +70,14 @@ const ClassEntryPage = async ({ searchParams }: { searchParams: PageSearchParams
 
       {entry && (
         <section className="mt-6" aria-labelledby="class-entry-heading">
-          <h2 id="class-entry-heading" className="font-medium">
-            {entry.assessment.title} — {entry.assessment.className}
-          </h2>
+          <div className="flex flex-wrap justify-between items-center gap-2">
+            <h2 id="class-entry-heading" className="font-medium">
+              {entry.assessment.title} — {entry.assessment.className}
+            </h2>
+            {entry.rows.length > 0 && (
+              <PrintSheetButton assessment={{ type: entry.assessment.type, id: entry.assessment.id }} />
+            )}
+          </div>
           <p className="text-gray-600 text-sm">{t("outOf", { max: entry.assessment.maxScore })}</p>
           {entry.onlineCount > 0 && (
             <p className="bg-academixSkyLight mt-3 px-3 py-2 rounded-md text-sm">

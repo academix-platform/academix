@@ -186,3 +186,19 @@ html {
     transform: translateY(0);
   }
 }
+
+/* Entry sheets: one A4 page per sheet page, no browser margins. A named page
+   keeps these settings off every other printout. */
+@page entry-sheet {
+  size: A4;
+  margin: 0;
+}
+
+.entry-sheet-page {
+  page: entry-sheet;
+  break-after: page;
+}
+
+.entry-sheet-page:last-child {
+  break-after: auto;
+}

@@ -1483,5 +1483,17 @@
     "save": "Save marks",
     "saving": "Saving...",
     "saved": "Marks saved: {count}"
+  },
+  "entrySheet": {
+    "printSheet": "Print sheet",
+    "preparing": "Preparing...",
+    "print": "Print",
+    "printHint": "Print on A4 paper at 100% scale. Write each mark inside its box.",
+    "back": "Back to class marks",
+    "class": "Class",
+    "outOf": "Out of {max}",
+    "pageOf": "Page {page} of {total}",
+    "student": "Student name",
+    "markBox": "Mark"
   }
 }
