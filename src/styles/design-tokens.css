@@ -192,6 +192,12 @@
   --color-border-brand: var(--academix-purple-200);
   --color-border-focus: var(--academix-purple-600);
 
+  /* Semantic Outline Aliases */
+  --color-outline-subtle: var(--color-border-subtle);
+  --color-outline: var(--color-border-default);
+  --color-outline-strong: var(--color-border-strong);
+  --color-outline-brand: var(--color-border-brand);
+
   /* Brand Interactive States */
   --color-primary: var(--academix-purple-600);
   --color-primary-hover: var(--academix-purple-700);
@@ -298,6 +304,11 @@
   --color-border-default: #334155;
   --color-border-strong: #475569;
   --color-border-brand: #4c1d95;
+
+  --color-outline-subtle: var(--color-border-subtle);
+  --color-outline: var(--color-border-default);
+  --color-outline-strong: var(--color-border-strong);
+  --color-outline-brand: var(--color-border-brand);
 
   --color-primary: #8b5cf6;
   --color-primary-hover: #7c3aed;

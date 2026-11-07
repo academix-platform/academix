@@ -162,7 +162,6 @@
           "description": "Track performance, attendance, and engagement with live dashboards and exports."
         }
       },
-      "badge": "Academix Core",
       "previewTitle": "Connected School Operations",
       "previewSubtitle": "All core modules synchronized across administrative and academic workflows.",
       "previewPill1": "Bilingual Core (RTL/LTR)",
@@ -900,7 +899,30 @@
     "admin": "Admins",
     "teacher": "Teachers",
     "student": "Students",
-    "parent": "Parents"
+    "parent": "Parents",
+    "subtitles": {
+      "admin": "School Administrators",
+      "teacher": "Active Teaching Staff",
+      "student": "Enrolled Students",
+      "parent": "Registered Guardians"
+    },
+    "viewList": "View list"
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "greeting": "Welcome back",
+    "subtitle": "Overview of school community, attendance, and administrative workflows.",
+    "quickActions": "Quick Operations",
+    "markAttendance": "Mark Attendance",
+    "manageStudents": "Students",
+    "manageTeachers": "Teachers",
+    "manageClasses": "Classes",
+    "attendanceTitle": "Weekly Attendance Analytics",
+    "viewAttendanceLog": "View Attendance Log",
+    "noAttendanceWeek": "No attendance records logged for this week.",
+    "emptyAttendanceTitle": "No attendance records logged for this week yet",
+    "emptyAttendanceDesc": "Log classroom attendance today to track student presence and view live weekly analytics.",
+    "takeAttendanceToday": "Log Today's Attendance"
   },
   "profile": {
     "avatarAlt": "Profile",
@@ -1642,5 +1664,54 @@
     "save": "Save",
     "saving": "Saving...",
     "updated": "Final grade updated."
+  },
+  "academicSchedule": {
+    "title": "Weekly Timetable",
+    "viewWeek": "Weekly",
+    "viewToday": "Today",
+    "viewDay": "Daily",
+    "todayBadge": "Today",
+    "fullWidth": "Full Width",
+    "standardWidth": "Standard Width",
+    "horizontalTable": "Horizontal Table",
+    "verticalTable": "Vertical Table",
+    "orientationHorizontal": "Horizontal",
+    "orientationVertical": "Vertical",
+    "days": "Days",
+    "swipeHint": "Swipe horizontally between periods",
+    "periodNumber": "Period {number}",
+    "periods": "Periods",
+    "liveNow": "Live Now",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "freePeriod": "Free Period",
+    "minutes": "{minutes} min",
+    "teacher": "Teacher: {name}",
+    "class": "Class {name}",
+    "weekendTitle": "Weekend Break",
+    "weekendDesc": "No classes scheduled for today. Enjoy your day off!",
+    "noLessonsTodayTitle": "No classes scheduled today",
+    "noLessonsTodayDesc": "There are no classes scheduled for today.",
+    "noLessonsTitle": "No Timetable Available",
+    "noLessonsDesc": "No lessons have been scheduled yet for this timetable.",
+    "switchChild": "Student Schedule:",
+    "allSubjects": "Subjects",
+    "subjects": {
+      "mathematics": "Mathematics",
+      "arabic": "Arabic",
+      "english": "English",
+      "science": "Science",
+      "islamic": "Islamic Studies",
+      "social": "Social Studies",
+      "pe": "Physical Education",
+      "art": "Art",
+      "computer": "Computer Science",
+      "physics": "Physics",
+      "chemistry": "Chemistry",
+      "biology": "Biology",
+      "history": "History",
+      "geography": "Geography",
+      "french": "French"
+    }
   }
 }

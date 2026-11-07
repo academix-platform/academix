@@ -298,14 +298,15 @@ const Menu = ({
   }, [pathname, router, visibleItems]);
 
   if (!role) {
-    return <div className="mt-4 text-sm" />;
+    return <div className="mt-2 text-sm" />;
   }
+
   return (
-    <div className="mt-4 text-sm">
+    <nav aria-label="Sidebar Navigation" className="flex flex-col gap-4 text-sm">
       {resolvedMenuItems.map((section) => (
-        <div key={section.titleKey} className="flex flex-col gap-2">
+        <div key={section.titleKey} className="flex flex-col gap-1">
           <span
-            className={`block my-4 font-light text-gray-400 ${
+            className={`block px-2.5 pt-2 pb-1 text-[11px] font-semibold uppercase tracking-wider text-content-muted select-none ${
               collapsed ? "lg:hidden" : ""
             }`}
           >
@@ -325,19 +326,22 @@ const Menu = ({
                   onClick={handleSignOut}
                   disabled={isSigningOut}
                   title={collapsed ? label : undefined}
-                  className={`group relative flex justify-start ${
-                    collapsed ? "lg:justify-center" : "lg:justify-start"
-                  } items-center gap-4 hover:bg-academixPurple/35 disabled:opacity-70 md:px-2 py-2 rounded-md w-full text-gray-500 text-start transition-all duration-200 hover:translate-x-0.5 rtl:hover:-translate-x-0.5 active:scale-[0.98]`}
+                  className={`
+                    group relative flex items-center ${collapsed ? "lg:justify-center p-2.5" : "justify-start px-3 py-2 gap-3"}
+                    w-full rounded-xl text-sm font-medium transition-all duration-150 text-content-secondary hover:text-rose-600 hover:bg-rose-50/80
+                    disabled:opacity-60 active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500
+                  `}
                 >
                   <item.icon
-                    size={20}
-                    className="w-5 h-5 text-gray-500 group-hover:text-academixPurpleDark group-hover:scale-105 transition-all duration-200"
+                    size={18}
+                    className="w-[18px] h-[18px] shrink-0 text-content-muted group-hover:text-rose-600 transition-colors duration-150"
                   />
 
                   <span
-                    className={`block text-gray-500 group-hover:text-academixPurpleDark transition-colors duration-200 ${
-                      collapsed ? "lg:hidden" : ""
-                    }`}
+                    className={`
+                      truncate transition-colors duration-150
+                      ${collapsed ? "lg:hidden" : "block"}
+                    `}
                   >
                     {isSigningOut ? actionsT("signingOut") : label}
                   </span>
@@ -358,40 +362,32 @@ const Menu = ({
                 onClick={onNavigate}
                 title={collapsed ? label : undefined}
                 className={`
-                  relative group flex items-center justify-start ${collapsed ? "lg:justify-center" : "lg:justify-start"} gap-4 py-2 px-2 rounded-md
-                  transition-all duration-200 active:scale-[0.98]
+                  relative group flex items-center ${collapsed ? "lg:justify-center p-2.5" : "justify-start px-3 py-2 gap-3"}
+                  rounded-xl text-sm font-medium transition-all duration-150 active:scale-[0.98]
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500 focus-visible:ring-offset-1
                   ${
                     isActive
-                      ? "bg-academixPurple/45 ring-1 ring-academixPurple/70"
-                      : "text-gray-500 hover:bg-academixPurple/35 hover:translate-x-0.5 rtl:hover:-translate-x-0.5"
+                      ? "bg-brandPurple-50 text-brandPurple-700 font-semibold border border-brandPurple-200/80 shadow-2xs"
+                      : "text-content-secondary hover:text-content-primary hover:bg-surface-muted"
                   }
                 `}
               >
-                {isActive && (
-                  <span className="hidden lg:block top-1 bottom-1 absolute bg-academixPurpleDark rounded-e w-1 start-0" />
-                )}
-
                 <item.icon
-                  size={20}
+                  size={18}
                   className={`
-                    w-5 h-5 transition-all duration-200
+                    w-[18px] h-[18px] shrink-0 transition-colors duration-150
                     ${
                       isActive
-                        ? "text-academixPurpleDark"
-                        : "text-gray-500 group-hover:text-academixPurpleDark group-hover:scale-105"
+                        ? "text-brandPurple-600"
+                        : "text-content-muted group-hover:text-content-primary"
                     }
                   `}
                 />
 
                 <span
                   className={`
-                    block transition-colors duration-200
-                    ${collapsed ? "lg:hidden" : ""}
-                    ${
-                      isActive
-                        ? "text-academixPurpleDark font-medium"
-                        : "text-gray-500 group-hover:text-academixPurpleDark"
-                    }
+                    truncate transition-colors duration-150
+                    ${collapsed ? "lg:hidden" : "block"}
                   `}
                 >
                   {label}
@@ -401,7 +397,7 @@ const Menu = ({
           })}
         </div>
       ))}
-    </div>
+    </nav>
   );
 };
 

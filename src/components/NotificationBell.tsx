@@ -65,6 +65,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading]         = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
@@ -81,7 +82,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     const initialFetch = setTimeout(fetchNotifs, 0);
-    // polling كل 30 ثانية
+    // polling every 30 seconds
     const interval = setInterval(fetchNotifs, 30000);
     return () => {
       clearTimeout(initialFetch);
@@ -89,16 +90,37 @@ export default function NotificationBell() {
     };
   }, [fetchNotifs]);
 
-  // ─── Close on outside click ──────────────────────────────────────────────────
+  const closeDropdown = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) {
+      triggerRef.current?.focus();
+    }
+  }, []);
+
+  // ─── Close on outside click or Escape key ──────────────────────────────────
   useEffect(() => {
+    if (!open) return;
+
     function handleClick(e: MouseEvent) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        closeDropdown(false);
       }
     }
-    if (open) document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeDropdown(true);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, closeDropdown]);
 
   // ─── Mark single as read ─────────────────────────────────────────────────────
   async function markRead(id: number) {
@@ -124,17 +146,20 @@ export default function NotificationBell() {
 
   return (
     <div className="relative" ref={dropdownRef}>
-      {/* ─── Bell Button ─── */}
+      {/* ─── Bell Button (Identical styling to Messages button) ─── */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative w-7 h-7 flex items-center justify-center"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? "notification-bell-dropdown" : undefined}
+        className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-outline bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
         aria-label={t("label")}
       >
-        <Bell className="w-5 h-5 text-gray-600 hover:scale-[1.05] transition" />
+        <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-2.5 -end-1.5 flex items-center justify-center
-                           bg-academixPurpleDark text-white rounded-full w-5 h-5 text-xs font-medium">
+          <span className="absolute -top-1.5 -end-1.5 flex items-center justify-center bg-brandPurple-600 text-white rounded-full min-w-4 h-4 px-1 text-[10px] font-bold shadow-xs">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -142,20 +167,25 @@ export default function NotificationBell() {
 
       {/* ─── Dropdown ─── */}
       {open && (
-        <div className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-10 sm:w-80">
+        <div
+          id="notification-bell-dropdown"
+          role="dialog"
+          aria-label={t("label")}
+          className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-outline bg-surface shadow-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-12 sm:w-80 animate-in fade-in-0 zoom-in-95 duration-150"
+        >
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:items-center sm:px-4">
+          <div className="flex items-start justify-between gap-3 border-b border-outline/70 px-3 py-3 sm:items-center sm:px-4">
             <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Bell className="h-4 w-4 flex-shrink-0 text-gray-600" />
+              <Bell className="h-4 w-4 flex-shrink-0 text-content-muted" />
               <Link
                 href="/list/notifications"
-                onClick={() => setOpen(false)}
-                className="truncate text-sm font-semibold text-gray-800 transition-colors hover:text-purple-600"
+                onClick={() => closeDropdown(false)}
+                className="truncate text-sm font-semibold text-content-primary transition-colors hover:text-brandPurple-600"
               >
                 {t("label")}
               </Link>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700">
+                <span className="rounded-full bg-brandPurple-100 px-1.5 py-0.5 text-xs font-semibold text-brandPurple-700">
                   {t("newCount", { count: unreadCount })}
                 </span>
               )}
@@ -165,7 +195,7 @@ export default function NotificationBell() {
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-purple-600"
+                  className="flex items-center gap-1 text-xs text-content-muted transition-colors hover:text-brandPurple-600"
                   title={t("markAllRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
@@ -174,8 +204,9 @@ export default function NotificationBell() {
               )}
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+                onClick={() => closeDropdown(true)}
+                className="p-1 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted transition"
+                aria-label={t("close")}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -183,38 +214,38 @@ export default function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="max-h-[min(24rem,calc(100vh-11rem))] overflow-y-auto">
+          <div className="max-h-[min(24rem,calc(100vh-11rem))] overflow-y-auto academix-menu-scroll">
             {loading ? (
               <div className="flex items-center justify-center py-10">
-                <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+                <div className="w-5 h-5 border-2 border-brandPurple-600 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : notifications.length === 0 ? (
               <div className="text-center py-10">
-                <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">{t("empty")}</p>
+                <Bell className="w-8 h-8 text-content-muted/40 mx-auto mb-2" />
+                <p className="text-sm text-content-muted">{t("empty")}</p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-50">
+              <ul className="divide-y divide-outline/60">
                 {notifications.map((n) => {
                   const { icon: Icon, color, bg } = TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
                   const content = (
                     <div
                       className={`flex cursor-pointer items-start gap-2 px-3 py-3 transition-colors sm:gap-3 sm:px-4
-                                  ${n.isRead ? "bg-white hover:bg-gray-50" : "bg-purple-50 hover:bg-purple-100"}`}
+                                  ${n.isRead ? "bg-surface hover:bg-surface-muted" : "bg-brandPurple-50/60 hover:bg-brandPurple-50"}`}
                       onClick={() => !n.isRead && markRead(n.id)}
                     >
                       <div className={`flex-shrink-0 p-2 rounded-xl ${bg}`}>
                         <Icon className={`w-4 h-4 ${color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${n.isRead ? "text-gray-700" : "text-gray-900"}`}>
+                        <p className={`text-sm font-medium ${n.isRead ? "text-content-secondary" : "text-content-primary"}`}>
                           {n.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                        <p className="text-xs text-content-muted mt-0.5 line-clamp-2">{n.body}</p>
+                        <p className="text-[10px] text-content-muted mt-1">{timeAgo(n.createdAt)}</p>
                       </div>
                       {!n.isRead && (
-                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 mt-1.5" />
+                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-brandPurple-600 mt-1.5" />
                       )}
                     </div>
                   );
@@ -222,7 +253,7 @@ export default function NotificationBell() {
                   return (
                     <li key={n.id}>
                       {n.link ? (
-                        <Link href={n.link} onClick={() => { markRead(n.id); setOpen(false); }}>
+                        <Link href={n.link} onClick={() => { markRead(n.id); closeDropdown(false); }}>
                           {content}
                         </Link>
                       ) : content}
@@ -234,18 +265,18 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-4 py-2.5 border-t border-outline/70 flex items-center justify-between bg-surface">
             <Link
               href="/list/notifications"
-              onClick={() => setOpen(false)}
-              className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+              onClick={() => closeDropdown(false)}
+              className="text-xs font-semibold text-brandPurple-600 hover:text-brandPurple-700 transition-colors"
             >
               {t("viewAll")}
             </Link>
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => closeDropdown(true)}
+              className="text-xs text-content-muted hover:text-content-primary transition-colors"
             >
               {t("close")}
             </button>
