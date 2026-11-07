@@ -1482,7 +1482,25 @@
     "acceptReplacements": "Tick Replace on every mark that changes an existing result.",
     "save": "Save marks",
     "saving": "Saving...",
-    "saved": "Marks saved: {count}"
+    "saved": "Marks saved: {count}",
+    "uploadPhoto": "Upload sheet photo",
+    "readingPhoto": "Reading the photo. This can take a minute.",
+    "photoHint": "Take one photo of each page, flat and in good light, with the code at the top showing.",
+    "photoFilled": "Page {page} of {total}: {count} marks filled in. Check each one against the photo before saving.",
+    "photos": "Sheet photos",
+    "photoOfPage": "Photo of page {page}",
+    "photoErrors": {
+      "notAllowed": "You are not allowed to do this.",
+      "badRequest": "Choose a photo and try again.",
+      "notAPhoto": "This file isn't a photo. Use a JPG or PNG.",
+      "tooLarge": "The photo is too large, even after shrinking. Take it again.",
+      "openFailed": "This photo couldn't be opened. Take it again, or use a JPG.",
+      "noSheets": "Print a sheet for this assessment before uploading a photo.",
+      "unreadable": "The photo couldn't be read. Take it again, flat and in good light. Nothing was filled in.",
+      "wrongSheet": "This photo isn't of a sheet printed for this assessment. Nothing was filled in.",
+      "rowsMismatch": "The rows in the photo don't match the sheet. Take it again. Nothing was filled in.",
+      "unavailable": "Reading photos isn't working right now. You can still type the marks."
+    }
   },
   "entrySheet": {
     "printSheet": "Print sheet",

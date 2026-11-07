@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { fakeResultDb } from "@/lib/results/testing/fakeResultDb";
 import { buildSheetRows } from "./sheetRows";
-import { loadSheetForPrint } from "./printSheet";
+import { loadAssessmentSheets, loadSheetForPrint } from "./printSheet";
 
 const SHEET_ID = "3f0c9a52-6d1e-4b8a-9c7f-2b1d4e5a6f70";
 const teacher = { userId: "teacher_1", role: "teacher", schoolId: 1 };
@@ -101,5 +101,45 @@ describe("loadSheetForPrint", () => {
     const { db } = fakeResultDb({ sheets: [sheet({ rows: [{ page: 1 }] })] });
 
     expect(await loadSheetForPrint(db, admin, SHEET_ID)).toBeNull();
+  });
+});
+
+describe("loadAssessmentSheets", () => {
+  const examRef = { type: "exam" as const, id: 10 };
+  const examSheet = (fields: Record<string, unknown> = {}) => sheet({ examId: 10, assignmentId: null, ...fields });
+
+  it("returns every sheet printed for the assessment, with its rows", async () => {
+    const { db } = fakeResultDb({
+      sheets: [examSheet(), examSheet({ id: "second", code: "DEF567" })],
+    });
+
+    const sheets = await loadAssessmentSheets(db, teacher, examRef);
+
+    expect(sheets.map((found) => found.code)).toEqual(["ABC234", "DEF567"]);
+    expect(sheets[0].rows).toEqual(buildSheetRows(students(2)));
+  });
+
+  it("leaves out sheets for other assessments", async () => {
+    const { db } = fakeResultDb({ sheets: [examSheet({ examId: 11 })] });
+
+    expect(await loadAssessmentSheets(db, teacher, examRef)).toEqual([]);
+  });
+
+  it("gives another teacher nothing", async () => {
+    const { db } = fakeResultDb({ sheets: [examSheet()] });
+
+    expect(await loadAssessmentSheets(db, otherTeacher, examRef)).toEqual([]);
+  });
+
+  it("gives another school nothing", async () => {
+    const { db } = fakeResultDb({ sheets: [examSheet()] });
+
+    expect(await loadAssessmentSheets(db, otherSchoolAdmin, examRef)).toEqual([]);
+  });
+
+  it("skips a sheet whose stored rows are damaged", async () => {
+    const { db } = fakeResultDb({ sheets: [examSheet({ rows: "broken" })] });
+
+    expect(await loadAssessmentSheets(db, admin, examRef)).toEqual([]);
   });
 });

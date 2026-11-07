@@ -4,7 +4,17 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
+import { readSheetPhoto } from "../ai/geminiSheetReader";
+import { InvalidSheetReplyError } from "../ai/sheetReadingPrompt";
 import { createResultSheetWith } from "../entrySheets/createSheet";
+import {
+  MAX_PHOTO_BYTES,
+  PhotoReadRow,
+  checkPhoto,
+  matchReplyToSheet,
+  rowNumbersOf,
+} from "../entrySheets/photoRead";
+import { loadAssessmentSheets } from "../entrySheets/printSheet";
 import prisma from "../prisma";
 import {
   ClassResultsInput,
@@ -117,6 +127,87 @@ export const createResultSheet = async (
     console.error("createResultSheet failed", err);
     return fail("The sheet could not be created. Try again.");
   }
+};
+
+export type PhotoReadFailure =
+  | "notAllowed"
+  | "badRequest"
+  | "notAPhoto"
+  | "tooLarge"
+  | "noSheets"
+  | "unreadable"
+  | "wrongSheet"
+  | "rowsMismatch"
+  | "unavailable";
+
+export type PhotoReadState =
+  | { success: false; reason: PhotoReadFailure }
+  | {
+      success: true;
+      code: string;
+      page: number;
+      pageCount: number;
+      rows: PhotoReadRow[];
+    };
+
+const photoRequestSchema = z.object({
+  assessmentType: z.enum(["exam", "assignment"]),
+  assessmentId: z.coerce.number().int().positive(),
+});
+
+/**
+ * Reads one photographed page of a results sheet and returns its rows.
+ * Nothing is saved: the person checks the values on screen first. The photo
+ * stays in memory and is never stored or logged.
+ */
+export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoReadState> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return { success: false, reason: "notAllowed" };
+
+  const parsed = photoRequestSchema.safeParse({
+    assessmentType: formData.get("assessmentType"),
+    assessmentId: formData.get("assessmentId"),
+  });
+  const photo = formData.get("photo");
+  if (!parsed.success || !(photo instanceof Blob)) return { success: false, reason: "badRequest" };
+  if (photo.size > MAX_PHOTO_BYTES) return { success: false, reason: "tooLarge" };
+
+  const bytes = new Uint8Array(await photo.arrayBuffer());
+  const checked = checkPhoto(bytes);
+  if ("error" in checked) return { success: false, reason: checked.error };
+
+  const sheets = await loadAssessmentSheets(prisma, access, {
+    type: parsed.data.assessmentType,
+    id: parsed.data.assessmentId,
+  });
+  if (sheets.length === 0) return { success: false, reason: "noSheets" };
+
+  let reply;
+  try {
+    ({ reply } = await readSheetPhoto({
+      photo: Buffer.from(bytes),
+      mimeType: checked.mimeType,
+      kind: "RESULT",
+      rowNumbers: rowNumbersOf(sheets),
+    }));
+  } catch (err) {
+    if (err instanceof InvalidSheetReplyError) return { success: false, reason: "unreadable" };
+    // Log the failure, never the photo or what was read from it.
+    console.error("readResultSheetPhoto: Gemini call failed", err instanceof Error ? err.message : err);
+    return { success: false, reason: "unavailable" };
+  }
+  if (!reply.readable) return { success: false, reason: "unreadable" };
+
+  const matched = matchReplyToSheet(reply, sheets);
+  if ("error" in matched) return { success: false, reason: matched.error };
+
+  return {
+    success: true,
+    code: matched.code,
+    page: matched.page,
+    pageCount: matched.pageCount,
+    rows: matched.rows,
+  };
 };
 
 /** Saves a whole class of results: every row, or none of them. */

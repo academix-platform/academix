@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
@@ -8,6 +8,9 @@ import { Loader2 } from "lucide-react";
 import { saveClassResults } from "@/lib/actions/entrySheet.actions";
 import { TypedMark, readTypedMark } from "@/lib/entrySheets/markInput";
 import type { ClassEntryRow, EntryAssessment } from "@/lib/entrySheets/classEntry";
+import type { PhotoReadRow } from "@/lib/entrySheets/photoRead";
+import PhotoPanel, { SheetPhoto } from "./PhotoPanel";
+import PhotoUpload, { PhotoRead } from "./PhotoUpload";
 
 type CheckedRow = ClassEntryRow & {
   mark: TypedMark;
@@ -27,8 +30,36 @@ const ClassEntryGrid = ({
   const [values, setValues] = useState<Record<string, string>>({});
   const [accepted, setAccepted] = useState<Record<string, boolean>>({});
   const [failedStudentId, setFailedStudentId] = useState<string | null>(null);
+  const [photoRows, setPhotoRows] = useState<Record<string, PhotoReadRow>>({});
+  const [photos, setPhotos] = useState<SheetPhoto[]>([]);
   const [isPending, startTransition] = useTransition();
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+
+  // Photo copies live only in this tab's memory; free them when leaving.
+  const photoUrls = useRef<string[]>([]);
+  useEffect(() => () => photoUrls.current.forEach((url) => URL.revokeObjectURL(url)), []);
+
+  const fillFromPhoto = (read: PhotoRead, photo: Blob) => {
+    const key = `${read.code}:${read.page}`;
+    const url = URL.createObjectURL(photo);
+    photoUrls.current.push(url);
+    setPhotos((prev) => [...prev.filter((shown) => shown.key !== key), { key, page: read.page, url }]);
+
+    const onScreen = new Set(rows.map((row) => row.studentId));
+    const found = read.rows.filter((row) => onScreen.has(row.studentId));
+    setPhotoRows((prev) => ({ ...prev, ...Object.fromEntries(found.map((row) => [row.studentId, row])) }));
+    setValues((prev) => ({
+      ...prev,
+      ...Object.fromEntries(found.map((row) => [row.studentId, row.score === null ? "" : String(row.score)])),
+    }));
+    toast.success(
+      t("photoFilled", {
+        page: read.page,
+        total: read.pageCount,
+        count: found.filter((row) => row.score !== null).length,
+      }),
+    );
+  };
 
   const checked: CheckedRow[] = rows.map((row) => {
     const mark = readTypedMark(values[row.studentId] ?? "", assessment.maxScore);
@@ -62,6 +93,8 @@ const ClassEntryGrid = ({
         setValues({});
         setAccepted({});
         setFailedStudentId(null);
+        setPhotoRows({});
+        setPhotos([]);
         router.refresh();
       } else {
         setFailedStudentId(result.studentId ?? null);
@@ -76,78 +109,89 @@ const ClassEntryGrid = ({
         ? t("aboveMax", { max: assessment.maxScore })
         : t("notANumber");
 
+  const table = (
+    <div className="overflow-x-auto">
+      <table className="w-full min-w-[28rem] text-sm">
+        <thead>
+          <tr className="border-b text-gray-500">
+            <th scope="col" className="p-2 w-10 font-medium text-start">#</th>
+            <th scope="col" className="p-2 font-medium text-start">{t("student")}</th>
+            <th scope="col" className="p-2 font-medium text-start">{t("currentMark")}</th>
+            <th scope="col" className="p-2 w-44 font-medium text-start">{t("mark")}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {checked.map((row, index) => {
+            const error = errorText(row.mark);
+            const errorId = `mark-error-${row.studentId}`;
+            const failed = failedStudentId === row.studentId;
+            const read = photoRows[row.studentId];
+            return (
+              <tr key={row.studentId} className={`border-b align-top ${failed || error ? "bg-red-50" : ""}`}>
+                <td className="p-2 text-gray-500">{read?.rowNumber ?? index + 1}</td>
+                <td className="p-2">{row.name}</td>
+                <td className="p-2 text-gray-600">{row.existingScore ?? "—"}</td>
+                <td className="p-2">
+                  <input
+                    ref={(element) => {
+                      inputs.current[index] = element;
+                    }}
+                    type="text"
+                    inputMode="decimal"
+                    autoComplete="off"
+                    value={values[row.studentId] ?? ""}
+                    onChange={(event) =>
+                      setValues((prev) => ({ ...prev, [row.studentId]: event.target.value }))
+                    }
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        inputs.current[index + 1]?.focus();
+                      }
+                    }}
+                    aria-label={t("markFor", { name: row.name })}
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? errorId : undefined}
+                    className="p-2 border rounded-md w-24 aria-[invalid=true]:border-red-500"
+                  />
+                  {error && (
+                    <p id={errorId} className="mt-1 text-red-700 text-xs">
+                      {error}
+                    </p>
+                  )}
+                  {row.replaces && (
+                    <label className="flex items-center gap-2 mt-1 text-amber-800 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={Boolean(accepted[row.studentId])}
+                        onChange={(event) =>
+                          setAccepted((prev) => ({ ...prev, [row.studentId]: event.target.checked }))
+                        }
+                      />
+                      {t("replaceExisting", { score: row.existingScore ?? "" })}
+                    </label>
+                  )}
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
+  );
+
   return (
     <div className="flex flex-col gap-4 mt-4">
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[28rem] text-sm">
-          <thead>
-            <tr className="border-b text-gray-500 text-start">
-              <th scope="col" className="p-2 w-10 font-medium text-start">#</th>
-              <th scope="col" className="p-2 font-medium text-start">{t("student")}</th>
-              <th scope="col" className="p-2 font-medium text-start">{t("currentMark")}</th>
-              <th scope="col" className="p-2 w-44 font-medium text-start">{t("mark")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {checked.map((row, index) => {
-              const error = errorText(row.mark);
-              const errorId = `mark-error-${row.studentId}`;
-              const failed = failedStudentId === row.studentId;
-              return (
-                <tr
-                  key={row.studentId}
-                  className={`border-b align-top ${failed || error ? "bg-red-50" : ""}`}
-                >
-                  <td className="p-2 text-gray-500">{index + 1}</td>
-                  <td className="p-2">{row.name}</td>
-                  <td className="p-2 text-gray-600">{row.existingScore ?? "—"}</td>
-                  <td className="p-2">
-                    <input
-                      ref={(element) => {
-                        inputs.current[index] = element;
-                      }}
-                      type="text"
-                      inputMode="decimal"
-                      autoComplete="off"
-                      value={values[row.studentId] ?? ""}
-                      onChange={(event) =>
-                        setValues((prev) => ({ ...prev, [row.studentId]: event.target.value }))
-                      }
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter") {
-                          event.preventDefault();
-                          inputs.current[index + 1]?.focus();
-                        }
-                      }}
-                      aria-label={t("markFor", { name: row.name })}
-                      aria-invalid={Boolean(error)}
-                      aria-describedby={error ? errorId : undefined}
-                      className="p-2 border rounded-md w-24 aria-[invalid=true]:border-red-500"
-                    />
-                    {error && (
-                      <p id={errorId} className="mt-1 text-red-700 text-xs">
-                        {error}
-                      </p>
-                    )}
-                    {row.replaces && (
-                      <label className="flex items-center gap-2 mt-1 text-amber-800 text-xs">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(accepted[row.studentId])}
-                          onChange={(event) =>
-                            setAccepted((prev) => ({ ...prev, [row.studentId]: event.target.checked }))
-                          }
-                        />
-                        {t("replaceExisting", { score: row.existingScore ?? "" })}
-                      </label>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
+      <PhotoUpload assessment={{ type: assessment.type, id: assessment.id }} onRead={fillFromPhoto} />
+
+      {photos.length > 0 ? (
+        <div className="lg:items-start gap-4 grid lg:grid-cols-2">
+          <PhotoPanel photos={photos} />
+          {table}
+        </div>
+      ) : (
+        table
+      )}
 
       <div className="flex flex-wrap items-center gap-3">
         <button

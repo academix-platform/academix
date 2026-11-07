@@ -6,6 +6,8 @@ import {
   assessmentOwnerWhere,
   examMaxScore,
 } from "@/lib/results/manualResult";
+import type { AssessmentRef } from "./classEntry";
+import type { CandidateSheet } from "./photoRead";
 import { SheetRow, sheetRowsSchema } from "./sheetRows";
 
 export type PrintableSheet = {
@@ -19,6 +21,37 @@ export type PrintableSheet = {
 
 const sheetIdSchema = z.string().uuid();
 
+/** Results sheets in the caller's school, and for teachers only their own assessments'. */
+const resultSheetAccessWhere = (access: ResultAccess) => {
+  const owner = assessmentOwnerWhere(access);
+  return {
+    schoolId: access.schoolId,
+    kind: "RESULT" as const,
+    ...(access.role === "teacher" ? { OR: [{ exam: owner }, { assignment: owner }] } : {}),
+  };
+};
+
+/** Every results sheet printed for one assessment that the caller may use. */
+export const loadAssessmentSheets = async (
+  db: Pick<PrismaClient, "entrySheet">,
+  access: ResultAccess,
+  ref: AssessmentRef,
+): Promise<CandidateSheet[]> => {
+  const sheets = await db.entrySheet.findMany({
+    where: {
+      ...resultSheetAccessWhere(access),
+      ...(ref.type === "exam" ? { examId: ref.id } : { assignmentId: ref.id }),
+    },
+    select: { id: true, code: true, rows: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return sheets.flatMap((sheet) => {
+    const rows = sheetRowsSchema.safeParse(sheet.rows);
+    return rows.success ? [{ id: sheet.id, code: sheet.code, rows: rows.data }] : [];
+  });
+};
+
 /**
  * Loads a results sheet for printing. A teacher only gets sheets for
  * assessments they own or teach, and nobody gets another school's sheets.
@@ -31,14 +64,8 @@ export const loadSheetForPrint = async (
 ): Promise<PrintableSheet | null> => {
   if (!sheetIdSchema.safeParse(sheetId).success) return null;
 
-  const owner = assessmentOwnerWhere(access);
   const sheet = await db.entrySheet.findFirst({
-    where: {
-      id: sheetId,
-      schoolId: access.schoolId,
-      kind: "RESULT",
-      ...(access.role === "teacher" ? { OR: [{ exam: owner }, { assignment: owner }] } : {}),
-    },
+    where: { id: sheetId, ...resultSheetAccessWhere(access) },
     select: {
       code: true,
       rows: true,
