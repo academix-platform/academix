@@ -1475,11 +1475,9 @@
     "markFor": "Mark for {name}",
     "notANumber": "Not a number",
     "aboveMax": "Above {max}",
-    "replaceExisting": "Replace {score}",
     "readyCount": "Marks ready to save: {count}",
     "nothingToSave": "Type at least one mark.",
     "fixErrors": "Fix the highlighted marks before saving.",
-    "acceptReplacements": "Tick Replace on every mark that changes an existing result.",
     "save": "Save marks",
     "saving": "Saving...",
     "saved": "Marks saved: {count}",
@@ -1500,7 +1498,25 @@
       "wrongSheet": "This photo isn't of a sheet printed for this assessment. Nothing was filled in.",
       "rowsMismatch": "The rows in the photo don't match the sheet. Take it again. Nothing was filled in.",
       "unavailable": "Reading photos isn't working right now. You can still type the marks."
-    }
+    },
+    "flags": {
+      "unclear": "Unclear on the photo",
+      "nameMismatch": "Name read on the photo: {name}",
+      "empty": "Empty on the photo",
+      "aboveMax": "Read as more than {max}",
+      "notOnSheet": "Not on the printed sheet",
+      "replacesExisting": "Replaces the saved mark {score}"
+    },
+    "accept": "Accept",
+    "skip": "Skip",
+    "acceptFor": "Accept the row for {name}",
+    "skipFor": "Skip the row for {name}",
+    "accepted": "Accepted",
+    "skipped": "Skipped, nothing will be saved",
+    "undo": "Undo",
+    "checkRows": "Rows to check before saving: {count}. Fix, accept or skip each one.",
+    "departed": "On the sheet but no longer in this class: {names}. Their marks can't be saved.",
+    "pagesRead": "Sheet {code}: pages read {pages} of {total}."
   },
   "entrySheet": {
     "printSheet": "Print sheet",

@@ -3,6 +3,7 @@
 
 import type { SheetKind, SheetReplyRow } from "@/lib/ai/sheetReadingPrompt";
 import { parseWrittenNumber } from "./digits";
+import { sameStudentName } from "./rowFlags";
 
 /** In an answer file: this box is doubtful, so the reader should flag it. */
 export const UNCLEAR_ANSWER = "?";
@@ -25,14 +26,6 @@ export type SheetComparison = {
   wrongRows: WrongRow[];
   missedAbsences: number[];
 };
-
-/** Removes the differences that don't change who a name refers to. */
-const normalizeName = (name: string) =>
-  name
-    .replace(/[\sـً-ْٰ]/g, "")
-    .replace(/[أإآ]/g, "ا")
-    .replace(/ى/g, "ي")
-    .replace(/ة/g, "ه");
 
 const expectedValue = (kind: SheetKind, value: string) =>
   kind === "RESULT" ? parseWrittenNumber(value) : value !== "";
@@ -62,7 +55,7 @@ export const compareSheet = (
     const row = readRows.find((r) => r.rowNumber === answer.rowNumber);
     const { rowNumber } = answer;
 
-    if (row?.printedName && normalizeName(row.printedName) !== normalizeName(answer.name)) {
+    if (row?.printedName && !sameStudentName(row.printedName, answer.name)) {
       comparison.wrongRows.push({ rowNumber, reason: "name", read: row.printedName });
     }
 

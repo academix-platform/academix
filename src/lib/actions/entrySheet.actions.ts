@@ -147,6 +147,7 @@ export type PhotoReadState =
       code: string;
       page: number;
       pageCount: number;
+      sheetStudents: { studentId: string; name: string }[];
       rows: PhotoReadRow[];
     };
 
@@ -206,6 +207,7 @@ export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoRea
     code: matched.code,
     page: matched.page,
     pageCount: matched.pageCount,
+    sheetStudents: matched.sheetStudents,
     rows: matched.rows,
   };
 };

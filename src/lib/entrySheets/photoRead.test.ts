@@ -72,11 +72,22 @@ describe("matchReplyToSheet", () => {
       code: "K7QX3M",
       page: 1,
       pageCount: 1,
+      sheetStudents: [
+        { studentId: "s1", name: "طالب 1" },
+        { studentId: "s2", name: "طالب 2" },
+      ],
       rows: [
         { studentId: "s1", rowNumber: 1, name: "طالب 1", printedName: "طالب 1", written: "15", score: 15, unclear: false },
         { studentId: "s2", rowNumber: 2, name: "طالب 2", printedName: "طالب 2", written: "", score: null, unclear: false },
       ],
     });
+  });
+
+  it("lists every student printed on the sheet, on all pages", () => {
+    const matched = matchReplyToSheet(reply({}), [sheet("K7QX3M", 31)]);
+
+    expect("sheetStudents" in matched && matched.sheetStudents).toHaveLength(31);
+    expect("sheetStudents" in matched && matched.sheetStudents[30]).toEqual({ studentId: "s31", name: "طالب 31" });
   });
 
   it("finds the sheet whatever the spacing or case of the read code", () => {

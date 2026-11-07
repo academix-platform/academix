@@ -54,7 +54,15 @@ export const matchReplyToSheet = (
   sheets: CandidateSheet[],
 ):
   | { error: "wrongSheet" | "rowsMismatch" }
-  | { sheetId: string; code: string; page: number; pageCount: number; rows: PhotoReadRow[] } => {
+  | {
+      sheetId: string;
+      code: string;
+      page: number;
+      pageCount: number;
+      /** Everyone printed on the sheet, on all pages. */
+      sheetStudents: { studentId: string; name: string }[];
+      rows: PhotoReadRow[];
+    } => {
   const sheet = sheets.find((candidate) => candidate.code === normalizeCode(reply.sheetCode));
   const pageRows = sheet ? rowsOnPage(sheet.rows, reply.pageNumber) : [];
   if (!sheet || pageRows.length === 0) return { error: "wrongSheet" };
@@ -73,6 +81,7 @@ export const matchReplyToSheet = (
     code: sheet.code,
     page: reply.pageNumber,
     pageCount: pageCount(sheet.rows),
+    sheetStudents: sheet.rows.map((row) => ({ studentId: row.studentId, name: row.name })),
     rows: pageRows.map((row) => {
       const found = read.get(row.rowNumber);
       return {
