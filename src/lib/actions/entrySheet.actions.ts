@@ -2,6 +2,9 @@
 
 import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { getCurrentAcademicYearOrNull } from "../academicYears";
+import { createResultSheetWith } from "../entrySheets/createSheet";
 import prisma from "../prisma";
 import {
   ClassResultsInput,
@@ -75,6 +78,45 @@ const sendGradeNotifications = async (
       ];
     }),
   );
+};
+
+const resultSheetSchema = z.object({
+  assessmentType: z.enum(["exam", "assignment"]),
+  assessmentId: z.number().int().positive(),
+});
+
+/** Saves the class list for a printable results sheet. */
+export const createResultSheet = async (
+  input: z.infer<typeof resultSheetSchema>,
+): Promise<EntrySheetActionState & { sheetId?: string }> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  const parsed = resultSheetSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose an assessment.");
+
+  const year = await getCurrentAcademicYearOrNull(access.schoolId);
+  if (!year) return fail("No current academic year found.");
+
+  try {
+    const outcome = await createResultSheetWith(
+      prisma,
+      access,
+      { type: parsed.data.assessmentType, id: parsed.data.assessmentId },
+      year.id,
+    );
+    if ("error" in outcome) {
+      return fail(
+        outcome.error === "noStudents"
+          ? "There are no students to list on this sheet."
+          : "This assessment isn't available, or it has no class.",
+      );
+    }
+    return { success: true, error: false, sheetId: outcome.sheetId };
+  } catch (err) {
+    console.error("createResultSheet failed", err);
+    return fail("The sheet could not be created. Try again.");
+  }
 };
 
 /** Saves a whole class of results: every row, or none of them. */

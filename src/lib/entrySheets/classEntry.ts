@@ -161,6 +161,7 @@ export const loadClassEntry = async (
   ]);
 
   return {
+    classId,
     assessment: {
       type: ref.type,
       id: ref.id,

@@ -1,18 +1,19 @@
-// Test helper: an in-memory stand-in for the Prisma queries the result rules
-// make. It applies the same filters, so school and teacher scoping are really
-// exercised. Not imported by app code.
+// Test helper: an in-memory stand-in for the Prisma queries the result and
+// entry sheet rules make. It applies the same filters (equality, AND, OR,
+// NOT, relation filters, `not`, `isNot`, `in`), so school and teacher scoping
+// are really exercised. `select` and `orderBy` are ignored. Not imported by
+// app code.
 
-import type { ManualResultDb } from "../manualResult";
+import type { PrismaClient } from "@prisma/client";
 
-type Owner = {
-  teacherId: string | null;
-  lesson: { teacherId: string; classId: number } | null;
-};
+type Lesson = { teacherId: string; classId: number; class?: { name: string } };
+type Owner = { teacherId: string | null; lesson: Lesson | null };
 export type FakeExam = Owner & {
   id: number;
   schoolId: number;
   academicYearId: number;
   classId: number | null;
+  class?: { name: string } | null;
   questions: { points: number }[];
 };
 export type FakeAssignment = Owner & {
@@ -20,6 +21,7 @@ export type FakeAssignment = Owner & {
   schoolId: number;
   academicYearId: number;
   classId: number | null;
+  class?: { name: string } | null;
   maxScore: number;
 };
 export type FakeResult = {
@@ -30,33 +32,37 @@ export type FakeResult = {
   examId?: number | null;
   assignmentId?: number | null;
 };
+export type FakeSheet = Record<string, any> & { id: string; schoolId: number; code: string };
 export type FakeData = {
   exams?: FakeExam[];
   assignments?: FakeAssignment[];
-  students?: { id: string; schoolId: number; classId: number }[];
+  students?: { id: string; schoolId: number; classId: number; name?: string; status?: string }[];
   results?: FakeResult[];
   submissions?: { examId: number; studentId: string }[];
   assignmentSubmissions?: { assignmentId: number; studentId: string }[];
+  sheets?: FakeSheet[];
 };
 
-type Where = Record<string, unknown> & {
-  OR?: { teacherId?: string; lesson?: { teacherId: string } }[];
-  NOT?: { id: number };
-};
+type Where = Record<string, unknown>;
 
-const ownedBy = (row: Owner, where: Where) =>
-  !where.OR ||
-  where.OR.some(
-    (rule) =>
-      (rule.teacherId !== undefined && row.teacherId === rule.teacherId) ||
-      (rule.lesson !== undefined && row.lesson?.teacherId === rule.lesson.teacherId),
-  );
+const isObject = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
 
-const matches = (row: Record<string, unknown>, where: Where) =>
-  Object.entries(where).every(([key, value]) => {
-    if (key === "OR") return ownedBy(row as unknown as Owner, where);
-    if (key === "NOT") return row.id !== where.NOT?.id;
-    return row[key] === value;
+const matches = (row: Record<string, unknown>, where: Where): boolean =>
+  Object.entries(where).every(([key, condition]) => {
+    if (key === "AND") return (condition as Where[]).every((part) => matches(row, part));
+    if (key === "OR") return (condition as Where[]).some((part) => matches(row, part));
+    if (key === "NOT") return !matches(row, condition as Where);
+
+    const value = row[key];
+    if (isObject(condition)) {
+      if ("not" in condition) return (value ?? null) !== condition.not;
+      if ("isNot" in condition) return (value ?? null) !== condition.isNot;
+      if ("in" in condition) return (condition.in as unknown[]).includes(value);
+      // A filter on a related record.
+      return isObject(value) && matches(value, condition);
+    }
+    return value === condition;
   });
 
 export const fakeExam = (fields: Partial<FakeExam> = {}): FakeExam => ({
@@ -81,17 +87,24 @@ export const fakeAssignment = (fields: Partial<FakeAssignment> = {}): FakeAssign
   ...fields,
 });
 
-/** Returns the fake client and the result rows, which writes change. */
+const uniqueViolation = () =>
+  Object.assign(new Error("Unique constraint failed"), { code: "P2002" });
+
+/** Returns the fake client and the stored rows, which writes change. */
 export const fakeResultDb = (data: FakeData) => {
   const results = [...(data.results ?? [])];
+  const sheets = [...(data.sheets ?? [])];
   const writes: { kind: "create" | "update"; row: FakeResult }[] = [];
 
-  const finder = <T,>(rows: T[] = []) => ({
-    findFirst: async ({ where }: { where: Where }) =>
-      rows.find((row) => matches(row as Record<string, unknown>, where)) ?? null,
-    count: async ({ where }: { where: Where }) =>
-      rows.filter((row) => matches(row as Record<string, unknown>, where)).length,
-  });
+  const finder = <T,>(rows: T[] = []) => {
+    const filter = (where: Where = {}) =>
+      rows.filter((row) => matches(row as Record<string, unknown>, where));
+    return {
+      findFirst: async ({ where }: { where?: Where }) => filter(where)[0] ?? null,
+      findMany: async ({ where }: { where?: Where } = {}) => filter(where),
+      count: async ({ where }: { where?: Where }) => filter(where).length,
+    };
+  };
 
   const db = {
     exam: finder(data.exams),
@@ -115,7 +128,18 @@ export const fakeResultDb = (data: FakeData) => {
         return row;
       },
     },
-  } as unknown as ManualResultDb;
+    entrySheet: {
+      ...finder(sheets),
+      create: async ({ data: row }: { data: Omit<FakeSheet, "id"> }) => {
+        if (sheets.some((sheet) => sheet.schoolId === row.schoolId && sheet.code === row.code)) {
+          throw uniqueViolation();
+        }
+        const created = { id: `sheet_${sheets.length + 1}`, ...row } as FakeSheet;
+        sheets.push(created);
+        return created;
+      },
+    },
+  } as unknown as PrismaClient;
 
-  return { db, results, writes };
+  return { db, results, writes, sheets };
 };
