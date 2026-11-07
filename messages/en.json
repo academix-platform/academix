@@ -699,7 +699,8 @@
     "allNotifications": "All Notifications",
     "attendance": "Attendance",
     "messages": "Messages",
-    "notifications": "Notifications"
+    "notifications": "Notifications",
+    "enterClassMarks": "Enter class marks"
   },
   "dashboardCards": {
     "admin": "Admins",
@@ -1452,5 +1453,35 @@
     "save": "Save",
     "saving": "Saving...",
     "updated": "Final grade updated."
+  },
+  "classEntry": {
+    "title": "Enter class marks",
+    "assessmentLabel": "Assessment",
+    "chooseAssessment": "Choose an assessment",
+    "open": "Open",
+    "noAssessments": "No assessments to enter",
+    "noAssessmentsDescription": "Only exams and assignments linked to a class in the current academic year can be entered here.",
+    "pickTitle": "Choose an assessment to start",
+    "pickDescription": "The class list for that assessment will appear here.",
+    "notFound": "This assessment isn't available",
+    "notFoundDescription": "It may belong to another teacher, another year, or have no class.",
+    "outOf": "Out of {max}",
+    "onlineNote": "Students who handed this work in online: {count}. Grade them from the submissions page.",
+    "noStudents": "No students to enter",
+    "noStudentsDescription": "This class has no current students, or all of them handed the work in online.",
+    "student": "Student",
+    "currentMark": "Current mark",
+    "mark": "Mark",
+    "markFor": "Mark for {name}",
+    "notANumber": "Not a number",
+    "aboveMax": "Above {max}",
+    "replaceExisting": "Replace {score}",
+    "readyCount": "Marks ready to save: {count}",
+    "nothingToSave": "Type at least one mark.",
+    "fixErrors": "Fix the highlighted marks before saving.",
+    "acceptReplacements": "Tick Replace on every mark that changes an existing result.",
+    "save": "Save marks",
+    "saving": "Saving...",
+    "saved": "Marks saved: {count}"
   }
 }

@@ -16,10 +16,16 @@ export type ManualResultDb = Pick<
 // Legacy exams created without questions are graded out of 100.
 const DEFAULT_MAX_SCORE = 100;
 
-const assessmentOwnerWhere = (access: ResultAccess) =>
+/** A teacher may only use assessments they own or teach; admins use any. */
+export const assessmentOwnerWhere = (access: ResultAccess) =>
   access.role === "teacher"
     ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
     : {};
+
+export const examMaxScore = (questions: { points: number }[]) =>
+  questions.length > 0
+    ? questions.reduce((sum, q) => sum + q.points, 0)
+    : DEFAULT_MAX_SCORE;
 
 /**
  * Checks a manually entered result against its assessment and student, all
@@ -57,10 +63,7 @@ export const resolveManualResult = async (
             exam && {
               academicYearId: exam.academicYearId,
               classId: exam.classId ?? exam.lesson?.classId ?? null,
-              maxScore:
-                exam.questions.length > 0
-                  ? exam.questions.reduce((sum, q) => sum + q.points, 0)
-                  : DEFAULT_MAX_SCORE,
+              maxScore: examMaxScore(exam.questions),
             },
         )
     : await db.assignment

@@ -693,7 +693,8 @@
     "messages": "الرسائل",
     "notifications": "الإشعارات",
     "finalResults": "المعدلات النهائية",
-    "finalAverages": "المعدلات النهائية"
+    "finalAverages": "المعدلات النهائية",
+    "enterClassMarks": "إدخال علامات الصف"
   },
   "dashboardCards": {
     "admin": "المديرون",
@@ -1452,5 +1453,35 @@
     "save": "حفظ",
     "saving": "جار الحفظ...",
     "updated": "تم تحديث الدرجة النهائية."
+  },
+  "classEntry": {
+    "title": "إدخال علامات الصف",
+    "assessmentLabel": "التقييم",
+    "chooseAssessment": "اختر تقييماً",
+    "open": "فتح",
+    "noAssessments": "لا توجد تقييمات لإدخال علاماتها",
+    "noAssessmentsDescription": "يمكن هنا إدخال علامات الامتحانات والواجبات المرتبطة بصف في السنة الدراسية الحالية فقط.",
+    "pickTitle": "اختر تقييماً للبدء",
+    "pickDescription": "ستظهر هنا قائمة طلاب صف هذا التقييم.",
+    "notFound": "هذا التقييم غير متاح",
+    "notFoundDescription": "قد يكون لمعلم آخر أو لسنة أخرى، أو غير مرتبط بصف.",
+    "outOf": "من {max}",
+    "onlineNote": "طلاب سلّموا هذا العمل إلكترونياً: {count}. قيّمهم من صفحة التسليمات.",
+    "noStudents": "لا يوجد طلاب لإدخال علاماتهم",
+    "noStudentsDescription": "لا يوجد في هذا الصف طلاب حاليون، أو جميعهم سلّموا العمل إلكترونياً.",
+    "student": "الطالب",
+    "currentMark": "العلامة الحالية",
+    "mark": "العلامة",
+    "markFor": "علامة {name}",
+    "notANumber": "ليس رقماً",
+    "aboveMax": "أكبر من {max}",
+    "replaceExisting": "استبدال {score}",
+    "readyCount": "علامات جاهزة للحفظ: {count}",
+    "nothingToSave": "اكتب علامة واحدة على الأقل.",
+    "fixErrors": "صحّح العلامات المحددة قبل الحفظ.",
+    "acceptReplacements": "علّم على «استبدال» لكل علامة تغيّر نتيجة موجودة.",
+    "save": "حفظ العلامات",
+    "saving": "جار الحفظ...",
+    "saved": "تم حفظ العلامات: {count}"
   }
 }

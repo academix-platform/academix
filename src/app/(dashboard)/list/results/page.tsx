@@ -15,6 +15,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Assignment, Exam, Result, Student } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 import type { PageSearchParams } from "@/lib/pageParams";
 
 type ResultList = Result & {
@@ -195,6 +196,12 @@ const ResultListPage = async ({
                   />
                 )}
 
+                <Link
+                  href="/list/results/class-entry"
+                  className="bg-academixPurple px-3 py-2 rounded-md text-sm whitespace-nowrap"
+                >
+                  {t("enterClassMarks")}
+                </Link>
                 <FormContainer table="result" type="create" />
               </>
             )}
