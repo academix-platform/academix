@@ -1457,9 +1457,9 @@
   },
   "classEntry": {
     "title": "Enter class marks",
+    "backToResults": "Back to results",
     "assessmentLabel": "Assessment",
     "chooseAssessment": "Choose an assessment",
-    "open": "Open",
     "noAssessments": "No assessments to enter",
     "noAssessmentsDescription": "Only exams and assignments linked to a class in the current academic year can be entered here.",
     "pickTitle": "Choose an assessment to start",

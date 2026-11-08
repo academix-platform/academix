@@ -1,5 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { ArrowLeft } from "lucide-react";
+import AssessmentSelect from "@/components/entrySheets/AssessmentSelect";
 import ClassEntryGrid from "@/components/entrySheets/ClassEntryGrid";
 import PrintSheetButton from "@/components/entrySheets/PrintSheetButton";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
@@ -35,29 +38,29 @@ const ClassEntryPage = async ({ searchParams }: { searchParams: PageSearchParams
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <h1 className="font-semibold text-lg">{t("title")}</h1>
+      <div className="flex flex-wrap justify-between items-center gap-2">
+        <h1 className="font-semibold text-lg">{t("title")}</h1>
+        <Link
+          href="/list/results"
+          className="flex items-center gap-1 hover:bg-gray-50 px-3 py-2 border rounded-md text-sm"
+        >
+          <ArrowLeft className="w-4 h-4 rtl:rotate-180" aria-hidden />
+          {t("backToResults")}
+        </Link>
+      </div>
 
       {assessments.length === 0 ? (
         <EmptyState title={t("noAssessments")} description={t("noAssessmentsDescription")} />
       ) : (
-        <form className="flex flex-wrap items-end gap-2 mt-4">
-          <label className="flex flex-col gap-1 text-sm">
-            <span className="text-gray-600">{t("assessmentLabel")}</span>
-            <select
-              name="assessment"
-              defaultValue={selectedParam}
-              className="p-2 border rounded-md max-w-full text-sm"
-            >
-              <option value="">{t("chooseAssessment")}</option>
-              {assessments.map((assessment) => (
-                <option key={`${assessment.type}:${assessment.id}`} value={`${assessment.type}:${assessment.id}`}>
-                  {assessment.title} — {assessment.className}
-                </option>
-              ))}
-            </select>
-          </label>
-          <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">{t("open")}</button>
-        </form>
+        <div className="mt-4">
+          <AssessmentSelect
+            value={selectedParam}
+            options={assessments.map((assessment) => ({
+              value: `${assessment.type}:${assessment.id}`,
+              label: `${assessment.title} — ${assessment.className}`,
+            }))}
+          />
+        </div>
       )}
 
       {assessments.length > 0 && !selected && (

@@ -1457,9 +1457,9 @@
   },
   "classEntry": {
     "title": "إدخال علامات الصف",
+    "backToResults": "العودة إلى النتائج",
     "assessmentLabel": "التقييم",
     "chooseAssessment": "اختر تقييماً",
-    "open": "فتح",
     "noAssessments": "لا توجد تقييمات لإدخال علاماتها",
     "noAssessmentsDescription": "يمكن هنا إدخال علامات الامتحانات والواجبات المرتبطة بصف في السنة الدراسية الحالية فقط.",
     "pickTitle": "اختر تقييماً للبدء",
