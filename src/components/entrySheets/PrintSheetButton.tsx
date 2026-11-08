@@ -37,7 +37,7 @@ const PrintSheetButton = (request: SheetRequest) => {
       type="button"
       onClick={create}
       disabled={isPending}
-      className="inline-flex items-center gap-2 bg-academixPurple disabled:opacity-60 px-3 py-2 rounded-md text-sm"
+      className="inline-flex items-center gap-2 bg-academixPurple disabled:opacity-60 px-3 py-2 rounded-md text-academixPurpleDark text-sm"
     >
       {isPending ? (
         <Loader2 className="w-4 h-4 animate-spin" aria-hidden />

@@ -198,7 +198,7 @@ const ResultListPage = async ({
 
                 <Link
                   href="/list/results/class-entry"
-                  className="bg-academixPurple px-3 py-2 rounded-md text-sm whitespace-nowrap"
+                  className="bg-academixPurple hover:bg-academixPurpleDark px-3 py-2 rounded-md text-academixPurpleDark hover:text-academixPurple text-sm whitespace-nowrap transition"
                 >
                   {t("enterClassMarks")}
                 </Link>
