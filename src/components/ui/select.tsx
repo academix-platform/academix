@@ -5,23 +5,24 @@ import { ChevronDown } from "lucide-react";
 export interface SelectProps extends React.SelectHTMLAttributes<HTMLSelectElement> {
   error?: boolean | string;
   selectSize?: "sm" | "md" | "lg";
+  containerClassName?: string;
 }
 
 const sizeStyles = {
-  sm: "h-8 ps-2.5 pe-8 text-xs rounded-md",
-  md: "h-10 ps-3.5 pe-9 text-sm rounded-lg",
-  lg: "h-12 ps-4 pe-10 text-base rounded-lg",
+  sm: "h-8 ps-2.5 pe-8 text-xs rounded-lg",
+  md: "h-9 ps-3 pe-8 text-xs md:text-sm rounded-xl shadow-2xs",
+  lg: "h-11 ps-4 pe-10 text-base rounded-xl",
 };
 
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   (
-    { className, error, selectSize = "md", disabled, children, id, ...props },
+    { className, containerClassName, error, selectSize = "md", disabled, children, id, ...props },
     ref,
   ) => {
     const hasError = Boolean(error);
 
     return (
-      <div className="relative w-full">
+      <div className={cn("relative w-full", containerClassName)}>
         <select
           ref={ref}
           id={id}

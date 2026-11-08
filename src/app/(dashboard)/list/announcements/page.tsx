@@ -6,6 +6,8 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
@@ -47,20 +49,49 @@ const renderRow = (
 ) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="flex items-center gap-4 p-4">{item.title}</td>
-    <td>
-      {item.classes.length === totalClassesCount && totalClassesCount > 0
-        ? allClassesLabel
-        : item.classes.map((cls) => cls.name).join(", ") || "-"}
+    <td className="px-4 py-3">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+          {item.title}
+        </span>
+        {/* Mobile secondary info: date */}
+        <span className="text-[11px] text-slate-400 md:hidden">
+          {new Intl.DateTimeFormat("en-US").format(item.date)}
+        </span>
+      </div>
     </td>
-    <td className="hidden md:table-cell">
-      {" "}
+
+    <td className="px-4 py-3">
+      {item.classes.length === totalClassesCount && totalClassesCount > 0 ? (
+        <Badge variant="primary" size="sm" className="font-normal">
+          {allClassesLabel}
+        </Badge>
+      ) : item.classes.length > 0 ? (
+        <div className="flex flex-wrap items-center gap-1">
+          {item.classes.map((cls) => (
+            <Badge
+              key={cls.id}
+              variant="secondary"
+              size="sm"
+              className="font-normal"
+            >
+              {cls.name}
+            </Badge>
+          ))}
+        </div>
+      ) : (
+        <span className="text-slate-400">—</span>
+      )}
+    </td>
+
+    <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
       {new Intl.DateTimeFormat("en-US").format(item.date)}
     </td>
-    <td>
-      <div className="flex items-center gap-2">
+
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-1.5">
         {role === "admin" && (
           <>
             <FormContainer table="announcement" type="update" data={item} />
@@ -71,6 +102,7 @@ const renderRow = (
     </td>
   </tr>
 );
+
 const AnnouncementListPage = async ({
   searchParams,
 }: {
@@ -157,52 +189,56 @@ const AnnouncementListPage = async ({
   const orderBy: Prisma.AnnouncementOrderByWithRelationInput =
     sortParam === "asc" ? { date: "asc" } : { date: "desc" };
 
-  const [data, count, totalClassesCount, classes, grades] = await prisma.$transaction([
-    prisma.announcement.findMany({
-      where: query,
-      include: {
-        classes: { select: { id: true, name: true } },
-      },
-      orderBy,
-      take: ITEM_PER_PAGE,
-      skip: (p - 1) * ITEM_PER_PAGE,
-    }),
-    prisma.announcement.count({ where: query }),
-    prisma.class.count({ where: { schoolId } }),
-    prisma.class.findMany({
-      where: { schoolId },
-      select: { id: true, name: true, gradeId: true },
-      orderBy: { name: "asc" },
-    }),
-    prisma.grade.findMany({
-      where: { schoolId },
-      select: { id: true, level: true },
-      orderBy: { level: "asc" },
-    }),
-  ]);
+  const [data, count, totalClassesCount, classes, grades] =
+    await prisma.$transaction([
+      prisma.announcement.findMany({
+        where: query,
+        include: {
+          classes: { select: { id: true, name: true } },
+        },
+        orderBy,
+        take: ITEM_PER_PAGE,
+        skip: (p - 1) * ITEM_PER_PAGE,
+      }),
+      prisma.announcement.count({ where: query }),
+      prisma.class.count({ where: { schoolId } }),
+      prisma.class.findMany({
+        where: { schoolId },
+        select: { id: true, name: true, gradeId: true },
+        orderBy: { name: "asc" },
+      }),
+      prisma.grade.findMany({
+        where: { schoolId },
+        select: { id: true, level: true },
+        orderBy: { level: "asc" },
+      }),
+    ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allAnnouncements")}</h1>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && (
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allAnnouncements")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <FormContainer table="announcement" type="create" />
+          ) : undefined
+        }
+      />
+
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          role === "admin" ? (
             <>
               <GradeFilter grades={grades} />
               <ClassFilter classes={classes} />
             </>
-          )}
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-            {role === "admin" && (
-              <FormContainer table="announcement" type="create" />
-            )}
-          </div>
-        </div>
-      </div>
-      {/* LIST */}
+          ) : undefined
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
+
       <Table
         columns={getColumns(role, th)}
         renderRow={(item) =>
@@ -212,7 +248,7 @@ const AnnouncementListPage = async ({
         emptyTitle={emptyT("announcements")}
         emptyDescription={emptyT("filterDescription")}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );

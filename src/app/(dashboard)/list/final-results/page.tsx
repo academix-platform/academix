@@ -4,9 +4,11 @@ import FinalGradeEditButton from "@/components/FinalGradeEditButton";
 import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
-import EmptyState from "@/components/states/EmptyState";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge, type BadgeProps } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   getAcademicYears,
   getCurrentAcademicYearIdOrNull,
@@ -33,13 +35,6 @@ type FinalResultRow = {
   storedAverageScore: number | null;
 };
 
-type StoredFinalResult = {
-  studentId: string;
-  averageScore: number;
-  assessmentCount: number;
-  status: string | null;
-};
-
 const formatValue = (value: number | null, suffix = "") =>
   value === null ? "-" : `${value.toFixed(2)}${suffix}`;
 
@@ -63,17 +58,17 @@ const columns = (th: (key: string) => string, canEdit: boolean) => {
   return baseColumns;
 };
 
-const statusClassName: Record<FinalResultStatus, string> = {
-  PASS: "bg-emerald-50 text-emerald-700",
-  FAIL: "bg-red-50 text-red-700",
-  NO_RESULTS: "bg-gray-100 text-gray-500",
-  NOT_UPDATED: "bg-amber-50 text-amber-700",
+const statusBadgeVariant: Record<FinalResultStatus, BadgeProps["variant"]> = {
+  PASS: "success",
+  FAIL: "destructive",
+  NO_RESULTS: "secondary",
+  NOT_UPDATED: "warning",
 };
 
 const AverageBadge = ({ value }: { value: number | null }) => (
-  <span className="inline-flex items-center bg-academixSkyLight px-2 py-1 rounded-md font-semibold text-academixPurpleDark">
+  <Badge variant="primary" size="sm" className="font-bold">
     {formatValue(value, "%")}
-  </span>
+  </Badge>
 );
 
 const StatusBadge = ({
@@ -83,11 +78,9 @@ const StatusBadge = ({
   status: FinalResultStatus;
   statusT: (key: FinalResultStatus) => string;
 }) => (
-  <span
-    className={`inline-flex items-center rounded-md px-2 py-1 font-medium ${statusClassName[status]}`}
-  >
+  <Badge variant={statusBadgeVariant[status] || "secondary"} size="sm">
     {statusT(status)}
-  </span>
+  </Badge>
 );
 
 const renderRow = (
@@ -98,19 +91,25 @@ const renderRow = (
 ) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="p-4 font-medium text-gray-900">{item.name}</td>
-    <td className="hidden md:table-cell">{item.className}</td>
-    <td>{item.assessmentCount}</td>
-    <td>
+    <td className="px-4 py-3 font-semibold text-slate-900 dark:text-slate-100">
+      {item.name}
+    </td>
+    <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-400">
+      {item.className}
+    </td>
+    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+      {item.assessmentCount}
+    </td>
+    <td className="px-4 py-3">
       <AverageBadge value={item.averageScore} />
     </td>
-    <td>
+    <td className="px-4 py-3">
       <StatusBadge status={item.status} statusT={statusT} />
     </td>
     {canEdit && (
-      <td>
+      <td className="px-4 py-3">
         <FinalGradeEditButton
           studentId={item.id}
           studentName={item.name}
@@ -231,26 +230,9 @@ export default async function FinalResultsPage({
         },
       })
     : [];
-  const storedFinalResults: StoredFinalResult[] = studentIds.length
-    ? await (
-        prisma as unknown as {
-          studentFinalResult: {
-            findMany: (args: {
-              where: {
-                schoolId: number;
-                academicYearId: number;
-                studentId: { in: string[] };
-              };
-              select: {
-                studentId: boolean;
-                averageScore: boolean;
-                assessmentCount: boolean;
-                status: boolean;
-              };
-            }) => Promise<StoredFinalResult[]>;
-          };
-        }
-      ).studentFinalResult.findMany({
+
+  const storedFinalResults = studentIds.length
+    ? await prisma.studentFinalResult.findMany({
         where: { schoolId, academicYearId, studentId: { in: studentIds } },
         select: {
           studentId: true,
@@ -260,6 +242,7 @@ export default async function FinalResultsPage({
         },
       })
     : [];
+
   const scoresByStudent = new Map<string, AssessmentScore[]>();
   const storedStatusByStudent = new Map<string, FinalResultStatus>(
     storedFinalResults.map((result) => [
@@ -313,62 +296,70 @@ export default async function FinalResultsPage({
   const canEdit = role === "admin" || role === "teacher";
 
   return (
-    <div className="flex-1 bg-white m-2 sm:m-4 mt-0 sm:mt-0 p-3 sm:p-4 rounded-md">
-      <div className="flex md:flex-row flex-col md:flex-wrap justify-between md:items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("finalAverages")}</h1>
-        <div className="flex sm:flex-row flex-col sm:flex-wrap sm:items-center gap-2 w-fit md:w-auto">
-          <TableSearch />
-          {(role === "student" || role === "parent") && (
-            <AcademicYearFilter
-              academicYears={academicYears}
-              currentAcademicYearId={currentAcademicYearId}
-            />
-          )}
-          {role === "admin" && (
-            <>
-              <GradeFilter grades={grades} />
-              <ClassFilter classes={classes} />
-            </>
-          )}
-        </div>
-      </div>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader title={t("finalAverages")} count={count} />
 
-      <div className="md:hidden space-y-3 mt-4">
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          <>
+            {(role === "student" || role === "parent") && (
+              <AcademicYearFilter
+                academicYears={academicYears}
+                currentAcademicYearId={currentAcademicYearId}
+              />
+            )}
+            {role === "admin" && (
+              <>
+                <GradeFilter grades={grades} />
+                <ClassFilter classes={classes} />
+              </>
+            )}
+          </>
+        }
+      />
+
+      {/* MOBILE CARD VIEW */}
+      <div className="md:hidden space-y-3">
         {data.length === 0 ? (
-          <div className="flex justify-center items-center min-h-[300px]">
+          <div className="flex justify-center items-center py-8">
             <EmptyState
               title={emptyT("finalAverages")}
               description={emptyT("filterDescription")}
-              className="py-0"
+              className="w-full max-w-lg border-dashed bg-slate-50/40 dark:bg-slate-900/30"
             />
           </div>
         ) : (
           data.map((item) => (
             <div
               key={item.id}
-              className="bg-white shadow-sm p-3 border border-gray-100 rounded-md"
+              className="bg-white dark:bg-slate-900 shadow-2xs p-4 border border-slate-200 dark:border-slate-800 rounded-2xl space-y-3"
             >
               <div className="flex justify-between items-start gap-3">
                 <div className="min-w-0">
-                  <p className="font-medium text-gray-900 text-sm truncate">
+                  <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">
                     {item.name}
                   </p>
-                  <p className="mt-1 text-gray-500 text-xs">
+                  <p className="mt-0.5 text-slate-500 dark:text-slate-400 text-xs">
                     {th("class")}: {item.className}
                   </p>
                 </div>
                 <StatusBadge status={item.status} statusT={statusT} />
               </div>
 
-              <div className="gap-2 grid grid-cols-2 mt-3 text-xs">
-                <div className="bg-slate-50 p-2 rounded-md">
-                  <p className="text-gray-500">{th("assessmentCount")}</p>
-                  <p className="mt-1 font-semibold text-gray-900">
+              <div className="gap-2 grid grid-cols-2 text-xs">
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px]">
+                    {th("assessmentCount")}
+                  </p>
+                  <p className="mt-1 font-semibold text-slate-900 dark:text-slate-100 text-sm">
                     {item.assessmentCount}
                   </p>
                 </div>
-                <div className="bg-slate-50 p-2 rounded-md">
-                  <p className="text-gray-500">{th("averageScore")}</p>
+                <div className="bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-100 dark:border-slate-800">
+                  <p className="text-slate-500 dark:text-slate-400 text-[11px]">
+                    {th("averageScore")}
+                  </p>
                   <div className="mt-1">
                     <AverageBadge value={item.averageScore} />
                   </div>
@@ -376,7 +367,7 @@ export default async function FinalResultsPage({
               </div>
 
               {canEdit && (
-                <div className="mt-3">
+                <div className="pt-1">
                   <FinalGradeEditButton
                     studentId={item.id}
                     studentName={item.name}
@@ -390,6 +381,7 @@ export default async function FinalResultsPage({
         )}
       </div>
 
+      {/* DESKTOP TABLE VIEW */}
       <div className="hidden md:block">
         <Table
           columns={columns(th, canEdit)}
@@ -401,6 +393,7 @@ export default async function FinalResultsPage({
           emptyDescription={emptyT("filterDescription")}
         />
       </div>
+
       <Pagination page={currentPage} count={count} />
     </div>
   );

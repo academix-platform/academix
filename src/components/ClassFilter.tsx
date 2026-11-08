@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Select } from "@/components/ui/select";
 
 type Props = {
   classes: {
@@ -10,9 +11,10 @@ type Props = {
     name: string;
     gradeId?: number | null;
   }[];
+  className?: string;
 };
 
-export default function ClassFilter({ classes }: Props) {
+export default function ClassFilter({ classes, className }: Props) {
   const t = useTranslations("filters");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -55,10 +57,10 @@ export default function ClassFilter({ classes }: Props) {
   };
 
   return (
-    <select
+    <Select
       value={selectedClassExists ? currentClassId : ""}
       onChange={(e) => handleChange(e.target.value)}
-      className="px-3 border rounded-md h-10 text-sm"
+      containerClassName={className || "w-full sm:w-40"}
       aria-label={t("allClasses")}
     >
       <option value="">{t("allClasses")}</option>
@@ -68,6 +70,6 @@ export default function ClassFilter({ classes }: Props) {
           {cls.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

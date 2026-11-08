@@ -2,15 +2,17 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Select } from "@/components/ui/select";
 
 type Props = {
   grades: {
     id: number;
     level: number;
   }[];
+  className?: string;
 };
 
-export default function GradeFilter({ grades }: Props) {
+export default function GradeFilter({ grades, className }: Props) {
   const t = useTranslations("filters");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -31,10 +33,10 @@ export default function GradeFilter({ grades }: Props) {
   };
 
   return (
-    <select
-      defaultValue={searchParams.get("gradeId") || ""}
+    <Select
+      value={searchParams.get("gradeId") || ""}
       onChange={(e) => handleChange(e.target.value)}
-      className="px-3 border rounded-md h-10 text-sm"
+      containerClassName={className || "w-full sm:w-40"}
       aria-label={t("allGrades")}
     >
       <option value="">{t("allGrades")}</option>
@@ -44,6 +46,6 @@ export default function GradeFilter({ grades }: Props) {
           {t("gradeLevel", { level: grade.level })}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }

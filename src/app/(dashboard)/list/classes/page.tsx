@@ -5,6 +5,8 @@ import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildClassQuery } from "@/lib/query-builders/class-query";
@@ -44,23 +46,63 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => [
   },
 ];
 
-const renderRow = (item: ClassList, role: UserRole | null) => (
+const renderRow = (
+  item: ClassList,
+  role: UserRole | null,
+  th: (key: string) => string,
+) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="flex items-center gap-4 p-4">{item.name}</td>
-
-    <td className="hidden md:table-cell">{item.capacity}</td>
-
-    <td className="hidden md:table-cell">{item.grade?.level ?? "-"}</td>
-
-    <td className="hidden md:table-cell">
-      {item.supervisor?.name ?? "No supervisor"}
+    <td className="px-4 py-3">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+          {item.name}
+        </span>
+        {/* Mobile secondary info */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-0.5 md:hidden">
+          {item.grade && (
+            <Badge
+              variant="secondary"
+              size="sm"
+              className="text-[10px] py-0 px-1.5 font-normal"
+            >
+              Grade {item.grade.level}
+            </Badge>
+          )}
+          <span className="text-[11px] text-slate-500">
+            {item.capacity} {th("capacity")}
+          </span>
+          {item.supervisor && (
+            <span className="text-[11px] text-slate-500">
+              • {item.supervisor.name}
+            </span>
+          )}
+        </div>
+      </div>
     </td>
 
-    <td>
-      <div className="flex items-center gap-2">
+    <td className="hidden md:table-cell px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+      {item.capacity}
+    </td>
+
+    <td className="hidden md:table-cell px-4 py-3">
+      {item.grade ? (
+        <Badge variant="primary" size="sm" className="font-normal">
+          {item.grade.level}
+        </Badge>
+      ) : (
+        <span className="text-slate-400">—</span>
+      )}
+    </td>
+
+    <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+      {item.supervisor?.name ?? "—"}
+    </td>
+
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-1.5">
         {role === "admin" && (
           <>
             <FormContainer table="class" type="update" data={item} />
@@ -124,6 +166,7 @@ const ClassListPage = async ({
       where: query,
     }),
   ]);
+
   const grades =
     role === "admin"
       ? await prisma.grade.findMany({
@@ -134,33 +177,31 @@ const ClassListPage = async ({
       : [];
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allClasses")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allClasses")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <>
+              <ExportButton
+                href={`/api/admin/classes/export?${exportQuery.toString()}`}
+              />
+              <FormContainer table="class" type="create" />
+            </>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && <GradeFilter grades={grades} />}
-
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {role === "admin" && (
-              <>
-                <ExportButton
-                  href={`/api/admin/classes/export?${exportQuery.toString()}`}
-                />
-
-                <FormContainer table="class" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={role === "admin" ? <GradeFilter grades={grades} /> : undefined}
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, th)}
         data={data}
         emptyTitle={emptyT("classes")}
         emptyDescription={emptyT("filterDescription")}

@@ -7,6 +7,8 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildResultQuery } from "@/lib/query-builders/result-query";
@@ -44,7 +46,7 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   }
 
   if (role === "admin" || role === "teacher") {
-      columns.push({
+    columns.push({
       header: th("actions"),
       accessor: "action",
     });
@@ -56,30 +58,38 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
 const renderRow = (item: ResultList, role: UserRole | null) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
     {role !== "student" && (
-      <td className="flex items-center gap-4 p-4">
-        <Image
-          src="/avatar.png"
-          alt=""
-          width={40}
-          height={40}
-          className="hidden md:block rounded-full w-10 h-10 object-cover"
-        />
-        {item.student.name}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2.5">
+          <Image
+            src="/avatar.png"
+            alt=""
+            width={32}
+            height={32}
+            className="rounded-full w-8 h-8 object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+          />
+          <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+            {item.student.name}
+          </span>
+        </div>
       </td>
     )}
 
-    <td className={role === "student" ? "p-4" : ""}>
-      {item.exam?.title || item.assignment?.title || "-"}
+    <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+      {item.exam?.title || item.assignment?.title || "—"}
     </td>
 
-    <td className="p-4 font-semibold text-academixPurpleDark">{item.score}</td>
+    <td className="px-4 py-3">
+      <Badge variant="primary" size="md" className="font-bold">
+        {item.score}
+      </Badge>
+    </td>
 
     {(role === "admin" || role === "teacher") && (
-      <td>
-        <div className="flex items-center gap-2">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
           <FormContainer table="result" type="update" data={item} />
           <FormContainer table="result" type="delete" id={item.id} />
         </div>
@@ -154,6 +164,7 @@ const ResultListPage = async ({
       where: query,
     }),
   ]);
+
   const [classes, grades] =
     role === "admin"
       ? await prisma.$transaction([
@@ -171,36 +182,36 @@ const ResultListPage = async ({
       : [[], []];
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allResults")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allResults")}
+        count={count}
+        actions={
+          role === "admin" || role === "teacher" ? (
+            <>
+              {role === "admin" && (
+                <ExportButton
+                  href={`/api/admin/results/export?${exportQuery.toString()}`}
+                />
+              )}
+              <FormContainer table="result" type="create" />
+            </>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && (
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          role === "admin" ? (
             <>
               <GradeFilter grades={grades} />
               <ClassFilter classes={classes} />
             </>
-          )}
-
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {(role === "admin" || role === "teacher") && (
-              <>
-                {role === "admin" && (
-                  <ExportButton
-                    href={`/api/admin/results/export?${exportQuery.toString()}`}
-                  />
-                )}
-
-                <FormContainer table="result" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+          ) : undefined
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}

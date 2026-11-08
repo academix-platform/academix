@@ -3,6 +3,13 @@
     "brand": "أكاديميكس",
     "dashboard": "لوحة التحكم",
     "search": "بحث...",
+    "clearSearch": "مسح البحث",
+    "showingResults": "عرض {from}–{to} من أصل {count} نتيجة",
+    "firstPage": "الصفحة الأولى",
+    "lastPage": "الصفحة الأخيرة",
+    "previousPage": "الصفحة السابقة",
+    "nextPage": "الصفحة التالية",
+    "page": "صفحة {page}",
     "copyright": "© 2026 أكاديميكس. جميع الحقوق محفوظة."
   },
   "states": {

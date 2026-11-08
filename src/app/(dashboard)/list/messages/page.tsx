@@ -5,6 +5,8 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -98,20 +100,39 @@ const renderRow = (
     return (
       <tr
         key={item.id}
-        className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+        className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
       >
-        <td className="p-4">{item.title}</td>
-        <td className="hidden md:table-cell">{getDescriptionPreview(item.description)}</td>
-        <td className="hidden sm:table-cell">{new Intl.DateTimeFormat("en-US").format(item.date)}</td>
-        <td className="hidden md:table-cell">
+        <td className="px-4 py-3">
+          <div className="flex flex-col gap-0.5">
+            <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+              {item.title}
+            </span>
+            {/* Mobile secondary info */}
+            <div className="flex flex-col gap-0.5 mt-0.5 md:hidden text-xs text-slate-500 dark:text-slate-400">
+              <span className="truncate max-w-[240px]">
+                {getDescriptionPreview(item.description)}
+              </span>
+              <span className="text-[11px] text-slate-400">
+                {new Intl.DateTimeFormat("en-US").format(item.date)}
+              </span>
+            </div>
+          </div>
+        </td>
+        <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[260px] truncate">
+          {getDescriptionPreview(item.description)}
+        </td>
+        <td className="hidden sm:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+          {new Intl.DateTimeFormat("en-US").format(item.date)}
+        </td>
+        <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
           {item.date.toLocaleTimeString("en-US", {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
           })}
         </td>
-        <td>
-          <div className="flex items-center gap-2">
+        <td className="px-4 py-3">
+          <div className="flex items-center gap-1.5">
             <MessageViewModal message={item} />
           </div>
         </td>
@@ -122,28 +143,66 @@ const renderRow = (
   return (
     <tr
       key={item.id}
-      className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+      className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
     >
-      <td className="flex items-center gap-4 p-4">{item.title}</td>
-      <td className="hidden lg:table-cell">{getDescriptionPreview(item.description)}</td>
-      <td className="hidden md:table-cell">{getRecipientsPreview(item)}</td>
-      <td className="hidden sm:table-cell">
-        {item.classes.length === totalClassesCount && totalClassesCount > 0
-          ? allClassesLabel
-          : item.classes.map((cls) => cls.name).join(", ") || "-"}
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+            {item.title}
+          </span>
+          {/* Mobile secondary info */}
+          <div className="flex flex-col gap-0.5 mt-0.5 md:hidden text-xs text-slate-500 dark:text-slate-400">
+            <span className="truncate max-w-[240px]">
+              {getDescriptionPreview(item.description)}
+            </span>
+            <span className="text-[11px] text-slate-400">
+              {new Intl.DateTimeFormat("en-US").format(item.date)}
+            </span>
+          </div>
+        </div>
       </td>
-      <td className="hidden md:table-cell">
+      <td className="hidden lg:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[260px] truncate">
+        {getDescriptionPreview(item.description)}
+      </td>
+      <td className="hidden md:table-cell px-4 py-3">
+        <Badge variant="secondary" size="sm" className="font-normal">
+          {getRecipientsPreview(item)}
+        </Badge>
+      </td>
+      <td className="hidden sm:table-cell px-4 py-3">
+        {item.classes.length === totalClassesCount && totalClassesCount > 0 ? (
+          <Badge variant="primary" size="sm" className="font-normal">
+            {allClassesLabel}
+          </Badge>
+        ) : item.classes.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-1">
+            {item.classes.map((cls) => (
+              <Badge
+                key={cls.id}
+                variant="secondary"
+                size="sm"
+                className="font-normal"
+              >
+                {cls.name}
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
+      </td>
+      <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
         {new Intl.DateTimeFormat("en-US").format(item.date)}
       </td>
-      <td className="hidden md:table-cell">
+      <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
         {item.date.toLocaleTimeString("en-US", {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false,
         })}
       </td>
-      <td>
-        <div className="flex items-center gap-2">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5">
           <MessageViewModal message={item} />
           {role === "admin" && (
             <>
@@ -272,21 +331,22 @@ const MessageListPage = async ({
   ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allMessages")}</h1>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-            {role === "admin" && (
-              <FormContainer table="message" type="create" />
-            )}
-          </div>
-        </div>
-      </div>
-      {/* LIST */}
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allMessages")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <FormContainer table="message" type="create" />
+          ) : undefined
+        }
+      />
+
+      <DataPageToolbar
+        search={<TableSearch />}
+        actions={<FilterSortActions sortKey="sort" />}
+      />
+
       <Table
         columns={getColumns(role, th)}
         renderRow={(item) =>
@@ -296,7 +356,7 @@ const MessageListPage = async ({
         emptyTitle={emptyT("messages")}
         emptyDescription={emptyT("filterDescription")}
       />
-      {/* PAGINATION */}
+
       <Pagination page={p} count={count} />
     </div>
   );

@@ -2,6 +2,8 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -31,21 +33,61 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => [
   },
 ];
 
-const renderRow = (item: GradeList, role: UserRole | null) => (
+const renderRow = (
+  item: GradeList,
+  role: UserRole | null,
+  gradeLabel: string,
+) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="p-4">Grade {item.level}</td>
-
-    <td className="hidden md:table-cell">
-      {item.classes.length > 0
-        ? item.classes.map((classItem) => classItem.name).join(", ")
-        : "-"}
+    <td className="px-4 py-3">
+      <div className="flex flex-col gap-0.5">
+        <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+          {gradeLabel}
+        </span>
+        {/* Mobile secondary info: classes badges */}
+        <div className="flex flex-wrap items-center gap-1 mt-1 md:hidden">
+          {item.classes.length > 0 ? (
+            item.classes.map((cls) => (
+              <Badge
+                key={cls.id}
+                variant="secondary"
+                size="sm"
+                className="text-[10px] py-0 px-1.5 font-normal"
+              >
+                {cls.name}
+              </Badge>
+            ))
+          ) : (
+            <span className="text-[11px] text-slate-400">—</span>
+          )}
+        </div>
+      </div>
     </td>
 
-    <td>
-      <div className="flex items-center gap-2">
+    <td className="hidden md:table-cell px-4 py-3">
+      <div className="flex flex-wrap items-center gap-1">
+        {item.classes.length > 0 ? (
+          item.classes.map((classItem) => (
+            <Badge
+              key={classItem.id}
+              variant="primary"
+              size="sm"
+              className="font-normal"
+            >
+              {classItem.name}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
+    </td>
+
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-1.5">
         {role === "admin" && (
           <FormContainer table="grade" type="delete" id={item.id} data={item} />
         )}
@@ -62,6 +104,7 @@ const GradeListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
+  const filtersT = await getTranslations("filters");
   const { role, schoolId } = await enforceRouteAccess("/list/grades");
 
   const resolvedSearchParams = await searchParams;
@@ -110,22 +153,28 @@ const GradeListPage = async ({
   ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allGrades")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allGrades")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <FormContainer table="grade" type="create" />
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-
-          <div className="flex items-center self-end gap-2">
-            {role === "admin" && <FormContainer table="grade" type="create" />}
-          </div>
-        </div>
-      </div>
+      <DataPageToolbar search={<TableSearch />} />
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) =>
+          renderRow(
+            item,
+            role,
+            filtersT("gradeLevel", { level: item.level }),
+          )
+        }
         data={data}
         emptyTitle={emptyT("grades")}
         emptyDescription={emptyT("searchDescription")}

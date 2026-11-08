@@ -3,6 +3,13 @@
     "brand": "ACADEMIX",
     "dashboard": "Dashboard",
     "search": "Search...",
+    "clearSearch": "Clear search",
+    "showingResults": "Showing {from}–{to} of {count} results",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {page}",
     "copyright": "© 2026 Academix. All rights reserved."
   },
   "states": {

@@ -3,6 +3,7 @@
 import { AcademicYearItem } from "@/lib/academicYears";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Select } from "@/components/ui/select";
 
 type StudentsFiltersProps = {
   academicYears: AcademicYearItem[];
@@ -48,62 +49,56 @@ const StudentsFilters = ({
   };
 
   return (
-    <div className="hidden sm:flex flex-wrap items-center gap-3">
-      <label className="flex flex-col gap-1 text-gray-500 text-xs">
-        {t("academicYear")}
-        <select
-          value={selectedAcademicYearId}
-          onChange={(event) =>
-            updateParams({ academicYearId: event.target.value })
-          }
-          className="bg-white px-3 py-2 border border-gray-300 rounded-md outline-none min-w-44 text-sm"
-        >
-          {academicYears.map((year) => (
-            <option key={year.id} value={year.id}>
-              {year.name}
-            </option>
-          ))}
-        </select>
-      </label>
+    <div className="flex flex-wrap items-center gap-2">
+      <Select
+        value={selectedAcademicYearId}
+        onChange={(event) =>
+          updateParams({ academicYearId: event.target.value })
+        }
+        containerClassName="w-full sm:w-44"
+        aria-label={t("academicYear")}
+      >
+        {academicYears.map((year) => (
+          <option key={year.id} value={year.id}>
+            {year.name}
+          </option>
+        ))}
+      </Select>
 
-      <label className="flex flex-col gap-1 text-gray-500 text-xs">
-        {t("status")}
-        <select
-          value={selectedStatus}
-          onChange={(event) => {
-            const nextStatus = event.target.value;
-            updateParams({
-              status: nextStatus,
-              repeatCount: nextStatus === "REPEATED" ? "1" : undefined,
-            });
-          }}
-          className="bg-white px-3 py-2 border border-gray-300 rounded-md outline-none min-w-40 text-sm"
-        >
-          {STATUS_OPTIONS.map((option) => (
-            <option key={option.value} value={option.value}>
-              {t(option.labelKey)}
-            </option>
-          ))}
-        </select>
-      </label>
+      <Select
+        value={selectedStatus}
+        onChange={(event) => {
+          const nextStatus = event.target.value;
+          updateParams({
+            status: nextStatus,
+            repeatCount: nextStatus === "REPEATED" ? "1" : undefined,
+          });
+        }}
+        containerClassName="w-full sm:w-36"
+        aria-label={t("status")}
+      >
+        {STATUS_OPTIONS.map((option) => (
+          <option key={option.value} value={option.value}>
+            {t(option.labelKey)}
+          </option>
+        ))}
+      </Select>
 
       {selectedStatus === "REPEATED" && (
-        <label className="flex flex-col gap-1 text-gray-500 text-xs">
-          {t("repeatedTimes")}
-          <select
-            value={selectedRepeatCount}
-            onChange={(event) =>
-              updateParams({ repeatCount: event.target.value })
-            }
-            className="bg-white px-3 py-2 border border-gray-300 rounded-md outline-none min-w-36 text-sm"
-          >
-            {REPEAT_COUNT_OPTIONS.map((count) => (
-              <option key={count} value={count}>
-                {count} {count === 1 ? t("time") : t("times")}
-              </option>
-            ))}
-          </select>
-        </label>
+        <Select
+          value={selectedRepeatCount}
+          onChange={(event) =>
+            updateParams({ repeatCount: event.target.value })
+          }
+          containerClassName="w-full sm:w-32"
+          aria-label={t("repeatedTimes")}
+        >
+          {REPEAT_COUNT_OPTIONS.map((count) => (
+            <option key={count} value={count}>
+              {count} {count === 1 ? t("time") : t("times")}
+            </option>
+          ))}
+        </Select>
       )}
     </div>
   );
