@@ -13,6 +13,7 @@ import {
   createAttendanceSheetWith,
   loadAttendanceSheets,
   saveAttendanceSheetWith,
+  sheetUploadWindow,
 } from "../entrySheets/attendanceSheet";
 import { createResultSheetWith } from "../entrySheets/createSheet";
 import {
@@ -184,6 +185,7 @@ export type PhotoReadFailure =
   | "wrongSheet"
   | "rowsMismatch"
   | "dailyLimit"
+  | "dateClosed"
   | "unavailable";
 
 export type PhotoReadState =
@@ -311,6 +313,13 @@ export const readAttendanceSheetPhoto = async (formData: FormData): Promise<Phot
     date: formData.get("date"),
   });
   if (!parsed.success) return { success: false, reason: "badRequest" };
+
+  // Don't pay for a read that saveAttendanceSheet would refuse. The page hides
+  // the upload outside this window, but the action must not rely on it.
+  const year = await getCurrentAcademicYearOrNull(access.schoolId);
+  if (!year || sheetUploadWindow(parsed.data.date, todayInTimeZone(), year) !== "open") {
+    return { success: false, reason: "dateClosed" };
+  }
 
   return readPhotoAgainst(access.schoolId, formData.get("photo"), "ATTENDANCE", () =>
     loadAttendanceSheets(prisma, access, parsed.data),

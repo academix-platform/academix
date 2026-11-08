@@ -1565,6 +1565,7 @@
       "wrongSheet": "This photo isn't of a sheet printed for this class and date. Nothing was filled in.",
       "rowsMismatch": "The rows in the photo don't match the sheet. Take it again. Nothing was filled in.",
       "dailyLimit": "Your school has reached today's limit for reading sheet photos. Upload again tomorrow, or take today's attendance on the attendance page.",
+      "dateClosed": "Attendance for this date can't be saved from a sheet now. Sheets can be uploaded from their date up to 7 days after.",
       "unavailable": "Reading photos isn't working right now. Try again later, or take today's attendance on the attendance page."
     },
     "student": "Student",
