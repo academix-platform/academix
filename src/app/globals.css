@@ -202,3 +202,12 @@ html {
 .entry-sheet-page:last-child {
   break-after: auto;
 }
+
+/* Anything after the sheet, even an empty element such as the toast
+   container, sits on a default page and so prints as an extra blank page.
+   Only the element holding the sheet prints. */
+@media print {
+  body:has(.entry-sheet-page) > :not(:has(.entry-sheet-page)) {
+    display: none;
+  }
+}
