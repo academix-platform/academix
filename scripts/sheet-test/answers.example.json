@@ -1,0 +1,18 @@
+{
+  "sheets": [
+    {
+      "photo": "results-person1-western.jpg",
+      "kind": "RESULT",
+      "sheetCode": "TEST-R1",
+      "pageNumber": 1,
+      "values": { "1": "15", "2": "12.5", "3": "?", "5": "20" }
+    },
+    {
+      "photo": "attendance-person1-marks.jpg",
+      "kind": "ATTENDANCE",
+      "sheetCode": "TEST-A1",
+      "pageNumber": 1,
+      "values": { "4": "x", "9": "line", "17": "?" }
+    }
+  ]
+}

@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "sheet-test": "tsx --conditions=react-server scripts/sheet-test/run.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {

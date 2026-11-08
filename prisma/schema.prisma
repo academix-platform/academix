@@ -54,6 +54,8 @@ model School {
 
   subjectPageSettings SubjectPageSettings[]
   notifications       Notification[]
+  entrySheets         EntrySheet[]
+  entrySheetReads     EntrySheetRead[]
 }
 
 model Admin {
@@ -123,6 +125,7 @@ model AcademicYear {
   studentAcademicYears  StudentAcademicYear[]
   submissions           Submission[] // exam submissions
   assignmentSubmissions AssignmentSubmission[] // assignment submissions
+  entrySheets EntrySheet[]
 
   @@unique([schoolId, name])
 }
@@ -246,6 +249,7 @@ model Class {
   exams                Exam[]
   assignments          Assignment[]
   studentAcademicYears StudentAcademicYear[]
+  entrySheets          EntrySheet[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -362,6 +366,7 @@ model Exam {
   // Exam workflow relations
   questions   Question[]
   submissions Submission[]
+  entrySheets EntrySheet[]
 
   @@index([schoolId])
   @@index([teacherId])
@@ -401,6 +406,7 @@ model Assignment {
 
   results               Result[]
   assignmentSubmissions AssignmentSubmission[]
+  entrySheets           EntrySheet[]
 
   @@index([schoolId])
   @@index([teacherId])
@@ -848,4 +854,49 @@ enum NotificationType {
   ATTENDANCE_SAVED
   SUPERVISOR_ASSIGNED
   NEW_MESSAGE
+}
+
+enum EntrySheetKind {
+  RESULT
+  ATTENDANCE
+}
+
+// A printed sheet for writing marks or absences by hand. `rows` keeps the
+// printed list, so later class changes can't move a mark to another student.
+model EntrySheet {
+  id             String           @id @default(uuid())
+  code           String // Short code printed on the sheet.
+  kind           EntrySheetKind
+  schoolId       Int
+  school         School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId Int
+  academicYear   AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classId        Int
+  class          Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  examId         Int?
+  exam           Exam?            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  assignmentId   Int?
+  assignment     Assignment?      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  date           DateTime?        @db.Date // Attendance only.
+  createdById    String // Clerk id of the admin or teacher who printed it.
+  rows           Json // [{ page, rowNumber, studentId, name }]
+  createdAt      DateTime         @default(now())
+  reads          EntrySheetRead[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+}
+
+// One photo read. Never holds the photo, marks or names.
+model EntrySheetRead {
+  id        Int        @id @default(autoincrement())
+  schoolId  Int
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sheetId   String
+  sheet     EntrySheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  model     String
+  succeeded Boolean
+  createdAt DateTime   @default(now())
+
+  @@index([schoolId, createdAt])
 }
