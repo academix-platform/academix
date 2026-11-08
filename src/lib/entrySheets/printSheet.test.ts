@@ -20,6 +20,8 @@ const sheet = (fields: Record<string, unknown> = {}) => ({
   rows: buildSheetRows(students(2)),
   school: { name: "مدرسة التجربة" },
   class: { name: "7A" },
+  examId: 12,
+  assignmentId: null,
   exam: {
     title: "اختبار الوحدة الأولى",
     teacherId: "teacher_1",
@@ -40,15 +42,20 @@ describe("loadSheetForPrint", () => {
       className: "7A",
       title: "اختبار الوحدة الأولى",
       maxScore: 20,
+      assessment: { type: "exam", id: 12 },
       pages: [buildSheetRows(students(2))],
     });
   });
 
   it("uses an assignment's maximum score", async () => {
     const assignment = { title: "واجب", teacherId: "teacher_1", lesson: null, maxScore: 10 };
-    const { db } = fakeResultDb({ sheets: [sheet({ exam: null, assignment })] });
+    const { db } = fakeResultDb({ sheets: [sheet({ examId: null, assignmentId: 5, exam: null, assignment })] });
 
-    expect(await loadSheetForPrint(db, teacher, SHEET_ID)).toMatchObject({ title: "واجب", maxScore: 10 });
+    expect(await loadSheetForPrint(db, teacher, SHEET_ID)).toMatchObject({
+      title: "واجب",
+      maxScore: 10,
+      assessment: { type: "assignment", id: 5 },
+    });
   });
 
   it("splits a class of 31 into pages of 30 and 1", async () => {

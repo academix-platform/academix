@@ -26,8 +26,10 @@ const PrintSheetPage = async ({ params }: { params: Promise<{ sheetId: string }>
     ? {
         sheet: results,
         detail: `${results.title} — ${t("outOf", { max: results.maxScore })}`,
+        fileName: `${results.code} ${results.className} ${results.title}`,
         box: t("markBox"),
-        backHref: "/list/results/class-entry",
+        // Back to the same assessment, not the empty picker.
+        backHref: `/list/results/class-entry?assessment=${results.assessment.type}:${results.assessment.id}`,
         backLabel: t("back"),
         hint: t("printHint"),
       }
@@ -35,6 +37,7 @@ const PrintSheetPage = async ({ params }: { params: Promise<{ sheetId: string }>
       ? {
           sheet: attendance,
           detail: t("date", { date: attendance.date }),
+          fileName: `${attendance.code} ${attendance.className} ${attendance.date}`,
           box: t("absentBox"),
           backHref: `/list/attendance/sheet?classId=${attendance.classId}&date=${attendance.date}`,
           backLabel: t("backToAttendance"),
@@ -49,8 +52,10 @@ const PrintSheetPage = async ({ params }: { params: Promise<{ sheetId: string }>
         <Link href={printed.backHref} className="text-academixPurpleDark text-sm underline">
           {printed.backLabel}
         </Link>
-        <PrintButton label={t("print")} />
+        <PrintButton label={t("print")} fileName={printed.fileName} />
+        <PrintButton label={t("downloadPdf")} fileName={printed.fileName} kind="pdf" />
         <p className="w-full text-gray-600 text-sm text-center">{printed.hint}</p>
+        <p className="w-full text-gray-600 text-sm text-center">{t("pdfHint")}</p>
       </div>
       <SheetLayout
         sheet={printed.sheet}

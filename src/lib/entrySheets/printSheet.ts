@@ -16,6 +16,8 @@ export type PrintableSheet = {
   className: string;
   title: string;
   maxScore: number;
+  /** The exam or assignment the sheet was printed for. */
+  assessment: AssessmentRef;
   pages: SheetRow[][];
 };
 
@@ -71,6 +73,8 @@ export const loadSheetForPrint = async (
       rows: true,
       school: { select: { name: true } },
       class: { select: { name: true } },
+      examId: true,
+      assignmentId: true,
       exam: { select: { title: true, questions: { select: { points: true } } } },
       assignment: { select: { title: true, maxScore: true } },
     },
@@ -81,7 +85,12 @@ export const loadSheetForPrint = async (
   const assessment = sheet.exam
     ? { title: sheet.exam.title, maxScore: examMaxScore(sheet.exam.questions) }
     : sheet.assignment;
-  if (!rows.success || !assessment) return null;
+  const ref = sheet.examId
+    ? ({ type: "exam", id: sheet.examId } as const)
+    : sheet.assignmentId
+      ? ({ type: "assignment", id: sheet.assignmentId } as const)
+      : null;
+  if (!rows.success || !assessment || !ref) return null;
 
   return {
     code: sheet.code,
@@ -89,6 +98,7 @@ export const loadSheetForPrint = async (
     className: sheet.class.name,
     title: assessment.title,
     maxScore: assessment.maxScore,
+    assessment: ref,
     pages: splitIntoPages(rows.data),
   };
 };

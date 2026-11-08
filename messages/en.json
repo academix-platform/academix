@@ -1523,6 +1523,8 @@
     "printSheet": "Print sheet",
     "preparing": "Preparing...",
     "print": "Print",
+    "downloadPdf": "Download PDF",
+    "pdfHint": "To download, choose “Save as PDF” as the printer in the window that opens.",
     "printHint": "Print on A4 paper at 100% scale. Write each mark inside its box.",
     "back": "Back to class marks",
     "class": "Class",
