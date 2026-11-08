@@ -8,7 +8,7 @@ import {
 } from "@/lib/results/manualResult";
 import type { AssessmentRef } from "./classEntry";
 import type { CandidateSheet } from "./photoRead";
-import { SheetRow, sheetRowsSchema } from "./sheetRows";
+import { SheetRow, sheetRowsSchema, splitIntoPages } from "./sheetRows";
 
 export type PrintableSheet = {
   code: string;
@@ -83,17 +83,12 @@ export const loadSheetForPrint = async (
     : sheet.assignment;
   if (!rows.success || !assessment) return null;
 
-  const pages: SheetRow[][] = [];
-  for (const row of rows.data) {
-    (pages[row.page - 1] ??= []).push(row);
-  }
-
   return {
     code: sheet.code,
     schoolName: sheet.school.name,
     className: sheet.class.name,
     title: assessment.title,
     maxScore: assessment.maxScore,
-    pages: pages.filter(Boolean),
+    pages: splitIntoPages(rows.data),
   };
 };

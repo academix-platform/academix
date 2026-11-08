@@ -1,0 +1,245 @@
+import { describe, expect, it } from "vitest";
+import { fakeResultDb } from "@/lib/results/testing/fakeResultDb";
+import { buildSheetRows } from "./sheetRows";
+import {
+  createAttendanceSheetWith,
+  loadAttendanceClasses,
+  loadAttendanceSheetForPrint,
+} from "./attendanceSheet";
+
+const SHEET_ID = "3f0c9a52-6d1e-4b8a-9c7f-2b1d4e5a6f70";
+const teacher = { userId: "teacher_1", role: "teacher", schoolId: 1 };
+const otherTeacher = { userId: "teacher_2", role: "teacher", schoolId: 1 };
+const admin = { userId: "admin_1", role: "admin", schoolId: 1 };
+const otherSchoolAdmin = { userId: "admin_9", role: "admin", schoolId: 2 };
+const year = { id: 5, startDate: "2026-09-01", endDate: "2027-06-30" };
+
+const classes = [
+  { id: 3, schoolId: 1, name: "7A", supervisorId: "teacher_1" },
+  { id: 4, schoolId: 1, name: "7B", supervisorId: "teacher_2" },
+  { id: 5, schoolId: 1, name: "8A", supervisorId: null },
+  { id: 9, schoolId: 2, name: "9A", supervisorId: "teacher_9" },
+];
+
+const classStudents = (count: number, fields: Record<string, unknown> = {}) =>
+  Array.from({ length: count }, (_, index) => ({
+    id: `s${String(index + 1).padStart(2, "0")}`,
+    name: `طالب ${String(index + 1).padStart(2, "0")}`,
+    schoolId: 1,
+    classId: 3,
+    status: "ACTIVE",
+    ...fields,
+  }));
+
+const codes = (...values: string[]) => () => values.shift() ?? "ZZZZZZ";
+const request = (fields: Partial<{ classId: number; date: string }> = {}) => ({
+  classId: 3,
+  date: "2026-11-08",
+  ...fields,
+});
+
+describe("loadAttendanceClasses", () => {
+  it("gives a teacher only the classes they supervise", async () => {
+    const { db } = fakeResultDb({ classes });
+
+    expect(await loadAttendanceClasses(db, teacher)).toEqual([classes[0]]);
+  });
+
+  it("gives an admin every class in their school", async () => {
+    const { db } = fakeResultDb({ classes });
+
+    expect((await loadAttendanceClasses(db, admin)).map((found) => found.id)).toEqual([3, 4, 5]);
+  });
+
+  it("gives another school's admin none of these classes", async () => {
+    const { db } = fakeResultDb({ classes });
+
+    expect((await loadAttendanceClasses(db, otherSchoolAdmin)).map((found) => found.id)).toEqual([9]);
+  });
+});
+
+describe("createAttendanceSheetWith", () => {
+  it("saves the class list with the date and a code", async () => {
+    const { db, sheets } = fakeResultDb({ classes, students: classStudents(2) });
+
+    const outcome = await createAttendanceSheetWith(db, teacher, request(), year, codes("ABC234"));
+
+    expect(outcome).toEqual({ sheetId: sheets[0].id, code: "ABC234", pageCount: 1 });
+    expect(sheets[0]).toMatchObject({
+      code: "ABC234",
+      kind: "ATTENDANCE",
+      schoolId: 1,
+      academicYearId: 5,
+      classId: 3,
+      examId: null,
+      assignmentId: null,
+      createdById: "teacher_1",
+      rows: [
+        { page: 1, rowNumber: 1, studentId: "s01", name: "طالب 01" },
+        { page: 1, rowNumber: 2, studentId: "s02", name: "طالب 02" },
+      ],
+    });
+    expect(sheets[0].date).toEqual(new Date("2026-11-08T00:00:00.000Z"));
+  });
+
+  it("lists only current students of the class", async () => {
+    const students = [
+      ...classStudents(1),
+      { ...classStudents(2)[1], status: "REPEATED" },
+      { ...classStudents(3)[2], status: "LEFT" },
+      { ...classStudents(4)[3], status: "GRADUATED" },
+      { ...classStudents(5)[4], classId: 4 },
+      { ...classStudents(6)[5], schoolId: 2 },
+    ];
+    const { db, sheets } = fakeResultDb({ classes, students });
+
+    await createAttendanceSheetWith(db, teacher, request(), year, codes("ABC234"));
+
+    expect(sheets[0].rows.map((row: { studentId: string }) => row.studentId)).toEqual(["s01", "s02"]);
+  });
+
+  it("puts a class of 31 on two pages", async () => {
+    const { db } = fakeResultDb({ classes, students: classStudents(31) });
+
+    expect(await createAttendanceSheetWith(db, teacher, request(), year, codes("ABC234"))).toMatchObject({
+      pageCount: 2,
+    });
+  });
+
+  it("lets an admin print any class in their school", async () => {
+    const { db } = fakeResultDb({ classes, students: classStudents(1, { classId: 4 }) });
+
+    expect(
+      await createAttendanceSheetWith(db, admin, request({ classId: 4 }), year, codes("ABC234")),
+    ).toMatchObject({ code: "ABC234" });
+  });
+
+  it("refuses a teacher who doesn't supervise the class", async () => {
+    const { db, sheets } = fakeResultDb({ classes, students: classStudents(1) });
+
+    expect(await createAttendanceSheetWith(db, otherTeacher, request(), year, codes("ABC234"))).toEqual({
+      error: "notFound",
+    });
+    expect(sheets).toEqual([]);
+  });
+
+  it("refuses a class from another school", async () => {
+    const { db, sheets } = fakeResultDb({ classes, students: classStudents(1) });
+
+    expect(await createAttendanceSheetWith(db, otherSchoolAdmin, request(), year, codes("ABC234"))).toEqual({
+      error: "notFound",
+    });
+    expect(sheets).toEqual([]);
+  });
+
+  it.each(["", "2026-13-01", "2026-02-30", "08/11/2026"])("refuses the date %j", async (date) => {
+    const { db, sheets } = fakeResultDb({ classes, students: classStudents(1) });
+
+    expect(await createAttendanceSheetWith(db, teacher, request({ date }), year, codes("ABC234"))).toEqual({
+      error: "badDate",
+    });
+    expect(sheets).toEqual([]);
+  });
+
+  it.each(["2026-08-31", "2027-07-01"])("refuses %s, outside the academic year", async (date) => {
+    const { db } = fakeResultDb({ classes, students: classStudents(1) });
+
+    expect(await createAttendanceSheetWith(db, teacher, request({ date }), year, codes("ABC234"))).toEqual({
+      error: "outsideYear",
+    });
+  });
+
+  it("refuses a class with no current students", async () => {
+    const { db, sheets } = fakeResultDb({ classes, students: classStudents(2, { status: "LEFT" }) });
+
+    expect(await createAttendanceSheetWith(db, teacher, request(), year, codes("ABC234"))).toEqual({
+      error: "noStudents",
+    });
+    expect(sheets).toEqual([]);
+  });
+
+  it("picks another code when the first is taken in the school", async () => {
+    const { db } = fakeResultDb({
+      classes,
+      students: classStudents(1),
+      sheets: [{ id: "old", schoolId: 1, code: "TAKEN2" }],
+    });
+
+    expect(
+      await createAttendanceSheetWith(db, teacher, request(), year, codes("TAKEN2", "FRESH3")),
+    ).toMatchObject({ code: "FRESH3" });
+  });
+});
+
+describe("loadAttendanceSheetForPrint", () => {
+  const students = Array.from({ length: 31 }, (_, index) => ({ id: `s${index + 1}`, name: `طالب ${index + 1}` }));
+  const sheet = (fields: Record<string, unknown> = {}) => ({
+    id: SHEET_ID,
+    schoolId: 1,
+    code: "ABC234",
+    kind: "ATTENDANCE",
+    classId: 3,
+    date: new Date("2026-11-08T00:00:00.000Z"),
+    rows: buildSheetRows(students.slice(0, 2)),
+    school: { name: "مدرسة التجربة" },
+    class: { name: "7A", supervisorId: "teacher_1" },
+    ...fields,
+  });
+
+  it("returns the class, date, code and rows", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheetForPrint(db, teacher, SHEET_ID)).toEqual({
+      code: "ABC234",
+      schoolName: "مدرسة التجربة",
+      className: "7A",
+      classId: 3,
+      date: "2026-11-08",
+      pages: [buildSheetRows(students.slice(0, 2))],
+    });
+  });
+
+  it("splits a class of 31 into pages of 30 and 1", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet({ rows: buildSheetRows(students) })] });
+
+    const printed = await loadAttendanceSheetForPrint(db, teacher, SHEET_ID);
+
+    expect(printed?.pages.map((page) => page.length)).toEqual([30, 1]);
+  });
+
+  it("lets an admin print any attendance sheet in their school", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheetForPrint(db, admin, SHEET_ID)).not.toBeNull();
+  });
+
+  it("refuses a teacher who doesn't supervise the class", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheetForPrint(db, otherTeacher, SHEET_ID)).toBeNull();
+  });
+
+  it("refuses a sheet from another school", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheetForPrint(db, otherSchoolAdmin, SHEET_ID)).toBeNull();
+  });
+
+  it("doesn't print a results sheet as an attendance sheet", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet({ kind: "RESULT" })] });
+
+    expect(await loadAttendanceSheetForPrint(db, admin, SHEET_ID)).toBeNull();
+  });
+
+  it.each(["", "not-a-uuid"])("returns nothing for the id %j", async (id) => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheetForPrint(db, admin, id)).toBeNull();
+  });
+
+  it.each([{ rows: [{ page: 1 }] }, { date: null }])("returns nothing for damaged data %j", async (fields) => {
+    const { db } = fakeResultDb({ sheets: [sheet(fields)] });
+
+    expect(await loadAttendanceSheetForPrint(db, admin, SHEET_ID)).toBeNull();
+  });
+});

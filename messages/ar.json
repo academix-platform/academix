@@ -379,7 +379,8 @@
     "tryAnotherPage": "جرّب الانتقال إلى صفحة أخرى.",
     "noClassesAssigned": "لا توجد صفوف معينة",
     "noClassesAssignedDescription": "لم يتم تعيينك للإشراف على أي صف بعد.",
-    "dateOutsideAcademicYear": "هذا التاريخ خارج نطاق السنة الأكاديمية الحالية ({start} إلى {end})."
+    "dateOutsideAcademicYear": "هذا التاريخ خارج نطاق السنة الأكاديمية الحالية ({start} إلى {end}).",
+    "paperSheet": "استخدام كشف ورقي"
   },
   "archivePage": {
     "previewData": "معاينة البيانات",
@@ -1528,6 +1529,25 @@
     "outOf": "من {max}",
     "pageOf": "صفحة {page} من {total}",
     "student": "اسم الطالب",
-    "markBox": "العلامة"
+    "markBox": "العلامة",
+    "date": "التاريخ: {date}",
+    "absentBox": "غائب",
+    "backToAttendance": "العودة إلى كشف الحضور",
+    "attendancePrintHint": "اطبع على ورق A4 بمقياس 100%. ضع أي علامة في مربع كل طالب غائب، واترك المربع فارغاً للطالب الحاضر."
+  },
+  "attendanceSheet": {
+    "title": "كشف الحضور",
+    "intro": "اطبع كشفاً لصف واحد في تاريخ واحد، وضع علامة للطلاب الغائبين على الورق، ثم ارفع صورة للكشف لمراجعتها وحفظها.",
+    "classLabel": "الصف",
+    "chooseClass": "اختر صفاً",
+    "dateLabel": "التاريخ",
+    "open": "فتح",
+    "pickTitle": "اختر صفاً للبدء",
+    "pickDescription": "ستظهر قائمة طلاب الصف لذلك التاريخ هنا.",
+    "notFound": "هذا الصف غير متاح",
+    "notFoundDescription": "يمكنك استخدام الصفوف التي تشرف عليها فقط.",
+    "noStudents": "لا يوجد طلاب في القائمة",
+    "noStudentsDescription": "لا يوجد في هذا الصف طلاب حاليون.",
+    "studentCount": "{count, plural, zero {لا يوجد طلاب} one {طالب واحد} two {طالبان} few {# طلاب} many {# طالباً} other {# طالب}} في الكشف"
   }
 }

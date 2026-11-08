@@ -1,8 +1,12 @@
-import type { PrintableSheet } from "@/lib/entrySheets/printSheet";
+import type { SheetRow } from "@/lib/entrySheets/sheetRows";
+
+/** What every sheet kind prints; the kind's own details come in `labels.detail`. */
+export type SheetPages = { code: string; schoolName: string; className: string; pages: SheetRow[][] };
 
 export type SheetLabels = {
   className: string;
-  outOf: string;
+  /** The assessment and maximum score, or the attendance date. */
+  detail: string;
   pageOf: (page: number, total: number) => string;
   student: string;
   box: string;
@@ -13,7 +17,7 @@ export type SheetLabels = {
  * matches the layout tested with scripts/sheet-test/sample-sheets.html:
  * 30 rows of 8 mm fit with room to write.
  */
-const SheetLayout = ({ sheet, labels }: { sheet: PrintableSheet; labels: SheetLabels }) => {
+const SheetLayout = ({ sheet, labels }: { sheet: SheetPages; labels: SheetLabels }) => {
   const total = sheet.pages.length;
 
   return (
@@ -30,7 +34,7 @@ const SheetLayout = ({ sheet, labels }: { sheet: PrintableSheet; labels: SheetLa
               <div>
                 <div>{sheet.schoolName}</div>
                 <div>
-                  {labels.className}: {sheet.className} — {sheet.title} — {labels.outOf}
+                  {labels.className}: {sheet.className} — {labels.detail}
                 </div>
               </div>
               <div className="font-bold text-end">

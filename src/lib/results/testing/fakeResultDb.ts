@@ -41,6 +41,7 @@ export type FakeData = {
   submissions?: { examId: number; studentId: string }[];
   assignmentSubmissions?: { assignmentId: number; studentId: string }[];
   sheets?: FakeSheet[];
+  classes?: { id: number; schoolId: number; name: string; supervisorId: string | null }[];
 };
 
 type Where = Record<string, unknown>;
@@ -107,6 +108,7 @@ export const fakeResultDb = (data: FakeData) => {
   };
 
   const db = {
+    class: finder(data.classes),
     exam: finder(data.exams),
     assignment: finder(data.assignments),
     student: finder(data.students),

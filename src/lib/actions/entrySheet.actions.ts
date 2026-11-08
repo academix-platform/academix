@@ -6,6 +6,7 @@ import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
 import { readSheetPhoto } from "../ai/geminiSheetReader";
 import { InvalidSheetReplyError } from "../ai/sheetReadingPrompt";
+import { createAttendanceSheetWith } from "../entrySheets/attendanceSheet";
 import { createResultSheetWith } from "../entrySheets/createSheet";
 import {
   MAX_PHOTO_BYTES,
@@ -125,6 +126,41 @@ export const createResultSheet = async (
     return { success: true, error: false, sheetId: outcome.sheetId };
   } catch (err) {
     console.error("createResultSheet failed", err);
+    return fail("The sheet could not be created. Try again.");
+  }
+};
+
+const attendanceSheetSchema = z.object({
+  classId: z.number().int().positive(),
+  date: z.string(),
+});
+
+const attendanceSheetErrors = {
+  badDate: "Choose a valid date.",
+  outsideYear: "This date is outside the current academic year.",
+  notFound: "This class isn't available.",
+  noStudents: "There are no students to list on this sheet.",
+} as const;
+
+/** Saves the class list for a printable attendance sheet for one date. */
+export const createAttendanceSheet = async (
+  input: z.infer<typeof attendanceSheetSchema>,
+): Promise<EntrySheetActionState & { sheetId?: string }> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  const parsed = attendanceSheetSchema.safeParse(input);
+  if (!parsed.success) return fail("Choose a class and a date.");
+
+  const year = await getCurrentAcademicYearOrNull(access.schoolId);
+  if (!year) return fail("No current academic year found.");
+
+  try {
+    const outcome = await createAttendanceSheetWith(prisma, access, parsed.data, year);
+    if ("error" in outcome) return fail(attendanceSheetErrors[outcome.error]);
+    return { success: true, error: false, sheetId: outcome.sheetId };
+  } catch (err) {
+    console.error("createAttendanceSheet failed", err);
     return fail("The sheet could not be created. Try again.");
   }
 };

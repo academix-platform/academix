@@ -5,21 +5,26 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { Loader2, Printer } from "lucide-react";
-import { createResultSheet } from "@/lib/actions/entrySheet.actions";
+import { createAttendanceSheet, createResultSheet } from "@/lib/actions/entrySheet.actions";
 import type { AssessmentRef } from "@/lib/entrySheets/classEntry";
 
+type SheetRequest = { assessment: AssessmentRef } | { classId: number; date: string };
+
 /** Saves the class list as a sheet, then opens it for printing. */
-const PrintSheetButton = ({ assessment }: { assessment: AssessmentRef }) => {
+const PrintSheetButton = (request: SheetRequest) => {
   const t = useTranslations("entrySheet");
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
 
   const create = () =>
     startTransition(async () => {
-      const result = await createResultSheet({
-        assessmentType: assessment.type,
-        assessmentId: assessment.id,
-      });
+      const result =
+        "assessment" in request
+          ? await createResultSheet({
+              assessmentType: request.assessment.type,
+              assessmentId: request.assessment.id,
+            })
+          : await createAttendanceSheet({ classId: request.classId, date: request.date });
       if (result.success && result.sheetId) {
         router.push(`/list/entry-sheets/${result.sheetId}/print`);
       } else {

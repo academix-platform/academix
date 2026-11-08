@@ -385,7 +385,8 @@
     "tryAnotherPage": "Try moving to another page.",
     "noClassesAssigned": "No classes assigned",
     "noClassesAssignedDescription": "You are not assigned to supervise any class yet.",
-    "dateOutsideAcademicYear": "This date is outside the current academic year ({start} to {end})."
+    "dateOutsideAcademicYear": "This date is outside the current academic year ({start} to {end}).",
+    "paperSheet": "Use a paper sheet"
   },
   "archivePage": {
     "previewData": "Preview Data",
@@ -1528,6 +1529,25 @@
     "outOf": "Out of {max}",
     "pageOf": "Page {page} of {total}",
     "student": "Student name",
-    "markBox": "Mark"
+    "markBox": "Mark",
+    "date": "Date: {date}",
+    "absentBox": "Absent",
+    "backToAttendance": "Back to the attendance sheet",
+    "attendancePrintHint": "Print on A4 paper at 100% scale. Put any mark in the box of each absent student, and leave the box empty for present students."
+  },
+  "attendanceSheet": {
+    "title": "Attendance sheet",
+    "intro": "Print a sheet for one class and date, mark the absent students on paper, then upload a photo to check and save.",
+    "classLabel": "Class",
+    "chooseClass": "Choose a class",
+    "dateLabel": "Date",
+    "open": "Open",
+    "pickTitle": "Choose a class to start",
+    "pickDescription": "The class list for that date will appear here.",
+    "notFound": "This class isn't available",
+    "notFoundDescription": "You can only use classes you supervise.",
+    "noStudents": "No students to list",
+    "noStudentsDescription": "This class has no current students.",
+    "studentCount": "{count, plural, one {# student} other {# students}} on the sheet"
   }
 }

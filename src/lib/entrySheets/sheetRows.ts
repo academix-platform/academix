@@ -29,6 +29,15 @@ export const pageCount = (rows: SheetRow[]) =>
 export const rowsOnPage = (rows: SheetRow[], page: number) =>
   rows.filter((row) => row.page === page);
 
+/** The rows grouped by printed page, in page order. */
+export const splitIntoPages = (rows: SheetRow[]): SheetRow[][] => {
+  const pages: SheetRow[][] = [];
+  for (const row of rows) {
+    (pages[row.page - 1] ??= []).push(row);
+  }
+  return pages.filter(Boolean);
+};
+
 // No 0/O, 1/I/L, so the printed code reads the same to people and to Gemini.
 export const SHEET_CODE_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 const CODE_LENGTH = 6;
