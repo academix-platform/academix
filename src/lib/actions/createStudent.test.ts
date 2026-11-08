@@ -110,6 +110,26 @@ describe("createStudent", () => {
     expect(mocks.saved.enrollments).toEqual([]);
   });
 
+  it("creates nothing when the class isn't in the admin's school", async () => {
+    mocks.classFindUnique.mockResolvedValue(null);
+
+    const result = await createStudent(state, student);
+
+    expect(result).toMatchObject({ success: false, error: true });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.saved.students).toEqual([]);
+    expect(mocks.saved.enrollments).toEqual([]);
+  });
+
+  it("creates nothing when the class is already full", async () => {
+    mocks.classFindUnique.mockResolvedValue({ capacity: 30, _count: { students: 31 } });
+
+    const result = await createStudent(state, student);
+
+    expect(result).toMatchObject({ success: false, error: true });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+  });
+
   it("keeps no student and removes the login when the enrollment can't be saved", async () => {
     mocks.failEnrollment = true;
 
