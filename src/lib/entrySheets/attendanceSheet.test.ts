@@ -10,6 +10,7 @@ import {
   loadAttendanceSheets,
   saveAttendanceSheetWith,
   sheetAttendanceDateError,
+  sheetUploadWindow,
 } from "./attendanceSheet";
 
 const SHEET_ID = "3f0c9a52-6d1e-4b8a-9c7f-2b1d4e5a6f70";
@@ -523,5 +524,25 @@ describe("saveAttendanceSheetWith", () => {
 
     expect(await save(db, teacher, input)).toHaveProperty("error");
     expect(attendance).toEqual([]);
+  });
+});
+
+describe("sheetUploadWindow", () => {
+  const today = "2026-11-08";
+
+  it.each(["2026-11-08", "2026-11-01"])("is open for %s, today or up to 7 days earlier", (date) => {
+    expect(sheetUploadWindow(date, today, year)).toBe("open");
+  });
+
+  it("isn't open yet for a future date", () => {
+    expect(sheetUploadWindow("2026-11-09", today, year)).toBe("notYet");
+  });
+
+  it("is closed 8 days late", () => {
+    expect(sheetUploadWindow("2026-10-31", today, year)).toBe("closed");
+  });
+
+  it("is closed before the academic year started", () => {
+    expect(sheetUploadWindow("2026-08-31", "2026-09-03", year)).toBe("closed");
   });
 });

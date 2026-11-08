@@ -1594,6 +1594,8 @@
     "readyCount": "Rows ready to save: {count}",
     "save": "Save attendance",
     "saving": "Saving...",
-    "saved": "Attendance saved: {count}"
+    "saved": "Attendance saved: {count}",
+    "uploadNotYet": "You can print this sheet now. Upload its photo on {date} or up to 7 days after.",
+    "uploadClosed": "Attendance for {date} can't be saved from a sheet any more. Sheets can be saved up to 7 days late."
   }
 }

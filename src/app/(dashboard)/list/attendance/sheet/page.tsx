@@ -6,7 +6,11 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import EmptyState from "@/components/states/EmptyState";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { isIsoDate, todayInTimeZone } from "@/lib/attendanceRules";
-import { loadAttendanceClasses, loadAttendanceEntry } from "@/lib/entrySheets/attendanceSheet";
+import {
+  loadAttendanceClasses,
+  loadAttendanceEntry,
+  sheetUploadWindow,
+} from "@/lib/entrySheets/attendanceSheet";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { type PageSearchParams, getQueryParam } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -38,8 +42,11 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
   const resolved = await searchParams;
   const classParam = getQueryParam(resolved.classId) ?? "";
   const dateParam = getQueryParam(resolved.date);
-  const date = isIsoDate(dateParam) ? dateParam : todayInTimeZone();
+  const today = todayInTimeZone();
+  const date = isIsoDate(dateParam) ? dateParam : today;
   const inYear = date >= year.startDate && date <= year.endDate;
+  // Sheets can be printed ahead, but only uploaded from their date to 7 days after.
+  const uploadWindow = sheetUploadWindow(date, today, year);
   // Only classes the caller may use are offered, so another class id finds nothing.
   const selected = classes.find((option) => String(option.id) === classParam);
   const students = selected
@@ -87,7 +94,9 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
             <h2 id="attendance-sheet-heading" className="font-medium">
               {selected.name} — <span dir="ltr">{date}</span>
             </h2>
-            {students.length > 0 && inYear && <PrintSheetButton classId={selected.id} date={date} />}
+            {students.length > 0 && inYear && uploadWindow !== "closed" && (
+              <PrintSheetButton classId={selected.id} date={date} />
+            )}
           </div>
           {!inYear && (
             <p className="bg-amber-50 mt-3 px-3 py-2 border border-amber-200 rounded-md text-amber-800 text-sm">
@@ -99,7 +108,12 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
           ) : (
             <p className="text-gray-600 text-sm">{t("studentCount", { count: students.length })}</p>
           )}
-          {students.length > 0 && inYear && (
+          {inYear && uploadWindow !== "open" && (
+            <p className="bg-amber-50 mt-3 px-3 py-2 border border-amber-200 rounded-md text-amber-800 text-sm">
+              {t(uploadWindow === "notYet" ? "uploadNotYet" : "uploadClosed", { date })}
+            </p>
+          )}
+          {students.length > 0 && inYear && uploadWindow === "open" && (
             <AttendanceEntryGrid
               // Unread rows and photos belong to one class and date.
               key={`${selected.id}:${date}`}

@@ -213,6 +213,19 @@ export const sheetAttendanceDateError = (
   return null;
 };
 
+/**
+ * Whether a sheet for this date can be uploaded and saved now, so the page
+ * doesn't pay for a photo read that saving would refuse.
+ */
+export const sheetUploadWindow = (
+  date: string,
+  today: string,
+  year: { startDate: string; endDate: string },
+): "open" | "notYet" | "closed" => {
+  if (sheetAttendanceDateError(date, today, year) === null) return "open";
+  return isIsoDate(date) && date > today ? "notYet" : "closed";
+};
+
 export const attendanceSheetSaveSchema = z.object({
   sheetId: z.string().uuid(),
   rows: z
