@@ -37,6 +37,8 @@ export type PhotoReadRow = {
   written: string;
   score: number | null;
   unclear: boolean;
+  /** Attendance only: true for any mark, false for an empty box, null when unclear. */
+  absent: boolean | null;
 };
 
 /** Every row number on any candidate sheet, for checking the reply. */
@@ -92,6 +94,7 @@ export const matchReplyToSheet = (
         written: found?.written ?? "",
         score: found?.score ?? null,
         unclear: found ? found.unclear : true,
+        absent: found ? found.absent : null,
       };
     }),
   };

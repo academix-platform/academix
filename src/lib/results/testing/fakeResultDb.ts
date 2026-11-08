@@ -42,6 +42,14 @@ export type FakeData = {
   assignmentSubmissions?: { assignmentId: number; studentId: string }[];
   sheets?: FakeSheet[];
   classes?: { id: number; schoolId: number; name: string; supervisorId: string | null }[];
+  attendance?: FakeAttendance[];
+};
+export type FakeAttendance = {
+  schoolId: number;
+  academicYearId: number;
+  date: Date;
+  studentId: string;
+  present: boolean;
 };
 
 type Where = Record<string, unknown>;
@@ -56,6 +64,9 @@ const matches = (row: Record<string, unknown>, where: Where): boolean =>
     if (key === "NOT") return !matches(row, condition as Where);
 
     const value = row[key];
+    if (condition instanceof Date) {
+      return value instanceof Date && value.getTime() === condition.getTime();
+    }
     if (isObject(condition)) {
       if ("not" in condition) return (value ?? null) !== condition.not;
       if ("isNot" in condition) return (value ?? null) !== condition.isNot;
@@ -108,6 +119,7 @@ export const fakeResultDb = (data: FakeData) => {
   };
 
   const db = {
+    attendance: finder(data.attendance),
     class: finder(data.classes),
     exam: finder(data.exams),
     assignment: finder(data.assignments),

@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
 import { readSheetPhoto } from "../ai/geminiSheetReader";
-import { InvalidSheetReplyError } from "../ai/sheetReadingPrompt";
-import { createAttendanceSheetWith } from "../entrySheets/attendanceSheet";
+import { InvalidSheetReplyError, SheetKind } from "../ai/sheetReadingPrompt";
+import { createAttendanceSheetWith, loadAttendanceSheets } from "../entrySheets/attendanceSheet";
 import { createResultSheetWith } from "../entrySheets/createSheet";
 import {
+  CandidateSheet,
   MAX_PHOTO_BYTES,
   PhotoReadRow,
   checkPhoto,
@@ -180,6 +181,7 @@ export type PhotoReadState =
   | { success: false; reason: PhotoReadFailure }
   | {
       success: true;
+      sheetId: string;
       code: string;
       page: number;
       pageCount: number;
@@ -187,36 +189,23 @@ export type PhotoReadState =
       rows: PhotoReadRow[];
     };
 
-const photoRequestSchema = z.object({
-  assessmentType: z.enum(["exam", "assignment"]),
-  assessmentId: z.coerce.number().int().positive(),
-});
-
 /**
- * Reads one photographed page of a results sheet and returns its rows.
- * Nothing is saved: the person checks the values on screen first. The photo
- * stays in memory and is never stored or logged.
+ * Checks one uploaded photo and has Gemini read it against the candidate
+ * sheets. The photo stays in memory and is never stored or logged.
  */
-export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoReadState> => {
-  const access = await requireActionAccess(["admin", "teacher"]);
-  if ("error" in access) return { success: false, reason: "notAllowed" };
-
-  const parsed = photoRequestSchema.safeParse({
-    assessmentType: formData.get("assessmentType"),
-    assessmentId: formData.get("assessmentId"),
-  });
-  const photo = formData.get("photo");
-  if (!parsed.success || !(photo instanceof Blob)) return { success: false, reason: "badRequest" };
+const readPhotoAgainst = async (
+  photo: FormDataEntryValue | null,
+  kind: SheetKind,
+  loadSheets: () => Promise<CandidateSheet[]>,
+): Promise<PhotoReadState> => {
+  if (!(photo instanceof Blob)) return { success: false, reason: "badRequest" };
   if (photo.size > MAX_PHOTO_BYTES) return { success: false, reason: "tooLarge" };
 
   const bytes = new Uint8Array(await photo.arrayBuffer());
   const checked = checkPhoto(bytes);
   if ("error" in checked) return { success: false, reason: checked.error };
 
-  const sheets = await loadAssessmentSheets(prisma, access, {
-    type: parsed.data.assessmentType,
-    id: parsed.data.assessmentId,
-  });
+  const sheets = await loadSheets();
   if (sheets.length === 0) return { success: false, reason: "noSheets" };
 
   let reply;
@@ -224,13 +213,13 @@ export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoRea
     ({ reply } = await readSheetPhoto({
       photo: Buffer.from(bytes),
       mimeType: checked.mimeType,
-      kind: "RESULT",
+      kind,
       rowNumbers: rowNumbersOf(sheets),
     }));
   } catch (err) {
     if (err instanceof InvalidSheetReplyError) return { success: false, reason: "unreadable" };
     // Log the failure, never the photo or what was read from it.
-    console.error("readResultSheetPhoto: Gemini call failed", err instanceof Error ? err.message : err);
+    console.error("readSheetPhoto: Gemini call failed", err instanceof Error ? err.message : err);
     return { success: false, reason: "unavailable" };
   }
   if (!reply.readable) return { success: false, reason: "unreadable" };
@@ -240,12 +229,61 @@ export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoRea
 
   return {
     success: true,
+    sheetId: matched.sheetId,
     code: matched.code,
     page: matched.page,
     pageCount: matched.pageCount,
     sheetStudents: matched.sheetStudents,
     rows: matched.rows,
   };
+};
+
+const photoRequestSchema = z.object({
+  assessmentType: z.enum(["exam", "assignment"]),
+  assessmentId: z.coerce.number().int().positive(),
+});
+
+/**
+ * Reads one photographed page of a results sheet and returns its rows.
+ * Nothing is saved: the person checks the values on screen first.
+ */
+export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoReadState> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return { success: false, reason: "notAllowed" };
+
+  const parsed = photoRequestSchema.safeParse({
+    assessmentType: formData.get("assessmentType"),
+    assessmentId: formData.get("assessmentId"),
+  });
+  if (!parsed.success) return { success: false, reason: "badRequest" };
+
+  return readPhotoAgainst(formData.get("photo"), "RESULT", () =>
+    loadAssessmentSheets(prisma, access, { type: parsed.data.assessmentType, id: parsed.data.assessmentId }),
+  );
+};
+
+const attendancePhotoSchema = z.object({
+  classId: z.coerce.number().int().positive(),
+  date: z.string(),
+});
+
+/**
+ * Reads one photographed page of an attendance sheet for a class and date.
+ * Nothing is saved: the person checks the rows on screen first.
+ */
+export const readAttendanceSheetPhoto = async (formData: FormData): Promise<PhotoReadState> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return { success: false, reason: "notAllowed" };
+
+  const parsed = attendancePhotoSchema.safeParse({
+    classId: formData.get("classId"),
+    date: formData.get("date"),
+  });
+  if (!parsed.success) return { success: false, reason: "badRequest" };
+
+  return readPhotoAgainst(formData.get("photo"), "ATTENDANCE", () =>
+    loadAttendanceSheets(prisma, access, parsed.data),
+  );
 };
 
 /** Saves a whole class of results: every row, or none of them. */

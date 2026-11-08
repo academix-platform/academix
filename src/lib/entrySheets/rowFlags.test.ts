@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { parseSheetReply } from "@/lib/ai/sheetReadingPrompt";
 import type { PhotoReadRow } from "./photoRead";
 import {
+  attendanceRowFlags,
   departedStudents,
+  needsNoAbsenceConfirmation,
+  presentFromRead,
   isRowHandled,
   needsExplicitAccept,
   resultRowFlags,
@@ -16,6 +20,7 @@ const read = (fields: Partial<PhotoReadRow> = {}): PhotoReadRow => ({
   written: "15",
   score: 15,
   unclear: false,
+  absent: null,
   ...fields,
 });
 
@@ -131,5 +136,96 @@ describe("sameStudentName", () => {
 
   it("tells different students apart", () => {
     expect(sameStudentName("سليم الوادي", "ليان القصير")).toBe(false);
+  });
+});
+
+describe("attendance marks", () => {
+  const readMark = (value: string, unclear = false) =>
+    parseSheetReply(
+      JSON.stringify({
+        readable: true,
+        sheetCode: "ABC234",
+        pageNumber: 1,
+        rows: [{ rowNumber: 1, printedName: "سليم الوادي", value, unclear }],
+      }),
+      { kind: "ATTENDANCE", rowNumbers: [1] },
+    ).rows[0];
+
+  it.each(["✗", "x", "✓", "-", "—", "|", ".", "•", "غ"])("reads the mark %s as absent", (mark) => {
+    expect(presentFromRead(readMark(mark))).toBe(false);
+  });
+
+  it("reads an empty box as present", () => {
+    expect(presentFromRead(readMark(""))).toBe(true);
+  });
+
+  it("leaves an unclear box undecided, never present", () => {
+    expect(presentFromRead(readMark("", true))).toBeUndefined();
+    expect(presentFromRead(readMark("✗", true))).toBeUndefined();
+  });
+});
+
+describe("attendanceRowFlags", () => {
+  const absentRow = read({ written: "✗", score: null, absent: true });
+  const presentRow = read({ written: "", score: null, absent: false });
+  const base = { existingPresent: null, onSheet: true };
+
+  it("doesn't flag an empty box, because it means present", () => {
+    expect(attendanceRowFlags({ ...base, read: presentRow, present: true })).toEqual([]);
+  });
+
+  it("doesn't flag a clear mark", () => {
+    expect(attendanceRowFlags({ ...base, read: absentRow, present: false })).toEqual([]);
+  });
+
+  it("flags a crossed-out mark or smudge that Gemini marked unclear", () => {
+    const smudge = read({ written: "", score: null, absent: null, unclear: true });
+
+    expect(attendanceRowFlags({ ...base, read: smudge, present: undefined })).toEqual(["unclear"]);
+  });
+
+  it("flags a printed name that doesn't match the saved row", () => {
+    const moved = read({ ...absentRow, printedName: "ليان القصير" });
+
+    expect(attendanceRowFlags({ ...base, read: moved, present: false })).toEqual(["nameMismatch"]);
+  });
+
+  it("flags a student in the class but not on the sheet", () => {
+    expect(attendanceRowFlags({ ...base, onSheet: false, present: undefined })).toEqual(["notOnSheet"]);
+  });
+
+  it("flags a value that would change the saved attendance", () => {
+    expect(attendanceRowFlags({ ...base, existingPresent: true, read: absentRow, present: false })).toEqual([
+      "replacesExisting",
+    ]);
+  });
+
+  it("doesn't flag a value that matches the saved attendance", () => {
+    expect(attendanceRowFlags({ ...base, existingPresent: false, read: absentRow, present: false })).toEqual([]);
+  });
+
+  it("flags nothing before a photo is read", () => {
+    expect(attendanceRowFlags({ existingPresent: true, onSheet: null, present: undefined })).toEqual([]);
+  });
+});
+
+describe("needsNoAbsenceConfirmation", () => {
+  const row = (absent: boolean | null) =>
+    read({ written: absent ? "✗" : "", score: null, absent, unclear: absent === null });
+
+  it("asks for confirmation when a page shows no absences", () => {
+    expect(needsNoAbsenceConfirmation([row(false), row(false)])).toBe(true);
+  });
+
+  it("asks when the only rows that aren't present are unclear", () => {
+    expect(needsNoAbsenceConfirmation([row(false), row(null)])).toBe(true);
+  });
+
+  it("doesn't ask when at least one absence was read", () => {
+    expect(needsNoAbsenceConfirmation([row(false), row(true)])).toBe(false);
+  });
+
+  it("doesn't ask about a page with no rows", () => {
+    expect(needsNoAbsenceConfirmation([])).toBe(false);
   });
 });

@@ -24,6 +24,10 @@ const normalizeName = (name: string) =>
 
 export const sameStudentName = (a: string, b: string) => normalizeName(a) === normalizeName(b);
 
+/** The name read on the photo isn't the one printed on the saved row. */
+const readOtherName = (read?: PhotoReadRow) =>
+  Boolean(read && read.printedName !== "" && !sameStudentName(read.printedName, read.name));
+
 export const resultRowFlags = ({
   typed,
   existingScore,
@@ -41,9 +45,7 @@ export const resultRowFlags = ({
 }): ResultFlag[] => {
   const flags: ResultFlag[] = [];
   if (read?.unclear) flags.push("unclear");
-  if (read && read.printedName !== "" && !sameStudentName(read.printedName, read.name)) {
-    flags.push("nameMismatch");
-  }
+  if (readOtherName(read)) flags.push("nameMismatch");
   if (read && !read.unclear && read.written === "") flags.push("empty");
   if (read?.score != null && read.score > maxScore) flags.push("aboveMax");
   if (onSheet === false) flags.push("notOnSheet");
@@ -72,3 +74,44 @@ export const departedStudents = (
   const onScreen = new Set(screenStudentIds);
   return sheetStudents.filter((student) => !onScreen.has(student.studentId));
 };
+
+export type AttendanceFlag = Extract<ResultFlag, "unclear" | "nameMismatch" | "notOnSheet" | "replacesExisting">;
+
+/**
+ * Any mark in the Absent box means absent and an empty box means present.
+ * An unclear box stays undecided, so it can never be saved as present by accident.
+ */
+export const presentFromRead = (read: { absent: boolean | null }) =>
+  read.absent === null ? undefined : !read.absent;
+
+/** An empty box isn't flagged on attendance sheets, because it means present. */
+export const attendanceRowFlags = ({
+  read,
+  onSheet,
+  existingPresent,
+  present,
+}: {
+  read?: PhotoReadRow;
+  /** False when a photo was read but this student wasn't on that sheet; null with no photo. */
+  onSheet: boolean | null;
+  /** The attendance already saved for this date, if any. */
+  existingPresent: boolean | null;
+  /** The value on screen now; undefined when nothing will be saved. */
+  present: boolean | undefined;
+}): AttendanceFlag[] => {
+  const flags: AttendanceFlag[] = [];
+  if (read?.unclear) flags.push("unclear");
+  if (readOtherName(read)) flags.push("nameMismatch");
+  if (onSheet === false) flags.push("notOnSheet");
+  if (existingPresent !== null && present !== undefined && present !== existingPresent) {
+    flags.push("replacesExisting");
+  }
+  return flags;
+};
+
+/**
+ * A page read with no absences could hide a faint mark, so the person must
+ * confirm it. Unclear rows don't count as absences.
+ */
+export const needsNoAbsenceConfirmation = (rows: { absent: boolean | null }[]) =>
+  rows.length > 0 && !rows.some((row) => row.absent === true);

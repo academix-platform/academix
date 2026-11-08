@@ -4,7 +4,9 @@ import { buildSheetRows } from "./sheetRows";
 import {
   createAttendanceSheetWith,
   loadAttendanceClasses,
+  loadAttendanceEntry,
   loadAttendanceSheetForPrint,
+  loadAttendanceSheets,
 } from "./attendanceSheet";
 
 const SHEET_ID = "3f0c9a52-6d1e-4b8a-9c7f-2b1d4e5a6f70";
@@ -241,5 +243,104 @@ describe("loadAttendanceSheetForPrint", () => {
     const { db } = fakeResultDb({ sheets: [sheet(fields)] });
 
     expect(await loadAttendanceSheetForPrint(db, admin, SHEET_ID)).toBeNull();
+  });
+});
+
+describe("loadAttendanceSheets", () => {
+  const sheet = (fields: Record<string, unknown> = {}) => ({
+    id: "sheet-1",
+    schoolId: 1,
+    code: "ABC234",
+    kind: "ATTENDANCE",
+    classId: 3,
+    date: new Date("2026-11-08T00:00:00.000Z"),
+    rows: buildSheetRows([{ id: "s1", name: "طالب 1" }]),
+    class: { name: "7A", supervisorId: "teacher_1" },
+    ...fields,
+  });
+  const ref = { classId: 3, date: "2026-11-08" };
+
+  it("returns every sheet printed for the class and date, with its rows", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet(), sheet({ id: "sheet-2", code: "DEF567" })] });
+
+    const sheets = await loadAttendanceSheets(db, teacher, ref);
+
+    expect(sheets.map((found) => found.code)).toEqual(["ABC234", "DEF567"]);
+    expect(sheets[0]).toEqual({ id: "sheet-1", code: "ABC234", rows: buildSheetRows([{ id: "s1", name: "طالب 1" }]) });
+  });
+
+  it("leaves out sheets for another date or class", async () => {
+    const { db } = fakeResultDb({
+      sheets: [sheet({ date: new Date("2026-11-07T00:00:00.000Z") }), sheet({ id: "sheet-2", classId: 4 })],
+    });
+
+    expect(await loadAttendanceSheets(db, teacher, ref)).toEqual([]);
+  });
+
+  it("leaves out results sheets", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet({ kind: "RESULT" })] });
+
+    expect(await loadAttendanceSheets(db, admin, ref)).toEqual([]);
+  });
+
+  it("gives a teacher who doesn't supervise the class nothing", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheets(db, otherTeacher, ref)).toEqual([]);
+  });
+
+  it("gives another school nothing", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheets(db, otherSchoolAdmin, ref)).toEqual([]);
+  });
+
+  it("returns nothing for an invalid date", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet()] });
+
+    expect(await loadAttendanceSheets(db, admin, { classId: 3, date: "2026-02-30" })).toEqual([]);
+  });
+
+  it("skips a sheet whose stored rows are damaged", async () => {
+    const { db } = fakeResultDb({ sheets: [sheet({ rows: "broken" })] });
+
+    expect(await loadAttendanceSheets(db, admin, ref)).toEqual([]);
+  });
+});
+
+describe("loadAttendanceEntry", () => {
+  const day = new Date("2026-11-08T00:00:00.000Z");
+  const saved = (studentId: string, present: boolean, fields: Record<string, unknown> = {}) => ({
+    schoolId: 1,
+    academicYearId: 5,
+    date: day,
+    studentId,
+    present,
+    ...fields,
+  });
+
+  it("lists current students with the attendance already saved for that date", async () => {
+    const { db } = fakeResultDb({
+      students: classStudents(3),
+      attendance: [
+        saved("s01", false),
+        saved("s02", true, { date: new Date("2026-11-07T00:00:00.000Z") }),
+        saved("s03", true, { academicYearId: 4 }),
+      ],
+    });
+
+    expect(await loadAttendanceEntry(db, 1, { classId: 3, date: "2026-11-08", academicYearId: 5 })).toEqual([
+      { studentId: "s01", name: "طالب 01", existingPresent: false },
+      { studentId: "s02", name: "طالب 02", existingPresent: null },
+      { studentId: "s03", name: "طالب 03", existingPresent: null },
+    ]);
+  });
+
+  it("ignores another school's records", async () => {
+    const { db } = fakeResultDb({ students: classStudents(1), attendance: [saved("s01", false, { schoolId: 2 })] });
+
+    expect(await loadAttendanceEntry(db, 1, { classId: 3, date: "2026-11-08", academicYearId: 5 })).toEqual([
+      { studentId: "s01", name: "طالب 01", existingPresent: null },
+    ]);
   });
 });

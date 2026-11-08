@@ -1,11 +1,12 @@
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import AttendanceEntryGrid from "@/components/entrySheets/AttendanceEntryGrid";
 import PrintSheetButton from "@/components/entrySheets/PrintSheetButton";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import EmptyState from "@/components/states/EmptyState";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { isIsoDate, todayInTimeZone } from "@/lib/attendanceRules";
-import { loadAttendanceClasses, loadAttendanceStudents } from "@/lib/entrySheets/attendanceSheet";
+import { loadAttendanceClasses, loadAttendanceEntry } from "@/lib/entrySheets/attendanceSheet";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { type PageSearchParams, getQueryParam } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -41,7 +42,9 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
   const inYear = date >= year.startDate && date <= year.endDate;
   // Only classes the caller may use are offered, so another class id finds nothing.
   const selected = classes.find((option) => String(option.id) === classParam);
-  const students = selected ? await loadAttendanceStudents(prisma, user.schoolId, selected.id) : [];
+  const students = selected
+    ? await loadAttendanceEntry(prisma, user.schoolId, { classId: selected.id, date, academicYearId: year.id })
+    : [];
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
@@ -95,6 +98,15 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
             <EmptyState title={t("noStudents")} description={t("noStudentsDescription")} />
           ) : (
             <p className="text-gray-600 text-sm">{t("studentCount", { count: students.length })}</p>
+          )}
+          {students.length > 0 && inYear && (
+            <AttendanceEntryGrid
+              // Unread rows and photos belong to one class and date.
+              key={`${selected.id}:${date}`}
+              classId={selected.id}
+              date={date}
+              rows={students}
+            />
           )}
         </section>
       )}

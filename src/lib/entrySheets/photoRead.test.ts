@@ -77,10 +77,23 @@ describe("matchReplyToSheet", () => {
         { studentId: "s2", name: "طالب 2" },
       ],
       rows: [
-        { studentId: "s1", rowNumber: 1, name: "طالب 1", printedName: "طالب 1", written: "15", score: 15, unclear: false },
-        { studentId: "s2", rowNumber: 2, name: "طالب 2", printedName: "طالب 2", written: "", score: null, unclear: false },
+        { studentId: "s1", rowNumber: 1, name: "طالب 1", printedName: "طالب 1", written: "15", score: 15, unclear: false, absent: null },
+        { studentId: "s2", rowNumber: 2, name: "طالب 2", printedName: "طالب 2", written: "", score: null, unclear: false, absent: null },
       ],
     });
+  });
+
+  it("keeps whether an attendance row was read as absent", () => {
+    const rows = [replyRow(1, "✗", null, { absent: true }), replyRow(2, "", null, { absent: false })];
+    const matched = matchReplyToSheet(reply({ rows }), [sheet("K7QX3M", 2)]);
+
+    expect("rows" in matched && matched.rows.map((row) => row.absent)).toEqual([true, false]);
+  });
+
+  it("leaves a row the reply skipped undecided", () => {
+    const matched = matchReplyToSheet(reply({ rows: [replyRow(1, "✗", null, { absent: true })] }), [sheet("K7QX3M", 2)]);
+
+    expect("rows" in matched && matched.rows[1]).toMatchObject({ absent: null, unclear: true });
   });
 
   it("lists every student printed on the sheet, on all pages", () => {

@@ -4,6 +4,7 @@ import { z } from "zod";
 import { ATTENDING_STUDENT_STATUSES, isIsoDate } from "@/lib/attendanceRules";
 import type { ResultAccess } from "@/lib/results/manualResult";
 import { createWithFreshCode } from "./createSheet";
+import type { CandidateSheet } from "./photoRead";
 import { SheetRow, buildSheetRows, newSheetCode, sheetRowsSchema, splitIntoPages } from "./sheetRows";
 
 // Attendance sheets: one class on one date. Teachers may only use classes
@@ -44,6 +45,32 @@ export const loadAttendanceStudents = (
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+
+export type AttendanceEntryRow = { studentId: string; name: string; existingPresent: boolean | null };
+
+/** The class's current students, with what is already saved for the date. */
+export const loadAttendanceEntry = async (
+  db: Pick<PrismaClient, "student" | "attendance">,
+  schoolId: number,
+  ref: { classId: number; date: string; academicYearId: number },
+): Promise<AttendanceEntryRow[]> => {
+  const students = await loadAttendanceStudents(db, schoolId, ref.classId);
+  const saved = await db.attendance.findMany({
+    where: {
+      schoolId,
+      academicYearId: ref.academicYearId,
+      date: dayOf(ref.date),
+      studentId: { in: students.map((student) => student.id) },
+    },
+    select: { studentId: true, present: true },
+  });
+  const byStudent = new Map(saved.map((record) => [record.studentId, record.present]));
+  return students.map((student) => ({
+    studentId: student.id,
+    name: student.name,
+    existingPresent: byStudent.get(student.id) ?? null,
+  }));
+};
 
 /** Stored @db.Date values come back as UTC midnight. */
 export const isoDateOf = (date: Date) => date.toISOString().slice(0, 10);
@@ -134,4 +161,24 @@ export const loadAttendanceSheetForPrint = async (
     date: isoDateOf(sheet.date),
     pages: splitIntoPages(rows.data),
   };
+};
+
+/** Every attendance sheet printed for one class and date that the caller may use. */
+export const loadAttendanceSheets = async (
+  db: Pick<PrismaClient, "entrySheet">,
+  access: ResultAccess,
+  ref: { classId: number; date: string },
+): Promise<CandidateSheet[]> => {
+  if (!isIsoDate(ref.date)) return [];
+
+  const sheets = await db.entrySheet.findMany({
+    where: { ...attendanceSheetAccessWhere(access), classId: ref.classId, date: dayOf(ref.date) },
+    select: { id: true, code: true, rows: true },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return sheets.flatMap((sheet) => {
+    const rows = sheetRowsSchema.safeParse(sheet.rows);
+    return rows.success ? [{ id: sheet.id, code: sheet.code, rows: rows.data }] : [];
+  });
 };

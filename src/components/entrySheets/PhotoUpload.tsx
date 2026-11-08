@@ -4,8 +4,7 @@ import { useRef, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { Camera, Loader2 } from "lucide-react";
-import { PhotoReadState, readResultSheetPhoto } from "@/lib/actions/entrySheet.actions";
-import type { AssessmentRef } from "@/lib/entrySheets/classEntry";
+import type { PhotoReadState } from "@/lib/actions/entrySheet.actions";
 import { PhotoTooLargeError, shrinkPhoto } from "@/lib/entrySheets/shrinkPhoto";
 
 export type PhotoRead = Extract<PhotoReadState, { success: true }>;
@@ -15,13 +14,19 @@ export type PhotoRead = Extract<PhotoReadState, { success: true }>;
  * read it. Filling the screen is up to the caller; nothing is saved here.
  */
 const PhotoUpload = ({
-  assessment,
+  fields,
+  read,
+  messages,
   onRead,
 }: {
-  assessment: AssessmentRef;
+  /** Which sheets the photo may belong to, sent with the photo. */
+  fields: Record<string, string>;
+  read: (formData: FormData) => Promise<PhotoReadState>;
+  /** Holds uploadPhoto, readingPhoto, photoHint and photoErrors. */
+  messages: "classEntry" | "attendanceSheet";
   onRead: (read: PhotoRead, photo: Blob) => void;
 }) => {
-  const t = useTranslations("classEntry");
+  const t = useTranslations(messages);
   const input = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -36,11 +41,10 @@ const PhotoUpload = ({
       }
 
       const formData = new FormData();
-      formData.set("assessmentType", assessment.type);
-      formData.set("assessmentId", String(assessment.id));
+      for (const [name, value] of Object.entries(fields)) formData.set(name, value);
       formData.set("photo", photo, "sheet.jpg");
 
-      const result = await readResultSheetPhoto(formData);
+      const result = await read(formData);
       if (result.success) onRead(result, photo);
       else toast.error(t(`photoErrors.${result.reason}`));
     });

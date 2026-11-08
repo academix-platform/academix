@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
 import { Loader2 } from "lucide-react";
-import { saveClassResults } from "@/lib/actions/entrySheet.actions";
+import { readResultSheetPhoto, saveClassResults } from "@/lib/actions/entrySheet.actions";
 import { readTypedMark } from "@/lib/entrySheets/markInput";
 import type { ClassEntryRow as Row, EntryAssessment } from "@/lib/entrySheets/classEntry";
 import type { PhotoReadRow } from "@/lib/entrySheets/photoRead";
@@ -162,7 +162,12 @@ const ClassEntryGrid = ({ assessment, rows }: { assessment: EntryAssessment; row
 
   return (
     <div className="flex flex-col gap-4 mt-4">
-      <PhotoUpload assessment={{ type: assessment.type, id: assessment.id }} onRead={fillFromPhoto} />
+      <PhotoUpload
+        fields={{ assessmentType: assessment.type, assessmentId: String(assessment.id) }}
+        read={readResultSheetPhoto}
+        messages="classEntry"
+        onRead={fillFromPhoto}
+      />
 
       {Object.entries(readSheets).map(([code, sheet]) => (
         <p key={code} className="text-gray-700 text-sm">
