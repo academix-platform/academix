@@ -4,9 +4,10 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
-import { readSheetPhoto } from "../ai/geminiSheetReader";
+import { readSheetPhoto, sheetReadingModel } from "../ai/geminiSheetReader";
 import { InvalidSheetReplyError, SheetKind } from "../ai/sheetReadingPrompt";
 import { todayInTimeZone } from "../attendanceRules";
+import { markSheetReadSucceeded, reserveSheetRead, sheetScanDailyLimit } from "../entrySheets/readLimit";
 import {
   AttendanceSheetSaveInput,
   createAttendanceSheetWith,
@@ -182,6 +183,7 @@ export type PhotoReadFailure =
   | "unreadable"
   | "wrongSheet"
   | "rowsMismatch"
+  | "dailyLimit"
   | "unavailable";
 
 export type PhotoReadState =
@@ -201,6 +203,7 @@ export type PhotoReadState =
  * sheets. The photo stays in memory and is never stored or logged.
  */
 const readPhotoAgainst = async (
+  schoolId: number,
   photo: FormDataEntryValue | null,
   kind: SheetKind,
   loadSheets: () => Promise<CandidateSheet[]>,
@@ -214,6 +217,22 @@ const readPhotoAgainst = async (
 
   const sheets = await loadSheets();
   if (sheets.length === 0) return { success: false, reason: "noSheets" };
+
+  // Count the read before paying for it. Until the photo is matched, the log
+  // names the newest sheet it may belong to.
+  let reservation;
+  try {
+    reservation = await reserveSheetRead(prisma, {
+      schoolId,
+      sheetId: sheets[0].id,
+      model: sheetReadingModel(),
+      limit: sheetScanDailyLimit(),
+    });
+  } catch (err) {
+    console.error("readSheetPhoto: read log failed", err instanceof Error ? err.message : err);
+    return { success: false, reason: "unavailable" };
+  }
+  if (!reservation.allowed) return { success: false, reason: "dailyLimit" };
 
   let reply;
   try {
@@ -233,6 +252,11 @@ const readPhotoAgainst = async (
 
   const matched = matchReplyToSheet(reply, sheets);
   if ("error" in matched) return { success: false, reason: matched.error };
+
+  // The read already worked, so a failed status update only loses the status.
+  await markSheetReadSucceeded(prisma, reservation.readId, matched.sheetId).catch((err) =>
+    console.error("readSheetPhoto: read log update failed", err instanceof Error ? err.message : err),
+  );
 
   return {
     success: true,
@@ -264,7 +288,7 @@ export const readResultSheetPhoto = async (formData: FormData): Promise<PhotoRea
   });
   if (!parsed.success) return { success: false, reason: "badRequest" };
 
-  return readPhotoAgainst(formData.get("photo"), "RESULT", () =>
+  return readPhotoAgainst(access.schoolId, formData.get("photo"), "RESULT", () =>
     loadAssessmentSheets(prisma, access, { type: parsed.data.assessmentType, id: parsed.data.assessmentId }),
   );
 };
@@ -288,7 +312,7 @@ export const readAttendanceSheetPhoto = async (formData: FormData): Promise<Phot
   });
   if (!parsed.success) return { success: false, reason: "badRequest" };
 
-  return readPhotoAgainst(formData.get("photo"), "ATTENDANCE", () =>
+  return readPhotoAgainst(access.schoolId, formData.get("photo"), "ATTENDANCE", () =>
     loadAttendanceSheets(prisma, access, parsed.data),
   );
 };

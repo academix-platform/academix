@@ -1498,6 +1498,7 @@
       "unreadable": "The photo couldn't be read. Take it again, flat and in good light. Nothing was filled in.",
       "wrongSheet": "This photo isn't of a sheet printed for this assessment. Nothing was filled in.",
       "rowsMismatch": "The rows in the photo don't match the sheet. Take it again. Nothing was filled in.",
+      "dailyLimit": "Your school has reached today's limit for reading sheet photos. You can still type the marks, or upload again tomorrow.",
       "unavailable": "Reading photos isn't working right now. You can still type the marks."
     },
     "flags": {
@@ -1563,6 +1564,7 @@
       "unreadable": "The photo couldn't be read. Take it again, flat and in good light. Nothing was filled in.",
       "wrongSheet": "This photo isn't of a sheet printed for this class and date. Nothing was filled in.",
       "rowsMismatch": "The rows in the photo don't match the sheet. Take it again. Nothing was filled in.",
+      "dailyLimit": "Your school has reached today's limit for reading sheet photos. Upload again tomorrow, or take today's attendance on the attendance page.",
       "unavailable": "Reading photos isn't working right now. Try again later, or take today's attendance on the attendance page."
     },
     "student": "Student",

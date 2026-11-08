@@ -13,6 +13,9 @@ import {
 // of this model: https://aistudio.google.com/docs/models/gemini-3.5-flash
 const DEFAULT_MODEL = "gemini-3.6-flash";
 
+/** The model sheets are read with, from GEMINI_MODEL or the default. */
+export const sheetReadingModel = () => process.env.GEMINI_MODEL || DEFAULT_MODEL;
+
 export type SheetPhotoMimeType =
   | "image/jpeg"
   | "image/png"
@@ -60,7 +63,7 @@ export async function readSheetPhoto({
   rowNumbers,
 }: SheetReadInput): Promise<SheetReadResult> {
   const gemini = getClient();
-  const model = process.env.GEMINI_MODEL || DEFAULT_MODEL;
+  const model = sheetReadingModel();
 
   const interaction = await gemini.interactions.create({
     model,
