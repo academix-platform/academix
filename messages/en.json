@@ -1591,6 +1591,9 @@
     "confirmPages": "Confirm each page with no absences before saving.",
     "uploadFirst": "Upload a photo of the sheet to fill in the rows.",
     "nothingToSave": "There are no rows to save.",
-    "readyCount": "Rows ready to save: {count}"
+    "readyCount": "Rows ready to save: {count}",
+    "save": "Save attendance",
+    "saving": "Saving...",
+    "saved": "Attendance saved: {count}"
   }
 }

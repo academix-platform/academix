@@ -106,6 +106,7 @@ const uniqueViolation = () =>
 export const fakeResultDb = (data: FakeData) => {
   const results = [...(data.results ?? [])];
   const sheets = [...(data.sheets ?? [])];
+  const attendance = [...(data.attendance ?? [])];
   const writes: { kind: "create" | "update"; row: FakeResult }[] = [];
 
   const finder = <T,>(rows: T[] = []) => {
@@ -119,7 +120,29 @@ export const fakeResultDb = (data: FakeData) => {
   };
 
   const db = {
-    attendance: finder(data.attendance),
+    attendance: {
+      ...finder(attendance),
+      upsert: async ({
+        where,
+        update,
+        create,
+      }: {
+        where: { studentId_academicYearId_date: Pick<FakeAttendance, "studentId" | "academicYearId" | "date"> };
+        update: Partial<FakeAttendance>;
+        create: FakeAttendance;
+      }) => {
+        const key = where.studentId_academicYearId_date;
+        const found = attendance.find(
+          (record) =>
+            record.studentId === key.studentId &&
+            record.academicYearId === key.academicYearId &&
+            record.date.getTime() === key.date.getTime(),
+        );
+        if (found) return Object.assign(found, update);
+        attendance.push({ ...create });
+        return create;
+      },
+    },
     class: finder(data.classes),
     exam: finder(data.exams),
     assignment: finder(data.assignments),
@@ -155,5 +178,5 @@ export const fakeResultDb = (data: FakeData) => {
     },
   } as unknown as PrismaClient;
 
-  return { db, results, writes, sheets };
+  return { db, results, writes, sheets, attendance };
 };

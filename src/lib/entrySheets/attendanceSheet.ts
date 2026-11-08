@@ -1,7 +1,7 @@
 import "server-only";
-import type { PrismaClient } from "@prisma/client";
+import type { Prisma, PrismaClient } from "@prisma/client";
 import { z } from "zod";
-import { ATTENDING_STUDENT_STATUSES, isIsoDate } from "@/lib/attendanceRules";
+import { ATTENDING_STUDENT_STATUSES, MAX_ATTENDANCE_RECORDS, isIsoDate } from "@/lib/attendanceRules";
 import type { ResultAccess } from "@/lib/results/manualResult";
 import { createWithFreshCode } from "./createSheet";
 import type { CandidateSheet } from "./photoRead";
@@ -181,4 +181,112 @@ export const loadAttendanceSheets = async (
     const rows = sheetRowsSchema.safeParse(sheet.rows);
     return rows.success ? [{ id: sheet.id, code: sheet.code, rows: rows.data }] : [];
   });
+};
+
+/** How many days late a sheet's attendance can still be saved. */
+export const SHEET_ATTENDANCE_DAYS_LATE = 7;
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+const daysBetween = (from: string, to: string) =>
+  Math.round((dayOf(to).getTime() - dayOf(from).getTime()) / DAY_MS);
+
+/**
+ * The date rule for attendance saved from a sheet: today or up to 7 days
+ * earlier, inside the current academic year, never in the future. Direct
+ * attendance keeps its own today-only rule, attendanceDateError.
+ */
+export const sheetAttendanceDateError = (
+  date: unknown,
+  today: string,
+  year: { startDate: string; endDate: string },
+): string | null => {
+  if (!isIsoDate(date)) return "Invalid date.";
+  const daysLate = daysBetween(date, today);
+  if (daysLate < 0) return "Attendance can't be saved for a future date.";
+  if (daysLate > SHEET_ATTENDANCE_DAYS_LATE) {
+    return "Attendance from a sheet can only be saved up to 7 days late.";
+  }
+  if (date < year.startDate || date > year.endDate) {
+    return "This date is outside the current academic year.";
+  }
+  return null;
+};
+
+export const attendanceSheetSaveSchema = z.object({
+  sheetId: z.string().uuid(),
+  rows: z
+    .array(z.object({ studentId: z.string().min(1), present: z.boolean() }))
+    .min(1, "There are no rows to save.")
+    .max(MAX_ATTENDANCE_RECORDS)
+    .refine((rows) => new Set(rows.map((row) => row.studentId)).size === rows.length, {
+      message: "A student appears twice.",
+    }),
+});
+export type AttendanceSheetSaveInput = z.infer<typeof attendanceSheetSaveSchema>;
+
+type SaveDb = Pick<Prisma.TransactionClient, "entrySheet" | "student" | "attendance">;
+
+/**
+ * Saves the checked rows of one attendance sheet on the sheet's date: all of
+ * them, or none when any check fails. Every check runs again here, whatever
+ * the screen showed. Run it inside a transaction.
+ */
+export const saveAttendanceSheetWith = async (
+  db: SaveDb,
+  access: ResultAccess,
+  input: unknown,
+  { today, year }: { today: string; year: AttendanceYear },
+): Promise<{ error: string; studentId?: string } | { savedCount: number; date: string }> => {
+  const parsed = attendanceSheetSaveSchema.safeParse(input);
+  if (!parsed.success) return { error: parsed.error.issues[0].message };
+  const { sheetId, rows } = parsed.data;
+
+  const sheet = await db.entrySheet.findFirst({
+    where: { id: sheetId, ...attendanceSheetAccessWhere(access) },
+    select: { classId: true, date: true, academicYearId: true },
+  });
+  if (!sheet?.date) return { error: "Sheet not found." };
+  if (sheet.academicYearId !== year.id) return { error: "This sheet is from another academic year." };
+
+  const date = isoDateOf(sheet.date);
+  const dateError = sheetAttendanceDateError(date, today, year);
+  if (dateError) return { error: dateError };
+
+  // Only current students of the sheet's class; anyone who left can't be saved.
+  const allowed = await db.student.findMany({
+    where: {
+      id: { in: rows.map((row) => row.studentId) },
+      schoolId: access.schoolId,
+      classId: sheet.classId,
+      status: { in: [...ATTENDING_STUDENT_STATUSES] },
+    },
+    select: { id: true },
+  });
+  const allowedIds = new Set(allowed.map((student) => student.id));
+  const refused = rows.find((row) => !allowedIds.has(row.studentId));
+  if (refused) {
+    return {
+      error: "This student is no longer in this class, so their attendance can't be saved.",
+      studentId: refused.studentId,
+    };
+  }
+
+  const day = dayOf(date);
+  for (const row of rows) {
+    await db.attendance.upsert({
+      where: {
+        studentId_academicYearId_date: { studentId: row.studentId, academicYearId: year.id, date: day },
+      },
+      update: { present: row.present },
+      create: {
+        schoolId: access.schoolId,
+        studentId: row.studentId,
+        academicYearId: year.id,
+        date: day,
+        present: row.present,
+      },
+    });
+  }
+  return { savedCount: rows.length, date };
 };

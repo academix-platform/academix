@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { toast } from "react-toastify";
-import { readAttendanceSheetPhoto } from "@/lib/actions/entrySheet.actions";
+import { Loader2 } from "lucide-react";
+import { readAttendanceSheetPhoto, saveAttendanceSheet } from "@/lib/actions/entrySheet.actions";
 import type { AttendanceEntryRow as Row } from "@/lib/entrySheets/attendanceSheet";
 import type { PhotoReadRow } from "@/lib/entrySheets/photoRead";
 import {
@@ -30,6 +32,7 @@ const without = <T,>(record: Record<string, T>, ids: Set<string>) =>
  */
 const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: string; rows: Row[] }) => {
   const t = useTranslations("attendanceSheet");
+  const router = useRouter();
   const [present, setPresent] = useState<Record<string, boolean>>({});
   const [edited, setEdited] = useState<Record<string, boolean>>({});
   const [decisions, setDecisions] = useState<Record<string, RowDecision>>({});
@@ -38,6 +41,9 @@ const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: s
   const [readPages, setReadPages] = useState<ReadPage[]>([]);
   const [confirmed, setConfirmed] = useState<Record<string, boolean>>({});
   const [photos, setPhotos] = useState<SheetPhoto[]>([]);
+  const [sheetId, setSheetId] = useState<string | null>(null);
+  const [failedStudentId, setFailedStudentId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
   // Photo copies live only in this tab's memory; free them when leaving.
   const photoUrls = useRef<string[]>([]);
@@ -47,6 +53,8 @@ const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: s
     const key = `${read.code}:${read.page}`;
     const url = URL.createObjectURL(photo);
     photoUrls.current.push(url);
+    // Every candidate sheet is for this class and date, so any of them gives the date.
+    setSheetId(read.sheetId);
     setPhotos((prev) => [...prev.filter((shown) => shown.key !== key), { key, page: read.page, url }]);
     setReadSheets((prev) => ({
       ...prev,
@@ -115,6 +123,27 @@ const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: s
             : null;
   const departed = departedStudents(sheetStudents, rows.map((row) => row.studentId));
 
+  const save = () =>
+    startTransition(async () => {
+      if (!sheetId) return;
+      const result = await saveAttendanceSheet({
+        sheetId,
+        rows: toSave.map((item) => ({ studentId: item.row.studentId, present: item.value as boolean })),
+      });
+      if (!result.success) {
+        setFailedStudentId(result.studentId ?? null);
+        toast.error(result.message);
+        return;
+      }
+      toast.success(t("saved", { count: result.savedCount ?? toSave.length }));
+      for (const reset of [setPresent, setEdited, setDecisions, setPhotoRows, setReadSheets, setConfirmed]) reset({});
+      setReadPages([]);
+      setPhotos([]);
+      setSheetId(null);
+      setFailedStudentId(null);
+      router.refresh();
+    });
+
   const table = (
     <div className="overflow-x-auto">
       <table className="w-full min-w-[28rem] text-sm">
@@ -137,7 +166,7 @@ const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: s
               decision={item.decision}
               handled={item.handled}
               read={photoRows[item.row.studentId]}
-              failed={false}
+              failed={failedStudentId === item.row.studentId}
               locked={readPages.length === 0}
               onPresent={(value) => {
                 setPresent((prev) => ({ ...prev, [item.row.studentId]: value }));
@@ -201,9 +230,22 @@ const AttendanceEntryGrid = ({ classId, date, rows }: { classId: number; date: s
         table
       )}
 
-      <p className="text-gray-600 text-sm" role="status">
-        {blocker ?? t("readyCount", { count: toSave.length })}
-      </p>
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={save}
+          disabled={Boolean(blocker) || isPending}
+          className="bg-academixPurpleDark disabled:opacity-60 px-4 py-2 rounded-md text-white text-sm disabled:cursor-not-allowed"
+        >
+          <span className="inline-flex items-center gap-2">
+            {isPending && <Loader2 className="w-4 h-4 animate-spin" aria-hidden />}
+            {isPending ? t("saving") : t("save")}
+          </span>
+        </button>
+        <p className="text-gray-600 text-sm" role="status">
+          {blocker ?? t("readyCount", { count: toSave.length })}
+        </p>
+      </div>
     </div>
   );
 };

@@ -6,7 +6,13 @@ import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
 import { readSheetPhoto } from "../ai/geminiSheetReader";
 import { InvalidSheetReplyError, SheetKind } from "../ai/sheetReadingPrompt";
-import { createAttendanceSheetWith, loadAttendanceSheets } from "../entrySheets/attendanceSheet";
+import { todayInTimeZone } from "../attendanceRules";
+import {
+  AttendanceSheetSaveInput,
+  createAttendanceSheetWith,
+  loadAttendanceSheets,
+  saveAttendanceSheetWith,
+} from "../entrySheets/attendanceSheet";
 import { createResultSheetWith } from "../entrySheets/createSheet";
 import {
   CandidateSheet,
@@ -26,6 +32,7 @@ import {
 } from "../entrySheets/resultEntry";
 import { requireActionAccess } from "./helpers";
 import {
+  notifyAttendanceSaved,
   notifyGradePosted,
   notifyGradeUpdated,
   notifyParentGradePosted,
@@ -326,4 +333,52 @@ export const saveClassResults = async (
   await sendGradeNotifications(access.schoolId, parsed.data, saved);
   revalidatePath("/list/results");
   return { success: true, error: false, savedCount: saved.length };
+};
+
+/**
+ * Saves the checked rows of an attendance sheet on the sheet's date, up to
+ * 7 days late: every row, or none of them. Direct attendance stays in
+ * saveDailyAttendance with its today-only rule.
+ */
+export const saveAttendanceSheet = async (
+  input: AttendanceSheetSaveInput,
+): Promise<EntrySheetActionState> => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  const year = await getCurrentAcademicYearOrNull(access.schoolId);
+  if (!year) return fail("No current academic year found.");
+
+  let saved: { savedCount: number; date: string };
+  try {
+    saved = await prisma.$transaction(
+      async (tx) => {
+        const outcome = await saveAttendanceSheetWith(tx, access, input, { today: todayInTimeZone(), year });
+        // Throwing rolls back anything already written.
+        if ("error" in outcome) throw new RowError(outcome.error, outcome.studentId ?? "");
+        return outcome;
+      },
+      { maxWait: 10_000, timeout: 30_000 },
+    );
+  } catch (err) {
+    if (err instanceof RowError) return fail(err.message, err.studentId || undefined);
+    if (
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      (err.code === "P2002" || err.code === "P2034")
+    ) {
+      return fail("This attendance was changed at the same time by someone else. Nothing was saved. Try again.");
+    }
+    console.error("saveAttendanceSheet failed", err);
+    return fail("The attendance could not be saved. Nothing was saved. Try again.");
+  }
+
+  // Same notification as direct attendance. It never undoes the save.
+  await notifyAttendanceSaved({
+    schoolId: access.schoolId,
+    scope: "students",
+    date: saved.date,
+    count: saved.savedCount,
+  }).catch(() => {});
+  revalidatePath("/list/attendance");
+  return { success: true, error: false, savedCount: saved.savedCount };
 };
