@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import AssessmentSelect from "@/components/entrySheets/AssessmentSelect";
 import ClassEntryGrid from "@/components/entrySheets/ClassEntryGrid";
 import PrintSheetButton from "@/components/entrySheets/PrintSheetButton";
@@ -23,6 +23,7 @@ const ClassEntryPage = async ({ searchParams }: { searchParams: PageSearchParams
   if (user.role !== "admin" && user.role !== "teacher") redirect("/unauthorized");
 
   const t = await getTranslations("classEntry");
+  const sidebarT = await getTranslations("sidebar");
   const year = await getCurrentAcademicYearOrNull(user.schoolId);
   if (!year) return <NoCurrentAcademicYearMessage />;
 
@@ -38,16 +39,14 @@ const ClassEntryPage = async ({ searchParams }: { searchParams: PageSearchParams
 
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-2">
-        <h1 className="font-semibold text-lg">{t("title")}</h1>
-        <Link
-          href="/list/results"
-          className="flex items-center gap-1 hover:bg-gray-50 px-3 py-2 border rounded-md text-sm"
-        >
-          <ArrowLeft className="w-4 h-4 rtl:rotate-180" aria-hidden />
-          {t("backToResults")}
+      <nav className="flex items-center gap-1.5 text-gray-500 text-sm">
+        <Link href="/list/results" className="hover:text-purple-600 transition-colors">
+          {sidebarT("items.results")}
         </Link>
-      </div>
+        <ChevronRight className="w-4 h-4" />
+        <span className="font-medium text-gray-800">{t("title")}</span>
+      </nav>
+      <h1 className="mt-3 font-semibold text-lg">{t("title")}</h1>
 
       {assessments.length === 0 ? (
         <EmptyState title={t("noAssessments")} description={t("noAssessmentsDescription")} />
