@@ -53,7 +53,6 @@ const PrintSheetPage = async ({ params }: { params: Promise<{ sheetId: string }>
           {printed.backLabel}
         </Link>
         <PrintButton label={t("print")} fileName={printed.fileName} />
-        <PrintButton label={t("downloadPdf")} fileName={printed.fileName} kind="pdf" />
         <p className="w-full text-gray-600 text-sm text-center">{printed.hint}</p>
         <p className="w-full text-gray-600 text-sm text-center">{t("pdfHint")}</p>
       </div>
