@@ -25,6 +25,9 @@ export const getAttendanceParams = (resolved: any) => {
   const today = new Date().toISOString().slice(0, 10);
   const isToday = selectedDate === today;
 
+  const rawView = getQueryParam(resolved.view);
+  const view: "daily" | "weekly" = rawView === "weekly" ? "weekly" : "daily";
+
   return {
     scope,
     classId,
@@ -32,5 +35,6 @@ export const getAttendanceParams = (resolved: any) => {
     selectedDate,
     day,
     isToday,
+    view,
   };
 };

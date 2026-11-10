@@ -1,40 +1,55 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from "next-intl";
+import { Select } from "@/components/ui/select";
+
+type Props = {
+  classes: { id: number; name: string }[];
+  value: number | undefined;
+  selectedDate: string;
+  className?: string;
+};
 
 const AttendanceClassSelect = ({
   classes,
   value,
   selectedDate,
-}: {
-  classes: { id: number; name: string }[];
-  value: number | undefined;
-  selectedDate: string;
-}) => {
+  className,
+}: Props) => {
   const router = useRouter();
   const params = useSearchParams();
+  const th = useTranslations("tableHeaders");
+
+  const handleChange = (classIdStr: string) => {
+    const newParams = new URLSearchParams(params.toString());
+
+    if (classIdStr) {
+      newParams.set("classId", classIdStr);
+    } else {
+      newParams.delete("classId");
+    }
+
+    newParams.set("scope", "students");
+    newParams.set("date", selectedDate);
+    newParams.set("page", "1");
+
+    router.push(`/list/attendance?${newParams.toString()}`);
+  };
 
   return (
-    <select
-      value={value}
-      onChange={(e) => {
-        const newParams = new URLSearchParams(params.toString());
-
-        newParams.set("classId", e.target.value);
-        newParams.set("scope", "students");
-        newParams.set("date", selectedDate);
-
-        router.push(`/list/attendance?${newParams.toString()}`);
-      }}
-      className="p-2 border rounded-md text-sm"
-      aria-label="Select Class"
+    <Select
+      value={value ? String(value) : ""}
+      onChange={(e) => handleChange(e.target.value)}
+      containerClassName={className || "w-full sm:w-44"}
+      aria-label={th("class")}
     >
       {classes.map((cls) => (
         <option key={cls.id} value={cls.id}>
           {cls.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 };
 

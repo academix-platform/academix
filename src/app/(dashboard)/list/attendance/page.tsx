@@ -1,19 +1,17 @@
 import prisma from "@/lib/prisma";
-import { type PageSearchParams } from "@/lib/pageParams";
-import { getAttendanceData } from "@/lib/attendance";
-
+import { type PageSearchParams, getQueryParam } from "@/lib/pageParams";
+import { getAttendanceData, getWeeklyAttendanceData } from "@/lib/attendance";
 import AttendanceClient from "@/components/AttendanceClient";
-import AttendanceClassSelect from "@/components/AttendanceClassSelect";
-import GradeFilter from "@/components/GradeFilter";
-import Pagination from "@/components/Pagination";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import EmptyState from "@/components/states/EmptyState";
-import { ITEM_PER_PAGE } from "@/lib/settings";
 import { getAttendanceParams } from "@/lib/attendanceParams";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getTranslations } from "next-intl/server";
-import { getQueryParam } from "@/lib/pageParams";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { DataPageHeader } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
+import { Calendar, History } from "lucide-react";
 
 const isDateWithinRange = (date: string, startDate: string, endDate: string) =>
   date >= startDate && date <= endDate;
@@ -23,10 +21,9 @@ const AttendancePage = async ({
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const t = await getTranslations("pages");
   const attendanceT = await getTranslations("attendance");
-  const th = await getTranslations("tableHeaders");
-  const filtersT = await getTranslations("filters");
+  const sidebarT = await getTranslations("sidebar.items");
+
   const { role, userId, schoolId } =
     await enforceRouteAccess("/list/attendance");
   const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
@@ -45,10 +42,10 @@ const AttendancePage = async ({
   const {
     scope: rawScope,
     classId,
-    page: p,
     selectedDate,
     day,
     isToday,
+    view,
   } = getAttendanceParams(resolved);
 
   const scope: "students" | "teachers" =
@@ -58,6 +55,10 @@ const AttendancePage = async ({
     currentAcademicYear.startDate,
     currentAcademicYear.endDate,
   );
+
+  // Authorization check for editing historical or current records
+  const canEdit =
+    (role === "admin" || role === "teacher") && isSelectedDateInAcademicYear;
 
   // CLASSES
   const classes =
@@ -69,7 +70,11 @@ const AttendancePage = async ({
               ? { gradeId: selectedGradeId }
               : {}),
           },
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { students: true } },
+          },
           orderBy: { name: "asc" },
         })
       : await prisma.class.findMany({
@@ -77,8 +82,14 @@ const AttendancePage = async ({
             schoolId: schoolId,
             supervisorId: userId,
           },
-          select: { id: true, name: true },
+          select: {
+            id: true,
+            name: true,
+            _count: { select: { students: true } },
+          },
+          orderBy: { name: "asc" },
         });
+
   const grades =
     role === "admin"
       ? await prisma.grade.findMany({
@@ -88,156 +99,164 @@ const AttendancePage = async ({
         })
       : [];
 
-  // Teacher with no classes
+  const breadcrumbs = [
+    {
+      label: sidebarT("dashboard"),
+      href: `/${role}`,
+    },
+    {
+      label: attendanceT("title"),
+      isCurrent: true,
+    },
+  ];
+
+  // Teacher with no assigned classes
   if (role === "teacher" && classes.length === 0) {
     return (
-      <div className="flex-1 bg-white m-4 p-6 rounded-md">
-        <h1 className="mb-2 font-semibold text-lg">{t("attendance")}</h1>
+      <div className="max-w-[1600px] mx-auto p-4 md:p-6 xl:p-8 space-y-6">
+        <Breadcrumbs items={breadcrumbs} />
+        <DataPageHeader
+          title={attendanceT("title")}
+          description={attendanceT("description")}
+        />
         <EmptyState
           title={attendanceT("noClassesAssigned")}
           description={attendanceT("noClassesAssignedDescription")}
-          className="py-6"
+          className="py-12"
         />
       </div>
     );
   }
 
   const validClassIds = new Set(classes.map((c) => c.id));
-
+  const defaultClass =
+    classes.find((c) => c._count.students > 0) || classes[0];
   const effectiveClassId =
-    classId && validClassIds.has(classId) ? classId : classes[0]?.id;
+    classId && validClassIds.has(classId) ? classId : defaultClass?.id;
 
   // DATA
-  const { data, hasAttendance, noCurrentYear } = isSelectedDateInAcademicYear
-    ? await getAttendanceData({
-        role,
-        userId,
-        schoolId: schoolId,
-        scope,
-        classId: effectiveClassId,
-        gradeId: selectedGradeId,
-        day,
-      })
-    : { data: [], hasAttendance: false, noCurrentYear: false };
+  const [dailyResult, weeklyResult] = isSelectedDateInAcademicYear
+    ? await Promise.all([
+        getAttendanceData({
+          role,
+          userId,
+          schoolId: schoolId,
+          scope,
+          classId: effectiveClassId,
+          gradeId: selectedGradeId,
+          day,
+        }),
+        getWeeklyAttendanceData({
+          role,
+          userId,
+          schoolId: schoolId,
+          scope,
+          classId: effectiveClassId,
+          gradeId: selectedGradeId,
+          anchorDate: selectedDate,
+        }),
+      ])
+    : [
+        { data: [], hasAttendance: false, noCurrentYear: false },
+        {
+          weekDays: [],
+          weekStartDate: "",
+          weekEndDate: "",
+          data: [],
+          hasAttendance: false,
+          noCurrentYear: false,
+        },
+      ];
+
+  const { data, hasAttendance, noCurrentYear } = dailyResult;
 
   if (noCurrentYear) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  // PAGINATION
-  const count = data.length;
-  const paginatedData = data.slice((p - 1) * ITEM_PER_PAGE, p * ITEM_PER_PAGE);
-  // UI
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      {/* TOP */}
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
+    <div className="max-w-[1600px] mx-auto p-4 md:p-6 xl:p-8 space-y-6">
+      {/* 1. Standardized Breadcrumbs */}
+      <Breadcrumbs items={breadcrumbs} />
 
-        <form className="hidden sm:flex items-center gap-2">
-          <input
-            type="date"
-            name="date"
-            defaultValue={selectedDate}
-            min={currentAcademicYear.startDate}
-            max={currentAcademicYear.endDate}
-            className="p-2 border rounded-md text-sm"
-          />
+      {/* 2. Modern DataPageHeader with localized title, description & contextual badges */}
+      <DataPageHeader
+        title={attendanceT("title")}
+        description={attendanceT("description")}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="outline" className="text-xs font-medium">
+              <Calendar className="w-3.5 h-3.5 shrink-0 text-purple-600 dark:text-purple-400" />
+              <span>{attendanceT("academicYear", { year: currentAcademicYear.name })}</span>
+            </Badge>
 
-          <input type="hidden" name="scope" value={scope} />
-          {effectiveClassId && (
-            <input type="hidden" name="classId" value={effectiveClassId} />
-          )}
-          {selectedGradeId && (
-            <input type="hidden" name="gradeId" value={selectedGradeId} />
-          )}
+            {isSelectedDateInAcademicYear ? (
+              hasAttendance ? (
+                <Badge variant="success" size="sm" dot>
+                  {attendanceT("recorded")}
+                </Badge>
+              ) : (
+                <Badge variant="warning" size="sm" dot>
+                  {attendanceT("unrecorded")}
+                </Badge>
+              )
+            ) : (
+              <Badge variant="destructive" size="sm">
+                {attendanceT("dateOutsideAcademicYear", {
+                  start: currentAcademicYear.startDate,
+                  end: currentAcademicYear.endDate,
+                })}
+              </Badge>
+            )}
 
-          <button className="bg-academixPurple px-3 py-2 rounded-md text-sm">
-            {attendanceT("filter")}
-          </button>
-        </form>
-      </div>
-
-      <div className="flex flex-wrap justify-between items-center">
-        {/* ADMIN TABS */}
-        {role === "admin" && (
-          <div className="flex gap-2 mb-2">
-            <a
-              href={`/list/attendance?scope=students&classId=${effectiveClassId}`}
-              className={`px-3 py-1 rounded-md ${
-                scope === "students"
-                  ? "bg-academixPurpleDark text-white"
-                  : "bg-gray-100"
-              }`}
-            >
-              {filtersT("students")}
-            </a>
-
-            <a
-              href={`/list/attendance?scope=teachers`}
-              className={`px-3 py-1 rounded-md ${
-                scope === "teachers"
-                  ? "bg-academixPurpleDark text-white"
-                  : "bg-gray-100"
-              }`}
-            >
-              {filtersT("teachers")}
-            </a>
+            {!isToday && isSelectedDateInAcademicYear && (
+              <Badge
+                variant="outline"
+                size="sm"
+                className="border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-950/40 dark:border-amber-800 dark:text-amber-300"
+              >
+                <History className="w-3 h-3 shrink-0 text-amber-600 dark:text-amber-400" />
+                <span>{attendanceT("historicalRecord")}</span>
+              </Badge>
+            )}
           </div>
-        )}
+        }
+      />
 
-        {/* CLASS SELECT (ADMIN) */}
-        {role === "admin" && scope === "students" && (
-          <div className="mb-4 flex flex-wrap items-center gap-2">
-            <GradeFilter grades={grades} />
-            <span className="me-2">{th("class")}:</span>
-            <AttendanceClassSelect
-              classes={classes}
-              value={effectiveClassId}
-              selectedDate={selectedDate}
-            />
-          </div>
-        )}
-      </div>
-
-      {/* TEACHER CLASS TABS */}
-      {role === "teacher" && (
-        <div className="flex flex-wrap gap-2 mb-4">
-          {classes.map((cls) => (
-            <a
-              key={cls.id}
-              href={`/list/attendance?classId=${cls.id}`}
-              className={`px-3 py-1 rounded ${
-                effectiveClassId === cls.id
-                  ? "bg-academixPurpleDark text-white"
-                  : "bg-gray-100"
-              }`}
-            >
-              {cls.name}
-            </a>
-          ))}
-        </div>
-      )}
-
+      {/* 3. Out-of-academic-year alert if needed */}
       {!isSelectedDateInAcademicYear && (
-        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          {attendanceT("dateOutsideAcademicYear", {
-            start: currentAcademicYear.startDate,
-            end: currentAcademicYear.endDate,
-          })}
+        <div className="rounded-2xl border border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/30 p-4 text-xs md:text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
+          <span>
+            {attendanceT("dateOutsideAcademicYear", {
+              start: currentAcademicYear.startDate,
+              end: currentAcademicYear.endDate,
+            })}
+          </span>
         </div>
       )}
 
-      {/* TABLE */}
+      {/* 4. Complete Interactive Attendance Client */}
       <AttendanceClient
-        data={paginatedData}
+        data={data}
+        weeklyData={weeklyResult}
+        initialView={view}
         selectedDate={selectedDate}
         isToday={isToday}
         hasAttendance={hasAttendance}
         scope={scope}
+        canEdit={canEdit}
+        academicYear={{
+          id: currentAcademicYear.id,
+          name: currentAcademicYear.name,
+          startDate: currentAcademicYear.startDate,
+          endDate: currentAcademicYear.endDate,
+        }}
+        classes={classes}
+        effectiveClassId={effectiveClassId}
+        grades={grades}
+        selectedGradeId={selectedGradeId}
+        role={role}
       />
-
-      <Pagination page={p} count={count} />
     </div>
   );
 };
