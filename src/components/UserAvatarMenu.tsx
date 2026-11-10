@@ -78,19 +78,19 @@ const UserAvatarMenu = ({
         aria-expanded={isMenuOpen}
         aria-haspopup="menu"
         aria-controls={isMenuOpen ? "user-avatar-menu-popover" : undefined}
-        className="flex items-center justify-center rounded-xl border border-outline bg-surface p-0.5 w-9 h-9 overflow-hidden hover:border-brandPurple-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500 shadow-2xs"
+        className="flex items-center justify-center rounded-xl border border-outline bg-surface w-9 h-9 overflow-hidden hover:border-brandPurple-300 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500 shadow-2xs shrink-0"
         aria-label={t("open")}
       >
         {imageUrl ? (
           <Image
             src={imageUrl}
             alt={t("avatarAlt")}
-            width={32}
-            height={32}
-            className="w-full h-full object-cover rounded-[10px]"
+            width={36}
+            height={36}
+            className="w-full h-full object-cover"
           />
         ) : (
-          <span className="flex justify-center items-center bg-brandPurple-100/70 text-brandPurple-700 w-full h-full font-bold text-xs rounded-[10px]">
+          <span className="flex justify-center items-center bg-brandPurple-100/70 text-brandPurple-700 w-full h-full font-bold text-xs">
             {initials}
           </span>
         )}
