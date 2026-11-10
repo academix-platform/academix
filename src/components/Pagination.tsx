@@ -16,7 +16,10 @@ type PaginationProps = {
   page: number;
   count: number;
   pageSize?: number;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (pageSize: number) => void;
   className?: string;
+  onPageChange?: (page: number) => void;
 };
 
 type PageItem = number | "ellipsis-start" | "ellipsis-end";
@@ -25,7 +28,10 @@ export default function Pagination({
   page,
   count,
   pageSize = ITEM_PER_PAGE,
+  pageSizeOptions,
+  onPageSizeChange,
   className = "",
+  onPageChange,
 }: PaginationProps) {
   const t = useTranslations("common");
   const locale = useLocale();
@@ -79,6 +85,10 @@ export default function Pagination({
 
   const changePage = (newPage: number) => {
     const clamped = Math.min(Math.max(1, newPage), totalPages);
+    if (onPageChange) {
+      onPageChange(clamped);
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
     params.set("page", clamped.toString());
     router.push(`${window.location.pathname}?${params.toString()}`);
@@ -96,10 +106,35 @@ export default function Pagination({
         className,
       )}
     >
-      {/* Result Count Summary */}
-      <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium select-none">
-        {t("showingResults", { from, to, count })}
-      </p>
+      {/* Result Count Summary + Optional Page Size Selector */}
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium select-none">
+          {t("showingResults", { from, to, count })}
+        </p>
+
+        {pageSizeOptions && onPageSizeChange && count > pageSizeOptions[0] && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="hidden sm:inline">{isRtl ? "لكل صفحة:" : "per page:"}</span>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-800">
+              {pageSizeOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onPageSizeChange(opt)}
+                  className={cn(
+                    "px-2 py-0.5 text-xs rounded-md font-medium transition cursor-pointer",
+                    pageSize === opt
+                      ? "bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200",
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Pagination Controls */}
       <div className="flex items-center gap-1 select-none flex-wrap justify-center">
