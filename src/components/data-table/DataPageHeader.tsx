@@ -24,7 +24,7 @@ export function DataPageHeader({
         className,
       )}
     >
-      <div className="flex flex-col gap-1">
+      <div className="flex flex-col gap-1 min-w-0">
         <div className="flex items-center gap-2.5">
           <h1 className="font-bold text-xl md:text-2xl text-slate-900 dark:text-slate-100 tracking-tight">
             {title}
