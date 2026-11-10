@@ -152,7 +152,7 @@ const LoginContent = () => {
           </p>
         </div>
 
-        <form className="flex flex-col gap-4.5" onSubmit={onSubmit}>
+        <form className="flex flex-col gap-5 sm:gap-6" onSubmit={onSubmit}>
           <div className="flex flex-col gap-1.5">
             <label
               className="text-content-primary text-xs font-semibold uppercase tracking-wider"
