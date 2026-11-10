@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import {
   BarChart,
@@ -30,6 +31,7 @@ type AttendanceItem = {
 type AttendanceChartProps = {
   data: AttendanceItem[];
   totalRecords?: number;
+  totalStudents?: number;
 };
 
 interface TooltipPayloadEntry {
@@ -43,44 +45,81 @@ interface CustomTooltipProps {
   payload?: TooltipPayloadEntry[];
   label?: string;
   t: (key: string) => string;
+  totalStudents?: number;
 }
 
-const CustomTooltip = ({ active, payload, label, t }: CustomTooltipProps) => {
+const CustomTooltip = ({
+  active,
+  payload,
+  label,
+  t,
+  totalStudents = 0,
+}: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-surface border border-outline rounded-xl p-3 shadow-md text-xs font-sans space-y-1.5 min-w-[120px]">
-        <p className="font-semibold text-content-primary pb-1 border-b border-outline/60">
+      <div className="bg-surface border border-outline rounded-xl p-3 shadow-md text-xs font-sans space-y-2 min-w-[150px]">
+        <p className="font-semibold text-content-primary pb-1.5 border-b border-outline/60">
           {label}
         </p>
-        {payload.map((entry) => (
-          <div
-            key={entry.dataKey}
-            className="flex items-center justify-between gap-3"
-          >
-            <div className="flex items-center gap-1.5">
-              <span
-                className="w-2 h-2 rounded-full shrink-0"
-                style={{ backgroundColor: entry.color }}
-              />
-              <span className="text-content-secondary">
-                {entry.dataKey === "present" ? t("present") : t("absent")}
-              </span>
-            </div>
-            <span className="font-bold tabular-nums text-content-primary">
-              {entry.value}
+        <div className="space-y-1.5">
+          {payload.map((entry) => {
+            const count = entry.value;
+            const pct =
+              totalStudents > 0
+                ? Math.round(((count / totalStudents) * 100) * 10) / 10
+                : 0;
+            const formattedPct = `${pct}%`;
+
+            return (
+              <div
+                key={entry.dataKey}
+                className="flex items-center justify-between gap-3"
+              >
+                <div className="flex items-center gap-1.5">
+                  <span
+                    className="w-2 h-2 rounded-full shrink-0"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-content-secondary">
+                    {entry.dataKey === "present" ? t("present") : t("absent")}
+                  </span>
+                </div>
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold tabular-nums text-content-primary">
+                    {formattedPct}
+                  </span>
+                  <span className="text-[10px] text-content-muted tabular-nums">
+                    ({count})
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        {totalStudents > 0 && (
+          <div className="pt-1.5 border-t border-outline/60 flex items-center justify-between text-[10px] text-content-muted">
+            <span>{t("totalStudents")}</span>
+            <span className="font-semibold text-content-secondary tabular-nums">
+              {totalStudents}
             </span>
           </div>
-        ))}
+        )}
       </div>
     );
   }
   return null;
 };
 
-const AttendanceChart = ({ data }: AttendanceChartProps) => {
+const AttendanceChart = ({ data, totalStudents = 0 }: AttendanceChartProps) => {
+  const [isMounted, setIsMounted] = useState(false);
   const locale = useLocale();
   const t = useTranslations("attendance");
   const isRtl = locale === "ar";
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setIsMounted(true);
+  }, []);
 
   const chartData = data.map((item) => ({
     ...item,
@@ -89,9 +128,17 @@ const AttendanceChart = ({ data }: AttendanceChartProps) => {
       : dayLabels[item.name]?.en || item.name,
   }));
 
+  if (!isMounted) {
+    return (
+      <div className="w-full h-[320px] flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-brandPurple-600 border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
   return (
-    <div className="w-full h-full min-h-[300px]">
-      <ResponsiveContainer width="100%" height="100%">
+    <div className="w-full h-[340px]">
+      <ResponsiveContainer width="100%" height={340}>
         <BarChart
           data={chartData}
           barSize={18}
@@ -99,7 +146,7 @@ const AttendanceChart = ({ data }: AttendanceChartProps) => {
             top: 10,
             right: isRtl ? 10 : 20,
             left: isRtl ? 20 : 10,
-            bottom: 5,
+            bottom: 15,
           }}
         >
           <CartesianGrid
@@ -120,7 +167,7 @@ const AttendanceChart = ({ data }: AttendanceChartProps) => {
             allowDecimals={false}
           />
           <Tooltip
-            content={<CustomTooltip t={t} />}
+            content={<CustomTooltip t={t} totalStudents={totalStudents} />}
             cursor={{ fill: "rgba(124, 58, 237, 0.04)" }}
           />
           <Legend

@@ -28,20 +28,26 @@ const AttendanceChartContainer = async () => {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  const responseData = await prisma.attendance.findMany({
-    where: {
-      schoolId: user.schoolId,
-      academicYearId,
-      date: {
-        gte: weekStart,
-        lt: weekEnd,
+  const [responseData, totalStudents] = await Promise.all([
+    prisma.attendance.findMany({
+      where: {
+        schoolId: user.schoolId,
+        academicYearId,
+        studentId: { not: null },
+        date: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
       },
-    },
-    select: {
-      date: true,
-      present: true,
-    },
-  });
+      select: {
+        date: true,
+        present: true,
+      },
+    }),
+    prisma.student.count({
+      where: { schoolId: user.schoolId },
+    }),
+  ]);
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const workingDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
@@ -77,7 +83,7 @@ const AttendanceChartContainer = async () => {
   const totalRecords = responseData.length;
 
   return (
-    <div className="flex flex-col justify-between bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs w-full min-h-[420px]">
+    <div className="flex flex-col justify-between bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs w-full min-h-[450px]">
       {/* Card Header */}
       <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
         <div>
@@ -86,7 +92,7 @@ const AttendanceChartContainer = async () => {
           </h2>
           {totalRecords > 0 && (
             <p className="text-xs text-content-muted mt-0.5">
-              {totalRecords} records logged this week
+              {adminT("recordsLoggedWeek", { count: totalRecords })}
             </p>
           )}
         </div>
@@ -101,7 +107,7 @@ const AttendanceChartContainer = async () => {
       </div>
 
       {/* Main Content: Chart OR Rich Actionable Empty State */}
-      <div className="flex-1 w-full flex items-center justify-center">
+      <div className="w-full flex-1 min-h-[350px] flex flex-col justify-center">
         {totalRecords === 0 ? (
           <div className="flex flex-col items-center justify-center text-center p-8 my-auto w-full max-w-md rounded-2xl border border-dashed border-outline/90 bg-surface-muted/30">
             <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brandPurple-50 dark:bg-brandPurple-950/40 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100 dark:border-brandPurple-900/50 mb-3.5 shadow-2xs">
@@ -125,7 +131,11 @@ const AttendanceChartContainer = async () => {
             </Link>
           </div>
         ) : (
-          <AttendanceChart data={data} totalRecords={totalRecords} />
+          <AttendanceChart
+            data={data}
+            totalRecords={totalRecords}
+            totalStudents={totalStudents}
+          />
         )}
       </div>
     </div>
