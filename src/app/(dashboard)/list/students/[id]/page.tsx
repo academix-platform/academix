@@ -3,23 +3,29 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import FormContainer from "@/components/FormContainer";
 import UserActionButtons from "@/components/UserActionButtons";
 import AttendanceCard from "@/components/AttendanceCard";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { Badge } from "@/components/ui/badge";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import {
+  ArrowUpRight,
   BookOpen,
   Calendar,
   CalendarCheck2,
   Droplet,
   GraduationCap,
   Mail,
+  MapPin,
   Phone,
   School,
+  Sparkles,
+  TrendingUp,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { Suspense } from "react";
 
 const SingleStudentPage = async ({
@@ -29,6 +35,9 @@ const SingleStudentPage = async ({
 }) => {
   const t = await getTranslations("profilePages");
   const statesT = await getTranslations("states");
+  const rolesT = await getTranslations("roles");
+  const sidebarT = await getTranslations("sidebar.items");
+  const locale = await getLocale();
   const { id } = await params;
 
   const { role, userId, schoolId } = await enforceRouteAccess(`/list/students`);
@@ -83,151 +92,289 @@ const SingleStudentPage = async ({
   }
 
   return (
-    <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
-      {/* LEFT */}
-      <div className="w-full xl:w-3/4">
-        {/* TOP */}
-        <div className="flex flex-wrap md:flex-nowrap gap-4">
-          {/* USER INFO CARD */}
-          <div className="relative flex sm:flex-row flex-col md:justify-between gap-4 bg-academixSky px-4 py-6 rounded-md w-full md:w-2/3">
-            <div className="top-5 absolute flex items-center gap-2 end-5">
-              {role === "admin" && (
-                <FormContainer table="student" type="update" data={student} />
-              )}
-              <UserActionButtons
-                table="student"
-                userId={student.id}
-                userName={student.name}
-              />
-            </div>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs
+        items={[
+          { label: sidebarT("students"), href: "/list/students" },
+          { label: student.name, isCurrent: true },
+        ]}
+      />
 
-            <div className="rounded-full">
-              <Image
-                src={student.img || "/avatar.png"}
-                alt={student.name}
-                width={144}
-                height={144}
-                className="rounded-full w-24 md:w-36 h-24 md:h-36 object-cover"
-              />
-            </div>
-            <div className="flex flex-col gap-8">
-              <div>
-                <h1 className="font-semibold text-xl">{student.name}</h1>
+      {/* Main Grid: Left (Profile + Stats + Schedule) & Right (Shortcuts + Announcements) */}
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+        {/* Left Column (3/4 on xl) */}
+        <div className="xl:col-span-3 space-y-6">
+          {/* Top Grid: Profile Card (2 cols) + 2x2 Stats (1 col) on lg */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* USER PROFILE CARD */}
+            <div className="lg:col-span-2 relative flex flex-col sm:flex-row items-center sm:items-start gap-6 bg-surface border border-outline/80 rounded-2xl p-6 shadow-2xs overflow-hidden bg-gradient-to-br from-brandPurple-50/40 via-surface to-surface dark:from-brandPurple-950/20 dark:via-surface dark:to-surface">
+              {/* Edit & Action Buttons */}
+              <div className="absolute top-4 end-4 flex items-center gap-2">
+                {role === "admin" && (
+                  <FormContainer table="student" type="update" data={student} />
+                )}
+                <UserActionButtons
+                  table="student"
+                  userId={student.id}
+                  userName={student.name}
+                />
               </div>
 
-              <div className="flex flex-wrap justify-between items-center gap-2 font-medium text-xs">
-                <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Droplet className="w-4 h-4 text-gray-600" />
-                  <span>{student.bloodType}</span>
+              {/* Avatar */}
+              <div className="relative shrink-0">
+                <Image
+                  src={student.img || "/avatar.png"}
+                  alt={student.name}
+                  width={112}
+                  height={112}
+                  className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover border-2 border-outline/80 shadow-xs"
+                />
+              </div>
+
+              {/* Details */}
+              <div className="flex-1 flex flex-col justify-between gap-4 min-w-0 w-full text-center sm:text-start">
+                <div className="space-y-1.5 pe-16">
+                  <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                    <h1 className="font-bold text-xl sm:text-2xl text-content-primary tracking-tight truncate">
+                      {student.name}
+                    </h1>
+                    <Badge variant="primary" size="sm">
+                      {rolesT("student")}
+                    </Badge>
+                    {student.class?.name && (
+                      <Badge variant="outline" size="sm" className="font-semibold">
+                        {student.class.name}
+                      </Badge>
+                    )}
+                    {student.bloodType && (
+                      <Badge variant="secondary" size="sm" className="gap-1 font-semibold">
+                        <Droplet className="w-3 h-3 text-rose-500 fill-rose-500/20 shrink-0" />
+                        <span>{student.bloodType}</span>
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-xs text-content-muted">
+                    @{student.username}
+                  </p>
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Calendar className="w-4 h-4 text-gray-600" />
-                  <span>
-                    {new Intl.DateTimeFormat("en-US").format(student.birthday)}
+
+                {/* Contact details */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-2 border-t border-outline/60 text-xs text-content-secondary">
+                  {student.birthday && (
+                    <div className="flex items-center justify-center sm:justify-start gap-2 min-w-0">
+                      <Calendar className="w-4 h-4 text-content-subtle shrink-0" />
+                      <span className="truncate">
+                        {new Intl.DateTimeFormat(locale, { dateStyle: "medium" }).format(student.birthday)}
+                      </span>
+                    </div>
+                  )}
+                  {student.email && (
+                    <div className="flex items-center justify-center sm:justify-start gap-2 min-w-0">
+                      <Mail className="w-4 h-4 text-content-subtle shrink-0" />
+                      <a
+                        href={`mailto:${student.email}`}
+                        className="truncate hover:text-brandPurple-600 dark:hover:text-brandPurple-400 transition-colors"
+                      >
+                        {student.email}
+                      </a>
+                    </div>
+                  )}
+                  {student.phone && (
+                    <div className="flex items-center justify-center sm:justify-start gap-2 min-w-0">
+                      <Phone className="w-4 h-4 text-content-subtle shrink-0" />
+                      <a
+                        href={`tel:${student.phone}`}
+                        dir="ltr"
+                        className="truncate hover:text-brandPurple-600 dark:hover:text-brandPurple-400 transition-colors"
+                      >
+                        {student.phone}
+                      </a>
+                    </div>
+                  )}
+                  {student.address && (
+                    <div className="flex items-center justify-center sm:justify-start gap-2 min-w-0">
+                      <MapPin className="w-4 h-4 text-content-subtle shrink-0" />
+                      <span className="truncate">{student.address}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* 2x2 STAT CARDS */}
+            <div className="grid grid-cols-2 gap-3.5">
+              {/* 1. Attendance */}
+              <div className="flex flex-col justify-between gap-3 bg-surface border border-outline/80 rounded-2xl p-4 shadow-2xs hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    {t("cards.attendance")}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 shrink-0">
+                    <CalendarCheck2 className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-extrabold text-2xl tabular-nums text-content-primary tracking-tight">
+                  <Suspense fallback={<span className="text-xs font-normal text-content-muted">{statesT("loading")}</span>}>
+                    <AttendanceCard id={id} scope="student" />
+                  </Suspense>
+                </div>
+              </div>
+
+              {/* 2. Grade */}
+              <div className="flex flex-col justify-between gap-3 bg-surface border border-outline/80 rounded-2xl p-4 shadow-2xs hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    {t("cards.grade")}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-900/40 shrink-0">
+                    <GraduationCap className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-extrabold text-2xl tabular-nums text-content-primary tracking-tight">
+                  {student.class?.name?.charAt(0) || "-"}
+                </div>
+              </div>
+
+              {/* 3. Lessons */}
+              <div className="flex flex-col justify-between gap-3 bg-surface border border-outline/80 rounded-2xl p-4 shadow-2xs hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    {t("cards.lessons")}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 shrink-0">
+                    <BookOpen className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-extrabold text-2xl tabular-nums text-content-primary tracking-tight">
+                  {student.class?._count?.lessons ?? 0}
+                </div>
+              </div>
+
+              {/* 4. Class */}
+              <div className="flex flex-col justify-between gap-3 bg-surface border border-outline/80 rounded-2xl p-4 shadow-2xs hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-semibold uppercase tracking-wider text-content-muted">
+                    {t("cards.class")}
+                  </span>
+                  <div className="w-8 h-8 rounded-xl flex items-center justify-center bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40 shrink-0">
+                    <School className="w-4 h-4" />
+                  </div>
+                </div>
+                <div className="font-extrabold text-2xl tabular-nums text-content-primary tracking-tight truncate">
+                  {student.class?.name || "-"}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* BOTTOM: SCHEDULE (Untouched content) */}
+          <div className="bg-surface border border-outline/80 rounded-2xl p-4 sm:p-6 shadow-2xs">
+            {student.class ? (
+              <BigCalendarContainer type="classId" id={student.class.id} />
+            ) : (
+              <div className="p-8 text-center text-content-muted">
+                {statesT("noClassAssigned")}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right Column: Shortcuts + Announcements (1/4 on xl) */}
+        <div className="xl:col-span-1 space-y-6">
+          {/* SHORTCUTS CARD */}
+          <div className="bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs space-y-3.5">
+            <div className="flex items-center justify-between">
+              <h2 className="font-bold text-base text-content-primary">
+                {t("shortcuts.title")}
+              </h2>
+              <Sparkles className="w-4 h-4 text-brandPurple-500" />
+            </div>
+            <div className="flex flex-col gap-2.5">
+              {student.class && (
+                <>
+                  <Link
+                    href={`/list/lessons?classId=${student.class.id}`}
+                    className="group flex items-center justify-between p-3 rounded-xl border border-outline/70 bg-surface hover:bg-surface-muted hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-900/40 group-hover:scale-105 transition-transform shrink-0">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm text-content-primary group-hover:text-brandPurple-700 dark:group-hover:text-brandPurple-300 transition-colors truncate">
+                        {t("student.lessons")}
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-content-subtle group-hover:text-brandPurple-600 dark:group-hover:text-brandPurple-400 transition-colors rtl:rotate-[-90deg] shrink-0" />
+                  </Link>
+
+                  <Link
+                    href={`/list/teachers?classId=${student.class.id}`}
+                    className="group flex items-center justify-between p-3 rounded-xl border border-outline/70 bg-surface hover:bg-surface-muted hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-purple-50 dark:bg-purple-950/50 text-purple-700 dark:text-purple-300 border border-purple-100 dark:border-purple-900/40 group-hover:scale-105 transition-transform shrink-0">
+                        <GraduationCap className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm text-content-primary group-hover:text-brandPurple-700 dark:group-hover:text-brandPurple-300 transition-colors truncate">
+                        {t("student.teachers")}
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-content-subtle group-hover:text-brandPurple-600 dark:group-hover:text-brandPurple-400 transition-colors rtl:rotate-[-90deg] shrink-0" />
+                  </Link>
+
+                  <Link
+                    href={`/list/exams?classId=${student.class.id}`}
+                    className="group flex items-center justify-between p-3 rounded-xl border border-outline/70 bg-surface hover:bg-surface-muted hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-rose-50 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-900/40 group-hover:scale-105 transition-transform shrink-0">
+                        <Calendar className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm text-content-primary group-hover:text-brandPurple-700 dark:group-hover:text-brandPurple-300 transition-colors truncate">
+                        {t("student.exams")}
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-content-subtle group-hover:text-brandPurple-600 dark:group-hover:text-brandPurple-400 transition-colors rtl:rotate-[-90deg] shrink-0" />
+                  </Link>
+
+                  <Link
+                    href={`/list/assignments?classId=${student.class.id}`}
+                    className="group flex items-center justify-between p-3 rounded-xl border border-outline/70 bg-surface hover:bg-surface-muted hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all shadow-2xs"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-900/40 group-hover:scale-105 transition-transform shrink-0">
+                        <BookOpen className="w-4 h-4" />
+                      </div>
+                      <span className="font-semibold text-xs sm:text-sm text-content-primary group-hover:text-brandPurple-700 dark:group-hover:text-brandPurple-300 transition-colors truncate">
+                        {t("student.assignments")}
+                      </span>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-content-subtle group-hover:text-brandPurple-600 dark:group-hover:text-brandPurple-400 transition-colors rtl:rotate-[-90deg] shrink-0" />
+                  </Link>
+                </>
+              )}
+
+              <Link
+                href={`/list/results?studentId=${id}`}
+                className="group flex items-center justify-between p-3 rounded-xl border border-outline/70 bg-surface hover:bg-surface-muted hover:border-brandPurple-200 dark:hover:border-brandPurple-800 transition-all shadow-2xs"
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40 group-hover:scale-105 transition-transform shrink-0">
+                    <TrendingUp className="w-4 h-4" />
+                  </div>
+                  <span className="font-semibold text-xs sm:text-sm text-content-primary group-hover:text-brandPurple-700 dark:group-hover:text-brandPurple-300 transition-colors truncate">
+                    {t("student.results")}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Mail className="w-4 h-4 text-gray-600" />
-                  <span>{student.email || "-"}</span>
-                </div>
-                <div className="flex items-center gap-2 w-full md:w-1/3 lg:w-full 2xl:w-1/3">
-                  <Phone className="w-4 h-4 text-gray-600" />
-                  <span>{student.phone || "-"}</span>
-                </div>
-              </div>
+                <ArrowUpRight className="w-4 h-4 text-content-subtle group-hover:text-brandPurple-600 dark:group-hover:text-brandPurple-400 transition-colors rtl:rotate-[-90deg] shrink-0" />
+              </Link>
             </div>
           </div>
-          {/* SMALL CARDS */}
-          <div className="gap-4 grid grid-cols-2 w-full md:w-1/3">
-            {/* CARD */}
 
-            <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <div className="flex items-center gap-4">
-                <CalendarCheck2 className="w-6 h-6 text-academixPurpleDark" />
-                <Suspense fallback={statesT("loading")}>
-                  <AttendanceCard id={id} scope="student" />
-                </Suspense>
-              </div>
-              <span className="text-gray-400 text-sm">
-                {t("cards.attendance")}
-              </span>
-            </div>
-            {/* CARD */}
-            <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <div className="flex items-center gap-4">
-                <GraduationCap className="w-6 h-6 text-academixPurpleDark" />
-                <h1 className="font-semibold text-xl">
-                  {student.class?.name.charAt(0)}
-                </h1>
-              </div>
-              <span className="text-gray-400 text-sm">{t("cards.grade")}</span>
-            </div>
-            {/* CARD */}
-            <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <div className="flex items-center gap-4">
-                <BookOpen className="w-6 h-6 text-academixPurpleDark" />
-                <h1 className="font-semibold text-xl">
-                  {student.class._count.lessons}
-                </h1>
-              </div>
-              <span className="text-gray-400 text-sm">
-                {t("cards.lessons")}
-              </span>
-            </div>
-            {/* CARD */}
-            <div className="flex flex-col gap-4 bg-white p-4 rounded-md w-full">
-              <div className="flex items-center gap-4">
-                <School className="w-6 h-6 text-academixPurpleDark" />
-                <h1 className="font-semibold text-xl">{student.class?.name}</h1>
-              </div>
-              <span className="text-gray-400 text-sm">{t("cards.class")}</span>
-            </div>
-          </div>
+          {/* ANNOUNCEMENTS (Untouched content) */}
+          <Announcements />
         </div>
-        {/* BOTTOM */}
-        <div className="bg-white mt-4 p-4 rounded-md h-[800px]">
-          <h1>{t("student.schedule")}</h1>
-          <BigCalendarContainer type="classId" id={student.class.id} />
-        </div>
-      </div>
-      {/* RIGHT */}
-      <div className="flex flex-col gap-4 w-full xl:w-1/4">
-        <div className="bg-white p-4 rounded-md">
-          <h1 className="font-semibold text-xl">{t("shortcuts.title")}</h1>
-          <div className="flex flex-col gap-2 mt-4 text-gray-500 text-xs">
-            <Link
-              className="bg-academixSkyLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
-              href={`/list/lessons?classId=${student.class.id}`}
-            >
-              {t("student.lessons")}
-            </Link>
-            <Link
-              className="bg-academixPurpleLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
-              href={`/list/teachers?classId=${student.class.id}`}
-            >
-              {t("student.teachers")}
-            </Link>
-            <Link
-              className="bg-pink-50 p-3 rounded-md font-medium hover:shadow-sm transition-all"
-              href={`/list/exams?classId=${student.class.id}`}
-            >
-              {t("student.exams")}
-            </Link>
-            <Link
-              className="bg-academixSkyLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
-              href={`/list/assignments?classId=${student.class.id}`}
-            >
-              {t("student.assignments")}
-            </Link>
-            <Link
-              className="bg-academixYellowLight p-3 rounded-md font-medium hover:shadow-sm transition-all"
-              href={`/list/results?studentId=${id}`}
-            >
-              {t("student.results")}
-            </Link>
-          </div>
-        </div>
-        <Announcements />
       </div>
     </div>
   );
