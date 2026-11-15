@@ -1721,6 +1721,8 @@
   },
   "subjectDetails": {
     "subjects": "المواد",
+    "allSubjectsDesc": "عرض وإدارة المواد الدراسية وربطها بالمراحل والمعلمين.",
+    "viewDetails": "عرض التفاصيل",
     "grade": "الصف",
     "gradeLevel": "الصف {level}",
     "teacherCount": "{count, plural, one {# معلم} other {# معلمين}}",
