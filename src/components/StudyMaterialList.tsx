@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { toast } from "react-toastify";
 import {
   FileText,
@@ -21,6 +22,7 @@ import StudyMaterialUpload from "@/components/StudyMaterialUpload";
 import { useTranslations, useLocale } from "next-intl";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { useMounted } from "@/hooks/useMounted";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -88,6 +90,63 @@ type Props = {
   role?: string;
 };
 
+function UploadModal({
+  isOpen,
+  onClose,
+  subjectId,
+  title,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  subjectId: number;
+  title: string;
+}) {
+  const mounted = useMounted();
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [isOpen, onClose]);
+
+  if (!isOpen || !mounted || typeof document === "undefined") return null;
+
+  return createPortal(
+    <div className="z-[100] fixed inset-0 flex justify-center items-center p-4">
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-xs animate-in fade-in-0 duration-200"
+        onClick={onClose}
+      />
+      <div className="relative bg-surface shadow-2xl p-6 border border-outline rounded-2xl w-full max-w-xl animate-in zoom-in-95 duration-200">
+        <div className="flex justify-between items-center mb-4 pb-3 border-b border-outline/60">
+          <h3 className="font-bold text-content-primary text-base">{title}</h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+        <StudyMaterialUpload
+          subjectId={subjectId}
+          compact
+          onSuccess={onClose}
+        />
+      </div>
+    </div>,
+    document.body,
+  );
+}
+
 export default function StudyMaterialList({
   materials,
   subjectId,
@@ -124,33 +183,12 @@ export default function StudyMaterialList({
             {emptyT("uploadMaterial")}
           </Button>
         )}
-        {isUploadOpen && (
-          <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
-            <div
-              className="absolute inset-0 bg-black/50 backdrop-blur-xs"
-              onClick={() => setIsUploadOpen(false)}
-            />
-            <div className="relative bg-surface shadow-2xl p-6 border border-outline rounded-2xl w-full max-w-xl">
-              <div className="flex justify-between items-center mb-4 pb-3 border-b border-outline/60">
-                <h3 className="font-bold text-content-primary text-base">
-                  {t("materialUpload.title")}
-                </h3>
-                <button
-                  type="button"
-                  onClick={() => setIsUploadOpen(false)}
-                  className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-              <StudyMaterialUpload
-                subjectId={subjectId}
-                compact
-                onSuccess={() => setIsUploadOpen(false)}
-              />
-            </div>
-          </div>
-        )}
+        <UploadModal
+          isOpen={isUploadOpen}
+          onClose={() => setIsUploadOpen(false)}
+          subjectId={subjectId}
+          title={t("materialUpload.title")}
+        />
       </div>
     );
   }
@@ -250,33 +288,12 @@ export default function StudyMaterialList({
         })}
       </ul>
 
-      {isUploadOpen && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
-          <div
-            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
-            onClick={() => setIsUploadOpen(false)}
-          />
-          <div className="relative bg-surface shadow-2xl p-6 border border-outline rounded-2xl w-full max-w-xl">
-            <div className="flex justify-between items-center mb-4 pb-3 border-b border-outline/60">
-              <h3 className="font-bold text-content-primary text-base">
-                {t("materialUpload.title")}
-              </h3>
-              <button
-                type="button"
-                onClick={() => setIsUploadOpen(false)}
-                className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <StudyMaterialUpload
-              subjectId={subjectId}
-              compact
-              onSuccess={() => setIsUploadOpen(false)}
-            />
-          </div>
-        </div>
-      )}
+      <UploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        subjectId={subjectId}
+        title={t("materialUpload.title")}
+      />
     </div>
   );
 }

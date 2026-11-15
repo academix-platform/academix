@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
+import { createPortal } from "react-dom";
 import Image from "next/image";
 import {
   Settings,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { saveSubjectPageSettings } from "@/lib/actions/subjectPageSettings.actions";
 import { useTranslations } from "next-intl";
+import { useMounted } from "@/hooks/useMounted";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type Section = "assignments" | "exams" | "materials";
@@ -57,7 +59,22 @@ export default function SubjectPageEditor({
 }: Props) {
   const t = useTranslations("subjectDetails.editor");
   const [open, setOpen] = useState(false);
+  const mounted = useMounted();
   const [isPending, startTransition] = useTransition();
+
+  useEffect(() => {
+    if (!open) return;
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open]);
 
   // Form state
   const [announcement, setAnnouncement] = useState(
@@ -150,29 +167,33 @@ export default function SubjectPageEditor({
       </button>
 
       {/* Overlay */}
-      {open && (
-        <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
-          {/* Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-            onClick={() => setOpen(false)}
-          />
+      {open &&
+        mounted &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div className="z-[100] fixed inset-0 flex justify-center items-center p-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50 backdrop-blur-xs animate-in fade-in-0 duration-200"
+              onClick={() => setOpen(false)}
+            />
 
-          {/* Panel */}
-          <div className="relative bg-white shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
-              <h2 className="flex items-center gap-2 font-semibold text-gray-800 text-base">
-                <Settings className="w-4 h-4 text-purple-600" />
-                {t("title")}
-              </h2>
-              <button
-                onClick={() => setOpen(false)}
-                className="hover:bg-gray-100 p-1.5 rounded-lg text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
+            {/* Panel */}
+            <div className="relative bg-surface border border-outline shadow-2xl rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200">
+              {/* Header */}
+              <div className="flex justify-between items-center px-6 py-4 border-outline/60 border-b">
+                <h2 className="flex items-center gap-2 font-bold text-content-primary text-base">
+                  <Settings className="w-4 h-4 text-brandPurple-600 dark:text-brandPurple-400" />
+                  {t("title")}
+                </h2>
+                <button
+                  type="button"
+                  onClick={() => setOpen(false)}
+                  className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
 
             <div className="space-y-6 p-6">
               {/* Banner Image */}
@@ -317,7 +338,8 @@ export default function SubjectPageEditor({
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
