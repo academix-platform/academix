@@ -31,7 +31,7 @@ export default async function UnauthorizedPage() {
       </header>
 
       {/* Main card */}
-      <div className="z-10 relative shadow-xl p-8 sm:p-10 border border-outline bg-surface rounded-2xl md:rounded-3xl w-full max-w-lg text-center my-auto">
+      <div className="z-10 relative shadow-xl p-8 sm:p-10 border border-outline bg-surface rounded-2xl md:rounded-3xl w-full max-w-lg text-center mx-auto my-auto">
         <div className="flex items-center justify-center gap-2.5 mb-6">
           <Image
             src="/logo-purple.png"

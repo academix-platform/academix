@@ -59,7 +59,7 @@ const Announcements = async () => {
       </div>
 
       {data.length === 0 ? (
-        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-outline/80 bg-surface-muted/20">
+        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-outline/80 bg-surface-muted/20 w-full mx-auto">
           <Megaphone className="w-6 h-6 text-content-subtle mb-1.5" />
           <p className="text-xs font-medium text-content-muted">
             {emptyT("announcements")}

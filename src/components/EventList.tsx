@@ -39,7 +39,7 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
 
   if (data.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-outline/80 bg-surface-muted/20">
+      <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-outline/80 bg-surface-muted/20 w-full mx-auto">
         <CalendarIcon className="w-6 h-6 text-content-subtle mb-1.5" />
         <p className="text-xs font-medium text-content-muted">
           {t("noEventsForDay")}

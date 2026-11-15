@@ -107,9 +107,9 @@ const AttendanceChartContainer = async () => {
       </div>
 
       {/* Main Content: Chart OR Rich Actionable Empty State */}
-      <div className="w-full flex-1 min-h-[350px] flex flex-col justify-center">
+      <div className="w-full flex-1 min-h-[350px] flex flex-col items-center justify-center">
         {totalRecords === 0 ? (
-          <div className="flex flex-col items-center justify-center text-center p-8 my-auto w-full max-w-md rounded-2xl border border-dashed border-outline/90 bg-surface-muted/30">
+          <div className="flex flex-col items-center justify-center text-center p-8 mx-auto my-auto w-full max-w-md rounded-2xl border border-dashed border-outline/90 bg-surface-muted/30">
             <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brandPurple-50 dark:bg-brandPurple-950/40 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100 dark:border-brandPurple-900/50 mb-3.5 shadow-2xs">
               <ClipboardCheck className="w-7 h-7" />
             </div>
