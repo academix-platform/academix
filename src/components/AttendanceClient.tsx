@@ -1699,7 +1699,7 @@ export default function AttendanceClient({
                   title={t("previousWeek")}
                 >
                   <ChevronLeft className="w-3.5 h-3.5 rtl:rotate-180" />
-                  <span className="hidden min-[400px]:inline">Prev</span>
+                  <span className="hidden min-[400px]:inline">{t("prev")}</span>
                 </Button>
                 <Button
                   type="button"
@@ -1718,7 +1718,7 @@ export default function AttendanceClient({
                   className="w-full text-[11px] font-semibold h-8 px-1"
                   title={t("nextWeek")}
                 >
-                  <span className="hidden min-[400px]:inline">Next</span>
+                  <span className="hidden min-[400px]:inline">{t("next")}</span>
                   <ChevronRight className="w-3.5 h-3.5 rtl:rotate-180" />
                 </Button>
               </div>

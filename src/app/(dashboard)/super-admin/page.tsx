@@ -17,9 +17,9 @@ const statusPillClass: Record<SchoolStatus, string> = {
   PAUSED: "bg-red-100 text-red-800",
 };
 
-const StatusPill = ({ status }: { status: SchoolStatus }) => (
+const StatusPill = ({ status, label }: { status: SchoolStatus; label: string }) => (
   <span className={`px-2 py-1 rounded-full text-xs ${statusPillClass[status]}`}>
-    {status}
+    {label}
   </span>
 );
 
@@ -31,6 +31,13 @@ const SuperAdminPage = async ({
   const pagesT = await getTranslations("sidebar.items");
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
+  const filtersT = await getTranslations("filters");
+
+  const getStatusLabel = (s: SchoolStatus) => {
+    if (s === "PENDING") return filtersT("pending");
+    if (s === "ACTIVE") return filtersT("active");
+    return filtersT("paused");
+  };
   await enforceRouteAccess("/super-admin");
   const resolved = await searchParams;
   const page = Number.parseInt(getQueryParam(resolved.page) ?? "1", 10) || 1;
@@ -101,7 +108,7 @@ const SuperAdminPage = async ({
                     {th("adminUsername")}: {school.admins[0]?.username ?? "-"}
                   </p>
                 </div>
-                <StatusPill status={school.status} />
+                <StatusPill status={school.status} label={getStatusLabel(school.status)} />
               </div>
 
               {school.pauseReason && (
@@ -147,7 +154,7 @@ const SuperAdminPage = async ({
               <td className="p-4 font-medium">{school.name}</td>
               <td>{school.admins[0]?.username ?? "-"}</td>
               <td>
-                <StatusPill status={school.status} />
+                <StatusPill status={school.status} label={getStatusLabel(school.status)} />
               </td>
               <td className="hidden lg:table-cell">
                 {school.pauseReason ?? "-"}

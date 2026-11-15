@@ -5,6 +5,7 @@ import { extendTime } from "@/lib/actions/examWorkflow.actions";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { Clock, X, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 const QUICK_OPTIONS = [5, 10, 15, 30];
 
@@ -15,6 +16,7 @@ export default function ExtendTimeButton({
   submissionId: number;
   studentName: string;
 }) {
+  const t = useTranslations("examSubmissions.extendTimeModal");
   const [open, setOpen] = useState(false);
   const [minutes, setMinutes] = useState(5);
   const [isPending, startTransition] = useTransition();
@@ -22,7 +24,7 @@ export default function ExtendTimeButton({
 
   const handleExtend = () => {
     if (minutes < 1) {
-      toast.error("Please enter at least 1 minute.");
+      toast.error(t("toastMin"));
       return;
     }
 
@@ -34,10 +36,10 @@ export default function ExtendTimeButton({
 
       if (res.error) {
         toast.error(
-          ("message" in res ? res.message : null) ?? "Failed to extend time."
+          ("message" in res ? res.message : null) ?? t("toastFailed")
         );
       } else {
-        toast.success(`Added ${minutes} minute(s) for ${studentName}.`);
+        toast.success(t("toastSuccess", { minutes, studentName }));
         setOpen(false);
         router.refresh();
       }
@@ -48,7 +50,8 @@ export default function ExtendTimeButton({
     <>
       <button
         onClick={() => setOpen(true)}
-        title="Extend time"
+        title={t("buttonTooltip")}
+        aria-label={t("buttonTooltip")}
         className="flex h-7 w-7 items-center justify-center rounded-md border border-yellow-300 bg-yellow-50 text-yellow-600 transition hover:bg-yellow-100"
       >
         <Clock className="h-3.5 w-3.5" />
@@ -65,7 +68,7 @@ export default function ExtendTimeButton({
                 </div>
                 <div>
                   <p className="text-xs font-medium uppercase text-gray-400">
-                    Extend Time
+                    {t("title")}
                   </p>
                   <h2 className="text-sm font-semibold text-gray-900">
                     {studentName}
@@ -94,13 +97,13 @@ export default function ExtendTimeButton({
                         : "border-gray-200 bg-white text-gray-600 hover:bg-gray-50"
                     }`}
                   >
-                    {opt} min
+                    {t("min", { minutes: opt })}
                   </button>
                 ))}
               </div>
 
               <div className="flex items-center gap-2">
-                <label className="text-sm text-gray-500">Custom:</label>
+                <label className="text-sm text-gray-500">{t("custom")}</label>
                 <input
                   type="number"
                   min={1}
@@ -109,7 +112,7 @@ export default function ExtendTimeButton({
                   onChange={(e) => setMinutes(parseInt(e.target.value) || 1)}
                   className="h-9 w-20 rounded-md border border-gray-200 px-2 text-center text-sm outline-none focus:border-academixPurpleDark"
                 />
-                <span className="text-sm text-gray-400">minutes</span>
+                <span className="text-sm text-gray-400">{t("minutes")}</span>
               </div>
             </div>
 
@@ -120,7 +123,7 @@ export default function ExtendTimeButton({
                 disabled={isPending}
                 className="rounded-md border border-gray-200 px-4 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50"
               >
-                Cancel
+                {t("cancel")}
               </button>
               <button
                 onClick={handleExtend}
@@ -128,7 +131,7 @@ export default function ExtendTimeButton({
                 className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-4 py-2 text-sm font-medium text-white transition hover:brightness-90 disabled:opacity-60"
               >
                 {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-                {isPending ? "Extending..." : `Add ${minutes} min`}
+                {isPending ? t("extending") : t("addMinutes", { minutes })}
               </button>
             </div>
           </div>
