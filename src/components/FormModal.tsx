@@ -11,7 +11,7 @@ import {
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { toast } from "react-toastify";
-import { useFormStatus } from "react-dom";
+import { createPortal, useFormStatus } from "react-dom";
 import {
   deleteAnnouncement,
   deleteClass,
@@ -32,6 +32,7 @@ import AssignmentForm from "./forms/AssignmentForm";
 import ClassDeleteForm from "./forms/ClassDeleteForm";
 import { useLocale, useTranslations } from "next-intl";
 import { localizeValidationError } from "@/lib/validationLocalization";
+import { useMounted } from "@/hooks/useMounted";
 
 const DynamicFormLoading = () => {
   const t = useTranslations("states");
@@ -327,9 +328,13 @@ const FormModal = ({
 }: FormContainerProps & { relatedData?: any }) => {
   const t = useTranslations("actions");
   const [open, setOpen] = useState(false);
+  const mounted = useMounted();
 
   useEffect(() => {
     if (!open) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -338,7 +343,10 @@ const FormModal = ({
     };
 
     document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", onKeyDown);
+    };
   }, [open]);
 
   const buttonTypeStyles = {
@@ -349,6 +357,45 @@ const FormModal = ({
     delete:
       "bg-rose-50 hover:bg-rose-100 text-rose-600 dark:bg-rose-950/40 dark:hover:bg-rose-900/60 dark:text-rose-400 border border-rose-200 dark:border-rose-800",
   };
+
+  const modal =
+    open && mounted && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="z-[100] fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-0 duration-200"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget) {
+                setOpen(false);
+              }
+            }}
+          >
+            <div
+              className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200"
+              role="dialog"
+              aria-modal="true"
+              onMouseDown={(event) => event.stopPropagation()}
+            >
+              <ModalBody
+                table={table}
+                type={type}
+                data={data}
+                id={id}
+                relatedData={relatedData}
+                setOpen={setOpen}
+              />
+              <button
+                type="button"
+                aria-label="Close dialog"
+                className="top-5 absolute hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition end-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+                onClick={() => setOpen(false)}
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )
+      : null;
 
   return (
     <>
@@ -364,40 +411,7 @@ const FormModal = ({
           return <ActionIcon className="w-4 h-4" />;
         })()}
       </button>
-      {open && (
-        <div
-          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in-0 duration-200"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setOpen(false);
-            }
-          }}
-        >
-          <div
-            className="relative bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 p-6 rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in-95 duration-200"
-            role="dialog"
-            aria-modal="true"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <ModalBody
-              table={table}
-              type={type}
-              data={data}
-              id={id}
-              relatedData={relatedData}
-              setOpen={setOpen}
-            />
-            <button
-              type="button"
-              aria-label="Close dialog"
-              className="top-5 absolute hover:bg-slate-100 dark:hover:bg-slate-800 p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition end-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
-              onClick={() => setOpen(false)}
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
+      {modal}
     </>
   );
 };
