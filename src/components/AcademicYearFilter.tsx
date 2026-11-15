@@ -3,15 +3,18 @@
 import type { AcademicYearItem } from "@/lib/academicYears";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Select } from "@/components/ui/select";
 
 type AcademicYearFilterProps = {
   academicYears: Pick<AcademicYearItem, "id" | "name">[];
   currentAcademicYearId: number;
+  className?: string;
 };
 
 const AcademicYearFilter = ({
   academicYears,
   currentAcademicYearId,
+  className,
 }: AcademicYearFilterProps) => {
   const t = useTranslations("filters");
   const pathname = usePathname();
@@ -29,10 +32,10 @@ const AcademicYearFilter = ({
   };
 
   return (
-    <select
+    <Select
       value={selectedAcademicYearId}
       onChange={(event) => handleChange(event.target.value)}
-      className="h-10 rounded-md border px-3 text-sm"
+      containerClassName={className || "w-full sm:w-44"}
       aria-label={t("academicYear")}
     >
       {academicYears.map((year) => (
@@ -40,7 +43,7 @@ const AcademicYearFilter = ({
           {year.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 };
 

@@ -1,6 +1,11 @@
+import * as React from "react";
 import { FieldError } from "react-hook-form";
+import { useLocale } from "next-intl";
+import { Label, ErrorMessage } from "@/components/ui/form-field";
+import { Input } from "@/components/ui/input";
+import { localizeValidationError } from "@/lib/validationLocalization";
 
-type InputFieldProps = {
+export type InputFieldProps = {
   label: string;
   type?: string;
   register: any;
@@ -19,24 +24,32 @@ const InputField = ({
   error,
   inputProps,
 }: InputFieldProps) => {
+  const locale = useLocale();
+  const inputId = inputProps?.id || `input-${name}`;
+  const errorId = `${inputId}-error`;
+  const isRequired = inputProps?.required;
+
   return (
-    <div className="flex flex-col gap-2 w-full">
-      <label className="font-medium text-gray-700 text-sm">{label}</label>
-      <input
+    <div className="flex flex-col gap-1.5 w-full">
+      <Label htmlFor={inputId} required={isRequired}>
+        {label}
+      </Label>
+      <Input
+        id={inputId}
         type={type}
-        {...register(name)}
-        className="focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all placeholder-gray-400"
-        {...inputProps}
+        error={Boolean(error)}
+        aria-describedby={error?.message ? errorId : undefined}
         defaultValue={defaultValue}
+        {...register(name)}
+        {...inputProps}
       />
       {error?.message && (
-        <p className="font-medium text-red-500 text-xs">
-          {error.message.toString()}
-        </p>
+        <ErrorMessage id={errorId}>
+          {localizeValidationError(error.message.toString(), locale)}
+        </ErrorMessage>
       )}
     </div>
   );
 };
 
 export default InputField;
-

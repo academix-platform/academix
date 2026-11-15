@@ -1,19 +1,31 @@
 import prisma from "@/lib/prisma";
-import BigCalendar from "./BigCalender";
-import { adjustScheduleToCurrentWeek } from "@/lib/utils";
+import AcademicSchedule from "./Schedule/AcademicSchedule";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { requireAuth } from "@/lib/auth";
+import { getLocale } from "next-intl/server";
+import {
+  type TimetableItem,
+  parseSlotFromLesson,
+  sanitizeSubjectName,
+  getSubjectCategory,
+} from "@/lib/scheduleUtils";
+import type { SchoolWeekDay } from "@/lib/schoolCalendar";
 
 const BigCalendarContainer = async ({
   type,
   id,
+  childName,
+  className = "",
 }: {
   type: "teacherId" | "classId";
   id: string | number;
+  childName?: string;
+  className?: string;
 }) => {
   const user = await requireAuth();
+  const locale = await getLocale();
 
   const schoolSettings = await getSchoolScheduleSettings(user.schoolId);
   const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
@@ -70,27 +82,39 @@ const BigCalendarContainer = async ({
     return !normalized || normalized === "no subject" || normalized === "free";
   };
 
-  const data = dataRes
+  const items: TimetableItem[] = dataRes
     .filter((lesson) => !isPlaceholderSubject(lesson.subject?.name))
-    .map((lesson) => ({
-      title:
-        user.role === "teacher"
-          ? (lesson.class?.name ?? lesson.subject.name)
-          : user.role === "student"
-            ? lesson.subject.name
-            : `${lesson.subject.name}/${lesson.teacher.name}`,
-      lessonName: lesson.name,
-      day: lesson.day,
-      start: lesson.startTime,
-      end: lesson.endTime,
-    }));
+    .map((lesson) => {
+      const slot = parseSlotFromLesson(lesson.name, lesson.startTime, schoolSettings);
+      const rawSubject = lesson.subject?.name ?? "";
+      const subjectName = sanitizeSubjectName(rawSubject, locale);
+      const category = getSubjectCategory(rawSubject);
 
-  const schedule = adjustScheduleToCurrentWeek(data, schoolSettings.workingDays);
+      return {
+        id: lesson.id,
+        slot,
+        day: lesson.day as SchoolWeekDay,
+        rawSubject,
+        subjectName,
+        className: lesson.class?.name ?? "",
+        teacherName: lesson.teacher?.name ?? "",
+        category,
+        startTimeStr: "",
+        endTimeStr: "",
+      };
+    });
+
+  const userRole = (user.role as "teacher" | "student" | "parent") || "student";
 
   return (
-    <div className="h-[560px] overflow-x-auto text-left" dir="ltr">
-      <BigCalendar data={schedule} settings={schoolSettings} />
-    </div>
+    <AcademicSchedule
+      items={items}
+      settings={schoolSettings}
+      role={userRole}
+      locale={locale}
+      childName={childName}
+      className={className}
+    />
   );
 };
 

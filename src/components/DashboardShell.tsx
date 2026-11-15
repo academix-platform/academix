@@ -7,7 +7,7 @@ import { X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 
 type DashboardShellProps = {
@@ -25,51 +25,83 @@ const DashboardShell = ({
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isMenuCollapsed, setIsMenuCollapsed] = useState(false);
 
-  const closeMenu = () => setIsMenuOpen(false);
+  const closeMenu = useCallback((restoreFocus = false) => {
+    setIsMenuOpen(false);
+    if (restoreFocus) {
+      const trigger = document.getElementById("mobile-menu-trigger");
+      trigger?.focus();
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isMenuOpen) return;
+
+    // Lock body scroll while mobile drawer is open
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeMenu(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen, closeMenu]);
 
   return (
-    <div className="flex bg-academixPurpleLight h-screen overflow-hidden">
+    <div className="flex bg-canvas h-screen overflow-hidden text-content-primary">
+      {/* Mobile Drawer Backdrop */}
       {isMenuOpen && (
-        <button
-          type="button"
-          aria-label="Close menu backdrop"
-          className="lg:hidden z-40 fixed inset-0 bg-black/35"
-          onClick={closeMenu}
+        <div
+          role="presentation"
+          aria-hidden="true"
+          className="lg:hidden fixed inset-0 z-40 bg-black/40 backdrop-blur-xs transition-opacity"
+          onClick={() => closeMenu(true)}
         />
       )}
 
+      {/* Primary Sidebar (Light Neutral Surface with Clean Border) */}
       <aside
-        className={`academix-menu-scroll fixed inset-y-0 start-0 z-50 bg-academixPurpleLight p-4 w-64 overflow-auto transition-all duration-300 lg:static lg:translate-x-0 ${
-          isMenuCollapsed ? "lg:w-[76px]" : "lg:w-[16%] xl:w-[14%]"
+        id="mobile-sidebar-drawer"
+        role={isMenuOpen ? "dialog" : undefined}
+        aria-modal={isMenuOpen ? "true" : undefined}
+        aria-label={t("brand")}
+        className={`fixed inset-y-0 start-0 z-50 flex flex-col bg-surface border-e border-outline transition-all duration-300 lg:static lg:translate-x-0 ${
+          isMenuCollapsed ? "lg:w-[72px]" : "lg:w-52 xl:w-56"
         } ${
           isMenuOpen
-            ? "translate-x-0"
-            : "-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0"
+            ? "translate-x-0 w-64 shadow-2xl"
+            : "-translate-x-full rtl:translate-x-full lg:translate-x-0 lg:rtl:translate-x-0 w-64"
         }`}
       >
+        {/* Sidebar Brand Header */}
         <div
-          className={`flex relative items-center gap-3 ${
+          className={`h-16 flex items-center px-4 border-b border-outline/70 shrink-0 ${
             isMenuCollapsed ? "lg:justify-center" : "justify-between"
           }`}
         >
           <Link
             href="/"
-            onClick={closeMenu}
-            className={`flex justify-center lg:justify-start items-center gap-1 ${
-              isMenuCollapsed ? "mb-4" : ""
-            }`}
+            onClick={() => closeMenu(false)}
+            className="inline-flex items-center gap-2.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500 rounded-lg p-1"
           >
             <Image
               src="/logo-purple.png"
-              alt="logo"
-              className="w-[32px] h-[32px] rotate-[-15deg]"
+              alt="Academix logo"
+              className="w-8 h-7 object-contain rotate-[-12deg]"
               width={32}
-              height={32}
-              style={{ height: "auto" }}
+              height={28}
             />
             <span
-              className={`font-bold text-academixPurpleDark transition-opacity ${
-                isMenuCollapsed ? "lg:hidden" : ""
+              className={`font-bold text-content-primary text-lg tracking-tight ${
+                isMenuCollapsed ? "lg:hidden" : "block"
               }`}
             >
               {t("brand")}
@@ -79,29 +111,39 @@ const DashboardShell = ({
           <button
             type="button"
             aria-label="Close menu"
-            onClick={closeMenu}
-            className="lg:hidden -top-1 end-0 absolute flex justify-center items-center hover:bg-academixPurple/35 rounded-md w-8 h-8 text-academixPurpleDark transition"
+            onClick={() => closeMenu(true)}
+            className="lg:hidden p-1.5 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <Menu
-          authUser={authUser}
-          collapsed={isMenuCollapsed}
-          onNavigate={closeMenu}
-        />
+        {/* Scrollable Navigation Menu */}
+        <div className="flex-1 overflow-y-auto px-3 py-3 academix-menu-scroll">
+          <Menu
+            authUser={authUser}
+            collapsed={isMenuCollapsed}
+            onNavigate={() => closeMenu(false)}
+          />
+        </div>
       </aside>
 
-      <div className="flex flex-col flex-1 bg-academixPurpleLight min-w-0">
+      {/* Main Content Column */}
+      <div
+        className="flex flex-col flex-1 bg-canvas min-w-0 overflow-hidden"
+        aria-hidden={isMenuOpen ? "true" : undefined}
+      >
         <Navbar
           authUser={authUser}
           schoolName={schoolName}
           isMenuCollapsed={isMenuCollapsed}
+          isMobileMenuOpen={isMenuOpen}
           onMenuClick={() => setIsMenuOpen(true)}
           onMenuCollapseToggle={() => setIsMenuCollapsed((value) => !value)}
         />
-        <div className="flex-1 overflow-auto">{children}</div>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden min-w-0">
+          {children}
+        </main>
       </div>
     </div>
   );

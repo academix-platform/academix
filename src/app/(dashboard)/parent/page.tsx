@@ -2,20 +2,20 @@ import Announcements from "@/components/Announcements";
 import BigCalendarContainer from "@/components/BigCalendarContainer";
 import EmptyState from "@/components/states/EmptyState";
 import EventCalendarContainer from "@/components/EventCalendarContainer";
-import StudentSelector from "@/components/StudentSelector";
 import { requireAuth } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { GraduationCap } from "lucide-react";
 
 const ParentPage = async ({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) => {
-  const t = await getTranslations("sidebar.items");
-  const th = await getTranslations("tableHeaders");
   const statesT = await getTranslations("states");
+  const schedT = await getTranslations("academicSchedule");
   const params = await searchParams;
   const user = await requireAuth();
 
@@ -39,70 +39,92 @@ const ParentPage = async ({
 
   if (!students.length) {
     return (
-      <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-        <EmptyState
-          title={statesT("noStudentsLinked")}
-          description={statesT("noStudentsLinkedDescription")}
-        />
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto">
+        <div className="bg-surface border border-outline/80 rounded-2xl p-6 shadow-2xs">
+          <EmptyState
+            title={statesT("noStudentsLinked")}
+            description={statesT("noStudentsLinkedDescription")}
+          />
+        </div>
       </div>
     );
   }
 
-  const classOptions = Array.from(
-    new Map(
-      students
-        .filter((student) => student.classId)
-        .map((student) => [
-          student.classId,
-          {
-            id: student.classId!,
-            name: student.class?.name ?? String(student.classId),
-          },
-        ]),
-    ).values(),
-  );
   const requestedClassId = Number.parseInt(
     getQueryParam(params.classId) ?? "",
     10,
   );
-  const selectedClass =
-    classOptions.find((classOption) => classOption.id === requestedClassId) ??
-    classOptions[0];
 
-  const classId = selectedClass?.id;
+  const selectedStudent =
+    students.find((s) => s.classId === requestedClassId) ?? students[0];
+  const classId = selectedStudent.classId;
 
   return (
-    <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
-      {/* LEFT */}
-      <div className="w-full xl:w-2/3">
-        <div className="bg-white p-4 rounded-md h-full">
-          <div className="flex sm:flex-row flex-col sm:justify-between sm:items-center gap-3 mb-4">
-            <h1 className="font-semibold text-xl">{t("schedules")}</h1>
-            {classOptions.length > 1 && (
-              <StudentSelector
-                classes={classOptions}
-                selectedClassId={classId}
-                label={th("class")}
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* PRIMARY COLUMN: TIMETABLE SCHEDULE (8-9 cols on desktop, full width on tablets/laptops < xl) */}
+        <div className="xl:col-span-8 2xl:col-span-9 flex flex-col gap-6 w-full min-w-0">
+          <div className="bg-surface border border-outline/80 rounded-2xl p-3 sm:p-5 shadow-2xs space-y-4">
+            {/* Child Switcher Tabs for Parents with multiple children */}
+            {students.length > 1 && (
+              <div className="flex items-center gap-2.5 flex-wrap pb-3 border-b border-outline/60">
+                <span className="text-xs font-bold text-content-secondary shrink-0">
+                  {schedT("switchChild")}
+                </span>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {students.map((st) => {
+                    const isActive = st.classId === classId;
+                    return (
+                      <Link
+                        key={st.id}
+                        href={`?classId=${st.classId}`}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
+                          isActive
+                            ? "bg-brandPurple-600 text-white shadow-xs"
+                            : "bg-surface-muted text-content-secondary hover:text-content-primary hover:bg-surface-muted/80 border border-outline/70"
+                        }`}
+                      >
+                        <GraduationCap className="w-3.5 h-3.5" />
+                        <span>{st.name}</span>
+                        {st.class?.name && (
+                          <span
+                            className={`text-[10px] px-1.5 py-0.2 rounded-md ${
+                              isActive
+                                ? "bg-white/20 text-white"
+                                : "bg-surface text-content-muted"
+                            }`}
+                          >
+                            {st.class.name}
+                          </span>
+                        )}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {classId ? (
+              <BigCalendarContainer
+                type="classId"
+                id={classId}
+                childName={`${selectedStudent.name} (${selectedStudent.class?.name ?? ""})`}
+              />
+            ) : (
+              <EmptyState
+                title={statesT("noClassAssigned")}
+                description={statesT("selectedStudentNoClass")}
+                className="py-12"
               />
             )}
           </div>
-
-          {classId ? (
-            <BigCalendarContainer type="classId" id={classId} />
-          ) : (
-            <EmptyState
-              title={statesT("noClassAssigned")}
-              description={statesT("selectedStudentNoClass")}
-              className="py-8"
-            />
-          )}
         </div>
-      </div>
 
-      {/* RIGHT */}
-      <div className="flex flex-col justify-between w-full lg:w-1/3">
-        <EventCalendarContainer searchParams={searchParams} />
-        <Announcements />
+        {/* SECONDARY COLUMN: CALENDAR & ANNOUNCEMENTS */}
+        <div className="xl:col-span-4 2xl:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 w-full">
+          <EventCalendarContainer searchParams={searchParams} />
+          <Announcements />
+        </div>
       </div>
     </div>
   );

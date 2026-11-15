@@ -4,6 +4,8 @@ import FormContainer from "@/components/FormContainer";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildTeacherQuery } from "@/lib/query-builders/teacher-query";
@@ -17,6 +19,7 @@ import Link from "next/link";
 import type { PageSearchParams } from "@/lib/pageParams";
 import SubjectFilter from "@/components/SubjectFilter";
 import ClassFilter from "@/components/ClassFilter";
+
 type TeacherList = Teacher & {
   subjects: Subject[];
 };
@@ -52,38 +55,90 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => [
 const renderRow = (item: TeacherList, role: UserRole | null) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="flex items-center gap-4 p-4">
-      <Image
-        src={item.img || "/avatar.png"}
-        alt=""
-        width={40}
-        height={40}
-        className="md:hidden xl:block rounded-full w-10 h-10 object-cover"
-      />
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-        <p className="text-gray-500 text-xs">{item.email}</p>
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-3">
+        <Image
+          src={item.img || "/avatar.png"}
+          alt=""
+          width={40}
+          height={40}
+          className="rounded-full w-10 h-10 object-cover border border-slate-200 dark:border-slate-700 shrink-0"
+        />
+        <div className="flex flex-col gap-0.5 min-w-0">
+          <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">
+            {item.name}
+          </h3>
+          <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+            {item.email || item.username}
+          </p>
+          {/* Mobile-only secondary info: subjects badges & phone */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-1 md:hidden">
+            {item.subjects.slice(0, 2).map((s) => (
+              <Badge
+                key={s.id}
+                variant="primary"
+                size="sm"
+                className="text-[10px] py-0 px-1.5 font-normal"
+              >
+                {s.name}
+              </Badge>
+            ))}
+            {item.subjects.length > 2 && (
+              <span className="text-[10px] text-slate-400">
+                +{item.subjects.length - 2}
+              </span>
+            )}
+            {item.phone && (
+              <span className="text-[11px] text-slate-500 ps-1">
+                {item.phone}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
     </td>
 
-    <td className="hidden md:table-cell">{item.username}</td>
-
-    <td className="hidden md:table-cell">
-      {item.subjects.map((subject) => subject.name).join(", ")}
+    <td className="hidden md:table-cell px-4 py-3 font-mono text-xs text-slate-600 dark:text-slate-400">
+      {item.username}
     </td>
 
-    <td className="hidden md:table-cell">{item.phone}</td>
-    <td className="hidden md:table-cell">{item.address}</td>
+    <td className="hidden md:table-cell px-4 py-3">
+      <div className="flex flex-wrap items-center gap-1">
+        {item.subjects.length > 0 ? (
+          item.subjects.map((subject) => (
+            <Badge
+              key={subject.id}
+              variant="primary"
+              size="sm"
+              className="font-normal"
+            >
+              {subject.name}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
+    </td>
 
-    <td>
-      <div className="flex items-center gap-2">
-        <Link href={`/list/teachers/${item.id}`}>
-          <button className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md w-8 h-8 text-white hover:scale-[1.05] transition">
-            {" "}
-            <Eye className="w-4 h-4" />
-          </button>
+    <td className="hidden lg:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+      {item.phone || "—"}
+    </td>
+
+    <td className="hidden lg:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+      {item.address || "—"}
+    </td>
+
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-1.5">
+        <Link
+          href={`/list/teachers/${item.id}`}
+          aria-label="View teacher details"
+          className="inline-flex justify-center items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs w-8 h-8 text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:border-purple-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+        >
+          <Eye className="w-4 h-4" />
         </Link>
 
         {role === "admin" && (
@@ -124,33 +179,34 @@ const TeacherListPage = async ({
       return value ? [[key, value]] : [];
     }),
   );
-    const subjects = await prisma.subject.findMany({
-  where: {
-    schoolId,
-  },
-  select: {
-    id: true,
-    name: true,
-    gradeId: true,
-  },
-  orderBy: {
-    name: "asc",
-  },
-});
 
-const classes = await prisma.class.findMany({
-  where: {
-    schoolId,
-  },
-  select: {
-    id: true,
-    name: true,
-    gradeId: true,
-  },
-  orderBy: {
-    name: "asc",
-  },
-});
+  const subjects = await prisma.subject.findMany({
+    where: {
+      schoolId,
+    },
+    select: {
+      id: true,
+      name: true,
+      gradeId: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+
+  const classes = await prisma.class.findMany({
+    where: {
+      schoolId,
+    },
+    select: {
+      id: true,
+      name: true,
+      gradeId: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
 
   const [data, count] = await prisma.$transaction([
     prisma.teacher.findMany({
@@ -168,30 +224,32 @@ const classes = await prisma.class.findMany({
   ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allTeachers")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allTeachers")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <>
+              <ExportButton
+                href={`/api/admin/teachers/export?${exportQuery.toString()}`}
+              />
+              <FormContainer table="teacher" type="create" />
+            </>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-         <SubjectFilter subjects={subjects} classes={classes} />
-         <ClassFilter classes={classes} />
-          <TableSearch />
-
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {role === "admin" && (
-              <>
-                <ExportButton
-                  href={`/api/admin/teachers/export?${exportQuery.toString()}`}
-                />
-
-                <FormContainer table="teacher" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          <>
+            <SubjectFilter subjects={subjects} classes={classes} />
+            <ClassFilter classes={classes} />
+          </>
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}

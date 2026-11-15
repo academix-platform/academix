@@ -1,0 +1,341 @@
+@import url("https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap");
+
+/**
+ * Academix Design System — Design Tokens (CSS Custom Properties)
+ * Architecture: Three-Layer Token Structure
+ * 1. Primitive Tokens: Raw hex/hsl values for brand, neutrals, and functional colors.
+ * 2. Semantic Tokens: Purpose-driven tokens for canvas, surfaces, text, borders, and states.
+ * 3. Component Tokens: Direct mappings for buttons, inputs, cards, tables, and dialogs.
+ */
+
+:root {
+  /* =========================================================================
+   * 1. PRIMITIVE TOKENS
+   * ========================================================================= */
+
+  /* Academix Purple / Violet Scale (Brand Identity) */
+  --academix-purple-50: #faf7fd;
+  --academix-purple-100: #f3e8ff;
+  --academix-purple-200: #e9d5ff;
+  --academix-purple-300: #cfceff; /* Signature Brand Tint */
+  --academix-purple-400: #a855f7;
+  --academix-purple-500: #8b5cf6;
+  --academix-purple-600: #7c3aed; /* Signature Primary Interactive */
+  --academix-purple-700: #6d28d9; /* Interactive Hover */
+  --academix-purple-800: #5b21b6; /* Interactive Active */
+  --academix-purple-900: #3b1b76; /* Brand Deep Slate */
+  --academix-purple-950: #24104f; /* Signature Brand Ink / Deep Surface */
+
+  /* Neutral Slate Scale (Readability & Surfaces) */
+  --academix-neutral-0: #ffffff;
+  --academix-neutral-50: #f8fafc;
+  --academix-neutral-100: #f1f5f9;
+  --academix-neutral-200: #e2e8f0;
+  --academix-neutral-300: #cbd5e1;
+  --academix-neutral-400: #94a3b8;
+  --academix-neutral-500: #64748b;
+  --academix-neutral-600: #475569;
+  --academix-neutral-700: #334155;
+  --academix-neutral-800: #1e293b;
+  --academix-neutral-900: #0f172a;
+  --academix-neutral-950: #020617;
+
+  /* Sky / Information Scale */
+  --academix-sky-50: #f0f9ff;
+  --academix-sky-100: #e0f2fe;
+  --academix-sky-200: #bae6fd;
+  --academix-sky-300: #7dd3fc;
+  --academix-sky-500: #0ea5e9;
+  --academix-sky-600: #0284c7;
+  --academix-sky-700: #0369a1;
+
+  /* Emerald / Success Scale */
+  --academix-emerald-50: #ecfdf5;
+  --academix-emerald-100: #d1fae5;
+  --academix-emerald-200: #a7f3d0;
+  --academix-emerald-500: #10b981;
+  --academix-emerald-600: #059669;
+  --academix-emerald-700: #047857;
+
+  /* Amber / Warning Scale */
+  --academix-amber-50: #fffbeb;
+  --academix-amber-100: #fef3c7;
+  --academix-amber-200: #fde68a;
+  --academix-amber-300: #fcd34d;
+  --academix-amber-400: #fbbf24;
+  --academix-amber-500: #f59e0b;
+  --academix-amber-700: #b45309;
+  --academix-amber-800: #92400e;
+
+  /* Rose / Destructive Scale */
+  --academix-rose-50: #fff1f2;
+  --academix-rose-100: #ffe4e6;
+  --academix-rose-200: #fecdd3;
+  --academix-rose-500: #f43f5e;
+  --academix-rose-600: #e11d48;
+  --academix-rose-700: #be123c;
+
+  /* Raw Spacing Units (4px Base Grid) */
+  --space-0-5: 0.125rem; /* 2px */
+  --space-1: 0.25rem; /* 4px */
+  --space-1-5: 0.375rem; /* 6px */
+  --space-2: 0.5rem; /* 8px */
+  --space-2-5: 0.625rem; /* 10px */
+  --space-3: 0.75rem; /* 12px */
+  --space-4: 1rem; /* 16px */
+  --space-5: 1.25rem; /* 20px */
+  --space-6: 1.5rem; /* 24px */
+  --space-8: 2rem; /* 32px */
+  --space-10: 2.5rem; /* 40px */
+  --space-12: 3rem; /* 48px */
+  --space-16: 4rem; /* 64px */
+
+  /* Raw Radius Units */
+  --radius-xs: 0.25rem; /* 4px */
+  --radius-sm: 0.375rem; /* 6px */
+  --radius-md: 0.5rem; /* 8px (Default Controls) */
+  --radius-lg: 0.75rem; /* 12px (Cards & Containers) */
+  --radius-xl: 1rem; /* 16px (Modals & Panels) */
+  --radius-2xl: 1.5rem; /* 24px (Hero / Prominent) */
+  --radius-full: 9999px; /* Pills, Badges & Avatars */
+
+  /* Raw Shadow Scale (Layered Slate Ambient) */
+  --shadow-xs: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+  --shadow-sm:
+    0 1px 3px 0 rgba(15, 23, 42, 0.08), 0 1px 2px -1px rgba(15, 23, 42, 0.04);
+  --shadow-md:
+    0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+  --shadow-lg:
+    0 10px 15px -3px rgba(15, 23, 42, 0.08),
+    0 4px 6px -4px rgba(15, 23, 42, 0.04);
+  --shadow-xl:
+    0 20px 25px -5px rgba(15, 23, 42, 0.1),
+    0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  --shadow-purple: 0 4px 14px 0 rgba(124, 58, 237, 0.28);
+
+  /* =========================================================================
+   * Raw Typography & Font Stacks
+   * Strategy: Web font @import paired with robust local system font fallbacks.
+   * If offline or in air-gapped environments, system fonts immediately render
+   * without layout shift or network blocking.
+   * ========================================================================= */
+  --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-arabic: "Cairo", "IBM Plex Sans Arabic", -apple-system, BlinkMacSystemFont, "Segoe UI", Tahoma, Arial, sans-serif;
+  --font-cairo: "Cairo", var(--font-arabic), sans-serif;
+  --font-ibm-arabic: "IBM Plex Sans Arabic", var(--font-arabic), sans-serif;
+  --font-poppins: "Poppins", var(--font-sans), sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+
+  /* Typography Scales (Font Sizes & Symmetrical Line-Heights) */
+  --text-display-size: clamp(2rem, 3.5vw, 2.75rem);
+  --text-display-lh: 1.2;
+  --text-display-lh-ar: 1.35;
+
+  --text-title-1-size: clamp(1.5rem, 2.5vw, 2rem);
+  --text-title-1-lh: 1.25;
+  --text-title-1-lh-ar: 1.4;
+
+  --text-title-2-size: clamp(1.25rem, 1.8vw, 1.5rem);
+  --text-title-2-lh: 1.3;
+  --text-title-2-lh-ar: 1.45;
+
+  --text-title-3-size: 1.125rem;
+  --text-title-3-lh: 1.4;
+  --text-title-3-lh-ar: 1.5;
+
+  /* Body Text (Default 15px) - Primary prose, general content */
+  --text-body-size: 0.9375rem;
+  --text-body-lh: 1.5;
+  --text-body-lh-ar: 1.65;
+
+  /* Body Small (13px) - Form labels, compact table data, secondary cards (WCAG AA accessible) */
+  --text-body-sm-size: 0.8125rem;
+  --text-body-sm-lh: 1.5;
+  --text-body-sm-lh-ar: 1.65;
+
+  /* Caption (12px) - Auxiliary helper text, badge pills, metadata (Requires min 4.5:1 contrast) */
+  --text-caption-size: 0.75rem;
+  --text-caption-lh: 1.4;
+  --text-caption-lh-ar: 1.55;
+
+  /* Micro (11px) - STRICTLY for micro badges, avatar badges, timestamps; NEVER for labels or core data */
+  --text-micro-size: 0.6875rem;
+  --text-micro-lh: 1.35;
+  --text-micro-lh-ar: 1.5;
+
+  /* =========================================================================
+   * 2. SEMANTIC TOKENS (Light Mode Default)
+   * ========================================================================= */
+
+  /* Canvas & Background Surfaces */
+  --color-canvas-subtle: var(--academix-purple-50);
+  --color-canvas: var(--academix-neutral-50);
+  --color-surface: var(--academix-neutral-0);
+  --color-surface-muted: var(--academix-neutral-100);
+  --color-surface-elevated: var(--academix-neutral-0);
+  --color-surface-sidebar: var(--academix-purple-950);
+  --color-surface-sidebar-hover: var(--academix-purple-900);
+
+  /* Text & Foreground Hierarchy */
+  --color-text-primary: var(--academix-neutral-900);
+  --color-text-secondary: var(--academix-neutral-600);
+  --color-text-muted: var(--academix-neutral-500);
+  --color-text-subtle: var(--academix-neutral-400);
+  --color-text-inverse: var(--academix-neutral-0);
+  --color-text-brand: var(--academix-purple-600);
+  --color-text-brand-dark: var(--academix-purple-950);
+
+  /* Borders & Dividers */
+  --color-border-subtle: var(--academix-neutral-100);
+  --color-border-default: var(--academix-neutral-200);
+  --color-border-strong: var(--academix-neutral-300);
+  --color-border-brand: var(--academix-purple-200);
+  --color-border-focus: var(--academix-purple-600);
+
+  /* Semantic Outline Aliases */
+  --color-outline-subtle: var(--color-border-subtle);
+  --color-outline: var(--color-border-default);
+  --color-outline-strong: var(--color-border-strong);
+  --color-outline-brand: var(--color-border-brand);
+
+  /* Brand Interactive States */
+  --color-primary: var(--academix-purple-600);
+  --color-primary-hover: var(--academix-purple-700);
+  --color-primary-active: var(--academix-purple-800);
+  --color-primary-subtle: var(--academix-purple-100);
+  --color-primary-foreground: var(--academix-neutral-0);
+
+  /* Feedback Semantics */
+  --color-success-bg: var(--academix-emerald-50);
+  --color-success-border: var(--academix-emerald-200);
+  --color-success-text: var(--academix-emerald-700);
+  --color-success-solid: var(--academix-emerald-600);
+
+  --color-warning-bg: var(--academix-amber-50);
+  --color-warning-border: var(--academix-amber-200);
+  --color-warning-text: var(--academix-amber-800);
+  --color-warning-solid: var(--academix-amber-500);
+
+  --color-error-bg: var(--academix-rose-50);
+  --color-error-border: var(--academix-rose-200);
+  --color-error-text: var(--academix-rose-700);
+  --color-error-solid: var(--academix-rose-600);
+
+  --color-info-bg: var(--academix-sky-50);
+  --color-info-border: var(--academix-sky-200);
+  --color-info-text: var(--academix-sky-700);
+  --color-info-solid: var(--academix-sky-600);
+
+  /* Focus Ring */
+  --focus-ring: 0 0 0 3px rgba(124, 58, 237, 0.25);
+
+  /* =========================================================================
+   * 3. COMPONENT TOKENS
+   * ========================================================================= */
+
+  /* Buttons */
+  --btn-primary-bg: var(--color-primary);
+  --btn-primary-hover: var(--color-primary-hover);
+  --btn-primary-active: var(--color-primary-active);
+  --btn-primary-fg: var(--color-primary-foreground);
+
+  --btn-secondary-bg: var(--color-surface);
+  --btn-secondary-border: var(--color-border-default);
+  --btn-secondary-hover: var(--color-surface-muted);
+  --btn-secondary-fg: var(--color-text-primary);
+
+  --btn-ghost-hover: var(--color-primary-subtle);
+  --btn-ghost-fg: var(--color-text-primary);
+
+  --btn-destructive-bg: var(--color-error-solid);
+  --btn-destructive-hover: var(--academix-rose-700);
+  --btn-destructive-fg: var(--color-text-inverse);
+
+  /* Inputs & Form Controls */
+  --input-bg: var(--color-surface);
+  --input-border: var(--color-border-strong);
+  --input-border-hover: var(--color-primary);
+  --input-border-focus: var(--color-primary);
+  --input-fg: var(--color-text-primary);
+  --input-placeholder: var(--color-text-subtle);
+
+  /* Cards */
+  --card-bg: var(--color-surface);
+  --card-border: var(--color-border-default);
+  --card-shadow: var(--shadow-sm);
+
+  /* Tables */
+  --table-header-bg: var(--color-surface-muted);
+  --table-header-fg: var(--color-text-secondary);
+  --table-border: var(--color-border-default);
+  --table-row-hover: var(--academix-purple-50);
+  --table-row-selected: var(--academix-purple-100);
+
+  /* Dialogs / Modals */
+  --modal-backdrop: rgba(15, 23, 42, 0.55);
+  --modal-bg: var(--color-surface-elevated);
+  --modal-border: var(--color-border-default);
+  --modal-shadow: var(--shadow-xl);
+}
+
+/* =========================================================================
+ * 4. THEME EXTENSION (Dark Mode Architectural Foundation)
+ * Ready for toggle integration in Phase 6 / future expansion.
+ * ========================================================================= */
+.dark,
+[data-theme="dark"] {
+  --color-canvas: var(--academix-neutral-950);
+  --color-canvas-subtle: #0d0b18;
+  --color-surface: var(--academix-neutral-900);
+  --color-surface-muted: var(--academix-neutral-800);
+  --color-surface-elevated: #161b2e;
+  --color-surface-sidebar: #0f0723;
+  --color-surface-sidebar-hover: #1a0f3d;
+
+  --color-text-primary: #f8fafc;
+  --color-text-secondary: #cbd5e1;
+  --color-text-muted: #94a3b8;
+  --color-text-subtle: #64748b;
+  --color-text-inverse: var(--academix-neutral-950);
+  --color-text-brand: #a855f7;
+  --color-text-brand-dark: #e9d5ff;
+
+  --color-border-subtle: #1e293b;
+  --color-border-default: #334155;
+  --color-border-strong: #475569;
+  --color-border-brand: #4c1d95;
+
+  --color-outline-subtle: var(--color-border-subtle);
+  --color-outline: var(--color-border-default);
+  --color-outline-strong: var(--color-border-strong);
+  --color-outline-brand: var(--color-border-brand);
+
+  --color-primary: #8b5cf6;
+  --color-primary-hover: #7c3aed;
+  --color-primary-active: #6d28d9;
+  --color-primary-subtle: rgba(124, 58, 237, 0.2);
+  --color-primary-foreground: #ffffff;
+
+  --color-success-bg: rgba(16, 185, 129, 0.15);
+  --color-success-border: rgba(16, 185, 129, 0.3);
+  --color-success-text: #6ee7b7;
+
+  --color-warning-bg: rgba(245, 158, 11, 0.15);
+  --color-warning-border: rgba(245, 158, 11, 0.3);
+  --color-warning-text: #fcd34d;
+
+  --color-error-bg: rgba(239, 68, 68, 0.15);
+  --color-error-border: rgba(239, 68, 68, 0.3);
+  --color-error-text: #fca5a5;
+
+  --color-info-bg: rgba(14, 165, 233, 0.15);
+  --color-info-border: rgba(14, 165, 233, 0.3);
+  --color-info-text: #7dd3fc;
+
+  --input-bg: var(--academix-neutral-900);
+  --input-border: var(--academix-neutral-700);
+  --card-bg: var(--academix-neutral-900);
+  --card-border: var(--academix-neutral-800);
+  --table-header-bg: #141b2d;
+  --table-row-hover: #1e1b38;
+}

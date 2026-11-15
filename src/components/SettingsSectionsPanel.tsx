@@ -8,6 +8,7 @@ import type {
   SchoolDayExceptionItem,
   SchoolScheduleSettings,
 } from "@/lib/schoolSettings";
+import { cn } from "@/lib/utils";
 import { useTranslations } from "next-intl";
 import { useState } from "react";
 
@@ -34,9 +35,9 @@ const SettingsSectionsPanel = ({
   const [activeSection, setActiveSection] = useState<SectionKey>("schedule");
 
   return (
-    <>
-      <nav aria-label="Settings sections" className="mt-6">
-        <ul className="flex flex-wrap gap-2">
+    <div className="space-y-6">
+      <nav aria-label="Settings sections">
+        <ul className="flex flex-wrap gap-2 p-3 sm:p-4 bg-surface border border-outline/80 rounded-2xl shadow-2xs">
           {sections.map((section) => {
             const isActive = activeSection === section.key;
 
@@ -45,11 +46,12 @@ const SettingsSectionsPanel = ({
                 <button
                   type="button"
                   onClick={() => setActiveSection(section.key)}
-                  className={`inline-flex px-3 py-1.5 border rounded-md font-medium text-sm transition-colors ${
+                  className={cn(
+                    "inline-flex items-center justify-center px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs",
                     isActive
-                      ? "bg-academixPurpleLight border-academixPurpleDark text-academixPurpleDark"
-                      : "hover:bg-academixPurpleLight border-gray-200 text-gray-700 hover:text-academixPurpleDark"
-                  }`}
+                      ? "bg-brandPurple-600 text-white shadow-brandPurple-500/20 ring-2 ring-brandPurple-600/30 font-bold"
+                      : "bg-surface border border-outline/80 text-content-secondary hover:text-content-primary hover:bg-surface-muted hover:border-outline"
+                  )}
                   aria-pressed={isActive}
                 >
                   {t(`sections.${section.labelKey}`)}
@@ -61,38 +63,31 @@ const SettingsSectionsPanel = ({
       </nav>
 
       {activeSection === "schedule" ? (
-        <section className="pt-6 max-w-3xl">
-          <h2 className="font-semibold text-lg">{t("sections.scheduleDefaults")}</h2>
-          <p className="mt-2 text-gray-500 text-sm">
-            {t("description")}
-          </p>
-
-          <div className="mt-4">
-            <SchoolSettingsForm initialSettings={settings} />
-          </div>
+        <section className="space-y-4 max-w-3xl">
+          <SchoolSettingsForm initialSettings={settings} />
         </section>
       ) : activeSection === "workingDays" ? (
-        <section className="pt-6 max-w-4xl">
-          <h2 className="font-semibold text-lg">{t("sections.workingDaysHolidays")}</h2>
-          <p className="mt-2 text-gray-500 text-sm">
-            {t("workingDaysDescription")}
-          </p>
-
-          <div className="mt-4">
-            <WorkingDaysHolidaysForm
-              initialWorkingDays={settings.workingDays}
-              exceptions={dayExceptions}
-            />
+        <section className="space-y-4 max-w-4xl">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-bold text-lg text-content-primary tracking-tight">
+              {t("sections.workingDaysHolidays")}
+            </h2>
+            <p className="text-xs sm:text-sm text-content-muted">
+              {t("workingDaysDescription")}
+            </p>
           </div>
+
+          <WorkingDaysHolidaysForm
+            initialWorkingDays={settings.workingDays}
+            exceptions={dayExceptions}
+          />
         </section>
       ) : (
-        <section className="pt-6 max-w-4xl">
-          <div className="mt-4">
-            <AcademicYearForm academicYears={academicYears} />
-          </div>
+        <section className="space-y-4 max-w-4xl">
+          <AcademicYearForm academicYears={academicYears} />
         </section>
       )}
-    </>
+    </div>
   );
 };
 

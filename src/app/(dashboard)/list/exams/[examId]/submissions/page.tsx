@@ -7,7 +7,7 @@ import prisma from "@/lib/prisma";
 import { Class, Submission, Student, SubmissionStatus } from "@prisma/client";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import PublishGradesButton from "./PublishGradesButton";
 
 import ExtendTimeButton from "./ExtendTimeButton";
@@ -53,8 +53,8 @@ const getColumns = (th: (key: string) => string) => [
   { header: th("actions"), accessor: "action", className: "min-w-[110px] p-4" },
 ];
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
@@ -64,6 +64,7 @@ const renderRow = (
   examId: number,
   maxScore: number,
   t: (key: string) => string,
+  locale: string = "en",
 ) => (
   <tr
     key={item.id}
@@ -83,7 +84,7 @@ const renderRow = (
         : "-"}
     </td>
     <td className="hidden p-4 text-start text-gray-500 md:table-cell">
-      {item.submittedAt ? formatDateTime(item.submittedAt) : "-"}
+      {item.submittedAt ? formatDateTime(item.submittedAt, locale) : "-"}
     </td>
     <td className="min-w-[110px] p-4">
       {(item.status === "SUBMITTED" || item.status === "GRADED") && (
@@ -112,6 +113,7 @@ const ExamSubmissionsPage = async ({
   const filtersT = await getTranslations("filters");
   const actionsT = await getTranslations("actions");
   const examSubmissionsT = await getTranslations("examSubmissions");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
   const { examId: examIdStr } = await params;
   const resolvedSearchParams = await searchParams;
@@ -290,7 +292,7 @@ const ExamSubmissionsPage = async ({
           <Table
             columns={getColumns(th)}
             renderRow={(item) =>
-              renderRow(item as SubmissionRow, examId, maxScore, examSubmissionsT)
+              renderRow(item as SubmissionRow, examId, maxScore, examSubmissionsT, locale)
             }
             data={submissions}
             emptyTitle={examSubmissionsT("empty.title")}

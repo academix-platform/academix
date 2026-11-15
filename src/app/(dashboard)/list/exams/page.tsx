@@ -7,7 +7,9 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getTranslations } from "next-intl/server";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
+import { getLocale, getTranslations } from "next-intl/server";
 import TakeExamConfirmation from "@/components/exam/TakeExamConfirmation";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
@@ -17,7 +19,7 @@ import { Class, Exam, Subject, Teacher } from "@prisma/client";
 import { UserRole } from "@/lib/utils";
 import type { PageSearchParams } from "@/lib/pageParams";
 import Link from "next/link";
-import { Pencil } from "lucide-react";
+import { Pencil, Plus, Users } from "lucide-react";
 
 type ExamList = Exam & {
   displayClasses?: string;
@@ -37,8 +39,8 @@ type ExamList = Exam & {
   questions?: { points: number }[];
 };
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -106,7 +108,12 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   return columns;
 };
 
-const renderRow = (item: ExamList, role: UserRole | null) => {
+const renderRow = (
+  item: ExamList,
+  role: UserRole | null,
+  locale: string = "en",
+  actionsT?: (key: string) => string,
+) => {
   const sub = item.studentSubmission;
   const isTimerExpired =
     sub &&
@@ -120,47 +127,81 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
   return (
     <tr
       key={item.id}
-      className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+      className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
     >
-      <td className="p-4">{item.title}</td>
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+            {item.title}
+          </span>
+          {/* Mobile secondary info */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5 md:hidden text-xs text-slate-500 dark:text-slate-400">
+            {item.subject?.name && (
+              <Badge
+                variant="secondary"
+                size="sm"
+                className="text-[10px] py-0 px-1.5 font-normal"
+              >
+                {item.subject.name}
+              </Badge>
+            )}
+            {(item.displayClasses ?? item.class?.name) && (
+              <span className="text-[11px] text-slate-500">
+                {item.displayClasses ?? item.class?.name}
+              </span>
+            )}
+            <span className="text-[11px] text-slate-400">
+              {formatDateTime(item.startTime, locale)}
+            </span>
+          </div>
+        </div>
+      </td>
 
-      <td className="flex items-center gap-4 p-4">
-        {item.subject?.name ?? "-"}
+      <td className="px-4 py-3">
+        {item.subject?.name ? (
+          <Badge variant="secondary" size="sm" className="font-normal">
+            {item.subject.name}
+          </Badge>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
       </td>
 
       {role !== "student" && (
-        <td>{item.displayClasses ?? item.class?.name ?? "-"}</td>
-      )}
-
-      {role !== "teacher" && (
-        <td className="hidden md:table-cell">
-          {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+          {item.displayClasses ?? item.class?.name ?? "—"}
         </td>
       )}
 
-      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-        {formatDateTime(item.startTime)}
+      {role !== "teacher" && (
+        <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+          {item.teacher?.name ?? item.lesson?.teacher.name ?? "—"}
+        </td>
+      )}
+
+      <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
+        {formatDateTime(item.startTime, locale)}
       </td>
 
-      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-        {formatDateTime(item.endTime)}
+      <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
+        {formatDateTime(item.endTime, locale)}
       </td>
 
       {role === "student" && (
-        <td className="py-4 pr-4 text-left">
+        <td className="px-4 py-3">
           {(() => {
             if (!sub) {
               if (hasExamEnded) {
                 return (
-                  <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
+                  <Badge variant="secondary" size="sm">
                     Ended
-                  </span>
+                  </Badge>
                 );
               }
               return (
-                <span className="bg-gray-100 px-2 py-1 rounded-md font-medium text-gray-500 text-xs whitespace-nowrap">
+                <Badge variant="outline" size="sm">
                   Not Started
-                </span>
+                </Badge>
               );
             }
             if (
@@ -168,72 +209,80 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
               (isTimerExpired || hasExamEnded)
             ) {
               return (
-                <span className="bg-red-100 px-2 py-1 rounded-md font-medium text-red-700 text-xs whitespace-nowrap">
+                <Badge variant="destructive" size="sm">
                   Ended
-                </span>
+                </Badge>
               );
             }
-            if (sub.status === "IN_PROGRESS")
+            if (sub.status === "IN_PROGRESS") {
               return (
-                <span className="bg-yellow-100 px-2 py-1 rounded-md font-medium text-yellow-700 text-xs">
+                <Badge variant="warning" size="sm">
                   In Progress
-                </span>
+                </Badge>
               );
-            if (sub.status === "SUBMITTED")
+            }
+            if (sub.status === "SUBMITTED") {
               return (
-                <span className="bg-blue-100 px-2 py-1 rounded-md font-medium text-blue-700 text-xs">
+                <Badge variant="info" size="sm">
                   Submitted
-                </span>
+                </Badge>
               );
-            if (sub.status === "GRADED" && !sub.gradePublished)
+            }
+            if (sub.status === "GRADED" && !sub.gradePublished) {
               return (
-                <span className="bg-orange-100 px-2 py-1 rounded-md font-medium text-orange-700 text-xs">
+                <Badge variant="warning" size="sm">
                   Graded
-                </span>
+                </Badge>
               );
-            if (sub.status === "GRADED" && sub.gradePublished)
+            }
+            if (sub.status === "GRADED" && sub.gradePublished) {
               return (
-                <span className="bg-green-100 px-2 py-1 rounded-md font-medium text-green-700 text-xs">
+                <Badge variant="success" size="sm">
                   Published
-                </span>
+                </Badge>
               );
+            }
+            return null;
           })()}
         </td>
       )}
 
       {role === "student" && (
-        <td className="py-4 pr-4 font-semibold text-academixPurpleDark text-left">
+        <td className="px-4 py-3">
           {item.studentSubmission?.gradePublished &&
           item.studentSubmission.totalScore !== null ? (
-            `${item.studentSubmission.totalScore}/${maxScore}`
+            <Badge variant="primary" size="sm" className="font-bold">
+              {item.studentSubmission.totalScore}/{maxScore}
+            </Badge>
           ) : (
-            <span className="font-normal text-gray-300">—</span>
+            <span className="text-slate-400">—</span>
           )}
         </td>
       )}
 
-      <td>
-        <div className="flex items-center gap-2">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
           {(role === "admin" || role === "teacher") && (
-            <div className="flex items-center gap-2">
+            <>
               <Link
                 href={`/list/exams/create-workflow?examId=${item.id}`}
-                className="flex justify-center items-center bg-academixPurpleDark p-2 rounded-md text-white hover:scale-[1.05] transition"
-                aria-label="Edit exam workflow"
+                className="inline-flex justify-center items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs w-8 h-8 text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:border-purple-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+                aria-label={actionsT ? actionsT("edit") : "Edit"}
+                title={actionsT ? actionsT("edit") : "Edit"}
               >
                 <Pencil className="w-4 h-4" />
               </Link>
               <FormContainer table="exam" type="delete" id={item.id} />
-            </div>
+              <Link
+                href={`/list/exams/${item.id}/submissions`}
+                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors text-xs font-medium"
+              >
+                <Users className="w-3.5 h-3.5" />
+                Submissions
+              </Link>
+            </>
           )}
-          {(role === "admin" || role === "teacher") && (
-            <Link
-              href={`/list/exams/${item.id}/submissions`}
-              className="bg-academixYellow hover:opacity-90 px-3 py-2 rounded-md text-xs hover:scale-[1.05] transition"
-            >
-              Submissions
-            </Link>
-          )}
+
           {role === "student" && !item.studentSubmission && !hasExamEnded && (
             <TakeExamConfirmation
               examId={item.id}
@@ -241,12 +290,13 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
               instructions={item.instructions}
             />
           )}
+
           {role === "student" &&
             item.studentSubmission?.status === "IN_PROGRESS" &&
             !isTimerExpired &&
             !hasExamEnded && (
               <Link href={`/list/exams/${item.id}/take`}>
-                <button className="bg-yellow-500 hover:opacity-90 px-3 py-2 rounded-md font-semibold text-white text-xs transition">
+                <button className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-medium shadow-2xs transition">
                   Continue
                 </button>
               </Link>
@@ -265,6 +315,8 @@ const ExamListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const examT = await getTranslations("examList");
+  const actionsT = await getTranslations("actions");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
 
   const resolvedSearchParams = await searchParams;
@@ -337,6 +389,7 @@ const ExamListPage = async ({
       where: query,
     }),
   ]);
+
   const [classes, grades] =
     role === "admin"
       ? await prisma.$transaction([
@@ -383,6 +436,7 @@ const ExamListPage = async ({
       extraTime: number | null;
     }
   >();
+
   if (role === "student") {
     const examIds = data.map((e) => e.id);
     const studentSubmissions = await prisma.submission.findMany({
@@ -427,44 +481,46 @@ const ExamListPage = async ({
   });
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allExams")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allExams")}
+        count={count}
+        actions={
+          role === "admin" || role === "teacher" ? (
+            <>
+              {role === "admin" && (
+                <ExportButton
+                  href={`/api/admin/exams/export?${exportQuery.toString()}`}
+                />
+              )}
+              <Link
+                href="/list/exams/create-workflow"
+                className="inline-flex items-center gap-1.5 px-3 py-2 text-xs md:text-sm font-medium rounded-xl bg-purple-600 hover:bg-purple-700 text-white shadow-2xs transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+              >
+                <Plus className="w-4 h-4" />
+                {examT("addExam")}
+              </Link>
+            </>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && (
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          role === "admin" ? (
             <>
               <GradeFilter grades={grades} />
               <ClassFilter classes={classes} />
             </>
-          )}
-
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {(role === "admin" || role === "teacher") && (
-              <>
-                {role === "admin" && (
-                  <ExportButton
-                    href={`/api/admin/exams/export?${exportQuery.toString()}`}
-                  />
-                )}
-                <Link
-                  href="/list/exams/create-workflow"
-                  className="bg-academixPurpleDark hover:opacity-90 px-4 py-2 rounded-md font-medium text-white text-sm transition-colors"
-                >
-                  {examT("addExam")}
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+          ) : undefined
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, locale, actionsT)}
         data={dataWithClassDisplay}
         emptyTitle={examT("noExams")}
         emptyDescription={examT("emptyDescription")}

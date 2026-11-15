@@ -1,14 +1,17 @@
-import { getAuthUser, requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import Link from "next/link";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
+import { ArrowUpRight, Megaphone } from "lucide-react";
 
 const Announcements = async () => {
   const t = await getTranslations("pages");
   const widgetsT = await getTranslations("widgets");
+  const emptyT = await getTranslations("emptyStates");
+  const locale = await getLocale();
   const user = await requireAuth();
   const { role, userId, schoolId } = user;
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
@@ -41,51 +44,63 @@ const Announcements = async () => {
   });
 
   return (
-    <div className="bg-white p-4 rounded-md">
-      <div className="flex justify-between items-center">
-        <h1 className="font-semibold text-xl">{t("announcements")}</h1>
+    <div className="bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="font-bold text-base text-content-primary">
+          {t("announcements")}
+        </h2>
         <Link
           href="/list/announcements"
-          className="text-gray-400 text-xs hover:underline transition"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brandPurple-700 hover:text-brandPurple-800 hover:underline transition"
         >
-          {widgetsT("viewAll")}
+          <span>{widgetsT("viewAll")}</span>
+          <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-[-90deg]" />
         </Link>
       </div>
-      <div className="flex flex-col gap-4 mt-4">
-        {data[0] && (
-          <div className="bg-academixSkyLight p-4 rounded-md">
-            <div className="flex justify-between items-center">
-              <h2 className="font-medium">{data[0].title}</h2>
-              <span className="bg-white px-1 py-1 rounded-md text-gray-400 text-xs">
-                {new Intl.DateTimeFormat("en-US").format(data[0].date)}
-              </span>
+
+      {data.length === 0 ? (
+        <div className="flex flex-col items-center justify-center p-6 text-center rounded-xl border border-dashed border-outline/80 bg-surface-muted/20 w-full mx-auto">
+          <Megaphone className="w-6 h-6 text-content-subtle mb-1.5" />
+          <p className="text-xs font-medium text-content-muted">
+            {emptyT("announcements")}
+          </p>
+        </div>
+      ) : (
+        <div className="flex flex-col gap-2.5">
+          {data.map((item) => (
+            <div
+              key={item.id}
+              className="flex items-start gap-3 p-3.5 rounded-xl border border-outline/70 bg-surface-muted/40 hover:bg-surface-muted/80 hover:border-brandPurple-200/80 transition-all group"
+            >
+              {/* Structured Vertical Calendar Date Stamp */}
+              <div className="flex flex-col items-center justify-center w-11 h-12 rounded-xl bg-surface border border-outline/90 shadow-2xs shrink-0 text-center select-none pt-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-brandPurple-700 dark:text-brandPurple-400">
+                  {new Intl.DateTimeFormat(locale, { month: "short" }).format(
+                    item.date,
+                  )}
+                </span>
+                <span className="text-base font-extrabold tabular-nums text-content-primary leading-tight">
+                  {new Intl.DateTimeFormat(locale, { day: "2-digit" }).format(
+                    item.date,
+                  )}
+                </span>
+              </div>
+
+              {/* Announcement Content with Full Bidirectional Isolation */}
+              <div className="flex-1 min-w-0 space-y-1">
+                <h3 className="font-semibold text-xs sm:text-sm text-content-primary truncate">
+                  <bdi dir="auto">{item.title}</bdi>
+                </h3>
+                {item.description && (
+                  <p className="text-xs text-content-secondary line-clamp-2 leading-relaxed">
+                    <bdi dir="auto">{item.description}</bdi>
+                  </p>
+                )}
+              </div>
             </div>
-            <p className="mt-1 text-gray-400 text-sm">{data[0].description}</p>
-          </div>
-        )}
-        {data[1] && (
-          <div className="bg-academixPurpleLight p-4 rounded-md">
-            <div className="flex justify-between items-center">
-              <h2 className="font-medium">{data[1].title}</h2>
-              <span className="bg-white px-1 py-1 rounded-md text-gray-400 text-xs">
-                {new Intl.DateTimeFormat("en-US").format(data[1].date)}
-              </span>
-            </div>
-            <p className="mt-1 text-gray-400 text-sm">{data[1].description}</p>
-          </div>
-        )}
-        {data[2] && (
-          <div className="bg-academixYellowLight p-4 rounded-md">
-            <div className="flex justify-between items-center">
-              <h2 className="font-medium">{data[2].title}</h2>
-              <span className="bg-white px-1 py-1 rounded-md text-gray-400 text-xs">
-                {new Intl.DateTimeFormat("en-US").format(data[2].date)}
-              </span>
-            </div>
-            <p className="mt-1 text-gray-400 text-sm">{data[2].description}</p>
-          </div>
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

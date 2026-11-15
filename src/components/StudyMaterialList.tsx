@@ -18,7 +18,7 @@ import {
   StudyMaterialState,
 } from "@/lib/actions/studyMaterial.actions";
 import StudyMaterialUpload from "@/components/StudyMaterialUpload";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -109,6 +109,7 @@ export default function StudyMaterialList({
 }: Props) {
   const emptyT = useTranslations("emptyStates");
   const t = useTranslations("subjectDetails");
+  const locale = useLocale();
   const [isUploadOpen, setIsUploadOpen] = useState(false);
   const canUpload = role === "teacher" || role === "admin";
 
@@ -227,7 +228,7 @@ export default function StudyMaterialList({
                   <span>{m.teacher.name}</span>
                   <span>·</span>
                   <span>
-                    {new Date(m.createdAt).toLocaleDateString("en-GB", {
+                    {new Date(m.createdAt).toLocaleDateString(locale, {
                       day: "numeric",
                       month: "short",
                       year: "numeric",

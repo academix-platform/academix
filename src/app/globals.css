@@ -1,9 +1,183 @@
+@import "../styles/design-tokens.css";
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
   --academix-ink: #24104f;
+  --font-current: var(--font-sans);
+}
+
+/* =========================================================================
+ * BILINGUAL TYPOGRAPHY ENGINE (PHASE 2)
+ * ========================================================================= */
+
+/* English / LTR Defaults */
+html[dir="ltr"],
+[dir="ltr"] {
+  font-family: var(--font-sans);
+  letter-spacing: -0.011em;
+}
+
+/* Arabic / RTL Defaults */
+html[dir="rtl"],
+[dir="rtl"],
+.font-arabic {
+  font-family: var(--font-arabic);
+  letter-spacing: 0 !important; /* Arabic cursive script must never use letter-spacing */
+}
+
+/* Document Body Base */
+body {
+  color: var(--color-text-primary);
+  background-color: var(--color-canvas);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Arabic Line-Height & Ascender/Descender Harmony (Categorized & Scoped) */
+[dir="rtl"] body {
+  line-height: 1.6;
+}
+
+/* Paragraphs & long-form prose in RTL */
+[dir="rtl"] p,
+[dir="rtl"] article,
+[dir="rtl"] .prose {
+  line-height: var(--text-body-lh-ar); /* 1.65 - Comfortably accommodates Arabic dots & diacritics */
+}
+
+/* Multi-line text input in RTL */
+[dir="rtl"] textarea {
+  line-height: 1.6;
+}
+
+/* Compact Interactive Controls in RTL - Prevents vertical clipping in fixed heights (h-8, h-9, h-10) */
+[dir="rtl"] button,
+[dir="rtl"] input:not([type="checkbox"]):not([type="radio"]),
+[dir="rtl"] select,
+[dir="rtl"] [role="button"],
+[dir="rtl"] .btn {
+  line-height: 1.35;
+}
+
+/* Compact Badges, Tags, Pills, and Table Cells in RTL */
+[dir="rtl"] .badge,
+[dir="rtl"] [class*="rounded-full"],
+[dir="rtl"] table th,
+[dir="rtl"] table td {
+  line-height: 1.4;
+}
+
+/* Semantic Typography Utility Classes */
+.type-display {
+  font-size: var(--text-display-size);
+  line-height: var(--text-display-lh);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+}
+[dir="rtl"] .type-display {
+  line-height: var(--text-display-lh-ar);
+  letter-spacing: 0;
+}
+
+.type-title-1 {
+  font-size: var(--text-title-1-size);
+  line-height: var(--text-title-1-lh);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+[dir="rtl"] .type-title-1 {
+  line-height: var(--text-title-1-lh-ar);
+  letter-spacing: 0;
+}
+
+.type-title-2 {
+  font-size: var(--text-title-2-size);
+  line-height: var(--text-title-2-lh);
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+[dir="rtl"] .type-title-2 {
+  line-height: var(--text-title-2-lh-ar);
+  letter-spacing: 0;
+}
+
+.type-title-3 {
+  font-size: var(--text-title-3-size);
+  line-height: var(--text-title-3-lh);
+  font-weight: 600;
+}
+[dir="rtl"] .type-title-3 {
+  line-height: var(--text-title-3-lh-ar);
+}
+
+.type-body {
+  font-size: var(--text-body-size);
+  line-height: var(--text-body-lh);
+}
+[dir="rtl"] .type-body {
+  line-height: var(--text-body-lh-ar);
+}
+
+.type-body-sm {
+  font-size: var(--text-body-sm-size);
+  line-height: var(--text-body-sm-lh);
+}
+[dir="rtl"] .type-body-sm {
+  line-height: var(--text-body-sm-lh-ar);
+}
+
+.type-caption {
+  font-size: var(--text-caption-size);
+  line-height: var(--text-caption-lh);
+}
+[dir="rtl"] .type-caption {
+  line-height: var(--text-caption-lh-ar);
+}
+
+.type-micro {
+  font-size: var(--text-micro-size);
+  line-height: var(--text-micro-lh);
+}
+[dir="rtl"] .type-micro {
+  line-height: var(--text-micro-lh-ar);
+}
+
+/* Tabular Numerals for Numerical Data & Grades */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv05" 1;
+}
+
+/* =========================================================================
+ * BIDIRECTIONAL ISOLATION UTILITIES (MIXED ARABIC / ENGLISH CONTENT)
+ * ========================================================================= */
+bdi,
+.bidi-isolate {
+  unicode-bidi: isolate;
+}
+
+.bidi-ltr {
+  unicode-bidi: isolate;
+  direction: ltr;
+  display: inline-block;
+  text-align: left;
+}
+
+.bidi-rtl {
+  unicode-bidi: isolate;
+  direction: rtl;
+  display: inline-block;
+  text-align: right;
+}
+
+.bidi-code {
+  unicode-bidi: isolate;
+  direction: ltr;
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 html {
@@ -11,12 +185,12 @@ html {
 }
 
 .academix-menu-scroll {
-  scrollbar-color: #7c3aed transparent;
+  scrollbar-color: var(--color-outline-strong, #cbd5e1) transparent;
   scrollbar-width: thin;
 }
 
 .academix-menu-scroll::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 .academix-menu-scroll::-webkit-scrollbar-track {
@@ -24,29 +198,87 @@ html {
 }
 
 .academix-menu-scroll::-webkit-scrollbar-thumb {
-  background-color: #7c3aed;
-  border: 2px solid transparent;
+  background-color: var(--color-outline-strong, #cbd5e1);
+  border: 1px solid transparent;
   border-radius: 999px;
   background-clip: content-box;
 }
 
 .academix-menu-scroll::-webkit-scrollbar-thumb:hover {
-  background-color: #3b1b76;
+  background-color: var(--color-text-subtle, #94a3b8);
 }
 
 .react-calendar {
   width: 100% !important;
   border: none !important;
-  font-family: "Inter", sans-serif !important;
+  font-family: inherit !important;
+  background: transparent !important;
 }
 
-.react-calendar__navigation__label__labelText {
-  font-weight: 600;
+.react-calendar__navigation {
+  display: flex !important;
+  height: 38px !important;
+  margin-bottom: 0.5rem !important;
 }
 
-.react-calendar__tile--active {
-  background-color: #c3ebfa !important;
-  color: black !important;
+.react-calendar__navigation button {
+  min-width: 32px !important;
+  background: none !important;
+  font-size: 13px !important;
+  font-weight: 600 !important;
+  color: var(--color-text-primary, #0f172a) !important;
+  border-radius: 8px !important;
+  transition: background-color 150ms ease !important;
+}
+
+.react-calendar__navigation button:hover:enabled,
+.react-calendar__navigation button:focus-visible {
+  background-color: var(--color-surface-muted, #f1f5f9) !important;
+}
+
+.react-calendar__month-view__weekdays {
+  text-align: center !important;
+  font-weight: 600 !important;
+  font-size: 0.7rem !important;
+  color: var(--color-text-muted, #64748b) !important;
+  text-transform: uppercase !important;
+  padding-bottom: 0.25rem !important;
+}
+
+.react-calendar__month-view__weekdays abbr {
+  text-decoration: none !important;
+}
+
+.react-calendar__tile {
+  max-width: 100% !important;
+  padding: 0.55rem 0.2rem !important;
+  background: none !important;
+  text-align: center !important;
+  font-size: 0.8125rem !important;
+  border-radius: 8px !important;
+  color: var(--color-text-primary, #0f172a) !important;
+  transition: all 150ms ease !important;
+}
+
+.react-calendar__tile:hover:enabled,
+.react-calendar__tile:focus-visible {
+  background-color: var(--color-surface-muted, #f1f5f9) !important;
+}
+
+.react-calendar__tile--now {
+  font-weight: 700 !important;
+  color: var(--color-brand-purple, #7c3aed) !important;
+  background-color: var(--color-brand-purple-50, #f5f3ff) !important;
+}
+
+.react-calendar__tile--active,
+.react-calendar__tile--active:enabled,
+.react-calendar__tile--active:hover {
+  background-color: var(--color-brand-purple, #7c3aed) !important;
+  color: #ffffff !important;
+  font-weight: 600 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
 }
 
 .rbc-btn-group:first-child {
@@ -113,9 +345,6 @@ html {
 .rbc-event {
   border: none !important;
   color: black !important;
-  /* padding: 10px !important;
-  margin: 10px !important;
-  width: 99% !important; */
 }
 
 .rbc-event:nth-child(1) {

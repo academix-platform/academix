@@ -7,6 +7,7 @@ import {
   PanelLeftOpen,
   PanelRightClose,
   PanelRightOpen,
+  School,
 } from "lucide-react";
 import NotificationBell from "./NotificationBell";
 import { useUser } from "@clerk/nextjs";
@@ -21,6 +22,7 @@ type NavbarProps = {
   authUser: AuthUser | null;
   schoolName: string | null;
   isMenuCollapsed?: boolean;
+  isMobileMenuOpen?: boolean;
   onMenuClick?: () => void;
   onMenuCollapseToggle?: () => void;
 };
@@ -29,6 +31,7 @@ const Navbar = ({
   authUser,
   schoolName,
   isMenuCollapsed = false,
+  isMobileMenuOpen = false,
   onMenuClick,
   onMenuCollapseToggle,
 }: NavbarProps) => {
@@ -37,7 +40,7 @@ const Navbar = ({
   const roleT = useTranslations("roles");
   const { user, isLoaded } = useUser();
   const [messageCount, setMessageCount] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
+  const [, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchMessageCount = async () => {
@@ -67,7 +70,8 @@ const Navbar = ({
     (isLoaded && [user?.firstName, user?.lastName].filter(Boolean).join(" ")) ||
     authUser?.displayName ||
     fallbackName;
-  const imageUrl = authUser?.profileImageUrl || (isLoaded ? user?.imageUrl : undefined);
+  const imageUrl =
+    authUser?.profileImageUrl || (isLoaded ? user?.imageUrl : undefined);
 
   const role =
     (isLoaded &&
@@ -90,75 +94,84 @@ const Navbar = ({
       .join("") || "U";
 
   return (
-    <div className="flex items-center justify-between gap-2 p-3 sm:gap-4 sm:p-4">
-      {/* SEARCH */}
+    <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-outline/80 bg-surface/90 px-3 sm:px-6 backdrop-blur-md">
+      {/* START: Controls & Institutional Identity */}
       <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
         {onMenuClick && (
           <button
+            id="mobile-menu-trigger"
             type="button"
             aria-label={t("openMenu")}
+            aria-expanded={isMobileMenuOpen}
+            aria-controls="mobile-sidebar-drawer"
+            aria-haspopup="dialog"
             onClick={onMenuClick}
-            className="lg:hidden flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/80 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+            className="lg:hidden flex items-center justify-center w-9 h-9 rounded-xl border border-outline bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
           >
-            <Menu className="w-5 h-5" />
+            <Menu className="w-4 h-4" />
           </button>
         )}
+
         {onMenuCollapseToggle && (
           <button
             type="button"
             aria-label={isMenuCollapsed ? t("expandMenu") : t("collapseMenu")}
+            aria-expanded={!isMenuCollapsed}
             onClick={onMenuCollapseToggle}
-            className="hidden lg:flex flex-shrink-0 justify-center items-center bg-academixPurpleDark hover:bg-academixPurpleDark/70 shadow-sm border border-academixPurple/25 rounded-md w-10 h-10 text-white transition"
+            className="hidden lg:flex items-center justify-center w-9 h-9 rounded-xl border border-outline bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
           >
             {isRtl ? (
               isMenuCollapsed ? (
-                <PanelRightOpen className="w-5 h-5" />
+                <PanelRightOpen className="w-4 h-4" />
               ) : (
-                <PanelRightClose className="w-5 h-5" />
+                <PanelRightClose className="w-4 h-4" />
               )
             ) : isMenuCollapsed ? (
-              <PanelLeftOpen className="w-5 h-5" />
+              <PanelLeftOpen className="w-4 h-4" />
             ) : (
-              <PanelLeftClose className="w-5 h-5" />
+              <PanelLeftClose className="w-4 h-4" />
             )}
           </button>
         )}
+
+        {/* Refined Institutional School Badge */}
         {schoolName && authUser?.role !== "superAdmin" && (
-          <div className="ms-0 flex min-w-0 items-center gap-3 rounded-md bg-gradient-to-r from-academixYellow via-academixYellow/50 to-academixYellow/30 px-3 py-2 text-xs sm:ms-2 sm:px-4 sm:py-3">
-            <span className="min-w-0 truncate text-[13px] font-bold uppercase text-academixPurpleDeep sm:text-[16px]">
+          <div className="flex items-center gap-2 rounded-xl border border-outline bg-surface px-3 py-1.5 shadow-2xs min-w-0">
+            <School className="w-4 h-4 text-brandPurple-600 shrink-0" />
+            <span className="truncate text-xs sm:text-sm font-semibold text-content-primary max-w-[140px] sm:max-w-[220px] md:max-w-[320px]">
               {schoolName}
             </span>
           </div>
         )}
       </div>
 
-      {/* RIGHT */}
-      <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-4 lg:gap-6">
-        <div className="flex items-center gap-2 sm:gap-3">
-          <LanguageSwitcher />
+      {/* END: Actions & User Menu */}
+      <div className="flex flex-shrink-0 items-center justify-end gap-2 sm:gap-3 lg:gap-4">
+        <LanguageSwitcher variant="compact" />
 
-          {canViewMessages && (
-            <Link
-              href="/list/messages"
-              aria-label={t("messages")}
-              className="relative w-7 h-7"
-            >
-              <MessageCircle className="w-5 h-5 hover:font-bold text-gray-600 hover:scale-[1.05] transition" />
-              {messageCount > 0 && (
-                <div className="-top-2.5 absolute flex justify-center items-center bg-academixPurpleDark rounded-full w-5 h-5 text-white text-xs -end-1.5">
-                  {messageCount > 99 ? "99+" : messageCount}
-                </div>
-              )}
-            </Link>
-          )}
+        {canViewMessages && (
+          <Link
+            href="/list/messages"
+            aria-label={t("messages")}
+            className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-outline bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
+          >
+            <MessageCircle className="w-4 h-4" />
+            {messageCount > 0 && (
+              <span className="absolute -top-1.5 -end-1.5 flex items-center justify-center bg-brandPurple-600 text-white rounded-full min-w-4 h-4 px-1 text-[10px] font-bold shadow-xs">
+                {messageCount > 99 ? "99+" : messageCount}
+              </span>
+            )}
+          </Link>
+        )}
 
-          {authUser?.role !== "superAdmin" && <NotificationBell />}
-        </div>
+        {authUser?.role !== "superAdmin" && <NotificationBell />}
 
-        {/* USER INFO */}
-        <div className="hidden sm:flex flex-col">
-          <span className="font-medium text-xs leading-3">{fullName}</span>
-          <span className="text-[10px] text-gray-500 text-end">
+        {/* User Info (Desktop) */}
+        <div className="hidden sm:flex flex-col text-end">
+          <span className="font-semibold text-xs leading-4 text-content-primary">
+            {fullName}
+          </span>
+          <span className="text-[11px] text-content-muted">
             {formattedRole}
           </span>
         </div>
@@ -168,9 +181,10 @@ const Navbar = ({
           role={formattedRole}
           initials={initials}
           imageUrl={imageUrl}
+          isAdmin={normalizedRole === "admin"}
         />
       </div>
-    </div>
+    </header>
   );
 };
 

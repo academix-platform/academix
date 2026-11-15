@@ -1,5 +1,8 @@
 import ArchiveFilters from "@/components/ArchiveFilters";
 import ExportButton from "@/components/ExportButton";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { DataPageHeader } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { requireAuth } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getTranslations } from "next-intl/server";
@@ -30,6 +33,7 @@ const ArchivePage = async ({
   const t = await getTranslations("pages");
   const archiveT = await getTranslations("archivePage");
   const th = await getTranslations("tableHeaders");
+  const sidebarT = await getTranslations("sidebar.items");
   const params = await searchParams;
   const user = await requireAuth();
 
@@ -270,15 +274,21 @@ const ArchivePage = async ({
   }
 
   return (
-    <div className="flex flex-col gap-6 p-4 md:p-6">
-      <div>
-        <div className="flex lg:flex-row flex-col lg:justify-between lg:items-center gap-4">
-          <div>
-            <h1 className="font-bold text-gray-800 text-2xl">{t("archive")}</h1>
-          </div>
-        </div>
-      </div>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs
+        items={[
+          { label: sidebarT("archive"), isCurrent: true },
+        ]}
+      />
 
+      {/* Page Header */}
+      <DataPageHeader
+        title={t("archive")}
+        count={rows.length}
+      />
+
+      {/* Filters Card */}
       <ArchiveFilters
         academicYears={academicYears.map((year) => ({
           id: year.id.toString(),
@@ -288,42 +298,57 @@ const ArchivePage = async ({
         selectedYear={selectedYear}
       />
 
-      <div className="bg-white shadow-sm p-6 border border-gray-100 rounded-2xl">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="mb-4 font-semibold text-gray-800 text-lg">
-            {archiveT("previewData")}
-          </h2>
+      {/* Preview Data Card */}
+      <div className="bg-surface rounded-2xl p-5 md:p-6 shadow-2xs border border-outline/80 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-outline/60">
+          <div className="flex items-center gap-2.5">
+            <h2 className="font-bold text-base md:text-lg text-content-primary tracking-tight">
+              {archiveT("previewData")}
+            </h2>
+            <Badge variant="secondary" size="sm">
+              {rows.length}
+            </Badge>
+          </div>
+
           <ExportButton
             href={`/api/export/archive?type=${selectedType}&academicYearId=${selectedYear}`}
           />
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="border-b text-gray-500 text-start">
-                <th className="px-4 py-3">{th("name")}</th>
-                <th className="px-4 py-3">{th("username")}</th>
-                <th className="px-4 py-3">{th("email")}</th>
-                <th className="px-4 py-3">{th("phone")}</th>
+              <tr className="border-b border-outline/70 bg-surface-muted/40 text-content-muted text-start text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-4 py-3 text-start">{th("name")}</th>
+                <th className="px-4 py-3 text-start">{th("username")}</th>
+                <th className="px-4 py-3 text-start">{th("email")}</th>
+                <th className="px-4 py-3 text-start">{th("phone")}</th>
                 {selectedType === "students" && (
-                  <th className="px-4 py-3">{th("finalGrade")}</th>
+                  <th className="px-4 py-3 text-start">{th("finalGrade")}</th>
                 )}
-                <th className="px-4 py-3">{th("statusValue")}</th>
+                <th className="px-4 py-3 text-start">{th("statusValue")}</th>
               </tr>
             </thead>
 
-            <tbody>
-              {rows.slice(0, 5).map((row) => (
-                <tr key={row.id} className="border-b last:border-b-0">
-                  <td className="px-4 py-3 font-medium">{row.name}</td>
-                  <td className="px-4 py-3">{row.username || "-"}</td>
-                  <td className="px-4 py-3">{row.email || "-"}</td>
-                  <td className="px-4 py-3">{row.phone || "-"}</td>
+            <tbody className="divide-y divide-outline/60">
+              {rows.slice(0, 10).map((row) => (
+                <tr key={row.id} className="hover:bg-surface-muted/40 transition-colors">
+                  <td className="px-4 py-3 font-semibold text-content-primary">{row.name}</td>
+                  <td className="px-4 py-3 text-content-secondary">{row.username || "-"}</td>
+                  <td className="px-4 py-3 text-content-secondary">{row.email || "-"}</td>
+                  <td className="px-4 py-3 text-content-secondary" dir="ltr">{row.phone || "-"}</td>
                   {selectedType === "students" && (
-                    <td className="px-4 py-3">{row.finalGrade || "-"}</td>
+                    <td className="px-4 py-3">
+                      {row.finalGrade && row.finalGrade !== "-" ? (
+                        <Badge variant="outline" size="sm" className="font-bold tabular-nums">
+                          {row.finalGrade}
+                        </Badge>
+                      ) : (
+                        "-"
+                      )}
+                    </td>
                   )}
-                  <td className="px-4 py-3">{row.status || "-"}</td>
+                  <td className="px-4 py-3 text-content-secondary">{row.status || "-"}</td>
                 </tr>
               ))}
 
@@ -331,21 +356,16 @@ const ArchivePage = async ({
                 <tr>
                   <td
                     colSpan={selectedType === "students" ? 6 : 5}
-                    className="py-8 text-gray-400 text-center"
+                    className="py-12 text-center"
                   >
-                    {archiveT("noData")}
+                    <p className="text-content-muted font-medium text-sm">
+                      {archiveT("noData")}
+                    </p>
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
-          {rows.length > 5 && (
-            <div className="flex justify-center mt-6">
-              <button className="bg-academixPurple hover:bg-academixPurpleDark px-5 py-2 rounded-xl font-medium text-white text-sm transition">
-                {archiveT("showMore")}
-              </button>
-            </div>
-          )}
         </div>
       </div>
     </div>

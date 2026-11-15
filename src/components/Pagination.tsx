@@ -1,66 +1,228 @@
 "use client";
 
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { ArrowLeftIcon, ArrowRightIcon } from "lucide-react";
-import { useLocale } from "next-intl";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+} from "lucide-react";
+import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
+import { cn } from "@/lib/utils";
+import { useMemo } from "react";
 
-const Pagination = ({ page, count }: { page: number; count: number }) => {
+type PaginationProps = {
+  page: number;
+  count: number;
+  pageSize?: number;
+  pageSizeOptions?: number[];
+  onPageSizeChange?: (pageSize: number) => void;
+  className?: string;
+  onPageChange?: (page: number) => void;
+};
+
+type PageItem = number | "ellipsis-start" | "ellipsis-end";
+
+export default function Pagination({
+  page,
+  count,
+  pageSize = ITEM_PER_PAGE,
+  pageSizeOptions,
+  onPageSizeChange,
+  className = "",
+  onPageChange,
+}: PaginationProps) {
+  const t = useTranslations("common");
   const locale = useLocale();
   const router = useRouter();
   const isRtl = locale === "ar";
-  const PrevIcon = isRtl ? ArrowRightIcon : ArrowLeftIcon;
-  const NextIcon = isRtl ? ArrowLeftIcon : ArrowRightIcon;
+
+  const totalPages = Math.max(1, Math.ceil(count / pageSize));
+  const currentPage = Math.min(Math.max(1, Math.floor(page) || 1), totalPages);
+
+  const hasPrev = currentPage > 1;
+  const hasNext = currentPage < totalPages;
+
+  const from = count === 0 ? 0 : (currentPage - 1) * pageSize + 1;
+  const to = Math.min(currentPage * pageSize, count);
+
+  const pages: PageItem[] = useMemo(() => {
+    if (totalPages <= 7) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+
+    if (currentPage <= 4) {
+      return [1, 2, 3, 4, 5, "ellipsis-end", totalPages];
+    }
+
+    if (currentPage >= totalPages - 3) {
+      return [
+        1,
+        "ellipsis-start",
+        totalPages - 4,
+        totalPages - 3,
+        totalPages - 2,
+        totalPages - 1,
+        totalPages,
+      ];
+    }
+
+    return [
+      1,
+      "ellipsis-start",
+      currentPage - 1,
+      currentPage,
+      currentPage + 1,
+      "ellipsis-end",
+      totalPages,
+    ];
+  }, [totalPages, currentPage]);
 
   if (count === 0) {
     return null;
   }
 
-  const hasPrev = ITEM_PER_PAGE * (page - 1) > 0;
-  const hasNext = ITEM_PER_PAGE * (page - 1) + ITEM_PER_PAGE < count;
-
   const changePage = (newPage: number) => {
+    const clamped = Math.min(Math.max(1, newPage), totalPages);
+    if (onPageChange) {
+      onPageChange(clamped);
+      return;
+    }
     const params = new URLSearchParams(window.location.search);
-    params.set("page", newPage.toString());
-    router.push(`${window.location.pathname}?${params}`);
+    params.set("page", clamped.toString());
+    router.push(`${window.location.pathname}?${params.toString()}`);
   };
 
+  const FirstIcon = isRtl ? ChevronsRight : ChevronsLeft;
+  const PrevIcon = isRtl ? ChevronRight : ChevronLeft;
+  const NextIcon = isRtl ? ChevronLeft : ChevronRight;
+  const LastIcon = isRtl ? ChevronsLeft : ChevronsRight;
+
   return (
-    <div className="flex justify-end items-center gap-2 ms-auto p-4 text-gray-500">
-      <button
-        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
-        onClick={() => changePage(page - 1)}
-        disabled={!hasPrev}
-      >
-        <PrevIcon className="w-5 h-5" />
-      </button>
-      <div className="flex items-center gap-2 text-sm">
-        {Array.from({ length: Math.ceil(count / ITEM_PER_PAGE) }, (_, i) => {
-          const pageIndex = i + 1;
-          return (
-            <button
-              key={pageIndex}
-              className={`py-1.5 px-4 rounded-md ${
-                page === pageIndex
-                  ? "bg-academixPurpleDark text-white"
-                  : "bg-academixPurple hover:bg-academixPurpleDark text-academixPurpleDark hover:text-academixPurple"
-              }`}
-              onClick={() => changePage(pageIndex)}
-            >
-              {pageIndex}
-            </button>
-          );
-        })}
+    <div
+      className={cn(
+        "flex flex-col sm:flex-row items-center justify-between gap-3 w-full p-4 border-t border-slate-200/80 dark:border-slate-800 text-slate-600 dark:text-slate-300",
+        className,
+      )}
+    >
+      {/* Result Count Summary + Optional Page Size Selector */}
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 font-medium select-none">
+          {t("showingResults", { from, to, count })}
+        </p>
+
+        {pageSizeOptions && onPageSizeChange && count > pageSizeOptions[0] && (
+          <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="hidden sm:inline">{isRtl ? "لكل صفحة:" : "per page:"}</span>
+            <div className="inline-flex rounded-lg border border-slate-200 dark:border-slate-700 p-0.5 bg-slate-50 dark:bg-slate-800">
+              {pageSizeOptions.map((opt) => (
+                <button
+                  key={opt}
+                  type="button"
+                  onClick={() => onPageSizeChange(opt)}
+                  className={cn(
+                    "px-2 py-0.5 text-xs rounded-md font-medium transition cursor-pointer",
+                    pageSize === opt
+                      ? "bg-white dark:bg-slate-900 text-purple-600 dark:text-purple-400 font-bold shadow-2xs"
+                      : "text-slate-500 hover:text-slate-900 dark:hover:text-slate-200",
+                  )}
+                >
+                  {opt}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
-      <button
-        className="bg-academixPurple disabled:opacity-50 p-1.5 rounded-md font-semibold text-academixPurpleDark text-xs disabled:cursor-not-allowed"
-        onClick={() => changePage(page + 1)}
-        disabled={!hasNext}
-      >
-        <NextIcon className="w-5 h-5" />
-      </button>
+
+      {/* Pagination Controls */}
+      <div className="flex items-center gap-1 select-none flex-wrap justify-center">
+        {/* First Page Button */}
+        <button
+          type="button"
+          aria-label={t("firstPage")}
+          title={t("firstPage")}
+          className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+          onClick={() => changePage(1)}
+          disabled={!hasPrev}
+        >
+          <FirstIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+
+        {/* Previous Page Button */}
+        <button
+          type="button"
+          aria-label={t("previousPage")}
+          title={t("previousPage")}
+          className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+          onClick={() => changePage(currentPage - 1)}
+          disabled={!hasPrev}
+        >
+          <PrevIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+
+        {/* Sliding Page Numbers & Ellipses */}
+        <div className="flex items-center gap-1 text-xs md:text-sm font-medium">
+          {pages.map((item, index) => {
+            if (item === "ellipsis-start" || item === "ellipsis-end") {
+              return (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="px-1 text-slate-400 dark:text-slate-600 select-none text-xs"
+                >
+                  …
+                </span>
+              );
+            }
+
+            const pageIndex = item;
+            const isCurrent = currentPage === pageIndex;
+
+            return (
+              <button
+                type="button"
+                key={pageIndex}
+                aria-label={t("page", { page: pageIndex })}
+                aria-current={isCurrent ? "page" : undefined}
+                className={cn(
+                  "min-w-[32px] h-8 px-2.5 rounded-lg transition font-semibold tabular-nums text-xs md:text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600",
+                  isCurrent
+                    ? "bg-purple-600 text-white shadow-xs font-bold ring-2 ring-purple-600/20"
+                    : "bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800",
+                )}
+                onClick={() => changePage(pageIndex)}
+              >
+                {pageIndex}
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Next Page Button */}
+        <button
+          type="button"
+          aria-label={t("nextPage")}
+          title={t("nextPage")}
+          className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+          onClick={() => changePage(currentPage + 1)}
+          disabled={!hasNext}
+        >
+          <NextIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+
+        {/* Last Page Button */}
+        <button
+          type="button"
+          aria-label={t("lastPage")}
+          title={t("lastPage")}
+          className="p-1.5 sm:p-2 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+          onClick={() => changePage(totalPages)}
+          disabled={!hasNext}
+        >
+          <LastIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+        </button>
+      </div>
     </div>
   );
-};
-
-export default Pagination;
+}

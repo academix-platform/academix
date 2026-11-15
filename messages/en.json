@@ -2,7 +2,15 @@
   "common": {
     "brand": "ACADEMIX",
     "dashboard": "Dashboard",
-    "search": "Search..."
+    "search": "Search...",
+    "clearSearch": "Clear search",
+    "showingResults": "Showing {from}–{to} of {count} results",
+    "firstPage": "First page",
+    "lastPage": "Last page",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "page": "Page {page}",
+    "copyright": "© 2026 Academix. All rights reserved."
   },
   "states": {
     "loading": "Loading...",
@@ -24,7 +32,8 @@
     "noStudentsLinked": "No students found",
     "noStudentsLinkedDescription": "There are no linked students on this parent account yet.",
     "noClassAssigned": "No class assigned",
-    "selectedStudentNoClass": "The selected student is not assigned to a class yet."
+    "selectedStudentNoClass": "The selected student is not assigned to a class yet.",
+    "backHome": "Back to Home"
   },
   "sidebar": {
     "sections": {
@@ -98,14 +107,52 @@
       "closeMenu": "Close menu"
     },
     "hero": {
-      "badge": "Powered with new AI features",
+      "badge": "Unified School Management System",
       "title": "Welcome to Academix",
       "highlight": "Academix",
       "description": "A modern school management platform designed to streamline academic workflows for administrators, teachers, students, and parents.",
       "signIn": "Sign In",
-      "signUp": "Sign Up"
+      "signUp": "Create Account",
+      "trustItem1": "Full Arabic & English Support",
+      "trustItem2": "4 Dedicated Role Portals",
+      "trustItem3": "Unified Experience",
+      "preview": {
+        "mockUrl": "academix.school/portal",
+        "browserTitle": "Unified School Portal",
+        "schoolName": "Future International School",
+        "badge": "Institutional Dashboard",
+        "metricStudents": "Total Students",
+        "metricStudentsValue": "1,248",
+        "metricStudentsNote": "+8.5% from last month",
+        "metricAttendance": "Attendance Rate",
+        "metricAttendanceValue": "96.8%",
+        "metricAttendanceNote": "+3.2% from last month",
+        "metricTerm": "Academic Term",
+        "metricTermValue": "Fall 2026",
+        "metricTermNote": "12 weeks remaining",
+        "shortcutsTitle": "Quick Shortcuts",
+        "shortcutStudents": "Student Management",
+        "shortcutSchedules": "Class Schedules",
+        "shortcutAttendance": "Mark Attendance",
+        "shortcutExams": "Assessments",
+        "shortcutReports": "Reports",
+        "shortcutMaterials": "Learning Materials",
+        "activityTitle": "Live Academic Activity",
+        "activityBadge": "Live",
+        "activityItem1Title": "Math assignment submitted for Grade 10-A",
+        "activityItem1Detail": "5 minutes ago",
+        "activityItem1Status": "New Task",
+        "activityItem2Title": "Attendance logged for all classrooms",
+        "activityItem2Detail": "12 minutes ago",
+        "activityItem2Status": "Completed",
+        "activityItem3Title": "Physics exam results published for Grade 11",
+        "activityItem3Detail": "25 minutes ago",
+        "activityItem3Status": "Results Ready",
+        "viewAllActivity": "View All Activity"
+      }
     },
     "about": {
+      "badge": "Academix Core",
       "title": "About Academix",
       "description": "Academix connects every part of school administration into one unified system, from enrollment and attendance to assessments, grading, and communication.",
       "highlights": {
@@ -121,11 +168,91 @@
           "title": "Real-Time Insights",
           "description": "Track performance, attendance, and engagement with live dashboards and exports."
         }
-      }
+      },
+      "previewTitle": "Connected School Operations",
+      "previewSubtitle": "All core modules synchronized across administrative and academic workflows.",
+      "previewPill1": "Bilingual Core (RTL/LTR)",
+      "previewPill2": "4 Dedicated Role Portals",
+      "previewPill3": "Integrated Academic Records",
+      "previewPill4": "Fast Data Exports & Analytics"
     },
     "features": {
+      "badge": "Platform Capabilities",
       "title": "Key Features",
       "description": "Everything your institution needs to run smarter every day.",
+      "studentSearchPlaceholder": "Search student by name or academic ID...",
+      "studentActiveBadge": "1,248 Active Students",
+      "studentPreview1Name": "Sarah Al-Shami",
+      "studentPreview1Id": "#STU-2026-084",
+      "studentPreview1Class": "Grade 10 - Section A",
+      "studentPreview1Rate": "98% Attendance",
+      "studentPreview1Gpa": "3.9 / 4.0",
+      "studentPreview2Name": "Omar Al-Najjar",
+      "studentPreview2Id": "#STU-2026-119",
+      "studentPreview2Class": "Grade 11 - Science",
+      "studentPreview2Rate": "96% Attendance",
+      "studentPreview2Gpa": "3.8 / 4.0",
+      "studentViewRecord": "View Record",
+      "studentSyncBadge": "Live Sync",
+      "studentTag1": "Instant Record Sync",
+      "studentTag2": "Direct Parent Link",
+      "studentTag3": "Academic Archiving",
+      "assessmentBadge": "Smart Evaluation Engine",
+      "assessmentSubjectTag": "Science",
+      "assessmentPreviewTitle": "Advanced Physics Exam",
+      "assessmentPreviewStatus": "Graded 94%",
+      "assessmentPreviewRatio": "32 / 34 Submissions",
+      "assessmentAvgScore": "Class Average: 88.5%",
+      "assessmentTrend": "+4.2%",
+      "assessmentRubric1": "15 Multiple Choice Questions (Auto-Graded)",
+      "assessmentRubric2": "4 Applied Analytical Problems",
+      "assessmentNotification": "Instant grade alerts sent to students",
+      "attendanceRate": "96.8%",
+      "attendanceRateNote": "Verified Attendance Rate",
+      "attendanceLiveNote": "Digital Attendance Logs",
+      "attendanceLiveBadge": "Live",
+      "attendanceClassesSummary": "12 of 12 sections logged today",
+      "attendancePresent": "Present: 96.8%",
+      "attendanceExcused": "Excused: 2.4%",
+      "attendanceUnexcused": "Unexcused: 0.8%",
+      "attendanceFeatureTag": "Biometric & Digital Attendance",
+      "courseScheduleBadge": "Today's Active Schedule",
+      "courseTag1": "Class Schedules",
+      "courseTag2": "Teacher Allocations",
+      "courseTag3": "Grade Levels",
+      "courseTime1": "8:30 AM - 9:15 AM",
+      "coursePreview1Title": "Advanced Mathematics",
+      "coursePreview1Teacher": "K. Radwan",
+      "courseRoom1": "Room 101 • Sec A",
+      "courseTime2": "9:20 AM - 10:05 AM",
+      "coursePreview2Title": "Applied Physics",
+      "coursePreview2Teacher": "Dr. T. Mansour",
+      "courseRoom2": "Lab 2 • Sec B",
+      "courseFeatureTag": "Conflict-free intelligent scheduling",
+      "sectionTagA": "Sec A",
+      "sectionTagB": "Sec B",
+      "reportsPreviewTerm": "Overall Academic Average",
+      "reportsPreviewGpa": "92.4%",
+      "reportsTrend": "+3.8% Academic Growth",
+      "reportsPreviewTierA": "Distinction: 44%",
+      "reportsPreviewTierB": "Very Good: 38%",
+      "reportsTierC": "Good: 18%",
+      "reportsExportNote": "Instant Export (Excel / PDF)",
+      "reportsDownloadCta": "Export Report (Excel / PDF)",
+      "reportsSummary": "Full Records",
+      "reportsPreviewStatus": "Official Reports",
+      "learningCloudSync": "Shared Resource Cloud",
+      "learningNote": "Course materials and shared resources",
+      "learningBadge": "Classroom Hub",
+      "learningTag1": "Instant Cloud Sync",
+      "learningTag2": "Multi-Format File Support",
+      "learningTag3": "Targeted Class Notices",
+      "learningPreview1Title": "Unit 1 Study Guide.pdf",
+      "learningPreview1Detail": "Shared Course File • 4.2 MB • Uploaded Today",
+      "learningPreview2Title": "Notice: Science Project Due Date",
+      "learningPreview2Detail": "Posted by Dr. L. Noureddine • 2 Days Left",
+      "learningUrgent": "Notice",
+      "learningActionDownload": "Download",
       "items": {
         "students": {
           "title": "Student Management",
@@ -154,8 +281,43 @@
       }
     },
     "roles": {
+      "badge": "Tailored for Every Role",
       "title": "Designed for Every Role",
-      "description": "Tailored experiences for administrators, teachers, and students.",
+      "description": "Tailored experiences for administrators, teachers, students, and parents.",
+      "workspaceTitle": "Role Workspace Preview",
+      "adminWorkspaceBadge": "School Admin Hub",
+      "adminWorkspaceDetail": "Manage classes, staff access, and school records",
+      "teacherWorkspaceBadge": "Classroom & Grading Studio",
+      "teacherWorkspaceDetail": "Log attendance, enter grades, and assign tasks",
+      "studentWorkspaceBadge": "Student Academic Portal",
+      "studentWorkspaceDetail": "Submit assignments, view grades, and access materials",
+      "parentWorkspaceBadge": "Parent Hub",
+      "portalCta": "Access Portal",
+      "coreTasks": "Key Responsibilities & Capabilities",
+      "adminItem1Label": "Active Academic Year",
+      "adminItem1Val": "2026 / 2027",
+      "adminItem2Label": "Faculty & Staff",
+      "adminItem2Val": "48 Verified Educators",
+      "adminItem3Label": "School Settings & Access",
+      "adminItem3Val": "Configured & Active",
+      "teacherItem1Label": "Current Classroom",
+      "teacherItem1Val": "Grade 10 - Physics",
+      "teacherItem2Label": "Daily Attendance",
+      "teacherItem2Val": "Recorded",
+      "teacherItem3Label": "Grading Submissions",
+      "teacherItem3Val": "28 / 30 Graded",
+      "studentItem1Label": "Enrolled Subjects",
+      "studentItem1Val": "7 Core Courses",
+      "studentItem2Label": "Upcoming Due: Chemistry",
+      "studentItem2Val": "Due Tomorrow",
+      "studentItem3Label": "Term Grade Average",
+      "studentItem3Val": "94.2%",
+      "parentItem1Label": "Linked Student",
+      "parentItem1Val": "Sarah Al-Shami",
+      "parentItem2Label": "Today's Attendance",
+      "parentItem2Val": "Present (8:00 AM)",
+      "parentItem3Label": "School Alerts",
+      "parentItem3Val": "Mid-Term Report Released",
       "items": {
         "administrator": {
           "title": "Administrator",
@@ -186,37 +348,71 @@
             "grades": "Track grades",
             "attendance": "Review attendance"
           }
+        },
+        "parent": {
+          "title": "Parent",
+          "description": "Stay informed with real-time academic progress and direct messaging.",
+          "actions": {
+            "progress": "Monitor student grades",
+            "attendance": "Review daily attendance",
+            "announcements": "School communications",
+            "schedule": "View exam schedules",
+            "communication": "Direct school messaging",
+            "finances": "Track fees and invoices",
+            "calendar": "Access academic calendar"
+          }
         }
       }
     },
     "howItWorks": {
+      "badge": "Simple 4-Step Process",
       "title": "How It Works",
       "description": "Launch your school workspace in a few guided steps.",
+      "stepProgressNote": "Guided Step",
       "steps": {
         "account": {
           "title": "Create Account",
-          "description": "Sign up your school and invite your team in minutes."
+          "description": "Sign up your school and invite your team in minutes.",
+          "milestone": "School & Role Registration"
         },
         "setup": {
           "title": "Set Up School",
-          "description": "Configure classes, subjects, roles, and academic terms."
+          "description": "Configure classes, subjects, roles, and academic terms.",
+          "milestone": "Classes & Curriculum Setup"
         },
         "operations": {
           "title": "Run Operations",
-          "description": "Handle attendance, exams, communication, and daily workflows."
+          "description": "Handle attendance, exams, communication, and daily workflows.",
+          "milestone": "Daily Attendance & Grading"
         },
         "outcomes": {
           "title": "Improve Outcomes",
-          "description": "Use reports and analytics to drive smarter decisions."
+          "description": "Use reports and analytics to drive smarter decisions.",
+          "milestone": "Reports & Academic Outcomes"
         }
       }
     },
     "cta": {
+      "badge": "Academix Enterprise",
       "title": "Ready to Transform Your School?",
       "description": "Join Academix and simplify school operations with one platform for learning, assessment, and administration.",
-      "button": "Get Started Free"
+      "button": "Get Started Free",
+      "signIn": "Sign In"
     },
     "footer": {
+      "tagline": "Unified, modern school operations platform. Built for administrators, teachers, students, and parents with seamless bilingual English & Arabic support.",
+      "operational": "All Systems Operational",
+      "platformTitle": "Platform",
+      "about": "About Academix",
+      "features": "Key Features",
+      "roles": "Designed for Roles",
+      "howItWorks": "How It Works",
+      "portalsTitle": "Portals",
+      "signIn": "Sign In",
+      "registerSchool": "Register Your School",
+      "designSystem": "Design System Showcase",
+      "bilingualNote": "English (LTR) & العربية (RTL)",
+      "complianceNote": "WCAG 2.1 AA Compliant",
       "copyright": "© 2026 Academix. All rights reserved."
     }
   },
@@ -254,7 +450,9 @@
     "deleteAll": "Delete all",
     "signOut": "Sign out",
     "signingOut": "Signing out...",
-    "formNotFound": "Form not found!"
+    "formNotFound": "Form not found!",
+    "markAsRead": "Mark as read",
+    "view": "View"
   },
   "tables": {
     "grade": "grade",
@@ -365,7 +563,8 @@
     "supervisor": "Supervisor",
     "newest": "Newest",
     "oldest": "Oldest",
-    "searchStudent": "Search student..."
+    "searchStudent": "Search student...",
+    "gradeMarks": "Grades"
   },
   "finalResultStatus": {
     "PASS": "Pass",
@@ -374,11 +573,74 @@
     "NOT_UPDATED": "Not updated"
   },
   "attendance": {
+    "title": "Attendance Management",
+    "description": "Record and monitor daily attendance, track engagement, and manage historical attendance records.",
+    "academicYear": "Academic Year: {year}",
+    "viewMode": "View Mode",
+    "dailyView": "Daily View",
+    "weeklyView": "Weekly View",
+    "currentWeek": "Current Week",
+    "previousWeek": "Previous Week",
+    "nextWeek": "Next Week",
+    "weekRange": "Week of {range}",
+    "weeklyAttendanceRoster": "Weekly Attendance Roster",
+    "weeklyAttendanceDesc": "View and edit weekly attendance with one-click checkboxes for each day.",
+    "weeklyRate": "Weekly Rate",
+    "presentDays": "Present Days",
+    "totalDays": "Total Days",
+    "weeklySummary": "Weekly Summary",
+    "workingDays": "Working Days",
+    "workingDaysCount": "Working Days",
+    "recordedDays": "Recorded Days",
+    "daysRecorded": "days recorded",
+    "daySat": "Sat",
+    "daySun": "Sun",
+    "dayMon": "Mon",
+    "dayTue": "Tue",
+    "dayWed": "Wed",
+    "dayThu": "Thu",
+    "dayFri": "Fri",
     "filter": "Filter",
+    "date": "Date",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "datePickerLabel": "Select attendance date",
+    "historicalRecord": "Historical Record",
+    "todaySession": "Today's Session",
+    "recorded": "Recorded Session",
+    "unrecorded": "Unrecorded Session",
+    "partiallyRecorded": "Partially Recorded",
+    "notRecorded": "Not Recorded",
     "present": "Present",
     "absent": "Absent",
     "save": "Save Attendance",
-    "saved": "Attendance saved",
+    "saved": "Attendance saved successfully",
+    "saving": "Saving...",
+    "saveError": "Failed to save attendance. Please try again.",
+    "resetChanges": "Reset Changes",
+    "pendingChanges": "{count} pending changes",
+    "onePendingChange": "1 pending change",
+    "noPendingChanges": "All changes saved",
+    "markAllPresent": "Mark All Present",
+    "markAllAbsent": "Mark All Absent",
+    "confirmMarkAllAbsentTitle": "Mark All Absent?",
+    "confirmMarkAllAbsentDesc": "Are you sure you want to mark all students in this roster as absent? Changes will remain pending until saved.",
+    "confirmMarkAllAbsentTeachersTitle": "Mark All Teachers Absent?",
+    "confirmMarkAllAbsentTeachersDesc": "Are you sure you want to mark all teachers in this roster as absent? Changes will remain pending until saved.",
+    "confirm": "Yes, Mark All Absent",
+    "cancel": "Cancel",
+    "totalStudents": "Total Students",
+    "totalTeachers": "Total Teachers",
+    "presentCount": "Present",
+    "absentCount": "Absent",
+    "attendanceRate": "Attendance Rate",
+    "sessionSummary": "Session Summary",
+    "sessionControls": "Session Controls",
+    "sessionFilters": "Filters & Class",
+    "searchStudentsPlaceholder": "Search students by name or ID...",
+    "searchTeachersPlaceholder": "Search teachers by name or ID...",
+    "noStudentsFound": "No students found matching your search.",
+    "noTeachersFound": "No teachers found matching your search.",
     "noRecordsPage": "No records on this page",
     "noScopeFound": "No {scope} found",
     "noRecordsDate": "There are no attendance records for the selected date.",
@@ -386,6 +648,25 @@
     "noClassesAssigned": "No classes assigned",
     "noClassesAssignedDescription": "You are not assigned to supervise any class yet.",
     "dateOutsideAcademicYear": "This date is outside the current academic year ({start} to {end}).",
+    "readOnly": "Read-Only",
+    "readOnlyNotice": "Historical attendance is locked for viewing only.",
+    "unsavedWarning": "You have unsaved attendance changes. Are you sure you want to leave?",
+    "discardAndLeave": "Discard & Leave",
+    "studentRoster": "Student Roster",
+    "teacherRoster": "Teacher Roster",
+    "student": "Student",
+    "teacher": "Teacher",
+    "class": "Class",
+    "status": "Status",
+    "allMarkedPresent": "All marked present",
+    "allMarkedAbsent": "All marked absent",
+    "actions": "Actions",
+    "showingCount": "Showing {count} of {total} {scope}",
+    "filteredBy": "Filtered by \"{query}\"",
+    "students": "students",
+    "teachers": "teachers",
+    "prev": "Prev",
+    "next": "Next",
     "paperSheet": "Use a paper sheet"
   },
   "archivePage": {
@@ -498,7 +779,13 @@
     "fileTypeBlocked": "File type \".{extension}\" is not allowed.",
     "allowedFilesOnly": "Only {extensions} files are allowed.",
     "minFileSize": "File size must be at least {size} MB.",
-    "maxFileSize": "File size exceeds {size} MB limit."
+    "maxFileSize": "File size exceeds {size} MB limit.",
+    "notice": "Notice",
+    "freeze": {
+      "title": "Network Disconnected",
+      "body": "Your exam has been paused because you are offline. Please check your internet connection. The exam will automatically resume once you are back online.",
+      "waiting": "Waiting for connection..."
+    }
   },
   "directMessage": {
     "titleMessageRequired": "Title and message are required",
@@ -597,7 +884,10 @@
         "profile": "Submit complete school profile",
         "verification": "Verification by Academix",
         "access": "Access granted to dashboard"
-      }
+      },
+      "badge": "Institution Onboarding",
+      "trustTenant": "Dedicated School Tenant",
+      "trustBilingual": "Full RTL & LTR Support"
     }
   },
   "auth": {
@@ -613,7 +903,9 @@
       "signingIn": "Signing in...",
       "signIn": "Sign In",
       "newSchool": "New school?",
-      "signupRequest": "Submit signup request"
+      "signupRequest": "Submit signup request",
+      "loadingAuth": "Verifying authentication...",
+      "subtitle": "Access your unified school management dashboard"
     },
     "signOut": {
       "signingOut": "Signing out...",
@@ -707,12 +999,40 @@
     "admin": "Admins",
     "teacher": "Teachers",
     "student": "Students",
-    "parent": "Parents"
+    "parent": "Parents",
+    "subtitles": {
+      "admin": "School Administrators",
+      "teacher": "Active Teaching Staff",
+      "student": "Enrolled Students",
+      "parent": "Registered Guardians"
+    },
+    "viewList": "View list"
+  },
+  "adminDashboard": {
+    "title": "Admin Dashboard",
+    "greeting": "Welcome back",
+    "subtitle": "Overview of school community, attendance, and administrative workflows.",
+    "quickActions": "Quick Operations",
+    "markAttendance": "Mark Attendance",
+    "manageStudents": "Students",
+    "manageTeachers": "Teachers",
+    "manageClasses": "Classes",
+    "attendanceTitle": "Weekly Attendance Analytics",
+    "recordsLoggedWeek": "{count} records logged this week",
+    "viewAttendanceLog": "View Attendance Log",
+    "noAttendanceWeek": "No attendance records logged for this week.",
+    "emptyAttendanceTitle": "No attendance records logged for this week yet",
+    "emptyAttendanceDesc": "Log classroom attendance today to track student presence and view live weekly analytics.",
+    "takeAttendanceToday": "Log Today's Attendance"
   },
   "profile": {
     "avatarAlt": "Profile",
     "notFound": "Profile not found",
     "notProvided": "Not provided",
+    "sections": {
+      "personalInfo": "Personal Information",
+      "schoolInfo": "School Information"
+    },
     "fields": {
       "adminUsername": "Admin Username",
       "schoolName": "School Name",
@@ -1126,6 +1446,7 @@
       "showTimer": "Show Timer",
       "autoSave": "Auto-Save",
       "navigation": "Previous Page Navigation",
+      "autoSubmit": "Auto-Submit when time is up",
       "duration": "Duration (minutes)",
       "questionsPerPage": "Questions Per Page",
       "studentInstructions": "Student Instructions",
@@ -1277,6 +1598,25 @@
     },
     "ai": {
       "pdfOnly": "AI evaluation supports PDF file answers only."
+    },
+    "extendTimeModal": {
+      "title": "Extend Time",
+      "buttonTooltip": "Extend time",
+      "custom": "Custom:",
+      "minutes": "minutes",
+      "min": "{minutes} min",
+      "addMinutes": "Add {minutes} min",
+      "extending": "Extending...",
+      "cancel": "Cancel",
+      "toastMin": "Please enter at least 1 minute.",
+      "toastFailed": "Failed to extend time.",
+      "toastSuccess": "Added {minutes} minute(s) for {studentName}."
+    },
+    "questionTypes": {
+      "TRUE_FALSE": "True / False",
+      "MCQ": "Multiple Choice",
+      "TEXT": "Text / Essay",
+      "FILE": "File Upload"
     }
   },
   "aiEvaluation": {
@@ -1285,6 +1625,7 @@
     "saved": "AI evaluation saved.",
     "failed": "AI evaluation failed.",
     "manualFallback": "AI evaluation failed. Manual grading still works.",
+    "appliedDraftScore": "Applied draft score: {score} / {maxScore}",
     "needsReview": "Needs review",
     "noFeedback": "No feedback provided.",
     "strengths": "Strengths",
@@ -1344,7 +1685,8 @@
     "empty": {
       "title": "No assignments found",
       "description": "Try changing your filters or search terms."
-    }
+    },
+    "saveScore": "Save score"
   },
   "widgets": {
     "viewAll": "View All",
@@ -1454,6 +1796,70 @@
     "save": "Save",
     "saving": "Saving...",
     "updated": "Final grade updated."
+  },
+  "academicSchedule": {
+    "title": "Weekly Timetable",
+    "viewWeek": "Weekly",
+    "viewToday": "Today",
+    "viewDay": "Daily",
+    "todayBadge": "Today",
+    "fullWidth": "Full Width",
+    "standardWidth": "Standard Width",
+    "horizontalTable": "Horizontal Table",
+    "verticalTable": "Vertical Table",
+    "orientationHorizontal": "Horizontal",
+    "orientationVertical": "Vertical",
+    "days": "Days",
+    "swipeHint": "Swipe horizontally between periods",
+    "periodNumber": "Period {number}",
+    "periods": "Periods",
+    "liveNow": "Live Now",
+    "completed": "Completed",
+    "upcoming": "Upcoming",
+    "freePeriod": "Free Period",
+    "minutes": "{minutes} min",
+    "teacher": "Teacher: {name}",
+    "class": "Class {name}",
+    "weekendTitle": "Weekend Break",
+    "weekendDesc": "No classes scheduled for today. Enjoy your day off!",
+    "noLessonsTodayTitle": "No classes scheduled today",
+    "noLessonsTodayDesc": "There are no classes scheduled for today.",
+    "noLessonsTitle": "No Timetable Available",
+    "noLessonsDesc": "No lessons have been scheduled yet for this timetable.",
+    "switchChild": "Student Schedule:",
+    "allSubjects": "Subjects",
+    "subjects": {
+      "mathematics": "Mathematics",
+      "arabic": "Arabic",
+      "english": "English",
+      "science": "Science",
+      "islamic": "Islamic Studies",
+      "social": "Social Studies",
+      "pe": "Physical Education",
+      "art": "Art",
+      "computer": "Computer Science",
+      "physics": "Physics",
+      "chemistry": "Chemistry",
+      "biology": "Biology",
+      "history": "History",
+      "geography": "Geography",
+      "french": "French"
+    }
+  },
+  "notificationTypes": {
+    "NEW_ASSIGNMENT": "New Assignment",
+    "ASSIGNMENT_UPDATED": "Assignment Updated",
+    "ASSIGNMENT_SUBMITTED": "Assignment Submitted",
+    "ASSIGNMENT_FEEDBACK": "Feedback Received",
+    "NEW_EXAM": "New Exam",
+    "GRADE_POSTED": "Grade Posted",
+    "GRADE_UPDATED": "Grade Updated",
+    "NEW_ANNOUNCEMENT": "New Announcement",
+    "NEW_EVENT": "New Event",
+    "SCHEDULE_UPDATED": "Schedule Updated",
+    "ATTENDANCE_SAVED": "Attendance Saved",
+    "SUPERVISOR_ASSIGNED": "Class Supervisor",
+    "NEW_MESSAGE": "New Message"
   },
   "classEntry": {
     "title": "Enter class marks",

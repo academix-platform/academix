@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-in(.*)",
   "/api/webhooks(.*)",
   "/school-signup(.*)",
+  "/design-system(.*)",
 ]);
 // تحديد أن مسارات الـ API والـ Cron لا تحتاج لفحص Clerk
 const isCronRoute = createRouteMatcher(['/api/cron(.*)']);
