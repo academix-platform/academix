@@ -1,7 +1,9 @@
 import * as React from "react";
 import { FieldError } from "react-hook-form";
+import { useLocale } from "next-intl";
 import { Label, ErrorMessage } from "@/components/ui/form-field";
 import { Input } from "@/components/ui/input";
+import { localizeValidationError } from "@/lib/validationLocalization";
 
 export type InputFieldProps = {
   label: string;
@@ -22,6 +24,7 @@ const InputField = ({
   error,
   inputProps,
 }: InputFieldProps) => {
+  const locale = useLocale();
   const inputId = inputProps?.id || `input-${name}`;
   const errorId = `${inputId}-error`;
   const isRequired = inputProps?.required;
@@ -42,7 +45,7 @@ const InputField = ({
       />
       {error?.message && (
         <ErrorMessage id={errorId}>
-          {error.message.toString()}
+          {localizeValidationError(error.message.toString(), locale)}
         </ErrorMessage>
       )}
     </div>

@@ -1,4 +1,5 @@
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { Prisma } from "@prisma/client";
 import { getAuthUser } from "../auth";
 import prisma from "../prisma";
@@ -49,11 +50,19 @@ export const parseNumericId = (
 
 export const ensureAdminAccess = async () => {
   const user = await getAuthUser();
+  let isAr = false;
+  try {
+    const cookieStore = await cookies();
+    isAr = cookieStore.get("NEXT_LOCALE")?.value === "ar";
+  } catch {}
+
   if (user?.role !== "admin") {
     return {
       success: false,
       error: true,
-      message: "You are not allowed to perform this action.",
+      message: isAr
+        ? "ليس لديك الصلاحية لتنفيذ هذا الإجراء."
+        : "You are not allowed to perform this action.",
     } as ActionResult;
   }
 
@@ -61,8 +70,9 @@ export const ensureAdminAccess = async () => {
     return {
       success: false,
       error: true,
-      message:
-        "Your school is not active yet. Please wait for super admin approval.",
+      message: isAr
+        ? "مدرستك غير مفعلة بعد. يرجى انتظار موافقة المشرف العام."
+        : "Your school is not active yet. Please wait for super admin approval.",
     } as ActionResult;
   }
 
@@ -76,11 +86,19 @@ export const requireActionAccess = async (
   | { success: false; error: true; message: string }
 > => {
   const user = await getAuthUser();
+  let isAr = false;
+  try {
+    const cookieStore = await cookies();
+    isAr = cookieStore.get("NEXT_LOCALE")?.value === "ar";
+  } catch {}
+
   if (!user || !user.role || !roles.includes(user.role)) {
     return {
       success: false,
       error: true,
-      message: "You are not allowed to perform this action.",
+      message: isAr
+        ? "ليس لديك الصلاحية لتنفيذ هذا الإجراء."
+        : "You are not allowed to perform this action.",
     };
   }
 
@@ -90,7 +108,11 @@ export const requireActionAccess = async (
       error: true,
       message:
         user.schoolStatus === "PAUSED"
-          ? `Your school account is paused. ${user.schoolPauseReason ? `Reason: ${user.schoolPauseReason}` : ""}`
+          ? isAr
+            ? `تم إيقاف حساب مدرستك مؤقتاً. ${user.schoolPauseReason ? `السبب: ${user.schoolPauseReason}` : ""}`
+            : `Your school account is paused. ${user.schoolPauseReason ? `Reason: ${user.schoolPauseReason}` : ""}`
+          : isAr
+          ? "مدرستك في انتظار موافقة المشرف العام."
           : "Your school is pending approval by a super admin.",
     };
   }

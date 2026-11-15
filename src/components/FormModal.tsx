@@ -30,7 +30,8 @@ import { useRouter } from "next/navigation";
 import { FormContainerProps } from "./FormContainer";
 import AssignmentForm from "./forms/AssignmentForm";
 import ClassDeleteForm from "./forms/ClassDeleteForm";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { localizeValidationError } from "@/lib/validationLocalization";
 
 const DynamicFormLoading = () => {
   const t = useTranslations("states");
@@ -245,6 +246,7 @@ const ModalBody = ({
 }) => {
   const t = useTranslations("actions");
   const tableT = useTranslations("tables");
+  const locale = useLocale();
   const [state, formAction] = useActionState(deleteActionMap[table], {
     success: false,
     error: false,
@@ -257,8 +259,12 @@ const ModalBody = ({
       toast(t("deleteSuccess", { entity: tableT(table) }));
       setOpen(false);
       router.refresh();
+    } else if (state.error) {
+      toast.error(
+        localizeValidationError(state.message, locale) || t("somethingWentWrong"),
+      );
     }
-  }, [state, router, setOpen, t, table, tableT]);
+  }, [state, router, setOpen, t, table, tableT, locale]);
 
   if (type === "delete" && id) {
     if (table === "class") {

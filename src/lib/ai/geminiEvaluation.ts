@@ -69,6 +69,9 @@ Return only valid JSON with this shape:
   "needsReview": boolean
 }
 
+LANGUAGE REQUIREMENT:
+Write the "feedback", "strengths", and "weaknesses" in the same language as the question/answer. If the question or student answer is in Arabic, all feedback, strengths, and weaknesses MUST be written in fluent Arabic. If in English, write in English.
+
 Max score: ${maxScore}
 Question:
 ${questionText}
