@@ -3,13 +3,30 @@
 import { useState, useTransition } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import {
-  Bell, ClipboardList, MessageSquare, Megaphone,
-  BookOpen, Mail, CheckCheck, Search, Filter,
-  Clock, CheckCircle, ArrowUpDown, Trash2,
-  BarChart3, Calendar, Users,
+  Bell,
+  ClipboardList,
+  MessageSquare,
+  Megaphone,
+  BookOpen,
+  Mail,
+  CheckCheck,
+  Search,
+  Filter,
+  Clock,
+  CheckCircle,
+  ArrowUpDown,
+  Trash2,
+  BarChart3,
+  Calendar,
+  Users,
 } from "lucide-react";
 import Pagination from "@/components/Pagination";
-import { useTranslations } from "next-intl";
+import EmptyState from "@/components/states/EmptyState";
+import { DataPageHeader } from "@/components/data-table";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { useLocale, useTranslations } from "next-intl";
+import { localizeNotificationBody } from "@/lib/notificationLocalization";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -49,31 +66,43 @@ type Props = {
   currentSort: string;
 };
 
-const TYPE_ICON: Record<NotificationType, { icon: React.ElementType; color: string; bg: string }> = {
-  NEW_ASSIGNMENT:       { icon: ClipboardList, color: "text-orange-600", bg: "bg-orange-100" },
-  ASSIGNMENT_UPDATED:   { icon: ClipboardList, color: "text-amber-600",  bg: "bg-amber-100"  },
-  ASSIGNMENT_SUBMITTED: { icon: ClipboardList, color: "text-green-600",  bg: "bg-green-100"  },
-  ASSIGNMENT_FEEDBACK:  { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-100" },
-  NEW_EXAM:             { icon: BookOpen,      color: "text-red-600",    bg: "bg-red-100"    },
-  GRADE_POSTED:         { icon: BarChart3,     color: "text-green-600",  bg: "bg-green-100"  },
-  GRADE_UPDATED:        { icon: BarChart3,     color: "text-amber-600",  bg: "bg-amber-100"  },
-  NEW_ANNOUNCEMENT:     { icon: Megaphone,     color: "text-purple-600", bg: "bg-purple-100" },
-  NEW_EVENT:            { icon: Calendar,      color: "text-blue-600",   bg: "bg-blue-100"   },
-  SCHEDULE_UPDATED:     { icon: Calendar,      color: "text-teal-600",   bg: "bg-teal-100"   },
-  ATTENDANCE_SAVED:     { icon: CheckCheck,    color: "text-gray-600",   bg: "bg-gray-100"   },
-  SUPERVISOR_ASSIGNED:  { icon: Users,         color: "text-violet-600", bg: "bg-violet-100" },
-  NEW_MESSAGE:          { icon: Mail,          color: "text-blue-600",   bg: "bg-blue-100"   },
+const TYPE_ICON: Record<
+  NotificationType,
+  { icon: React.ElementType; color: string; bg: string }
+> = {
+  NEW_ASSIGNMENT:       { icon: ClipboardList, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/40" },
+  ASSIGNMENT_UPDATED:   { icon: ClipboardList, color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/40" },
+  ASSIGNMENT_SUBMITTED: { icon: ClipboardList, color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40" },
+  ASSIGNMENT_FEEDBACK:  { icon: MessageSquare, color: "text-indigo-600 dark:text-indigo-400", bg: "bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-100 dark:border-indigo-900/40" },
+  NEW_EXAM:             { icon: BookOpen,      color: "text-rose-600 dark:text-rose-400", bg: "bg-rose-50 dark:bg-rose-950/50 border border-rose-100 dark:border-rose-900/40" },
+  GRADE_POSTED:         { icon: BarChart3,     color: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-100 dark:border-emerald-900/40" },
+  GRADE_UPDATED:        { icon: BarChart3,     color: "text-amber-600 dark:text-amber-400", bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-100 dark:border-amber-900/40" },
+  NEW_ANNOUNCEMENT:     { icon: Megaphone,     color: "text-purple-600 dark:text-purple-400", bg: "bg-purple-50 dark:bg-purple-950/50 border border-purple-100 dark:border-purple-900/40" },
+  NEW_EVENT:            { icon: Calendar,      color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/40" },
+  SCHEDULE_UPDATED:     { icon: Calendar,      color: "text-teal-600 dark:text-teal-400", bg: "bg-teal-50 dark:bg-teal-950/50 border border-teal-100 dark:border-teal-900/40" },
+  ATTENDANCE_SAVED:     { icon: CheckCheck,    color: "text-cyan-600 dark:text-cyan-400", bg: "bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-100 dark:border-cyan-900/40" },
+  SUPERVISOR_ASSIGNED:  { icon: Users,         color: "text-violet-600 dark:text-violet-400", bg: "bg-violet-50 dark:bg-violet-950/50 border border-violet-100 dark:border-violet-900/40" },
+  NEW_MESSAGE:          { icon: Mail,          color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/40" },
 };
 
-function timeAgo(dateStr: string): string {
+function formatTimeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
-  if (days  >= 1) return `${days}d ago`;
-  if (hours >= 1) return `${hours}h ago`;
-  if (mins  >= 1) return `${mins}m ago`;
-  return "Just now";
+
+  try {
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    if (days >= 1) return rtf.format(-days, "day");
+    if (hours >= 1) return rtf.format(-hours, "hour");
+    if (mins >= 1) return rtf.format(-mins, "minute");
+    return locale === "ar" ? "الآن" : "Just now";
+  } catch {
+    if (days >= 1) return `${days}d ago`;
+    if (hours >= 1) return `${hours}h ago`;
+    if (mins >= 1) return `${mins}m ago`;
+    return "Just now";
+  }
 }
 
 export default function NotificationsClient({
@@ -86,11 +115,13 @@ export default function NotificationsClient({
   currentType,
   currentSort,
 }: Props) {
+  const locale = useLocale();
   const t = useTranslations("pages");
   const commonT = useTranslations("common");
   const filtersT = useTranslations("filters");
   const actionsT = useTranslations("actions");
   const emptyT = useTranslations("emptyStates");
+  const notifTypeT = useTranslations("notificationTypes");
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
@@ -153,165 +184,206 @@ export default function NotificationsClient({
   }
 
   return (
-    <div className="space-y-4">
-      {/* ── Header — نفس هيكلية باقي الصفحات ── */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allNotifications")}</h1>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          {/* Search */}
-          <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2 flex-1 md:flex-none md:min-w-[200px]">
-            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <input
-              type="text"
-              placeholder={commonT("search")}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && navigate({ search })}
-              className="text-sm outline-none w-full text-gray-700 placeholder-gray-400 bg-transparent"
-            />
-          </div>
-
-          <div className="flex items-center self-end gap-2">
-            {/* Type filter */}
-            <div className="flex items-center gap-2 border border-gray-200 rounded-lg px-3 py-2">
-              <Filter className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <select
-                value={currentType}
-                onChange={(e) => navigate({ type: e.target.value })}
-                className="text-sm outline-none text-gray-700 bg-transparent max-w-[130px]"
-              >
-                {typeOptions.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {filtersT(opt.labelKey)}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Sort */}
-            <button
-              type="button"
-              onClick={() => navigate({ sort: currentSort === "desc" ? "asc" : "desc" })}
-              className="flex items-center gap-1.5 px-3 py-2 border border-gray-200 rounded-lg
-                         text-sm text-gray-600 hover:bg-gray-50 transition-colors"
-            >
-              <ArrowUpDown className="w-4 h-4 text-gray-400" />
-              <span className="hidden sm:inline">
-                {currentSort === "desc" ? filtersT("newest") : filtersT("oldest")}
-              </span>
-            </button>
-
-            {/* Mark all read */}
+    <div className="space-y-6">
+      {/* Header */}
+      <DataPageHeader
+        title={t("allNotifications")}
+        count={count}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
             {unreadCount > 0 && (
-              <button
+              <Button
                 type="button"
+                variant="outline"
+                size="sm"
                 onClick={markAllRead}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-purple-50 hover:bg-purple-100
-                           text-purple-700 rounded-lg text-xs font-medium transition-colors"
+                leftIcon={<CheckCheck className="w-3.5 h-3.5" />}
               >
-                <CheckCheck className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{actionsT("markAllRead")}</span>
-              </button>
+                {actionsT("markAllRead")}
+              </Button>
             )}
 
-            {/* Delete all */}
             {notifications.length > 0 && (
-              <button
+              <Button
                 type="button"
+                variant="destructive"
+                size="sm"
                 onClick={deleteAll}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100
-                           text-red-600 rounded-lg text-xs font-medium transition-colors"
+                leftIcon={<Trash2 className="w-3.5 h-3.5" />}
               >
-                <Trash2 className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">{actionsT("deleteAll")}</span>
-              </button>
+                {actionsT("deleteAll")}
+              </Button>
             )}
           </div>
+        }
+      />
+
+      {/* Toolbar: Search, Type Filter, Sort */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-3 sm:p-4 bg-surface border border-outline/80 rounded-2xl shadow-2xs">
+        {/* Search Input */}
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 w-4 h-4 text-content-subtle" />
+          <input
+            type="text"
+            placeholder={commonT("search")}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && navigate({ search })}
+            className="w-full ps-9 pe-4 py-2 text-xs sm:text-sm bg-surface-muted/50 border border-outline/80 rounded-xl outline-none focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 text-content-primary placeholder:text-content-muted transition-all"
+          />
+        </div>
+
+        <div className="flex items-center gap-2.5 self-end sm:self-auto">
+          {/* Type Filter */}
+          <div className="relative">
+            <select
+              value={currentType}
+              onChange={(e) => navigate({ type: e.target.value })}
+              className="appearance-none ps-3 pe-8 py-2 text-xs sm:text-sm bg-surface-muted/50 border border-outline/80 rounded-xl outline-none focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 text-content-secondary font-medium cursor-pointer transition-all"
+            >
+              {typeOptions.map((opt) => (
+                <option key={opt.value} value={opt.value} className="bg-surface text-content-primary">
+                  {filtersT(opt.labelKey)}
+                </option>
+              ))}
+            </select>
+            <Filter className="absolute end-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-content-subtle pointer-events-none" />
+          </div>
+
+          {/* Sort Toggle */}
+          <button
+            type="button"
+            onClick={() => navigate({ sort: currentSort === "desc" ? "asc" : "desc" })}
+            className="inline-flex items-center gap-1.5 px-3 py-2 text-xs sm:text-sm font-medium bg-surface-muted/50 border border-outline/80 rounded-xl text-content-secondary hover:text-content-primary hover:bg-surface-muted transition-all"
+          >
+            <ArrowUpDown className="w-3.5 h-3.5 text-content-subtle" />
+            <span className="hidden sm:inline">
+              {currentSort === "desc" ? filtersT("newest") : filtersT("oldest")}
+            </span>
+          </button>
         </div>
       </div>
 
-      {/* ── List ── */}
+      {/* Notifications List Container */}
       {isPending ? (
-        <div className="flex items-center justify-center py-16">
-          <div className="w-6 h-6 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+        <div className="flex items-center justify-center py-20 bg-surface border border-outline/80 rounded-2xl shadow-2xs">
+          <div className="w-7 h-7 border-3 border-brandPurple-500 border-t-transparent rounded-full animate-spin" />
         </div>
       ) : notifications.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <Bell className="w-12 h-12 text-gray-200 mb-3" />
-          <p className="text-gray-500 font-medium text-sm">
-            {emptyT("notifications")}
-          </p>
-          <p className="text-gray-400 text-xs mt-1">
-            {emptyT("filterDescription")}
-          </p>
+        <div className="bg-surface border border-outline/80 rounded-2xl p-6 md:p-8 shadow-2xs">
+          <EmptyState
+            title={emptyT("notifications")}
+            description={emptyT("filterDescription")}
+          />
         </div>
       ) : (
-        <ul className="divide-y divide-gray-100">
-          {notifications.map((n) => {
-            const { icon: Icon, color, bg } = TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
-            const row = (
-              <li
-                key={n.id}
-                className={`flex items-start gap-3 py-3 transition-colors
-                            ${n.isRead ? "hover:bg-gray-50" : "bg-purple-50 hover:bg-purple-100"}`}
-              >
-                {/* Icon */}
-                <div className={`flex-shrink-0 p-2 rounded-xl ${bg} mt-0.5`}>
-                  <Icon className={`w-4 h-4 ${color}`} />
-                </div>
+        <div className="bg-surface border border-outline/80 rounded-2xl shadow-2xs overflow-hidden">
+          <ul className="divide-y divide-outline/60">
+            {notifications.map((n) => {
+              const { icon: Icon, color, bg } =
+                TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className={`text-sm font-medium truncate ${n.isRead ? "text-gray-700" : "text-gray-900"}`}>
-                      {n.title}
-                    </p>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="text-xs text-gray-400 hidden sm:flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        {timeAgo(n.createdAt)}
-                      </span>
-                      {!n.isRead && (
-                        <button
-                          type="button"
-                          onClick={() => markRead(n.id)}
-                          className="p-1 rounded text-gray-400 hover:text-green-600 transition-colors"
-                          title="Mark as read"
-                        >
-                          <CheckCircle className="w-3.5 h-3.5" />
-                        </button>
-                      )}
-                      <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); deleteOne(n.id); }}
-                        className="p-1 rounded text-gray-400 hover:text-red-500 transition-colors"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
+              const content = (
+                <li
+                  key={n.id}
+                  className={cn(
+                    "relative flex items-start gap-3.5 p-4 sm:p-5 transition-all group",
+                    n.isRead
+                      ? "bg-surface hover:bg-surface-muted/40"
+                      : "bg-brandPurple-50/30 dark:bg-brandPurple-950/20 hover:bg-brandPurple-50/50 dark:hover:bg-brandPurple-950/30"
+                  )}
+                >
+                  {/* Unread Accent Bar */}
+                  {!n.isRead && (
+                    <div className="absolute start-0 top-0 bottom-0 w-1 bg-brandPurple-600 rounded-s" />
+                  )}
+
+                  {/* Icon */}
+                  <div className={cn("p-2.5 rounded-xl shrink-0 mt-0.5 shadow-2xs", bg)}>
+                    <Icon className={cn("w-4 h-4", color)} />
                   </div>
-                  <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
-                  <span className="text-xs text-gray-400 sm:hidden mt-0.5 flex items-center gap-1">
-                    <Clock className="w-3 h-3" />
-                    {timeAgo(n.createdAt)}
-                  </span>
-                </div>
 
-                {/* Unread dot */}
-                {!n.isRead && (
-                  <div className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 mt-2" />
-                )}
-              </li>
-            );
+                  {/* Body Details */}
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <p
+                          className={cn(
+                            "text-sm tracking-tight truncate",
+                            n.isRead
+                              ? "font-medium text-content-primary"
+                              : "font-bold text-content-primary"
+                          )}
+                        >
+                          {notifTypeT.has(n.type as any) ? notifTypeT(n.type as any) : n.title}
+                        </p>
+                        {!n.isRead && (
+                          <span className="w-2 h-2 rounded-full bg-brandPurple-600 shrink-0" />
+                        )}
+                      </div>
 
-            return n.link ? (
-              <a key={n.id} href={n.link} onClick={() => markRead(n.id)} className="block">
-                {row}
-              </a>
-            ) : <div key={n.id}>{row}</div>;
-          })}
-        </ul>
+                      {/* Timestamp & Actions */}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-xs text-content-muted flex items-center gap-1">
+                          <Clock className="w-3 h-3 text-content-subtle" />
+                          {formatTimeAgo(n.createdAt, locale)}
+                        </span>
+
+                        <div className="flex items-center gap-1 ms-2">
+                          {!n.isRead && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                markRead(n.id);
+                              }}
+                              className="p-1.5 rounded-lg text-content-muted hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
+                              title={actionsT("markAsRead")}
+                              aria-label={actionsT("markAsRead")}
+                            >
+                              <CheckCircle className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              deleteOne(n.id);
+                            }}
+                            className="p-1.5 rounded-lg text-content-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
+                            title={actionsT("delete")}
+                            aria-label={actionsT("delete")}
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <p className="text-xs sm:text-sm text-content-secondary line-clamp-2 leading-relaxed">
+                      {localizeNotificationBody(n.body, locale)}
+                    </p>
+                  </div>
+                </li>
+              );
+
+              return n.link ? (
+                <a
+                  key={n.id}
+                  href={n.link}
+                  onClick={() => markRead(n.id)}
+                  className="block focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
+                >
+                  {content}
+                </a>
+              ) : (
+                <div key={n.id}>{content}</div>
+              );
+            })}
+          </ul>
+        </div>
       )}
 
       {/* Pagination */}

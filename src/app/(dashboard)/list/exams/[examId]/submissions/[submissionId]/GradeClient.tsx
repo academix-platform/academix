@@ -7,7 +7,7 @@ import { toast } from "react-toastify";
 import { CheckCircle, Eye, Loader2, AlertCircle, Download, FileText } from "lucide-react";
 import type { AiEvaluation, Answer, Question, Submission, Student } from "@prisma/client";
 import { parseAnswerList } from "@/lib/examAnswerUtils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import GradeAnswerAiEvaluation from "./GradeAnswerAiEvaluation";
 
 type AnswerWithQuestion = Answer & {
@@ -23,15 +23,17 @@ type GradeClientProps = {
 };
 
 const QuestionTypeBadge = ({ type }: { type: string }) => {
+  const t = useTranslations("examSubmissions.questionTypes");
   const colors: Record<string, string> = {
     TRUE_FALSE: "bg-purple-100 text-purple-700",
     MCQ: "bg-blue-100 text-blue-700",
     TEXT: "bg-orange-100 text-orange-700",
     FILE: "bg-pink-100 text-pink-700",
   };
+  const label = t.has(type as any) ? t(type as any) : type.replace("_", " ");
   return (
     <span className={`text-xs px-2 py-0.5 rounded-md font-medium ${colors[type] ?? "bg-gray-100"}`}>
-      {type.replace("_", " ")}
+      {label}
     </span>
   );
 };
@@ -108,6 +110,7 @@ const GradeClient = ({
   examId,
 }: GradeClientProps) => {
   const t = useTranslations("examSubmissions");
+  const locale = useLocale();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [scores, setScores] = useState<Record<number, string>>(() => {
@@ -361,7 +364,7 @@ const GradeClient = ({
                               {(answer as any).fileMimeType?.split("/")?.[1]?.toUpperCase() ?? t("answers.file")}
                               {(answer as any).fileSizeBytes || (answer as any).fileMimeType ? " · " : ""}
                               {t("answers.uploaded")} {answer.savedAt
-                                ? new Intl.DateTimeFormat("en-US", { dateStyle: "short", timeStyle: "short" }).format(answer.savedAt)
+                                ? new Intl.DateTimeFormat(locale, { dateStyle: "short", timeStyle: "short" }).format(answer.savedAt)
                                 : ""}
                             </p>
                           </div>

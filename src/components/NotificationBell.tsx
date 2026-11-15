@@ -1,10 +1,25 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Bell, X, CheckCheck, ClipboardList, MessageSquare, Megaphone, BookOpen, Mail, BarChart3, Calendar, Users } from "lucide-react";
+import {
+  Bell,
+  X,
+  CheckCheck,
+  ClipboardList,
+  MessageSquare,
+  Megaphone,
+  BookOpen,
+  Mail,
+  BarChart3,
+  Calendar,
+  Users,
+  ArrowRight,
+  ArrowLeft,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { localizeNotificationBody } from "@/lib/notificationLocalization";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -31,57 +46,127 @@ type Notification = {
   createdAt: string;
 };
 
-const TYPE_ICON: Record<NotificationType, { icon: React.ElementType; color: string; bg: string }> = {
-  NEW_ASSIGNMENT:       { icon: ClipboardList, color: "text-orange-600", bg: "bg-orange-100" },
-  ASSIGNMENT_UPDATED:   { icon: ClipboardList, color: "text-amber-600",  bg: "bg-amber-100"  },
-  ASSIGNMENT_SUBMITTED: { icon: ClipboardList, color: "text-green-600",  bg: "bg-green-100"  },
-  ASSIGNMENT_FEEDBACK:  { icon: MessageSquare, color: "text-indigo-600", bg: "bg-indigo-100" },
-  NEW_EXAM:             { icon: BookOpen,      color: "text-red-600",    bg: "bg-red-100"    },
-  GRADE_POSTED:         { icon: BarChart3,     color: "text-green-600",  bg: "bg-green-100"  },
-  GRADE_UPDATED:        { icon: BarChart3,     color: "text-amber-600",  bg: "bg-amber-100"  },
-  NEW_ANNOUNCEMENT:     { icon: Megaphone,     color: "text-purple-600", bg: "bg-purple-100" },
-  NEW_EVENT:            { icon: Calendar,      color: "text-blue-600",   bg: "bg-blue-100"   },
-  SCHEDULE_UPDATED:     { icon: Calendar,      color: "text-teal-600",   bg: "bg-teal-100"   },
-  ATTENDANCE_SAVED:     { icon: CheckCheck,    color: "text-gray-600",   bg: "bg-gray-100"   },
-  SUPERVISOR_ASSIGNED:  { icon: Users,         color: "text-violet-600", bg: "bg-violet-100" },
-  NEW_MESSAGE:          { icon: Mail,          color: "text-blue-600",   bg: "bg-blue-100"   },
+const TYPE_ICON: Record<
+  NotificationType,
+  { icon: React.ElementType; color: string; bg: string }
+> = {
+  NEW_ASSIGNMENT: {
+    icon: ClipboardList,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-200/50 dark:border-amber-900/40",
+  },
+  ASSIGNMENT_UPDATED: {
+    icon: ClipboardList,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-200/50 dark:border-amber-900/40",
+  },
+  ASSIGNMENT_SUBMITTED: {
+    icon: ClipboardList,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-900/40",
+  },
+  ASSIGNMENT_FEEDBACK: {
+    icon: MessageSquare,
+    color: "text-indigo-600 dark:text-indigo-400",
+    bg: "bg-indigo-50 dark:bg-indigo-950/50 border border-indigo-200/50 dark:border-indigo-900/40",
+  },
+  NEW_EXAM: {
+    icon: BookOpen,
+    color: "text-rose-600 dark:text-rose-400",
+    bg: "bg-rose-50 dark:bg-rose-950/50 border border-rose-200/50 dark:border-rose-900/40",
+  },
+  GRADE_POSTED: {
+    icon: BarChart3,
+    color: "text-emerald-600 dark:text-emerald-400",
+    bg: "bg-emerald-50 dark:bg-emerald-950/50 border border-emerald-200/50 dark:border-emerald-900/40",
+  },
+  GRADE_UPDATED: {
+    icon: BarChart3,
+    color: "text-amber-600 dark:text-amber-400",
+    bg: "bg-amber-50 dark:bg-amber-950/50 border border-amber-200/50 dark:border-amber-900/40",
+  },
+  NEW_ANNOUNCEMENT: {
+    icon: Megaphone,
+    color: "text-brandPurple-600 dark:text-brandPurple-400",
+    bg: "bg-brandPurple-50 dark:bg-brandPurple-950/50 border border-brandPurple-200/50 dark:border-brandPurple-900/40",
+  },
+  NEW_EVENT: {
+    icon: Calendar,
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-200/50 dark:border-blue-900/40",
+  },
+  SCHEDULE_UPDATED: {
+    icon: Calendar,
+    color: "text-teal-600 dark:text-teal-400",
+    bg: "bg-teal-50 dark:bg-teal-950/50 border border-teal-200/50 dark:border-teal-900/40",
+  },
+  ATTENDANCE_SAVED: {
+    icon: CheckCheck,
+    color: "text-cyan-600 dark:text-cyan-400",
+    bg: "bg-cyan-50 dark:bg-cyan-950/50 border border-cyan-200/50 dark:border-cyan-900/40",
+  },
+  SUPERVISOR_ASSIGNED: {
+    icon: Users,
+    color: "text-violet-600 dark:text-violet-400",
+    bg: "bg-violet-50 dark:bg-violet-950/50 border border-violet-200/50 dark:border-violet-900/40",
+  },
+  NEW_MESSAGE: {
+    icon: Mail,
+    color: "text-blue-600 dark:text-blue-400",
+    bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-200/50 dark:border-blue-900/40",
+  },
 };
 
-function timeAgo(dateStr: string): string {
+function formatTimeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
-  const mins  = Math.floor(diff / 60000);
+  const mins = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
-  const days  = Math.floor(diff / 86400000);
-  if (days  >= 1) return `${days}d ago`;
-  if (hours >= 1) return `${hours}h ago`;
-  if (mins  >= 1) return `${mins}m ago`;
-  return "Just now";
+  const days = Math.floor(diff / 86400000);
+
+  try {
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    if (days >= 1) return rtf.format(-days, "day");
+    if (hours >= 1) return rtf.format(-hours, "hour");
+    if (mins >= 1) return rtf.format(-mins, "minute");
+    return locale === "ar" ? "الآن" : "Just now";
+  } catch {
+    if (days >= 1) return `${days}d ago`;
+    if (hours >= 1) return `${hours}h ago`;
+    if (mins >= 1) return `${mins}m ago`;
+    return "Just now";
+  }
 }
 
 export default function NotificationBell() {
   const t = useTranslations("navbar.notifications");
-  const [open, setOpen]               = useState(false);
-  const [notifications, setNotifs]    = useState<Notification[]>([]);
+  const notifTypeT = useTranslations("notificationTypes");
+  const locale = useLocale();
+  const isRtl = locale === "ar";
+  const [open, setOpen] = useState(false);
+  const [notifications, setNotifs] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [loading, setLoading]         = useState(false);
+  const [loading, setLoading] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
 
   // ─── Fetch ──────────────────────────────────────────────────────────────────
   const fetchNotifs = useCallback(async () => {
     setLoading(true);
     try {
-      const res  = await fetch("/api/notifications");
+      const res = await fetch("/api/notifications");
       const data = await res.json();
       setNotifs(data.notifications ?? []);
       setUnreadCount(data.unreadCount ?? 0);
-    } catch {}
-    finally { setLoading(false); }
+    } catch {
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
     const initialFetch = setTimeout(fetchNotifs, 0);
-    // polling كل 30 ثانية
+    // polling every 30 seconds
     const interval = setInterval(fetchNotifs, 30000);
     return () => {
       clearTimeout(initialFetch);
@@ -89,20 +174,46 @@ export default function NotificationBell() {
     };
   }, [fetchNotifs]);
 
-  // ─── Close on outside click ──────────────────────────────────────────────────
+  const closeDropdown = useCallback((restoreFocus = false) => {
+    setOpen(false);
+    if (restoreFocus) {
+      triggerRef.current?.focus();
+    }
+  }, []);
+
+  // ─── Close on outside click or Escape key ──────────────────────────────────
   useEffect(() => {
+    if (!open) return;
+
     function handleClick(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(e.target as Node)
+      ) {
+        closeDropdown(false);
       }
     }
-    if (open) document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [open]);
+
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        closeDropdown(true);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClick);
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", handleClick);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [open, closeDropdown]);
 
   // ─── Mark single as read ─────────────────────────────────────────────────────
   async function markRead(id: number) {
-    setNotifs((prev) => prev.map((n) => n.id === id ? { ...n, isRead: true } : n));
+    setNotifs((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+    );
     setUnreadCount((c) => Math.max(0, c - 1));
     await fetch("/api/notifications", {
       method: "PATCH",
@@ -122,19 +233,24 @@ export default function NotificationBell() {
     });
   }
 
+  const ArrowIcon = isRtl ? ArrowLeft : ArrowRight;
+
   return (
     <div className="relative" ref={dropdownRef}>
       {/* ─── Bell Button ─── */}
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="relative w-7 h-7 flex items-center justify-center"
+        aria-expanded={open}
+        aria-haspopup="dialog"
+        aria-controls={open ? "notification-bell-dropdown" : undefined}
+        className="relative flex items-center justify-center w-9 h-9 rounded-xl border border-outline bg-surface text-content-secondary hover:text-content-primary hover:bg-surface-muted transition shadow-2xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brandPurple-500"
         aria-label={t("label")}
       >
-        <Bell className="w-5 h-5 text-gray-600 hover:scale-[1.05] transition" />
+        <Bell className="w-4 h-4" />
         {unreadCount > 0 && (
-          <span className="absolute -top-2.5 -end-1.5 flex items-center justify-center
-                           bg-academixPurpleDark text-white rounded-full w-5 h-5 text-xs font-medium">
+          <span className="absolute -top-1.5 -end-1.5 flex items-center justify-center bg-brandPurple-600 text-white rounded-full min-w-4 h-4 px-1 text-[10px] font-bold shadow-xs">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -142,40 +258,49 @@ export default function NotificationBell() {
 
       {/* ─── Dropdown ─── */}
       {open && (
-        <div className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-10 sm:w-80">
+        <div
+          id="notification-bell-dropdown"
+          role="dialog"
+          aria-label={t("label")}
+          className="fixed inset-x-2 top-16 z-50 overflow-hidden rounded-2xl border border-outline/80 bg-surface shadow-xl sm:absolute sm:inset-x-auto sm:end-0 sm:top-12 sm:w-[390px] animate-in fade-in-0 zoom-in-95 duration-150"
+        >
           {/* Header */}
-          <div className="flex items-start justify-between gap-3 border-b border-gray-100 px-3 py-3 sm:items-center sm:px-4">
-            <div className="flex min-w-0 flex-wrap items-center gap-2">
-              <Bell className="h-4 w-4 flex-shrink-0 text-gray-600" />
+          <div className="flex items-center justify-between gap-3 border-b border-outline/70 px-4 py-3 bg-surface">
+            <div className="flex min-w-0 items-center gap-2">
+              <Bell className="h-4 w-4 shrink-0 text-brandPurple-600 dark:text-brandPurple-400" />
               <Link
                 href="/list/notifications"
-                onClick={() => setOpen(false)}
-                className="truncate text-sm font-semibold text-gray-800 transition-colors hover:text-purple-600"
+                onClick={() => closeDropdown(false)}
+                className="truncate text-sm font-bold text-content-primary transition-colors hover:text-brandPurple-600"
               >
                 {t("label")}
               </Link>
               {unreadCount > 0 && (
-                <span className="rounded-full bg-purple-100 px-1.5 py-0.5 text-xs font-medium text-purple-700">
+                <span className="rounded-full bg-brandPurple-100 dark:bg-brandPurple-950/60 border border-brandPurple-200/50 dark:border-brandPurple-800/50 px-2 py-0.5 text-[11px] font-bold text-brandPurple-700 dark:text-brandPurple-300">
                   {t("newCount", { count: unreadCount })}
                 </span>
               )}
             </div>
-            <div className="flex flex-shrink-0 items-center gap-1 sm:gap-2">
+
+            <div className="flex shrink-0 items-center gap-1">
               {unreadCount > 0 && (
                 <button
                   type="button"
                   onClick={markAllRead}
-                  className="flex items-center gap-1 text-xs text-gray-500 transition-colors hover:text-purple-600"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-content-muted transition-colors hover:text-brandPurple-600 hover:bg-surface-muted px-2 py-1 rounded-lg"
                   title={t("markAllRead")}
                 >
                   <CheckCheck className="w-3.5 h-3.5" />
-                  <span className="hidden min-[380px]:inline">{t("allRead")}</span>
+                  <span className="hidden min-[380px]:inline">
+                    {t("allRead")}
+                  </span>
                 </button>
               )}
               <button
                 type="button"
-                onClick={() => setOpen(false)}
-                className="p-1 rounded-lg hover:bg-gray-100 text-gray-400"
+                onClick={() => closeDropdown(true)}
+                className="p-1.5 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted transition"
+                aria-label={t("close")}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -183,38 +308,61 @@ export default function NotificationBell() {
           </div>
 
           {/* List */}
-          <div className="max-h-[min(24rem,calc(100vh-11rem))] overflow-y-auto">
-            {loading ? (
-              <div className="flex items-center justify-center py-10">
-                <div className="w-5 h-5 border-2 border-purple-500 border-t-transparent rounded-full animate-spin" />
+          <div className="max-h-[min(24rem,calc(100vh-11rem))] overflow-y-auto academix-menu-scroll">
+            {loading && notifications.length === 0 ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="w-6 h-6 border-2 border-brandPurple-600 border-t-transparent rounded-full animate-spin" />
               </div>
             ) : notifications.length === 0 ? (
-              <div className="text-center py-10">
-                <Bell className="w-8 h-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-sm text-gray-400">{t("empty")}</p>
+              <div className="text-center py-12 px-4 space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-surface-muted flex items-center justify-center mx-auto text-content-muted">
+                  <Bell className="w-5 h-5 text-content-muted" />
+                </div>
+                <p className="text-sm font-semibold text-content-secondary">
+                  {t("empty")}
+                </p>
               </div>
             ) : (
-              <ul className="divide-y divide-gray-50">
+              <ul className="divide-y divide-outline/60">
                 {notifications.map((n) => {
-                  const { icon: Icon, color, bg } = TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
+                  const {
+                    icon: Icon,
+                    color,
+                    bg,
+                  } = TYPE_ICON[n.type] ?? TYPE_ICON.NEW_MESSAGE;
                   const content = (
                     <div
-                      className={`flex cursor-pointer items-start gap-2 px-3 py-3 transition-colors sm:gap-3 sm:px-4
-                                  ${n.isRead ? "bg-white hover:bg-gray-50" : "bg-purple-50 hover:bg-purple-100"}`}
+                      className={`flex cursor-pointer items-start gap-3 px-4 py-3.5 transition-colors ${
+                        n.isRead
+                          ? "bg-surface hover:bg-surface-muted/60"
+                          : "bg-brandPurple-50/40 hover:bg-brandPurple-50/70 dark:bg-brandPurple-950/20 dark:hover:bg-brandPurple-950/40"
+                      }`}
                       onClick={() => !n.isRead && markRead(n.id)}
                     >
-                      <div className={`flex-shrink-0 p-2 rounded-xl ${bg}`}>
+                      <div
+                        className={`shrink-0 w-8 h-8 rounded-xl flex items-center justify-center shadow-2xs ${bg}`}
+                      >
                         <Icon className={`w-4 h-4 ${color}`} />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium ${n.isRead ? "text-gray-700" : "text-gray-900"}`}>
-                          {n.title}
+                        <p
+                          className={`text-sm tracking-tight ${
+                            n.isRead
+                              ? "font-medium text-content-secondary"
+                              : "font-bold text-content-primary"
+                          }`}
+                        >
+                          {notifTypeT.has(n.type as any) ? notifTypeT(n.type as any) : n.title}
                         </p>
-                        <p className="text-xs text-gray-500 mt-0.5 line-clamp-2">{n.body}</p>
-                        <p className="text-[10px] text-gray-400 mt-1">{timeAgo(n.createdAt)}</p>
+                        <p className="text-xs text-content-muted mt-0.5 line-clamp-2 leading-relaxed">
+                          {localizeNotificationBody(n.body, locale)}
+                        </p>
+                        <p className="text-[11px] text-content-muted mt-1 font-medium">
+                          {formatTimeAgo(n.createdAt, locale)}
+                        </p>
                       </div>
                       {!n.isRead && (
-                        <div className="flex-shrink-0 w-2 h-2 rounded-full bg-purple-500 mt-1.5" />
+                        <span className="shrink-0 w-2 h-2 rounded-full bg-brandPurple-600 ring-2 ring-brandPurple-200 dark:ring-brandPurple-800 mt-1.5" />
                       )}
                     </div>
                   );
@@ -222,10 +370,18 @@ export default function NotificationBell() {
                   return (
                     <li key={n.id}>
                       {n.link ? (
-                        <Link href={n.link} onClick={() => { markRead(n.id); setOpen(false); }}>
+                        <Link
+                          href={n.link}
+                          onClick={() => {
+                            markRead(n.id);
+                            closeDropdown(false);
+                          }}
+                        >
                           {content}
                         </Link>
-                      ) : content}
+                      ) : (
+                        content
+                      )}
                     </li>
                   );
                 })}
@@ -234,18 +390,19 @@ export default function NotificationBell() {
           </div>
 
           {/* Footer */}
-          <div className="px-4 py-2.5 border-t border-gray-100 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-outline/70 flex items-center justify-between bg-surface-muted/30">
             <Link
               href="/list/notifications"
-              onClick={() => setOpen(false)}
-              className="text-xs font-medium text-purple-600 hover:text-purple-800 transition-colors"
+              onClick={() => closeDropdown(false)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-brandPurple-600 hover:text-brandPurple-700 dark:text-brandPurple-400 transition-colors"
             >
-              {t("viewAll")}
+              <span>{t("viewAll")}</span>
+              <ArrowIcon className="w-3.5 h-3.5" />
             </Link>
             <button
               type="button"
-              onClick={() => setOpen(false)}
-              className="text-xs text-gray-400 hover:text-gray-600 transition-colors"
+              onClick={() => closeDropdown(true)}
+              className="text-xs font-medium text-content-muted hover:text-content-primary transition-colors px-2 py-1 rounded-lg hover:bg-surface-muted"
             >
               {t("close")}
             </button>

@@ -6,12 +6,14 @@ import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import { isFileConfig } from "@/lib/formValidationSchemas";
+import { getTranslations } from "next-intl/server";
 
 export default async function CreateExamWorkflowPage({
   searchParams,
 }: {
   searchParams: PageSearchParams;
 }) {
+  const t = await getTranslations("forms.examWorkflow");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
   const resolvedSearchParams = await searchParams;
   const examIdParam = getQueryParam(resolvedSearchParams.examId);
@@ -179,7 +181,7 @@ export default async function CreateExamWorkflowPage({
   return (
     <div className="flex-1 bg-white m-4 mt-0 p-6 rounded-md">
       <h1 className="mb-6 font-bold text-gray-900 text-2xl">
-        {exam ? "Update Exam" : "Create New Exam"}
+        {exam ? t("updateExam") : t("createExam")}
       </h1>
       <ExamWorkflowForm
         subjects={subjects}

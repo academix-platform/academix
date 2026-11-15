@@ -68,10 +68,10 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
         disabled={isPending}
         aria-label={t("label")}
         title={t(currentLocale === "en" ? "ar" : "en")}
-        className="flex items-center gap-1.5 bg-white/10 hover:bg-white/15 disabled:opacity-60 shadow-sm backdrop-blur-sm px-2.5 border border-white/20 hover:border-white/35 rounded-md min-w-16 h-8 font-semibold text-white text-xs uppercase transition disabled:cursor-not-allowed"
+        className="inline-flex items-center justify-center gap-1.5 bg-surface hover:bg-surface-muted active:bg-surface-muted text-content-primary hover:text-brandPurple-700 dark:hover:text-brandPurple-300 border border-outline hover:border-outline-strong rounded-lg px-2.5 h-8 font-bold text-xs uppercase shadow-2xs transition disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
       >
-        <Languages className="w-3.5 h-3.5" aria-hidden="true" />
-        <span className="w-5 text-center">
+        <Languages className="w-3.5 h-3.5 text-brandPurple-600 dark:text-brandPurple-400 shrink-0" aria-hidden="true" />
+        <span className="w-6 text-center leading-none">
           {currentLocale === "ar" ? "EN" : "AR"}
         </span>
       </button>

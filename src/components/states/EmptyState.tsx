@@ -3,8 +3,10 @@
 import Link from "next/link";
 import { Inbox } from "lucide-react";
 import { useTranslations } from "next-intl";
+import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
-type EmptyStateProps = {
+export type EmptyStateProps = {
   title?: string;
   description?: string;
   actionLabel?: string;
@@ -25,20 +27,28 @@ const EmptyState = ({
 
   return (
     <div
-      className={`flex flex-col items-center justify-center gap-2 py-10 text-center ${className}`}
+      className={cn(
+        "flex flex-col items-center justify-center p-8 md:p-12 text-center rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 w-full mx-auto",
+        className
+      )}
     >
-      <div className="flex justify-center items-center bg-gray-100 rounded-full w-12 h-12">
-        <Inbox className="w-6 h-6 text-gray-500" />
+      <div className="flex justify-center items-center bg-purple-50 dark:bg-purple-950/60 text-purple-600 dark:text-purple-400 rounded-2xl w-14 h-14 border border-purple-100 dark:border-purple-900/50 mb-3 shadow-xs">
+        <Inbox className="w-7 h-7" />
       </div>
-      <h2 className="font-semibold text-gray-800 text-lg">{resolvedTitle}</h2>
-      <p className="max-w-md text-gray-500 text-sm">{resolvedDescription}</p>
+      <h3 className="font-semibold text-slate-800 dark:text-slate-100 text-base md:text-lg tracking-tight">
+        {resolvedTitle}
+      </h3>
+      <p className="max-w-md text-slate-500 dark:text-slate-400 text-xs md:text-sm mt-1 leading-relaxed">
+        {resolvedDescription}
+      </p>
       {actionLabel && actionHref && (
-        <Link
-          href={actionHref}
-          className="bg-academixPurpleDark hover:opacity-90 mt-2 px-4 py-2 rounded-md text-white text-sm transition"
-        >
-          {actionLabel}
-        </Link>
+        <div className="mt-4">
+          <Link href={actionHref}>
+            <Button variant="primary" size="md">
+              {actionLabel}
+            </Button>
+          </Link>
+        </div>
       )}
     </div>
   );

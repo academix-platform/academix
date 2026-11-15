@@ -8,7 +8,9 @@ import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMess
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
-import { getTranslations } from "next-intl/server";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
+import { getLocale, getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildAssignmentQuery } from "@/lib/query-builders/assignment-query";
 import prisma from "@/lib/prisma";
@@ -25,7 +27,7 @@ type AssignmentList = Assignment & {
   class: Pick<Class, "name"> | null;
   teacher: Pick<Teacher, "name"> | null;
   lesson: { teacher: Pick<Teacher, "name"> } | null;
-  assignmentSubmissions?: { // تم التغيير من submissions إلى assignmentSubmissions
+  assignmentSubmissions?: {
     id: number;
     fileUrl: string;
     fileName: string;
@@ -38,8 +40,8 @@ type AssignmentList = Assignment & {
   _count?: { assignmentSubmissions: number };
 };
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -55,7 +57,11 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   }
 
   if (role !== "teacher") {
-    columns.push({ header: th("teacher"), accessor: "teacher", className: "hidden md:table-cell" });
+    columns.push({
+      header: th("teacher"),
+      accessor: "teacher",
+      className: "hidden md:table-cell",
+    });
   }
 
   if (role === "student") {
@@ -81,100 +87,153 @@ const renderRow = (
   item: AssignmentList,
   role: UserRole | null,
   assignmentsT: (key: string) => string,
+  locale: string = "en",
 ) => {
-  // ✅ استخدام assignmentSubmissions بدلاً من submissions
   const mySubmission = item.assignmentSubmissions?.[0] ?? null;
   const canManage = role === "teacher" || role === "admin";
 
   return (
     <tr
       key={item.id}
-      className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+      className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
     >
-      <td className="p-4">{item.title}</td>
-      <td className="flex items-center gap-4 p-4">{item.subject?.name ?? "-"}</td>
-      {role !== "student" && <td>{item.class?.name ?? "-"}</td>}
-      {role !== "teacher" && (
-        <td className="hidden md:table-cell">
-          {item.teacher?.name ?? item.lesson?.teacher.name ?? "-"}
+      <td className="px-4 py-3">
+        <div className="flex flex-col gap-0.5">
+          <span className="font-semibold text-slate-900 dark:text-slate-100 text-sm">
+            {item.title}
+          </span>
+          {/* Mobile secondary info */}
+          <div className="flex flex-wrap items-center gap-1.5 mt-0.5 md:hidden text-xs text-slate-500 dark:text-slate-400">
+            {item.subject?.name && (
+              <Badge variant="secondary" size="sm" className="text-[10px] py-0 px-1.5 font-normal">
+                {item.subject.name}
+              </Badge>
+            )}
+            {item.class?.name && (
+              <span className="text-[11px] text-slate-500">
+                {item.class.name}
+              </span>
+            )}
+            <span className="text-[11px] text-slate-400">
+              {formatDateTime(item.endDate, locale)}
+            </span>
+          </div>
+        </div>
+      </td>
+
+      <td className="px-4 py-3">
+        {item.subject?.name ? (
+          <Badge variant="secondary" size="sm" className="font-normal">
+            {item.subject.name}
+          </Badge>
+        ) : (
+          <span className="text-slate-400">—</span>
+        )}
+      </td>
+
+      {role !== "student" && (
+        <td className="px-4 py-3 text-slate-700 dark:text-slate-300 font-medium">
+          {item.class?.name ?? "—"}
         </td>
       )}
+
+      {role !== "teacher" && (
+        <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+          {item.teacher?.name ?? item.lesson?.teacher.name ?? "—"}
+        </td>
+      )}
+
       {role === "student" && (
-        <td>
+        <td className="px-4 py-3">
           {mySubmission ? (
-            <span
-              className={`inline-flex items-center rounded-md px-2 py-1 text-xs font-medium ${
+            <Badge
+              variant={
                 mySubmission.gradePublished
-                  ? "bg-academixPurpleLight text-academixPurpleDark"
+                  ? "primary"
                   : mySubmission.teacherFeedback
-                    ? "bg-blue-50 text-blue-700"
-                    : "bg-green-50 text-green-700"
-              }`}
+                    ? "info"
+                    : "success"
+              }
+              size="sm"
             >
               {mySubmission.gradePublished
                 ? assignmentsT("status.gradePublished")
                 : mySubmission.teacherFeedback
                   ? assignmentsT("status.feedbackReady")
                   : assignmentsT("status.submitted")}
-            </span>
+            </Badge>
           ) : (
-            <span className="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-500">
+            <Badge variant="secondary" size="sm">
               {assignmentsT("status.notSubmitted")}
-            </span>
+            </Badge>
           )}
         </td>
       )}
+
       {role === "student" && (
-        <td>
-          {mySubmission?.gradePublished && mySubmission.score !== null
-            ? `${mySubmission.score}/${item.maxScore}`
-            : "-"}
+        <td className="px-4 py-3">
+          {mySubmission?.gradePublished && mySubmission.score !== null ? (
+            <Badge variant="primary" size="sm" className="font-bold">
+              {mySubmission.score}/{item.maxScore}
+            </Badge>
+          ) : (
+            <span className="text-slate-400">—</span>
+          )}
         </td>
       )}
-      <td className="hidden md:table-cell w-[180px] min-w-[180px]">
-        {formatDateTime(item.endDate)}
+
+      <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
+        {formatDateTime(item.endDate, locale)}
       </td>
-      <td>
-        <div className="flex items-center gap-2 flex-wrap">
-          {/* زر Download للطالب فقط (إن وجد ملف) */}
+
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {/* Download button for student */}
           {role === "student" && item.fileUrl && (
             <a
               href={`/api/download/${item.id}?type=assignment`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-purple-50 text-purple-700 hover:bg-purple-100 transition-colors text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 text-purple-700 dark:text-purple-300 hover:bg-purple-100 transition-colors text-xs font-medium"
             >
               <Download className="w-3.5 h-3.5" />
               {assignmentsT("actions.download")}
             </a>
           )}
+
           {role === "student" && (
             <AssignmentSubmit
-              key={mySubmission?.id ?? 'no-submission'}
+              key={mySubmission?.id ?? "no-submission"}
               assignmentId={item.id}
               assignmentTitle={item.title}
               maxScore={item.maxScore}
               endDate={item.endDate}
-              allowLateSubmission={item.allowLateSubmission} // ✅
-              existingSubmission={mySubmission ? {
-                id: mySubmission.id,
-                fileUrl: mySubmission.fileUrl,
-                fileName: mySubmission.fileName,
-                createdAt: mySubmission.createdAt,
-                note: mySubmission.note,
-                teacherFeedback: mySubmission.teacherFeedback,
-                score: mySubmission.score,
-                gradePublished: mySubmission.gradePublished,
-              } : null}
+              allowLateSubmission={item.allowLateSubmission}
+              existingSubmission={
+                mySubmission
+                  ? {
+                      id: mySubmission.id,
+                      fileUrl: mySubmission.fileUrl,
+                      fileName: mySubmission.fileName,
+                      createdAt: mySubmission.createdAt,
+                      note: mySubmission.note,
+                      teacherFeedback: mySubmission.teacherFeedback,
+                      score: mySubmission.score,
+                      gradePublished: mySubmission.gradePublished,
+                    }
+                  : null
+              }
             />
           )}
+
           {canManage && (
             <Link
               href={`/list/assignments/${item.id}/submissions`}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-academixPurpleLight text-academixPurpleDark hover:brightness-95 transition-colors text-xs font-medium"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs text-purple-700 dark:text-purple-300 hover:bg-purple-50 dark:hover:bg-purple-950/40 transition-colors text-xs font-medium"
             >
               <Users className="w-3.5 h-3.5" />
               {assignmentsT("actions.submissions")}
             </Link>
           )}
+
           {(role === "admin" || role === "teacher") && (
             <>
               <FormContainer table="assignment" type="update" data={item} />
@@ -195,7 +254,10 @@ const AssignmentListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const assignmentsT = await getTranslations("assignmentsPage");
-  const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
+  const locale = await getLocale();
+  const { role, userId, schoolId } = await enforceRouteAccess(
+    "/list/assignments",
+  );
 
   const resolvedSearchParams = await searchParams;
 
@@ -234,10 +296,25 @@ const AssignmentListPage = async ({
         class: { select: { name: true } },
         lesson: { select: { teacher: { select: { name: true } } } },
         teacher: { select: { name: true } },
-        assignmentSubmissions: role === "student" && userId
-          ? { where: { studentId: userId }, select: { id: true, fileUrl: true, fileName: true, createdAt: true, note: true, teacherFeedback: true, score: true, gradePublished: true } }
+        assignmentSubmissions:
+          role === "student" && userId
+            ? {
+                where: { studentId: userId },
+                select: {
+                  id: true,
+                  fileUrl: true,
+                  fileName: true,
+                  createdAt: true,
+                  note: true,
+                  teacherFeedback: true,
+                  score: true,
+                  gradePublished: true,
+                },
+              }
+            : false,
+        _count: includeSubmissionsCount
+          ? { select: { assignmentSubmissions: true } }
           : false,
-        _count: includeSubmissionsCount ? { select: { assignmentSubmissions: true } } : false,
       },
       orderBy,
       take: ITEM_PER_PAGE,
@@ -245,6 +322,7 @@ const AssignmentListPage = async ({
     }),
     prisma.assignment.count({ where: query }),
   ]);
+
   const [classes, grades] =
     role === "admin"
       ? await prisma.$transaction([
@@ -262,36 +340,40 @@ const AssignmentListPage = async ({
       : [[], []];
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allAssignments")}</h1>
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && (
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allAssignments")}
+        count={count}
+        actions={
+          role === "admin" || role === "teacher" ? (
+            <>
+              {role === "admin" && (
+                <ExportButton
+                  href={`/api/admin/assignments/export?${exportQuery.toString()}`}
+                />
+              )}
+              <FormContainer table="assignment" type="create" />
+            </>
+          ) : undefined
+        }
+      />
+
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          role === "admin" ? (
             <>
               <GradeFilter grades={grades} />
               <ClassFilter classes={classes} />
             </>
-          )}
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-            {(role === "admin" || role === "teacher") && (
-              <>
-                {role === "admin" && (
-                  <ExportButton
-                    href={`/api/admin/assignments/export?${exportQuery.toString()}`}
-                  />
-                )}
-                <FormContainer table="assignment" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+          ) : undefined
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role, assignmentsT)}
+        renderRow={(item) => renderRow(item, role, assignmentsT, locale)}
         data={data}
         emptyTitle={assignmentsT("empty.title")}
         emptyDescription={assignmentsT("empty.description")}

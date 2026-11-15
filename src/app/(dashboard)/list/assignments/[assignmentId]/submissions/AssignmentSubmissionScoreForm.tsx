@@ -5,6 +5,7 @@ import { Loader2, Save } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { toast } from "react-toastify";
+import { useTranslations } from "next-intl";
 
 type Props = {
   submissionId: number;
@@ -17,6 +18,7 @@ export default function AssignmentSubmissionScoreForm({
   maxScore,
   currentScore,
 }: Props) {
+  const t = useTranslations("assignmentsPage");
   const router = useRouter();
   const [score, setScore] = useState(currentScore?.toString() ?? "0");
   const [isPending, startTransition] = useTransition();
@@ -57,7 +59,8 @@ export default function AssignmentSubmissionScoreForm({
         type="submit"
         disabled={isPending}
         className="inline-flex h-9 w-9 items-center justify-center rounded-md bg-academixPurpleDark text-white transition hover:brightness-90 disabled:opacity-60"
-        title="Save score"
+        title={t("saveScore")}
+        aria-label={t("saveScore")}
       >
         {isPending ? (
           <Loader2 className="h-4 w-4 animate-spin" />

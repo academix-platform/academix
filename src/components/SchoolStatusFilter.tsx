@@ -2,10 +2,15 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { Select } from "@/components/ui/select";
 
 const statuses = ["ALL", "PENDING", "ACTIVE", "PAUSED"] as const;
 
-const SchoolStatusFilter = () => {
+type Props = {
+  className?: string;
+};
+
+const SchoolStatusFilter = ({ className }: Props) => {
   const t = useTranslations("filters");
   const router = useRouter();
   const pathname = usePathname();
@@ -23,17 +28,18 @@ const SchoolStatusFilter = () => {
   };
 
   return (
-    <select
+    <Select
       value={searchParams.get("status") ?? "ALL"}
       onChange={(e) => onChange(e.target.value)}
-      className="px-3 py-2 border border-gray-300 rounded-md text-sm"
+      containerClassName={className || "w-full sm:w-36"}
+      aria-label={t("status") || "School Status"}
     >
       {statuses.map((status) => (
         <option key={status} value={status}>
           {status === "ALL" ? t("all") : t(status.toLowerCase())}
         </option>
       ))}
-    </select>
+    </Select>
   );
 };
 

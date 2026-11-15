@@ -2,11 +2,16 @@ import BigCalendarContainer from "@/components/BigCalendarContainer";
 import EmptyState from "@/components/states/EmptyState";
 import ExportButton from "@/components/ExportButton";
 import FormContainer from "@/components/FormContainer";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { DataPageHeader } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { computeClassSelection } from "@/lib/lessons/classSelection";
 import { getAccessibleClasses } from "@/lib/lessons/getClasses";
 import { parseLessonParams } from "@/lib/lessons/lessonParams";
 import { type PageSearchParams } from "@/lib/pageParams";
+import { cn } from "@/lib/utils";
+import { Layers, School } from "lucide-react";
 import { getTranslations } from "next-intl/server";
 import Link from "next/link";
 
@@ -18,6 +23,7 @@ const LessonListPage = async ({
   const user = await enforceRouteAccess("/list/lessons");
   const t = await getTranslations("lessonsPage");
   const filtersT = await getTranslations("filters");
+  const sidebarT = await getTranslations("sidebar.items");
   const resolvedSearchParams = await searchParams;
 
   const role = user.role;
@@ -64,100 +70,144 @@ const LessonListPage = async ({
   };
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex justify-between md:items-center gap-4">
-        <h1 className="font-semibold text-xl">{t("title")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      {/* Breadcrumb Navigation */}
+      <Breadcrumbs
+        items={[
+          { label: sidebarT("schedules"), isCurrent: true },
+        ]}
+      />
 
-        <div className="flex items-center gap-2">
-          {role === "admin" && selectedClass && (
-            <ExportButton
-              href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
-            />
-          )}
-
-          {role === "admin" && selectedClass && (
-            <div className="self-end md:self-auto">
+      {/* Page Header */}
+      <DataPageHeader
+        title={t("title")}
+        count={classes.length}
+        description={
+          selectedClass
+            ? t("scheduleFor", {
+                grade: selectedClass.grade.level,
+                className: selectedClass.name,
+              })
+            : undefined
+        }
+        actions={
+          role === "admin" && selectedClass ? (
+            <div className="flex items-center gap-2">
+              <ExportButton
+                href={`/api/admin/lessons/export?classId=${selectedClass.id}`}
+              />
               <FormContainer
                 table="lesson"
                 type="update"
                 data={{ classId: selectedClass.id }}
               />
             </div>
-          )}
-        </div>
-      </div>
+          ) : undefined
+        }
+      />
 
       {classes.length === 0 ? (
-        <EmptyState
-          title={t("empty.noClassesTitle")}
-          description={t("empty.noClassesDescription")}
-          className="mt-6"
-        />
+        <div className="bg-surface border border-outline/80 rounded-2xl p-6 md:p-8 shadow-2xs">
+          <EmptyState
+            title={t("empty.noClassesTitle")}
+            description={t("empty.noClassesDescription")}
+          />
+        </div>
       ) : (
         <>
-          <div className="flex flex-wrap items-center gap-2 mt-6">
-            <span className="me-1 font-medium text-gray-600 text-xs">
-              {t("grade")}
-            </span>
+          {/* Grade & Class Selection Toolbar */}
+          <div className="bg-surface border border-outline/80 rounded-2xl p-5 md:p-6 shadow-2xs space-y-4">
+            {/* Grade Selection Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 min-w-[85px] text-content-secondary shrink-0">
+                <Layers className="w-4 h-4 text-brandPurple-600 dark:text-brandPurple-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-content-muted">
+                  {t("grade")}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {availableGrades.map((gradeLevel) => {
+                  const isActive = selectedGrade === gradeLevel;
+                  return (
+                    <Link
+                      key={gradeLevel}
+                      href={buildGradeHref(gradeLevel)}
+                      className={cn(
+                        "inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-2xs",
+                        isActive
+                          ? "bg-brandPurple-600 text-white shadow-brandPurple-500/20 ring-2 ring-brandPurple-600/30 font-bold"
+                          : "bg-surface border border-outline/80 text-content-secondary hover:text-content-primary hover:bg-surface-muted hover:border-outline"
+                      )}
+                    >
+                      {filtersT("gradeLevel", { level: gradeLevel })}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
 
-            {availableGrades.map((gradeLevel) => (
-              <Link
-                key={gradeLevel}
-                href={buildGradeHref(gradeLevel)}
-                className={`whitespace-nowrap rounded-md px-3 py-1.5 text-xs font-medium border transition-colors ${
-                  selectedGrade === gradeLevel
-                    ? "bg-academixPurple text-white border-academixPurple"
-                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
-              >
-                {filtersT("gradeLevel", { level: gradeLevel })}
-              </Link>
-            ))}
+            {/* Divider */}
+            <div className="h-px bg-outline/60" />
+
+            {/* Classes Selection Row */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+              <div className="flex items-center gap-2 min-w-[85px] text-content-secondary shrink-0">
+                <School className="w-4 h-4 text-brandPurple-600 dark:text-brandPurple-400" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-content-muted">
+                  {t("classes")}
+                </span>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                {filteredClasses.map((item) => {
+                  const isActive = selectedClass?.id === item.id;
+                  return (
+                    <Link
+                      key={item.id}
+                      href={buildTabHref(item.id)}
+                      className={cn(
+                        "inline-flex items-center justify-center px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all shadow-2xs",
+                        isActive
+                          ? "bg-brandPurple-600 text-white shadow-brandPurple-500/20 ring-2 ring-brandPurple-600/30 font-bold"
+                          : "bg-surface border border-outline/80 text-content-secondary hover:text-content-primary hover:bg-surface-muted hover:border-outline"
+                      )}
+                    >
+                      {`G${item.grade.level} - ${item.name}`}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 mt-6">
-            <span className="me-1 font-medium text-gray-600 text-xs">
-              {t("classes")}
-            </span>
-
-            {filteredClasses.map((item) => {
-              const isActive = selectedClass?.id === item.id;
-
-              return (
-                <Link
-                  key={item.id}
-                  href={buildTabHref(item.id)}
-                  className={`whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium border transition-colors ${
-                    isActive
-                      ? "bg-academixSky text-white border-academixSky"
-                      : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                  }`}
-                >
-                  {`G${item.grade.level} - ${item.name}`}
-                </Link>
-              );
-            })}
-          </div>
-
+          {/* Timetable Section (Calendar untouched) */}
           {selectedClass ? (
-            <div className="mt-4">
-              <div className="flex justify-between items-center mb-3">
-                <h2 className="font-medium text-gray-700 text-sm">
-                  {t("scheduleFor", {
-                    grade: selectedClass.grade.level,
-                    className: selectedClass.name,
-                  })}
-                </h2>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span className="text-xs font-semibold uppercase tracking-wider text-content-muted">
+                    {t("scheduleFor", {
+                      grade: selectedClass.grade.level,
+                      className: selectedClass.name,
+                    })}
+                  </span>
+                  <Badge variant="outline" size="sm" className="font-semibold">
+                    {`G${selectedClass.grade.level} - ${selectedClass.name}`}
+                  </Badge>
+                </div>
               </div>
 
-              <BigCalendarContainer type="classId" id={selectedClass.id} />
+              <div className="bg-surface border border-outline/80 rounded-2xl p-4 sm:p-6 shadow-2xs">
+                <BigCalendarContainer type="classId" id={selectedClass.id} />
+              </div>
             </div>
           ) : (
-            <EmptyState
-              title={t("empty.noClassesTitle")}
-              description={t("empty.noClassesForGrade")}
-              className="mt-4"
-            />
+            <div className="bg-surface border border-outline/80 rounded-2xl p-6 md:p-8 shadow-2xs">
+              <EmptyState
+                title={t("empty.noClassesTitle")}
+                description={t("empty.noClassesForGrade")}
+              />
+            </div>
           )}
         </>
       )}

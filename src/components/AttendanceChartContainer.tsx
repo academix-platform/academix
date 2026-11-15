@@ -1,18 +1,17 @@
-import { MoreHorizontal } from "lucide-react";
 import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
-import { getAuthUser, requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
+import Link from "next/link";
+import { ArrowUpRight, CheckCircle2, ClipboardCheck } from "lucide-react";
 
 const AttendanceChartContainer = async () => {
-  const t = await getTranslations("pages");
-  const user = requireAuth();
+  const adminT = await getTranslations("adminDashboard");
+  const user = await requireAuth();
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(
-    (await user).schoolId,
-  );
+  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
 
   if (!academicYearId) {
     return <NoCurrentAcademicYearMessage compact />;
@@ -29,20 +28,26 @@ const AttendanceChartContainer = async () => {
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekStart.getDate() + 6);
 
-  const responseData = await prisma.attendance.findMany({
-    where: {
-      schoolId: (await user).schoolId,
-      academicYearId,
-      date: {
-        gte: weekStart,
-        lt: weekEnd,
+  const [responseData, totalStudents] = await Promise.all([
+    prisma.attendance.findMany({
+      where: {
+        schoolId: user.schoolId,
+        academicYearId,
+        studentId: { not: null },
+        date: {
+          gte: weekStart,
+          lt: weekEnd,
+        },
       },
-    },
-    select: {
-      date: true,
-      present: true,
-    },
-  });
+      select: {
+        date: true,
+        present: true,
+      },
+    }),
+    prisma.student.count({
+      where: { schoolId: user.schoolId },
+    }),
+  ]);
 
   const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
   const workingDays = ["Sat", "Sun", "Mon", "Tue", "Wed", "Thu"];
@@ -75,13 +80,64 @@ const AttendanceChartContainer = async () => {
     absent: attendanceMap[day].absent,
   }));
 
+  const totalRecords = responseData.length;
+
   return (
-    <div className="bg-white p-4 rounded-lg w-full h-full">
-      <div className="flex justify-between items-center">
-        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
-        <MoreHorizontal className="w-5 h-5 text-gray-500" />
+    <div className="flex flex-col justify-between bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs w-full min-h-[450px]">
+      {/* Card Header */}
+      <div className="flex items-center justify-between gap-3 mb-4 shrink-0">
+        <div>
+          <h2 className="font-bold text-base text-content-primary">
+            {adminT("attendanceTitle")}
+          </h2>
+          {totalRecords > 0 && (
+            <p className="text-xs text-content-muted mt-0.5">
+              {adminT("recordsLoggedWeek", { count: totalRecords })}
+            </p>
+          )}
+        </div>
+
+        <Link
+          href="/list/attendance"
+          className="inline-flex items-center gap-1 text-xs font-semibold text-brandPurple-700 hover:text-brandPurple-800 hover:underline transition shrink-0"
+        >
+          <span>{adminT("viewAttendanceLog")}</span>
+          <ArrowUpRight className="w-3.5 h-3.5 rtl:rotate-[-90deg]" />
+        </Link>
       </div>
-      <AttendanceChart data={data} />
+
+      {/* Main Content: Chart OR Rich Actionable Empty State */}
+      <div className="w-full flex-1 min-h-[350px] flex flex-col items-center justify-center">
+        {totalRecords === 0 ? (
+          <div className="flex flex-col items-center justify-center text-center p-8 mx-auto my-auto w-full max-w-md rounded-2xl border border-dashed border-outline/90 bg-surface-muted/30">
+            <div className="flex items-center justify-center w-14 h-14 rounded-2xl bg-brandPurple-50 dark:bg-brandPurple-950/40 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100 dark:border-brandPurple-900/50 mb-3.5 shadow-2xs">
+              <ClipboardCheck className="w-7 h-7" />
+            </div>
+
+            <h3 className="font-bold text-sm sm:text-base text-content-primary mb-1.5">
+              {adminT("emptyAttendanceTitle")}
+            </h3>
+
+            <p className="text-xs text-content-muted leading-relaxed max-w-sm mb-5">
+              {adminT("emptyAttendanceDesc")}
+            </p>
+
+            <Link
+              href="/list/attendance"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brandPurple-600 hover:bg-brandPurple-700 text-white font-semibold text-xs shadow-xs hover:shadow-sm transition-all"
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{adminT("takeAttendanceToday")}</span>
+            </Link>
+          </div>
+        ) : (
+          <AttendanceChart
+            data={data}
+            totalRecords={totalRecords}
+            totalStudents={totalStudents}
+          />
+        )}
+      </div>
     </div>
   );
 };

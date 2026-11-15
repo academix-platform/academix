@@ -27,7 +27,12 @@ export const createStudent = async (
       include: { _count: { select: { students: true } } },
     });
 
-    if (classItem && classItem.capacity === classItem._count.students) {
+    // A class from another school would put this student, and their enrollment, in it.
+    if (!classItem) {
+      return { success: false, error: true, message: "Class not found." };
+    }
+
+    if (classItem._count.students >= classItem.capacity) {
       return {
         success: false,
         error: true,

@@ -3,6 +3,8 @@
 import { useClerk } from "@clerk/nextjs";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const SignOutToSignInButton = () => {
   const t = useTranslations("auth.signOut");
@@ -10,7 +12,7 @@ const SignOutToSignInButton = () => {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   return (
-    <button
+    <Button
       type="button"
       onClick={async () => {
         setIsSigningOut(true);
@@ -19,10 +21,25 @@ const SignOutToSignInButton = () => {
         });
       }}
       disabled={isSigningOut}
-      className="inline-flex bg-gradient-to-br from-fuchsia-600 to-violet-600 disabled:opacity-80 shadow-md px-4 py-2 rounded-md text-white text-sm"
+      variant="primary"
+      size="md"
+      className="font-semibold shadow-xs"
     >
-      {isSigningOut ? t("signingOut") : t("backToSignIn")}
-    </button>
+      {isSigningOut ? (
+        <>
+          <span
+            className="border-2 border-white/40 border-t-white rounded-full w-4 h-4 animate-spin"
+            aria-hidden="true"
+          />
+          <span>{t("signingOut")}</span>
+        </>
+      ) : (
+        <>
+          <LogOut className="w-4 h-4 rtl:rotate-180" />
+          <span>{t("backToSignIn")}</span>
+        </>
+      )}
+    </Button>
   );
 };
 

@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { arSA } from "@clerk/localizations";
 import { ToastContainer } from "react-toastify";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "Academix - School Management & Assessment System",
@@ -20,17 +18,23 @@ export default async function RootLayout({
 }>) {
   const locale = await getLocale();
   const messages = await getMessages();
+  const isRtl = locale === "ar";
 
   return (
-    <html lang={locale} dir={locale === "ar" ? "rtl" : "ltr"}>
-      <body className={inter.className}>
+    <html lang={locale} dir={isRtl ? "rtl" : "ltr"}>
+      <body className={isRtl ? "font-arabic" : "font-sans"}>
         <ClerkProvider
+          localization={isRtl ? arSA : undefined}
           signInFallbackRedirectUrl="/post-login"
           signInForceRedirectUrl="/post-login"
         >
           <NextIntlClientProvider messages={messages}>
             {children}
-            <ToastContainer position="bottom-right" theme="dark" />
+            <ToastContainer
+              position={isRtl ? "bottom-left" : "bottom-right"}
+              theme="dark"
+              rtl={isRtl}
+            />
           </NextIntlClientProvider>
         </ClerkProvider>
       </body>

@@ -9,7 +9,7 @@ import {
   parseAttendanceRecords,
   todayInTimeZone,
 } from "../attendanceRules";
-import { requireActionAccess } from "./helpers";
+import { requireActionAccess, getRequiredAcademicYearId } from "./helpers";
 
 const fail = (message: string) => ({ success: false, error: true, message });
 
@@ -132,5 +132,93 @@ export const saveDailyAttendance = async (
   } catch (err) {
     console.error(err);
     return fail(err instanceof Error ? err.message : "Something went wrong!");
+  }
+};
+
+export const saveWeeklyAttendance = async (
+  prevState: any,
+  formData: FormData,
+) => {
+  const access = await requireActionAccess(["admin", "teacher"]);
+  if ("error" in access) return access;
+
+  try {
+    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+
+    const scope = formData.get("scope");
+    if (scope !== "students" && scope !== "teachers") {
+      throw new Error("Invalid scope");
+    }
+
+    const raw = formData.get("changes");
+    if (!raw || typeof raw !== "string") {
+      throw new Error("No changes");
+    }
+
+    const changes = JSON.parse(raw) as Array<{
+      id: string;
+      date: string;
+      present: boolean;
+    }>;
+
+    if (!Array.isArray(changes) || changes.length === 0) {
+      return { success: true, error: false };
+    }
+
+    await prisma.$transaction(
+      changes.map(({ id, date, present }) => {
+        const day = new Date(new Date(date).toISOString().slice(0, 10));
+        if (scope === "students") {
+          return prisma.attendance.upsert({
+            where: {
+              studentId_academicYearId_date: {
+                studentId: id,
+                academicYearId,
+                date: day,
+              },
+            },
+            update: { present },
+            create: {
+              schoolId: access.schoolId,
+              studentId: id,
+              academicYearId,
+              date: day,
+              present,
+            },
+          });
+        }
+
+        return prisma.attendance.upsert({
+          where: {
+            teacherId_academicYearId_date: {
+              teacherId: id,
+              academicYearId,
+              date: day,
+            },
+          },
+          update: { present },
+          create: {
+            schoolId: access.schoolId,
+            teacherId: id,
+            academicYearId,
+            date: day,
+            present,
+          },
+        });
+      }),
+    );
+
+    // Notify admin
+    await notifyAttendanceSaved({
+      schoolId: access.schoolId,
+      scope: scope as "students" | "teachers",
+      date: changes[0]?.date || new Date().toISOString().slice(0, 10),
+      count: changes.length,
+    }).catch(() => {});
+
+    return { success: true, error: false };
+  } catch (err: any) {
+    console.error(err);
+    return { success: false, error: true, message: err.message };
   }
 };

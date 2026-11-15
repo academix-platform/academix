@@ -35,3 +35,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+#agents
+/.agents
+# clerk configuration (can include secrets)
+/.clerk/
+
+scratch/
+
+# sheet reading test: photos and answers stay on this computer
+/scripts/sheet-test/photos/

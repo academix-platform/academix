@@ -1,9 +1,11 @@
 // src/app/(dashboard)/list/notifications/page.tsx
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Prisma } from "@prisma/client";
+import { getTranslations } from "next-intl/server";
 import NotificationsClient from "./NotificationsClient";
 
 const TYPE_OPTIONS = [
@@ -12,7 +14,7 @@ const TYPE_OPTIONS = [
   { value: "ASSIGNMENT_UPDATED",  labelKey: "assignmentUpdates" },
   { value: "ASSIGNMENT_FEEDBACK", labelKey: "feedback"          },
   { value: "NEW_EXAM",            labelKey: "exams"             },
-  { value: "GRADE_POSTED",        labelKey: "grades"            },
+  { value: "GRADE_POSTED",        labelKey: "gradeMarks"        },
   { value: "GRADE_UPDATED",       labelKey: "gradeUpdates"      },
   { value: "NEW_ANNOUNCEMENT",    labelKey: "announcements"     },
   { value: "NEW_EVENT",           labelKey: "events"            },
@@ -28,6 +30,7 @@ export default async function NotificationsPage({
   searchParams: PageSearchParams;
 }) {
   const { userId } = await enforceRouteAccess("/list/notifications");
+  const sidebarT = await getTranslations("sidebar.items");
   const resolved = await searchParams;
 
   const p      = parseInt(getQueryParam(resolved.page)   ?? "1");
@@ -56,7 +59,13 @@ export default async function NotificationsPage({
   ]);
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <Breadcrumbs
+        items={[
+          { label: sidebarT("notifications"), isCurrent: true },
+        ]}
+      />
+
       <NotificationsClient
         notifications={notifications.map(n => ({
           ...n,

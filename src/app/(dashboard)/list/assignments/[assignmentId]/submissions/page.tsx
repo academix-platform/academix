@@ -7,7 +7,7 @@ import type { AiEvaluation } from "@prisma/client";
 import { Download, Eye } from "lucide-react";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import AssignmentSubmissionAiEvaluation from "./AssignmentSubmissionAiEvaluation";
 import AssignmentSubmissionBulkActions from "./AssignmentSubmissionBulkActions";
 import AssignmentSubmissionScoreForm from "./AssignmentSubmissionScoreForm";
@@ -49,8 +49,8 @@ const getColumns = (th: (key: string) => string) => [
   { header: th("actions"), accessor: "actions", className: "min-w-[130px] p-4" },
 ];
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
@@ -104,6 +104,7 @@ const renderRow = (
   item: SubmissionRow,
   maxScore: number,
   t: (key: string) => string,
+  locale: string = "en",
 ) => {
   const isPdfSubmission = getFileExtension(item.fileName) === "pdf";
 
@@ -144,7 +145,7 @@ const renderRow = (
         />
       </td>
       <td className="hidden p-4 text-gray-500 md:table-cell">
-        {formatDateTime(item.updatedAt)}
+        {formatDateTime(item.updatedAt, locale)}
       </td>
       <td className="min-w-[320px] p-4">
         <div className="flex flex-wrap items-center gap-2">
@@ -191,6 +192,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
   const filtersT = await getTranslations("filters");
   const actionsT = await getTranslations("actions");
   const assignmentSubmissionsT = await getTranslations("assignmentSubmissions");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/assignments");
   const { assignmentId: assignmentIdRaw } = await params;
   const resolvedSearchParams = await searchParams;
@@ -374,6 +376,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
                 item as SubmissionRow,
                 assignment.maxScore,
                 assignmentSubmissionsT,
+                locale,
               )
             }
             data={submissions}

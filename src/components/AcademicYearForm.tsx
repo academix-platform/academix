@@ -2,7 +2,9 @@
 
 import { createAcademicYear, updateAcademicYear } from "@/lib/actions";
 import type { AcademicYearItem } from "@/lib/academicYears";
-import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Edit2, Plus, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
@@ -87,71 +89,86 @@ const AcademicYearForm = ({ academicYears }: Props) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col">
-          <h2 className="font-semibold text-lg">{t("title")}</h2>
-          <p className="mt-2 text-gray-500 text-sm">
-            {t("description")}
-          </p>
+      <div className="bg-surface border border-outline/80 p-6 rounded-2xl shadow-2xs space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-outline/60">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-bold text-base md:text-lg text-content-primary tracking-tight">
+              {t("title")}
+            </h2>
+            <p className="text-xs sm:text-sm text-content-muted">
+              {t("description")}
+            </p>
+          </div>
+          <Button
+            type="button"
+            variant="primary"
+            size="sm"
+            onClick={() => {
+              setForm(emptyFormState);
+              setIsModalOpen(true);
+            }}
+            leftIcon={<Plus className="w-4 h-4" />}
+          >
+            {t("add")}
+          </Button>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            setForm(emptyFormState);
-            setIsModalOpen(true);
-          }}
-          className="bg-academixPurpleDark hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
-        >
-          {t("add")}
-        </button>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full text-sm">
-          <thead>
-            <tr className="border-b text-start">
-              <th className="px-2 py-2 font-semibold">{th("name")}</th>
-              <th className="px-2 py-2 font-semibold">{th("range")}</th>
-              <th className="px-2 py-2 font-semibold">{th("current")}</th>
-              <th className="px-2 py-2 font-semibold">{th("actions")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedYears.length === 0 ? (
-              <tr>
-                <td className="px-2 py-3 text-gray-500" colSpan={4}>
-                  {t("empty")}
-                </td>
+        <div className="overflow-x-auto">
+          <table className="w-full text-xs sm:text-sm">
+            <thead>
+              <tr className="border-b border-outline/70 bg-surface-muted/40 text-content-muted text-start text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-4 py-3 text-start">{th("name")}</th>
+                <th className="px-4 py-3 text-start">{th("range")}</th>
+                <th className="px-4 py-3 text-start">{th("current")}</th>
+                <th className="px-4 py-3 text-end">{th("actions")}</th>
               </tr>
-            ) : (
-              sortedYears.map((year) => (
-                <tr key={year.id} className="border-b">
-                  <td className="px-2 py-3">{year.name}</td>
-                  <td className="px-2 py-3">
-                    {year.startDate} - {year.endDate}
-                  </td>
-                  <td className="px-2 py-3">
-                    {year.isCurrent ? actionsT("yes") : actionsT("no")}
-                  </td>
-                  <td className="px-2 py-3">
-                    <button
-                      className="text-academixPurpleDark hover:underline"
-                      type="button"
-                      onClick={() => onEdit(year)}
-                    >
-                      {actionsT("edit")}
-                    </button>
+            </thead>
+            <tbody className="divide-y divide-outline/60">
+              {sortedYears.length === 0 ? (
+                <tr>
+                  <td className="px-4 py-8 text-center text-content-muted" colSpan={4}>
+                    {t("empty")}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                sortedYears.map((year) => (
+                  <tr key={year.id} className="hover:bg-surface-muted/40 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-content-primary">{year.name}</td>
+                    <td className="px-4 py-3 text-content-secondary tabular-nums">
+                      {year.startDate} - {year.endDate}
+                    </td>
+                    <td className="px-4 py-3">
+                      {year.isCurrent ? (
+                        <Badge variant="success" size="sm" className="font-semibold">
+                          {actionsT("yes")}
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" size="sm">
+                          {actionsT("no")}
+                        </Badge>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-end">
+                      <button
+                        className="p-1.5 rounded-lg text-brandPurple-600 dark:text-brandPurple-400 hover:bg-brandPurple-50 dark:hover:bg-brandPurple-950/40 transition-colors inline-flex items-center gap-1 font-semibold text-xs"
+                        type="button"
+                        onClick={() => onEdit(year)}
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>{actionsT("edit")}</span>
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {isModalOpen ? (
         <div
-          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/50 p-4"
           onMouseDown={(event) => {
             if (event.target === event.currentTarget) {
               onReset();
@@ -159,34 +176,34 @@ const AcademicYearForm = ({ academicYears }: Props) => {
           }}
         >
           <form
-            className="relative bg-white p-5 rounded-md w-full max-w-3xl"
+            className="relative bg-surface border border-outline/80 shadow-2xl p-6 rounded-2xl w-full max-w-2xl space-y-5"
             onSubmit={onSubmit}
             role="dialog"
             aria-modal="true"
             onMouseDown={(event) => event.stopPropagation()}
           >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-lg">
+            <div className="flex justify-between items-center pb-3 border-b border-outline/60">
+              <h3 className="font-bold text-base md:text-lg text-content-primary tracking-tight">
                 {form.id ? t("editTitle") : t("add")}
               </h3>
               <button
                 type="button"
                 onClick={onReset}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                className="p-1.5 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
                 aria-label={actionsT("close")}
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-              <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-medium text-gray-700 text-sm">
+              <label className="flex flex-col gap-1.5 md:col-span-2">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
                   {th("name")}
                 </span>
                 <input
                   type="text"
-                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
                   value={form.name}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, name: e.target.value }))
@@ -196,13 +213,13 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                 />
               </label>
 
-              <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-600 text-sm">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
                   {t("startDate")}
                 </span>
                 <input
                   type="date"
-                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
                   value={form.startDate}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, startDate: e.target.value }))
@@ -211,13 +228,13 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                 />
               </label>
 
-              <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-700 text-sm">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
                   {t("endDate")}
                 </span>
                 <input
                   type="date"
-                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 text-sm transition-all"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
                   value={form.endDate}
                   onChange={(e) =>
                     setForm((prev) => ({ ...prev, endDate: e.target.value }))
@@ -227,23 +244,32 @@ const AcademicYearForm = ({ academicYears }: Props) => {
               </label>
             </div>
 
-            <label className="flex items-center gap-2 mt-4 font-medium text-gray-700 text-sm">
+            <label className="flex items-center gap-2.5 pt-2 text-sm font-medium text-content-primary cursor-pointer">
               <input
                 type="checkbox"
                 checked={form.isCurrent}
                 onChange={(e) =>
                   setForm((prev) => ({ ...prev, isCurrent: e.target.checked }))
                 }
-                className="border-gray-300 rounded focus:ring-academixPurpleDark w-4 h-4 text-academixPurpleDark"
+                className="w-4 h-4 rounded text-brandPurple-600 focus:ring-brandPurple-500 border-outline"
               />
-              {t("markCurrent")}
+              <span>{t("markCurrent")}</span>
             </label>
 
-            <div className="flex gap-3 mt-5">
-              <button
-                className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-6 py-3 rounded-lg w-full font-semibold text-white text-base transition-all"
-                disabled={isSubmitting}
+            <div className="flex justify-end gap-2.5 pt-3 border-t border-outline/60">
+              <Button
+                type="button"
+                variant="secondary"
+                size="md"
+                onClick={onReset}
+              >
+                {actionsT("cancel")}
+              </Button>
+              <Button
                 type="submit"
+                variant="primary"
+                size="md"
+                loading={isSubmitting}
               >
                 {form.id
                   ? isSubmitting
@@ -252,7 +278,7 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                   : isSubmitting
                     ? actionsT("creating")
                     : t("create")}
-              </button>
+              </Button>
             </div>
           </form>
         </div>

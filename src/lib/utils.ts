@@ -92,3 +92,68 @@ export function getRoleHome(role: UserRole): string {
   };
   return homes[role];
 }
+export function debounce<Args extends unknown[]>(
+  fn: (...args: Args) => void,
+  delay: number
+) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  let latestArgs: Args | undefined;
+
+  const debounced = (...args: Args) => {
+    latestArgs = args;
+    if (timeoutId) clearTimeout(timeoutId);
+    timeoutId = setTimeout(() => {
+      fn(...args);
+      latestArgs = undefined;
+    }, delay);
+  };
+
+  debounced.flush = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = undefined;
+    }
+    if (latestArgs) {
+      fn(...latestArgs);
+      latestArgs = undefined;
+    }
+  };
+
+  return debounced;
+}
+
+export type ClassValue =
+  | string
+  | number
+  | bigint
+  | boolean
+  | undefined
+  | null
+  | { [key: string]: boolean | undefined | null }
+  | ClassValue[];
+
+/**
+ * Standard zero-dependency utility for conditional class merging.
+ * Preserves Tailwind design tokens and removes falsy values cleanly.
+ */
+export function cn(...inputs: ClassValue[]): string {
+  const classes: string[] = [];
+
+  const process = (val: ClassValue): void => {
+    if (!val) return;
+    if (typeof val === "string" || typeof val === "number" || typeof val === "bigint") {
+      classes.push(String(val));
+    } else if (Array.isArray(val)) {
+      val.forEach(process);
+    } else if (typeof val === "object") {
+      for (const key in val) {
+        if (Object.prototype.hasOwnProperty.call(val, key) && val[key]) {
+          classes.push(key);
+        }
+      }
+    }
+  };
+
+  inputs.forEach(process);
+  return classes.join(" ").trim();
+}

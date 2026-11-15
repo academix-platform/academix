@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import { toast } from "react-toastify";
 import {
   Upload,
@@ -42,6 +42,7 @@ export default function AssignmentSubmit({
   existingSubmission,
 }: Props) {
   const t = useTranslations("assignmentsPage");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [selectedFileName, setSelectedFileName] = useState("");
   const formRef = useRef<HTMLFormElement>(null);
@@ -175,7 +176,7 @@ export default function AssignmentSubmit({
             </p>
             <p className="mb-1 text-gray-400 text-xs">
               {t("modal.due", {
-                date: new Date(endDate).toLocaleDateString("en-GB"),
+                date: new Date(endDate).toLocaleDateString(locale),
               })}
             </p>
 
@@ -227,7 +228,7 @@ export default function AssignmentSubmit({
                 <p className="mt-1 text-gray-400 text-xs">
                   {t("modal.submittedDate", {
                     date: new Date(existingSubmission.createdAt).toLocaleDateString(
-                      "en-GB",
+                      locale,
                     ),
                   })}
                 </p>

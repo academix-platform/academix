@@ -4,13 +4,15 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint .",
     "test": "vitest run",
+    "sheet-test": "tsx --conditions=react-server scripts/sheet-test/run.ts",
     "postinstall": "prisma generate"
   },
   "dependencies": {
+    "@clerk/localizations": "^4.24.8",
     "@clerk/nextjs": "^7.0.12",
     "@google/genai": "^2.7.0",
     "@hookform/resolvers": "^3.9.0",

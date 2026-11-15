@@ -7,7 +7,10 @@ import {
 } from "@/lib/actions";
 import type { SchoolDayExceptionItem } from "@/lib/schoolSettings";
 import { schoolWeekDays, type SchoolWeekDay } from "@/lib/schoolCalendar";
-import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+import { Calendar, Trash2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useMemo, useState, useTransition } from "react";
@@ -119,11 +122,15 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="space-y-4 bg-gray-50 p-6 rounded-xl">
-        <span className="block font-semibold text-gray-700 text-sm">
-          {t("weeklyWorkingDays")}
-        </span>
-        <div className="flex flex-wrap gap-2">
+      {/* Weekly Working Days */}
+      <div className="space-y-6 bg-surface border border-outline/80 p-6 rounded-2xl shadow-2xs">
+        <div>
+          <h3 className="font-bold text-content-primary text-base tracking-tight">
+            {t("weeklyWorkingDays")}
+          </h3>
+        </div>
+
+        <div className="flex flex-wrap gap-2.5">
           {schoolWeekDays.map((day) => {
             const isActive = workingDays.includes(day);
             return (
@@ -131,67 +138,75 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                 key={day}
                 type="button"
                 onClick={() => toggleDay(day)}
-                className={`px-3 py-2 border rounded-md text-sm font-medium transition-colors ${
+                className={cn(
+                  "inline-flex items-center justify-center px-4 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all shadow-2xs cursor-pointer",
                   isActive
-                    ? "bg-academixPurpleLight border-academixPurpleDark text-academixPurpleDark"
-                    : "bg-white border-gray-200 text-gray-700"
-                }`}
+                    ? "bg-brandPurple-600 text-white shadow-brandPurple-500/20 ring-2 ring-brandPurple-600/30 font-bold"
+                    : "bg-surface border border-outline/80 text-content-secondary hover:text-content-primary hover:bg-surface-muted hover:border-outline"
+                )}
               >
                 {t(`days.${day}`)}
               </button>
             );
           })}
         </div>
-        <button
-          type="button"
-          onClick={onSaveWorkingDays}
-          disabled={isSavingWorkingDays}
-          className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
-        >
-          {isSavingWorkingDays ? actionsT("saving") : t("saveWorkingDays")}
-        </button>
+
+        <div className="pt-4 border-t border-outline/60 flex justify-end">
+          <Button
+            type="button"
+            variant="primary"
+            size="md"
+            onClick={onSaveWorkingDays}
+            loading={isSavingWorkingDays}
+            className="w-full sm:w-auto"
+          >
+            {isSavingWorkingDays ? actionsT("saving") : t("saveWorkingDays")}
+          </Button>
+        </div>
       </div>
 
-      <div className="flex flex-col gap-4 bg-gray-50 p-6 rounded-xl">
-        <div className="flex justify-between items-center">
-          <span className="block font-semibold text-gray-700 text-sm">
+      {/* Holidays & Off-Days */}
+      <div className="flex flex-col gap-4 bg-surface border border-outline/80 p-6 rounded-2xl shadow-2xs">
+        <div className="flex justify-between items-center pb-2 border-b border-outline/60">
+          <span className="block font-bold text-content-primary text-sm tracking-tight">
             {t("holidaysOffDays")}
           </span>
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setIsExceptionModalOpen(true)}
-            className="bg-academixPurpleDark hover:brightness-90 px-4 py-2 rounded-md font-semibold text-white text-sm transition-all"
           >
             {t("addException")}
-          </button>
+          </Button>
         </div>
 
         <div className="sm:hidden space-y-3">
           {sortedExceptions.length === 0 ? (
-            <div className="px-3 py-4 border border-gray-200 rounded-lg text-gray-500 text-sm">
+            <div className="px-4 py-8 text-center text-content-muted text-sm">
               {t("empty")}
             </div>
           ) : (
             sortedExceptions.map((item) => (
               <div
                 key={item.id}
-                className="space-y-2 p-3 border border-gray-200 rounded-lg"
+                className="space-y-2 p-4 border border-outline/80 rounded-xl bg-surface-muted/30"
               >
                 <div className="flex justify-between items-center">
-                  <span className="font-semibold text-sm">{item.date}</span>
-                  <span className="text-gray-600 text-xs">
+                  <span className="font-bold text-sm text-content-primary">{item.date}</span>
+                  <Badge variant={item.type === "HOLIDAY" ? "warning" : "info"} size="sm">
                     {t(`types.${item.type}`)}
-                  </span>
+                  </Badge>
                 </div>
-                <p className="text-sm">
-                  <span className="font-medium">{th("name")}:</span>{" "}
+                <p className="text-xs text-content-secondary">
+                  <span className="font-semibold text-content-muted">{th("name")}:</span>{" "}
                   {item.name || "-"}
                 </p>
                 <button
                   type="button"
                   onClick={() => onDeleteException(item.id)}
                   disabled={isDeletingException}
-                  className="text-red-600 text-sm hover:underline"
+                  className="text-rose-600 text-xs font-semibold hover:underline"
                 >
                   {isDeletingException && deletingExceptionId === item.id
                     ? actionsT("deleting")
@@ -203,38 +218,46 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
         </div>
 
         <div className="hidden sm:block overflow-x-auto">
-          <table className="min-w-full text-sm">
+          <table className="w-full text-xs sm:text-sm">
             <thead>
-              <tr className="border-b text-start">
-                <th className="px-2 py-2 font-semibold">{th("date")}</th>
-                <th className="px-2 py-2 font-semibold">{th("type")}</th>
-                <th className="px-2 py-2 font-semibold">{th("name")}</th>
-                <th className="px-2 py-2 font-semibold">{th("actions")}</th>
+              <tr className="border-b border-outline/70 bg-surface-muted/40 text-content-muted text-start text-[11px] font-semibold uppercase tracking-wider">
+                <th className="px-4 py-3 text-start">{th("date")}</th>
+                <th className="px-4 py-3 text-start">{th("type")}</th>
+                <th className="px-4 py-3 text-start">{th("name")}</th>
+                <th className="px-4 py-3 text-end">{th("actions")}</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-outline/60">
               {sortedExceptions.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-2 py-3 text-gray-500">
+                  <td colSpan={4} className="px-4 py-8 text-center text-content-muted">
                     {t("empty")}
                   </td>
                 </tr>
               ) : (
                 sortedExceptions.map((item) => (
-                  <tr key={item.id} className="border-b">
-                    <td className="px-2 py-3">{item.date}</td>
-                    <td className="px-2 py-3">{t(`types.${item.type}`)}</td>
-                    <td className="px-2 py-3">{item.name || "-"}</td>
-                    <td className="px-2 py-3">
+                  <tr key={item.id} className="hover:bg-surface-muted/40 transition-colors">
+                    <td className="px-4 py-3 font-semibold text-content-primary">{item.date}</td>
+                    <td className="px-4 py-3">
+                      <Badge variant={item.type === "HOLIDAY" ? "warning" : "info"} size="sm">
+                        {t(`types.${item.type}`)}
+                      </Badge>
+                    </td>
+                    <td className="px-4 py-3 text-content-secondary">{item.name || "-"}</td>
+                    <td className="px-4 py-3 text-end">
                       <button
                         type="button"
                         onClick={() => onDeleteException(item.id)}
                         disabled={isDeletingException}
-                        className="text-red-600 hover:underline"
+                        className="p-1.5 rounded-lg text-content-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors inline-flex items-center gap-1"
+                        title={actionsT("delete")}
                       >
-                        {isDeletingException && deletingExceptionId === item.id
-                          ? actionsT("deleting")
-                          : actionsT("delete")}
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span className="text-xs font-semibold">
+                          {isDeletingException && deletingExceptionId === item.id
+                            ? actionsT("deleting")
+                            : actionsT("delete")}
+                        </span>
                       </button>
                     </td>
                   </tr>
@@ -245,49 +268,44 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
         </div>
       </div>
 
-      {isExceptionModalOpen ? (
+      {/* Exception Modal */}
+      {isExceptionModalOpen && (
         <div
-          className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 p-4"
-          onMouseDown={(event) => {
-            if (event.target === event.currentTarget) {
-              setIsExceptionModalOpen(false);
-            }
+          className="z-50 fixed inset-0 flex justify-center items-center bg-black/50 p-4"
+          onMouseDown={(e) => {
+            if (e.target === e.currentTarget) setIsExceptionModalOpen(false);
           }}
         >
-          <form
-            className="relative bg-white p-5 rounded-md w-full max-w-2xl"
-            onSubmit={onCreateException}
-            role="dialog"
-            aria-modal="true"
-            onMouseDown={(event) => event.stopPropagation()}
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-lg">{t("addDayException")}</h3>
+          <div className="bg-surface border border-outline/80 shadow-2xl p-6 rounded-2xl w-full max-w-lg space-y-5">
+            <div className="flex justify-between items-center pb-3 border-b border-outline/60">
+              <h3 className="font-bold text-base md:text-lg text-content-primary tracking-tight">
+                {t("addException")}
+              </h3>
               <button
                 type="button"
                 onClick={() => setIsExceptionModalOpen(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
-                aria-label={actionsT("close")}
+                className="p-1.5 rounded-lg text-content-muted hover:text-content-primary hover:bg-surface-muted transition-colors"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="gap-4 grid grid-cols-1 md:grid-cols-2">
-              <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-700 text-sm">
+            <form onSubmit={onCreateException} className="space-y-4">
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
                   {th("date")}
                 </span>
                 <input
                   type="date"
                   value={date}
                   onChange={(e) => setDate(e.target.value)}
-                  className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
                   required
                 />
               </label>
-              <label className="flex flex-col gap-2">
-                <span className="font-medium text-gray-700 text-sm">
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
                   {th("type")}
                 </span>
                 <select
@@ -295,49 +313,61 @@ const WorkingDaysHolidaysForm = ({ initialWorkingDays, exceptions }: Props) => {
                   onChange={(e) =>
                     setType(e.target.value as SchoolDayExceptionItem["type"])
                   }
-                  className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  required
                 >
                   <option value="HOLIDAY">{t("types.HOLIDAY")}</option>
-                  <option value="OFF_DAY">{t("types.OFF_DAY")}</option>
-                  <option value="WORKING_OVERRIDE">
-                    {t("types.WORKING_OVERRIDE")}
-                  </option>
+                  <option value="CUSTOM_OFF">{t("types.CUSTOM_OFF")}</option>
                 </select>
               </label>
-              <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-medium text-gray-700 text-sm">
-                  {t("nameOptional")}
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {th("name")}
                 </span>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
                   placeholder={t("namePlaceholder")}
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium placeholder:text-content-muted"
                 />
               </label>
-              <label className="flex flex-col gap-2 md:col-span-2">
-                <span className="font-medium text-gray-700 text-sm">
-                  {t("notesOptional")}
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("notes")}
                 </span>
                 <textarea
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
                   rows={3}
-                  className="bg-white px-4 py-3 border-2 border-gray-200 rounded-lg focus:outline-none text-sm"
                 />
               </label>
-            </div>
-            <button
-              type="submit"
-              disabled={isSavingException}
-              className="bg-academixPurpleDark disabled:opacity-60 hover:brightness-90 mt-4 px-4 py-2 rounded-md w-fit font-semibold text-white text-sm transition-all"
-            >
-              {isSavingException ? actionsT("adding") : actionsT("add")}
-            </button>
-          </form>
+
+              <div className="flex justify-end gap-2.5 pt-3 border-t border-outline/60">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="md"
+                  onClick={() => setIsExceptionModalOpen(false)}
+                >
+                  {actionsT("cancel")}
+                </Button>
+                <Button
+                  type="submit"
+                  variant="primary"
+                  size="md"
+                  loading={isSavingException}
+                >
+                  {isSavingException ? actionsT("saving") : actionsT("save")}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
-      ) : null}
+      )}
     </div>
   );
 };

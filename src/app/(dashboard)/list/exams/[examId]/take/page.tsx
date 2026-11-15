@@ -2,12 +2,14 @@ import { redirect } from "next/navigation";
 import { startExam } from "@/lib/actions/examWorkflow.actions";
 import ExamClient from "@/components/exam/ExamClient";
 import prisma from "@/lib/prisma";
+import { getTranslations } from "next-intl/server";
 
 export default async function TakeExamPage({
   params,
 }: {
   params: Promise<{ examId: string }>;
 }) {
+  const t = await getTranslations("examTaking");
   const { examId: examIdStr } = await params;
   const examId = parseInt(examIdStr, 10);
 
@@ -21,7 +23,7 @@ export default async function TakeExamPage({
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="bg-red-50 text-red-700 p-6 rounded-lg max-w-md text-center border border-red-200">
-          <h2 className="text-lg font-bold mb-2">Notice</h2>
+          <h2 className="text-lg font-bold mb-2">{t("notice")}</h2>
           <p>{result.error}</p>
         </div>
       </div>

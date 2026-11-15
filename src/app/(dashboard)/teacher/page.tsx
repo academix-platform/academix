@@ -13,19 +13,20 @@ const TeacherPage = async ({
   if (!user) return null;
 
   return (
-    <div className="flex xl:flex-row flex-col flex-1 gap-4 p-4">
-      {/* LEFT */}
-      <div className="w-full xl:w-2/3">
-        <div className="bg-white p-4 rounded-md h-full">
-          <h1 className="font-semibold text-xl">Schedule</h1>
-          <BigCalendarContainer type="teacherId" id={user.userId} />
+    <div className="p-4 sm:p-6 lg:p-8 space-y-6 max-w-[1600px] mx-auto">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        {/* PRIMARY COLUMN: TIMETABLE SCHEDULE (8-9 cols on desktop, full width on tablets/laptops < xl) */}
+        <div className="xl:col-span-8 2xl:col-span-9 flex flex-col gap-6 w-full min-w-0">
+          <div className="bg-surface border border-outline/80 rounded-2xl p-3 sm:p-5 shadow-2xs">
+            <BigCalendarContainer type="teacherId" id={user.userId} />
+          </div>
         </div>
-      </div>
 
-      {/* RIGHT */}
-      <div className="flex flex-col justify-between w-full lg:w-1/3">
-        <EventCalendarContainer searchParams={searchParams} />
-        <Announcements />
+        {/* SECONDARY COLUMN: CALENDAR & ANNOUNCEMENTS */}
+        <div className="xl:col-span-4 2xl:col-span-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-1 gap-6 w-full">
+          <EventCalendarContainer searchParams={searchParams} />
+          <Announcements />
+        </div>
       </div>
     </div>
   );

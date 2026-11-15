@@ -6,6 +6,8 @@ import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildParentQuery } from "@/lib/query-builders/parent-query";
@@ -43,24 +45,65 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => [
 const renderRow = (item: ParentList, role: UserRole | null) => (
   <tr
     key={item.id}
-    className="hover:bg-academixPurpleLight even:bg-slate-50 border-gray-200 border-b text-sm"
+    className="hover:bg-purple-50/50 dark:hover:bg-purple-950/20 transition-colors text-xs md:text-sm"
   >
-    <td className="flex items-center gap-4 p-4">
-      <div className="flex flex-col">
-        <h3 className="font-semibold">{item.name}</h3>
-        <p className="text-gray-500 text-xs">{item.email}</p>
+    <td className="px-4 py-3">
+      <div className="flex flex-col gap-0.5 min-w-0">
+        <h3 className="font-semibold text-slate-900 dark:text-slate-100 text-sm truncate">
+          {item.name}
+        </h3>
+        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+          {item.email || "—"}
+        </p>
+        {/* Mobile secondary info: children pills and phone */}
+        <div className="flex flex-wrap items-center gap-1.5 mt-1 md:hidden">
+          {item.students.map((s) => (
+            <Badge
+              key={s.id}
+              variant="secondary"
+              size="sm"
+              className="text-[10px] py-0 px-1.5 font-normal"
+            >
+              {s.name}
+            </Badge>
+          ))}
+          {item.phone && (
+            <span className="text-[11px] text-slate-500 ps-1">
+              {item.phone}
+            </span>
+          )}
+        </div>
       </div>
     </td>
 
-    <td className="hidden md:table-cell">
-      {item.students.map((s) => s.name).join(", ")}
+    <td className="hidden md:table-cell px-4 py-3">
+      <div className="flex flex-wrap items-center gap-1">
+        {item.students.length > 0 ? (
+          item.students.map((s) => (
+            <Badge
+              key={s.id}
+              variant="primary"
+              size="sm"
+              className="font-normal"
+            >
+              {s.name}
+            </Badge>
+          ))
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        )}
+      </div>
     </td>
 
-    <td className="hidden md:table-cell">{item.phone}</td>
-    <td className="hidden md:table-cell">{item.address}</td>
+    <td className="hidden lg:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
+      {item.phone || "—"}
+    </td>
+    <td className="hidden lg:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[200px] truncate">
+      {item.address || "—"}
+    </td>
 
-    <td>
-      <div className="flex items-center gap-2">
+    <td className="px-4 py-3">
+      <div className="flex items-center gap-1.5">
         {role === "admin" && (
           <>
             <FormContainer table="parent" type="update" data={item} />
@@ -119,6 +162,7 @@ const ParentListPage = async ({
       where: query,
     }),
   ]);
+
   const [classes, grades] =
     role === "admin"
       ? await prisma.$transaction([
@@ -136,34 +180,34 @@ const ParentListPage = async ({
       : [[], []];
 
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allParents")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <DataPageHeader
+        title={t("allParents")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <>
+              <ExportButton
+                href={`/api/admin/parents/export?${exportQuery.toString()}`}
+              />
+              <FormContainer table="parent" type="create" />
+            </>
+          ) : undefined
+        }
+      />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && (
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={
+          role === "admin" ? (
             <>
               <GradeFilter grades={grades} />
               <ClassFilter classes={classes} />
             </>
-          )}
-
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {role === "admin" && (
-              <>
-                <ExportButton
-                  href={`/api/admin/parents/export?${exportQuery.toString()}`}
-                />
-
-                <FormContainer table="parent" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+          ) : undefined
+        }
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       <Table
         columns={getColumns(role, th)}

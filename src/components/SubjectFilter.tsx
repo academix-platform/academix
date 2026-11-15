@@ -3,6 +3,7 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { useEffect } from "react";
+import { Select } from "@/components/ui/select";
 
 type Props = {
   subjects: {
@@ -14,9 +15,10 @@ type Props = {
     id: number;
     gradeId?: number | null;
   }[];
+  className?: string;
 };
 
-export default function SubjectFilter({ subjects, classes = [] }: Props) {
+export default function SubjectFilter({ subjects, classes = [], className }: Props) {
   const t = useTranslations("filters");
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -27,7 +29,8 @@ export default function SubjectFilter({ subjects, classes = [] }: Props) {
   const filteredSubjects =
     selectedClassId && selectedClass?.gradeId
       ? subjects.filter(
-          (subject) => String(subject.gradeId) === String(selectedClass.gradeId),
+          (subject) =>
+            String(subject.gradeId) === String(selectedClass.gradeId),
         )
       : subjects;
   const currentSubjectId = searchParams.get("subjectId") || "";
@@ -65,10 +68,11 @@ export default function SubjectFilter({ subjects, classes = [] }: Props) {
   };
 
   return (
-    <select
+    <Select
       value={selectedSubjectExists ? currentSubjectId : ""}
       onChange={(e) => handleChange(e.target.value)}
-      className="h-10 rounded-md border px-3 text-sm"
+      containerClassName={className || "w-full sm:w-40"}
+      aria-label={t("allSubjects")}
     >
       <option value="">{t("allSubjects")}</option>
 
@@ -77,6 +81,6 @@ export default function SubjectFilter({ subjects, classes = [] }: Props) {
           {subject.name}
         </option>
       ))}
-    </select>
+    </Select>
   );
 }
