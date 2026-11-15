@@ -14,7 +14,7 @@ const TYPE_OPTIONS = [
   { value: "ASSIGNMENT_UPDATED",  labelKey: "assignmentUpdates" },
   { value: "ASSIGNMENT_FEEDBACK", labelKey: "feedback"          },
   { value: "NEW_EXAM",            labelKey: "exams"             },
-  { value: "GRADE_POSTED",        labelKey: "grades"            },
+  { value: "GRADE_POSTED",        labelKey: "gradeMarks"        },
   { value: "GRADE_UPDATED",       labelKey: "gradeUpdates"      },
   { value: "NEW_ANNOUNCEMENT",    labelKey: "announcements"     },
   { value: "NEW_EVENT",           labelKey: "events"            },

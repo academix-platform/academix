@@ -25,7 +25,8 @@ import EmptyState from "@/components/states/EmptyState";
 import { DataPageHeader } from "@/components/data-table";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
+import { localizeNotificationBody } from "@/lib/notificationLocalization";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -84,15 +85,24 @@ const TYPE_ICON: Record<
   NEW_MESSAGE:          { icon: Mail,          color: "text-blue-600 dark:text-blue-400", bg: "bg-blue-50 dark:bg-blue-950/50 border border-blue-100 dark:border-blue-900/40" },
 };
 
-function timeAgo(dateStr: string): string {
+function formatTimeAgo(dateStr: string, locale: string): string {
   const diff = Date.now() - new Date(dateStr).getTime();
   const mins  = Math.floor(diff / 60000);
   const hours = Math.floor(diff / 3600000);
   const days  = Math.floor(diff / 86400000);
-  if (days  >= 1) return `${days}d ago`;
-  if (hours >= 1) return `${hours}h ago`;
-  if (mins  >= 1) return `${mins}m ago`;
-  return "Just now";
+
+  try {
+    const rtf = new Intl.RelativeTimeFormat(locale, { numeric: "auto" });
+    if (days >= 1) return rtf.format(-days, "day");
+    if (hours >= 1) return rtf.format(-hours, "hour");
+    if (mins >= 1) return rtf.format(-mins, "minute");
+    return locale === "ar" ? "الآن" : "Just now";
+  } catch {
+    if (days >= 1) return `${days}d ago`;
+    if (hours >= 1) return `${hours}h ago`;
+    if (mins >= 1) return `${mins}m ago`;
+    return "Just now";
+  }
 }
 
 export default function NotificationsClient({
@@ -105,11 +115,13 @@ export default function NotificationsClient({
   currentType,
   currentSort,
 }: Props) {
+  const locale = useLocale();
   const t = useTranslations("pages");
   const commonT = useTranslations("common");
   const filtersT = useTranslations("filters");
   const actionsT = useTranslations("actions");
   const emptyT = useTranslations("emptyStates");
+  const notifTypeT = useTranslations("notificationTypes");
   const router       = useRouter();
   const pathname     = usePathname();
   const searchParams = useSearchParams();
@@ -303,7 +315,7 @@ export default function NotificationsClient({
                               : "font-bold text-content-primary"
                           )}
                         >
-                          {n.title}
+                          {notifTypeT.has(n.type as any) ? notifTypeT(n.type as any) : n.title}
                         </p>
                         {!n.isRead && (
                           <span className="w-2 h-2 rounded-full bg-brandPurple-600 shrink-0" />
@@ -314,7 +326,7 @@ export default function NotificationsClient({
                       <div className="flex items-center gap-1.5 shrink-0">
                         <span className="text-xs text-content-muted flex items-center gap-1">
                           <Clock className="w-3 h-3 text-content-subtle" />
-                          {timeAgo(n.createdAt)}
+                          {formatTimeAgo(n.createdAt, locale)}
                         </span>
 
                         <div className="flex items-center gap-1 ms-2">
@@ -327,7 +339,8 @@ export default function NotificationsClient({
                                 markRead(n.id);
                               }}
                               className="p-1.5 rounded-lg text-content-muted hover:text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 transition-colors"
-                              title="Mark as read"
+                              title={actionsT("markAsRead")}
+                              aria-label={actionsT("markAsRead")}
                             >
                               <CheckCircle className="w-3.5 h-3.5" />
                             </button>
@@ -340,7 +353,8 @@ export default function NotificationsClient({
                               deleteOne(n.id);
                             }}
                             className="p-1.5 rounded-lg text-content-muted hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors"
-                            title="Delete"
+                            title={actionsT("delete")}
+                            aria-label={actionsT("delete")}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -349,7 +363,7 @@ export default function NotificationsClient({
                     </div>
 
                     <p className="text-xs sm:text-sm text-content-secondary line-clamp-2 leading-relaxed">
-                      {n.body}
+                      {localizeNotificationBody(n.body, locale)}
                     </p>
                   </div>
                 </li>

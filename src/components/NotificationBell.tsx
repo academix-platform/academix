@@ -19,6 +19,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
+import { localizeNotificationBody } from "@/lib/notificationLocalization";
 
 type NotificationType =
   | "NEW_ASSIGNMENT"
@@ -138,6 +139,7 @@ function formatTimeAgo(dateStr: string, locale: string): string {
 
 export default function NotificationBell() {
   const t = useTranslations("navbar.notifications");
+  const notifTypeT = useTranslations("notificationTypes");
   const locale = useLocale();
   const isRtl = locale === "ar";
   const [open, setOpen] = useState(false);
@@ -350,10 +352,10 @@ export default function NotificationBell() {
                               : "font-bold text-content-primary"
                           }`}
                         >
-                          {n.title}
+                          {notifTypeT.has(n.type as any) ? notifTypeT(n.type as any) : n.title}
                         </p>
                         <p className="text-xs text-content-muted mt-0.5 line-clamp-2 leading-relaxed">
-                          {n.body}
+                          {localizeNotificationBody(n.body, locale)}
                         </p>
                         <p className="text-[11px] text-content-muted mt-1 font-medium">
                           {formatTimeAgo(n.createdAt, locale)}
