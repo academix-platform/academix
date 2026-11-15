@@ -35,3 +35,6 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# sheet reading test: photos and answers stay on this computer
+/scripts/sheet-test/photos/

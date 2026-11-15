@@ -27,13 +27,21 @@ export const createStudent = async (
       include: { _count: { select: { students: true } } },
     });
 
-    if (classItem && classItem.capacity === classItem._count.students) {
+    // A class from another school would put this student, and their enrollment, in it.
+    if (!classItem) {
+      return { success: false, error: true, message: "Class not found." };
+    }
+
+    if (classItem._count.students >= classItem.capacity) {
       return {
         success: false,
         error: true,
         message: "The selected class has reached its capacity.",
       };
     }
+
+    // Look up the year first, so a missing year stops before anything is created.
+    const currentAcademicYearId = await getRequiredAcademicYearId(access.schoolId);
 
     const user = await (
       await clerkClient()
@@ -45,44 +53,33 @@ export const createStudent = async (
     });
 
     createdUserId = user.id;
+    const studentId = createdUserId;
 
-   await prisma.student.create({
-  data: {
-    id: createdUserId,
-    schoolId: access.schoolId,
-    username: data.username,
-    name: data.name,
-    email: data.email || null,
-    phone: data.phone || null,
-    address: data.address,
-    img: data.img || null,
-    bloodType: data.bloodType,
-    sex: data.sex,
-    birthday: data.birthday,
-    gradeId: data.gradeId,
-    classId: data.classId,
-    parentId: data.parentId || null,
-    status: data.status || "ACTIVE",
-  } as any,
-});
-
-if (data.email && data.password) {
-  await sendAccountEmail(
-    data.email,
-    data.username,
-    data.password
-  );
-}
-
-    // Automatically enroll student in the current academic year
-    const currentAcademicYearId = await getRequiredAcademicYearId(
-      access.schoolId,
-    );
-
-    if (currentAcademicYearId) {
-      await prisma.studentAcademicYear.create({
+    // The student and their enrollment in the current year are saved together, or not at all.
+    await prisma.$transaction(async (tx) => {
+      await tx.student.create({
         data: {
-          studentId: createdUserId,
+          id: studentId,
+          schoolId: access.schoolId,
+          username: data.username,
+          name: data.name,
+          email: data.email || null,
+          phone: data.phone || null,
+          address: data.address,
+          img: data.img || null,
+          bloodType: data.bloodType,
+          sex: data.sex,
+          birthday: data.birthday,
+          gradeId: data.gradeId,
+          classId: data.classId,
+          parentId: data.parentId || null,
+          status: data.status || "ACTIVE",
+        } as any,
+      });
+
+      await tx.studentAcademicYear.create({
+        data: {
+          studentId,
           schoolId: access.schoolId,
           academicYearId: currentAcademicYearId,
           gradeId: data.gradeId,
@@ -90,6 +87,15 @@ if (data.email && data.password) {
           performanceStatus: null,
         },
       });
+    });
+
+    // The student exists now, so a failed email must not undo it.
+    if (data.email && data.password) {
+      try {
+        await sendAccountEmail(data.email, data.username, data.password);
+      } catch (err) {
+        console.error("createStudent: account email failed", err instanceof Error ? err.name : "unknown error");
+      }
     }
 
     return successResult(["/list/students"]);

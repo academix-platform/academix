@@ -1,3 +1,4 @@
+import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { type PageSearchParams } from "@/lib/pageParams";
 import { getAttendanceData } from "@/lib/attendance";
@@ -132,7 +133,17 @@ const AttendancePage = async ({
     <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
       {/* TOP */}
       <div className="flex justify-between items-center mb-4">
-        <h1 className="font-semibold text-lg">{t("attendance")}</h1>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="font-semibold text-lg">{t("attendance")}</h1>
+          {scope === "students" && (
+            <Link
+              href={`/list/attendance/sheet${effectiveClassId ? `?classId=${effectiveClassId}` : ""}`}
+              className="text-academixPurpleDark text-sm underline"
+            >
+              {attendanceT("paperSheet")}
+            </Link>
+          )}
+        </div>
 
         <form className="hidden sm:flex items-center gap-2">
           <input
