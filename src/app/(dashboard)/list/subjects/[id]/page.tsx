@@ -29,6 +29,7 @@ import { Breadcrumbs } from "@/components/ui/breadcrumbs";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { getLocale, getTranslations } from "next-intl/server";
+import { getSubjectCardTheme } from "@/lib/subjectCardThemes";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -486,6 +487,9 @@ export default async function SubjectDetailPage({
     ),
   };
 
+  const theme = getSubjectCardTheme(subject.id);
+  const SubjectIcon = theme.defaultIcon;
+
   const breadcrumbs = [
     {
       label: commonT("dashboard"),
@@ -528,17 +532,28 @@ export default async function SubjectDetailPage({
       )}
 
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-surface border border-outline/80 rounded-2xl p-6 shadow-2xs">
+      <div
+        className={cn(
+          "flex flex-col md:flex-row md:items-center justify-between gap-4 border rounded-2xl p-6 shadow-2xs",
+          theme.cardBg,
+          theme.cardBorder,
+        )}
+      >
         <div className="flex items-start gap-4 min-w-0">
-          <div className="w-14 h-14 rounded-2xl bg-brandPurple-50 dark:bg-brandPurple-950/40 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100/80 dark:border-brandPurple-900/60 flex items-center justify-center shrink-0 shadow-2xs">
-            <BookOpen className="w-7 h-7" />
+          <div
+            className={cn(
+              "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs border",
+              theme.iconBg,
+            )}
+          >
+            <SubjectIcon className="w-7 h-7" />
           </div>
           <div className="space-y-1.5 min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-bold text-xl sm:text-2xl text-content-primary tracking-tight">
                 {subject.name}
               </h1>
-              <Badge variant="outline" className="font-semibold bg-surface-muted/40">
+              <Badge className="font-semibold bg-white dark:bg-slate-900 text-content-primary border border-outline/90 shadow-2xs">
                 {subjectT("gradeLevel", { level: subject.grade.level })}
               </Badge>
               <Badge variant="secondary" className="font-semibold">
@@ -633,9 +648,9 @@ export default async function SubjectDetailPage({
                 <span className="text-content-muted font-medium">
                   {subjectT("grade")}
                 </span>
-                <span className="font-semibold text-content-primary">
+                <Badge className="font-semibold bg-white dark:bg-slate-900 text-content-primary border border-outline/90 shadow-2xs">
                   {subjectT("gradeLevel", { level: subject.grade.level })}
-                </span>
+                </Badge>
               </div>
               <div className="flex items-center justify-between pt-2">
                 <span className="text-content-muted font-medium">
