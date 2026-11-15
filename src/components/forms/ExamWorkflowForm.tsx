@@ -564,7 +564,6 @@ export default function ExamWorkflowForm({
       enableNavigation: initialData?.enableNavigation ?? true,
       enableAutoSave: initialData?.enableAutoSave ?? true,
       autoSaveInterval: initialData?.autoSaveInterval ?? 30,
-      enableAutoSubmit: initialData?.enableAutoSubmit ?? true,
       questionsPerPage: initialData?.questionsPerPage ?? 1,
       questions: (
         initialData?.questions ?? [
@@ -809,10 +808,6 @@ export default function ExamWorkflowForm({
               <span>{t("navigation")}</span>
             </label>
 
-            <label className="flex items-center gap-2">
-              <input type="checkbox" {...register("enableAutoSubmit")} />
-              <span>{t("autoSubmit")}</span>
-            </label>
             <div className="space-y-2">
               {watchEnableTimer && (
                 <InputField

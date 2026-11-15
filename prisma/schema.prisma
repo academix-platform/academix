@@ -54,6 +54,8 @@ model School {
 
   subjectPageSettings SubjectPageSettings[]
   notifications       Notification[]
+  entrySheets         EntrySheet[]
+  entrySheetReads     EntrySheetRead[]
 }
 
 model Admin {
@@ -123,6 +125,7 @@ model AcademicYear {
   studentAcademicYears  StudentAcademicYear[]
   submissions           Submission[] // exam submissions
   assignmentSubmissions AssignmentSubmission[] // assignment submissions
+  entrySheets EntrySheet[]
 
   @@unique([schoolId, name])
 }
@@ -246,6 +249,7 @@ model Class {
   exams                Exam[]
   assignments          Assignment[]
   studentAcademicYears StudentAcademicYear[]
+  entrySheets          EntrySheet[]
 
   @@unique([schoolId, name])
   @@index([schoolId])
@@ -295,7 +299,8 @@ model Subject {
   studyMaterials StudyMaterial[]
   pageSettings   SubjectPageSettings[]
 
-  @@unique([schoolId, name])
+  // The same name may exist once per grade (e.g. "Math" in every grade).
+  @@unique([schoolId, gradeId, name])
   @@index([schoolId])
 }
 
@@ -330,6 +335,9 @@ model Exam {
     startTime DateTime
     endTime   DateTime
 
+  // Shared by the per-class copies created together from one exam form.
+  groupId   String   @default(uuid())
+
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])
   subjectId Int?
@@ -358,9 +366,11 @@ model Exam {
   // Exam workflow relations
   questions   Question[]
   submissions Submission[]
+  entrySheets EntrySheet[]
 
   @@index([schoolId])
   @@index([teacherId])
+  @@index([groupId])
 }
 
 model Assignment {
@@ -376,6 +386,9 @@ model Assignment {
   fileName            String?
   maxScore            Float    @default(10)
   allowLateSubmission Boolean  @default(false) // ✅ أضف هذا السطر
+
+  // Shared by the per-class copies created together from one assignment form.
+  groupId   String   @default(uuid())
 
   classId   Int?
   class     Class?   @relation(fields: [classId], references: [id])
@@ -393,9 +406,11 @@ model Assignment {
 
   results               Result[]
   assignmentSubmissions AssignmentSubmission[]
+  entrySheets           EntrySheet[]
 
   @@index([schoolId])
   @@index([teacherId])
+  @@index([groupId])
 }
 
 // Assignment file submission (from stash)
@@ -464,7 +479,7 @@ model Result {
   id       Int    @id @default(autoincrement())
   schoolId Int
   school   School @relation(fields: [schoolId], references: [id])
-  score    Int
+  score    Float
 
   examId       Int?
   exam         Exam?       @relation(fields: [examId], references: [id])
@@ -494,6 +509,8 @@ model StudentFinalResult {
   averageScore    Float
   assessmentCount Int    @default(0)
   status          String?
+  // Set when a teacher/admin edits the final grade by hand; promotion keeps it.
+  isManual        Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -837,4 +854,49 @@ enum NotificationType {
   ATTENDANCE_SAVED
   SUPERVISOR_ASSIGNED
   NEW_MESSAGE
+}
+
+enum EntrySheetKind {
+  RESULT
+  ATTENDANCE
+}
+
+// A printed sheet for writing marks or absences by hand. `rows` keeps the
+// printed list, so later class changes can't move a mark to another student.
+model EntrySheet {
+  id             String           @id @default(uuid())
+  code           String // Short code printed on the sheet.
+  kind           EntrySheetKind
+  schoolId       Int
+  school         School           @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  academicYearId Int
+  academicYear   AcademicYear     @relation(fields: [academicYearId], references: [id], onDelete: Cascade)
+  classId        Int
+  class          Class            @relation(fields: [classId], references: [id], onDelete: Cascade)
+  examId         Int?
+  exam           Exam?            @relation(fields: [examId], references: [id], onDelete: Cascade)
+  assignmentId   Int?
+  assignment     Assignment?      @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  date           DateTime?        @db.Date // Attendance only.
+  createdById    String // Clerk id of the admin or teacher who printed it.
+  rows           Json // [{ page, rowNumber, studentId, name }]
+  createdAt      DateTime         @default(now())
+  reads          EntrySheetRead[]
+
+  @@unique([schoolId, code])
+  @@index([schoolId])
+}
+
+// One photo read. Never holds the photo, marks or names.
+model EntrySheetRead {
+  id        Int        @id @default(autoincrement())
+  schoolId  Int
+  school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  sheetId   String
+  sheet     EntrySheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  model     String
+  succeeded Boolean
+  createdAt DateTime   @default(now())
+
+  @@index([schoolId, createdAt])
 }

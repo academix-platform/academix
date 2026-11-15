@@ -17,6 +17,7 @@ import { ITEM_PER_PAGE } from "@/lib/settings";
 import { UserRole } from "@/lib/utils";
 import { Assignment, Exam, Result, Student } from "@prisma/client";
 import Image from "next/image";
+import Link from "next/link";
 import type { PageSearchParams } from "@/lib/pageParams";
 
 type ResultList = Result & {
@@ -194,6 +195,12 @@ const ResultListPage = async ({
                   href={`/api/admin/results/export?${exportQuery.toString()}`}
                 />
               )}
+              <Link
+                href="/list/results/class-entry"
+                className="bg-brandPurple-50 dark:bg-brandPurple-950/40 hover:bg-brandPurple-100 text-brandPurple-700 dark:text-brandPurple-400 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition border border-brandPurple-200 dark:border-brandPurple-900/50 shadow-2xs"
+              >
+                {t("enterClassMarks")}
+              </Link>
               <FormContainer table="result" type="create" />
             </>
           ) : undefined

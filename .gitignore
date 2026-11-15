@@ -42,3 +42,6 @@ next-env.d.ts
 /.clerk/
 
 scratch/
+
+# sheet reading test: photos and answers stay on this computer
+/scripts/sheet-test/photos/

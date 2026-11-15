@@ -5,6 +5,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
+import { deleteAssignmentResultsForSubmissions } from "@/lib/assignments/results";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import {
@@ -16,6 +17,12 @@ import {
   notifyAssignmentSubmitted,
   notifyAssignmentFeedback,
 } from "./notification.actions";
+import { deleteCloudinaryAssetByUrl } from "@/lib/cloudinaryAssets";
+import {
+  ASSIGNMENT_GROUP_SELECT,
+  assignmentGroupWhere,
+  assignmentManagerWhere,
+} from "@/lib/assignments/group";
 
 cloudinary.config({
   cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME!,
@@ -39,11 +46,6 @@ type AssignmentSubmissionBulkFilters = {
   classId?: number | null;
   search?: string | null;
 };
-
-const assignmentManagerWhere = (access: SubmissionManagerAccess) =>
-  access.role === "teacher"
-    ? { OR: [{ teacherId: access.userId }, { lesson: { teacherId: access.userId } }] }
-    : {};
 
 const findManagedSubmission = async (
   submissionId: number,
@@ -80,29 +82,13 @@ const getManagedAssignmentGroup = async (
       schoolId: access.schoolId,
       ...assignmentManagerWhere(access),
     },
-    select: {
-      id: true,
-      title: true,
-      startDate: true,
-      endDate: true,
-      subjectId: true,
-      academicYearId: true,
-      maxScore: true,
-    },
+    select: { id: true, maxScore: true, ...ASSIGNMENT_GROUP_SELECT },
   });
 
   if (!assignment) return null;
 
   const groupAssignments = await prisma.assignment.findMany({
-    where: {
-      title: assignment.title,
-      startDate: assignment.startDate,
-      endDate: assignment.endDate,
-      subjectId: assignment.subjectId,
-      schoolId: access.schoolId,
-      academicYearId: assignment.academicYearId,
-      ...assignmentManagerWhere(access),
-    },
+    where: assignmentGroupWhere(assignment, access),
     select: { id: true, classId: true },
   });
 
@@ -153,29 +139,6 @@ const getBulkAssignmentSubmissions = async (
   return { ...group, submissions };
 };
 
-const deleteAssignmentResultsForSubmissions = async (
-  tx: Prisma.TransactionClient,
-  schoolId: number,
-  submissions: Array<{
-    assignmentId: number;
-    studentId: string;
-    academicYearId: number;
-  }>,
-) => {
-  if (submissions.length === 0) return;
-
-  await tx.result.deleteMany({
-    where: {
-      schoolId,
-      OR: submissions.map((submission) => ({
-        assignmentId: submission.assignmentId,
-        studentId: submission.studentId,
-        academicYearId: submission.academicYearId,
-      })),
-    },
-  });
-};
-
 async function uploadToCloudinary(file: File) {
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
@@ -194,23 +157,6 @@ async function uploadToCloudinary(file: File) {
     fileName: file.name,
     publicId: result.public_id,
   };
-}
-
-async function deleteFromCloudinary(publicId: string) {
-  try {
-    await cloudinary.uploader.destroy(publicId);
-  } catch (error) {
-    console.error("Failed to delete old file:", error);
-  }
-}
-
-function extractPublicIdFromUrl(url: string): string | null {
-  const parts = url.split('/');
-  const uploadIndex = parts.findIndex(p => p === 'upload');
-  if (uploadIndex === -1 || uploadIndex + 2 >= parts.length) return null;
-  const publicIdParts = parts.slice(uploadIndex + 2);
-  const publicId = publicIdParts.join('/').split('.')[0];
-  return publicId;
 }
 
 export async function submitAssignment(
@@ -246,13 +192,16 @@ export async function submitAssignment(
           { lesson: { class: { students: { some: { id: userId } } } } },
         ],
       },
-      select: { id: true, endDate: true, allowLateSubmission: true },
+      select: { id: true, startDate: true, endDate: true, allowLateSubmission: true },
     });
     if (!assignment) {
       return { success: false, error: true, message: "Assignment not found" };
     }
 
     const now = new Date();
+    if (now < new Date(assignment.startDate)) {
+      return { success: false, error: true, message: "This assignment is not open for submissions yet." };
+    }
     if (now > new Date(assignment.endDate) && !assignment.allowLateSubmission) {
       return { success: false, error: true, message: "Deadline passed. Submission is not allowed." };
     }
@@ -272,7 +221,7 @@ export async function submitAssignment(
 
     const existing = await prisma.assignmentSubmission.findUnique({
       where: { assignmentId_studentId: { assignmentId, studentId: userId } },
-      select: { fileUrl: true },
+      select: { id: true, fileUrl: true, academicYearId: true },
     });
 
     // رفع الملف الجديد
@@ -294,39 +243,56 @@ export async function submitAssignment(
       };
     }
 
-    // حذف الملف القديم إذا وجد
-    if (existing?.fileUrl) {
-      const oldPublicId = extractPublicIdFromUrl(existing.fileUrl);
-      if (oldPublicId) await deleteFromCloudinary(oldPublicId);
-    }
-
     const note = formData.get("note") as string | null;
 
-    // حفظ أو تحديث التسليم
-    await prisma.assignmentSubmission.upsert({
-      where: { assignmentId_studentId: { assignmentId, studentId: userId } },
-      create: {
-        fileUrl: uploadedFile.url,
-        fileName: uploadedFile.fileName,
-        fileType: uploadedFile.fileType,
-        note,
-        assignmentId,
-        studentId: userId,
-        schoolId: student.schoolId,
-        academicYearId: academicYear.id,
-      },
-      update: {
-        fileUrl: uploadedFile.url,
-        fileName: uploadedFile.fileName,
-        fileType: uploadedFile.fileType,
-        note,
-        score: null,
-        gradePublished: false,
-        gradedAt: null,
-        gradedBy: null,
-        updatedAt: new Date(),
-      },
-    });
+    // حفظ أو تحديث التسليم، وحذف النتيجة المنشورة القديمة لأن الدرجة أُلغيت
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.assignmentSubmission.upsert({
+          where: { assignmentId_studentId: { assignmentId, studentId: userId } },
+          create: {
+            fileUrl: uploadedFile.url,
+            fileName: uploadedFile.fileName,
+            fileType: uploadedFile.fileType,
+            note,
+            assignmentId,
+            studentId: userId,
+            schoolId: student.schoolId,
+            academicYearId: academicYear.id,
+          },
+          update: {
+            fileUrl: uploadedFile.url,
+            fileName: uploadedFile.fileName,
+            fileType: uploadedFile.fileType,
+            note,
+            score: null,
+            gradePublished: false,
+            gradedAt: null,
+            gradedBy: null,
+            updatedAt: new Date(),
+          },
+        });
+
+        if (existing) {
+          await deleteAssignmentResultsForSubmissions(tx, student.schoolId, [
+            { assignmentId, studentId: userId, academicYearId: existing.academicYearId },
+          ]);
+          // The AI suggestion was for the old file.
+          await tx.aiEvaluation.deleteMany({
+            where: { assignmentSubmissionId: existing.id },
+          });
+        }
+      });
+    } catch (saveError) {
+      // The new upload isn't referenced by anything; don't leave it behind.
+      await deleteCloudinaryAssetByUrl(uploadedFile.url);
+      throw saveError;
+    }
+
+    // حذف الملف القديم بعد حفظ الجديد فقط
+    if (existing?.fileUrl && existing.fileUrl !== uploadedFile.url) {
+      await deleteCloudinaryAssetByUrl(existing.fileUrl);
+    }
 
     revalidatePath("/list/assignments");
 
@@ -450,14 +416,21 @@ export async function gradeAssignmentSubmission(
       };
     }
 
-    await prisma.assignmentSubmission.update({
-      where: { id: submissionId },
-      data: {
-        score,
-        gradePublished: false,
-        gradedAt: new Date(),
-        gradedBy: access.userId,
-      },
+    // The grade changed and is unpublished again, so the old published
+    // Result must go too.
+    await prisma.$transaction(async (tx) => {
+      const updated = await tx.assignmentSubmission.update({
+        where: { id: submissionId },
+        data: {
+          score,
+          gradePublished: false,
+          gradedAt: new Date(),
+          gradedBy: access.userId,
+        },
+        select: { assignmentId: true, studentId: true, academicYearId: true },
+      });
+
+      await deleteAssignmentResultsForSubmissions(tx, access.schoolId, [updated]);
     });
 
     revalidatePath("/list/assignments");
@@ -485,15 +458,7 @@ export async function publishAssignmentGrades(
         schoolId: access.schoolId,
         ...assignmentManagerWhere(access),
       },
-      select: {
-        id: true,
-        title: true,
-        startDate: true,
-        endDate: true,
-        subjectId: true,
-        academicYearId: true,
-        maxScore: true,
-      },
+      select: { id: true, ...ASSIGNMENT_GROUP_SELECT },
     });
 
     if (!assignment) {
@@ -501,15 +466,7 @@ export async function publishAssignmentGrades(
     }
 
     const groupAssignments = await prisma.assignment.findMany({
-      where: {
-        title: assignment.title,
-        startDate: assignment.startDate,
-        endDate: assignment.endDate,
-        subjectId: assignment.subjectId,
-        schoolId: access.schoolId,
-        academicYearId: assignment.academicYearId,
-        ...assignmentManagerWhere(access),
-      },
+      where: assignmentGroupWhere(assignment, access),
       select: { id: true },
     });
 
@@ -553,7 +510,7 @@ export async function publishAssignmentGrades(
         });
 
         const resultData = {
-          score: Math.round(submission.score),
+          score: submission.score,
           schoolId: access.schoolId,
           studentId: submission.studentId,
           examId: null,

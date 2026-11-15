@@ -1,11 +1,11 @@
 "use server";
 
-import { auth } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import { parseNumericId, requireActionAccess } from "./helpers";
 
 // ─── Cloudinary config ────────────────────────────────────────────────────────
 cloudinary.config({
@@ -58,50 +58,11 @@ export async function createStudyMaterial(
   formData: FormData
 ): Promise<StudyMaterialState> {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || (role !== "teacher" && role !== "admin")) {
-      return { success: false, error: true, message: "Unauthorized" };
+    const access = await requireActionAccess(["admin", "teacher"]);
+    if ("error" in access) {
+      return { success: false, error: true, message: access.message };
     }
-
-    // الأدمن: نجلب أول معلم مرتبط بالمادة لنسب الملف إليه
-    // المعلم: نستخدم بياناته مباشرة
-    let teacherId: string;
-    let schoolId: number;
-    let academicYearId: number;
-
-    if (role === "admin") {
-      const admin = await prisma.admin.findUnique({
-        where: { id: userId },
-        select: { schoolId: true },
-      });
-      if (!admin) return { success: false, error: true, message: "Admin not found" };
-      schoolId = admin.schoolId;
-      const subjectIdRaw = Number(formData.get("subjectId"));
-      const subjectWithTeacher = await prisma.subject.findFirst({
-        where: { id: subjectIdRaw, schoolId },
-        select: { teachers: { select: { id: true }, take: 1 } },
-      });
-      if (!subjectWithTeacher?.teachers[0]) {
-        return { success: false, error: true, message: "No teacher assigned to this subject" };
-      }
-      teacherId = subjectWithTeacher.teachers[0].id;
-      const academicYear = await getCurrentAcademicYearOrNull(schoolId);
-      if (!academicYear) return { success: false, error: true, message: "No current academic year found" };
-      academicYearId = academicYear.id;
-    } else {
-      const teacher = await prisma.teacher.findUnique({
-        where: { id: userId },
-        select: { id: true, schoolId: true },
-      });
-      if (!teacher) return { success: false, error: true, message: "Teacher not found" };
-      teacherId = teacher.id;
-      schoolId = teacher.schoolId;
-      const academicYear = await getCurrentAcademicYearOrNull(schoolId);
-      if (!academicYear) return { success: false, error: true, message: "No current academic year found" };
-      academicYearId = academicYear.id;
-    }
+    const { schoolId } = access;
 
     // التحقق من البيانات النصية
     const parsed = CreateSchema.safeParse({
@@ -117,13 +78,33 @@ export async function createStudyMaterial(
       };
     }
 
-    // التحقق أن المادة الدراسية تنتمي لنفس المدرسة
+    // المادة يجب أن تكون في مدرسة المستخدم، والمعلم يجب أن يكون مُسندًا إليها
     const subject = await prisma.subject.findFirst({
-      where: { id: parsed.data.subjectId, schoolId },
+      where: {
+        id: parsed.data.subjectId,
+        schoolId,
+        ...(access.role === "teacher"
+          ? { teachers: { some: { id: access.userId } } }
+          : {}),
+      },
+      select: { teachers: { select: { id: true }, take: 1 } },
     });
     if (!subject) {
       return { success: false, error: true, message: "Subject not found" };
     }
+
+    // الأدمن: يُنسب الملف لأول معلم مرتبط بالمادة — المعلم: يُنسب إليه
+    const teacherId =
+      access.role === "teacher" ? access.userId : subject.teachers[0]?.id;
+    if (!teacherId) {
+      return { success: false, error: true, message: "No teacher assigned to this subject" };
+    }
+
+    const academicYear = await getCurrentAcademicYearOrNull(schoolId);
+    if (!academicYear) {
+      return { success: false, error: true, message: "No current academic year found" };
+    }
+    const academicYearId = academicYear.id;
 
     // التحقق من الملف
     const file = formData.get("file") as File | null;
@@ -166,23 +147,23 @@ export async function deleteStudyMaterial(
   formData: FormData
 ): Promise<StudyMaterialState> {
   try {
-    const { userId, sessionClaims } = await auth();
-    const role = (sessionClaims?.metadata as { role?: string })?.role;
-
-    if (!userId || (role !== "teacher" && role !== "admin")) {
-      return { success: false, error: true, message: "Unauthorized" };
+    const access = await requireActionAccess(["admin", "teacher"]);
+    if ("error" in access) {
+      return { success: false, error: true, message: access.message };
     }
 
-    const id = Number(formData.get("id"));
-    const subjectId = Number(formData.get("subjectId"));
-
-    const material = await prisma.studyMaterial.findUnique({ where: { id } });
+    const id = parseNumericId(formData.get("id"));
+    const material = id
+      ? await prisma.studyMaterial.findFirst({
+          where: { id, schoolId: access.schoolId },
+        })
+      : null;
     if (!material) {
       return { success: false, error: true, message: "Material not found" };
     }
 
-    // المعلم: فقط صاحب الملف يحذفه — الأدمن: يحذف أي ملف
-    if (role === "teacher" && material.teacherId !== userId) {
+    // المعلم: فقط صاحب الملف يحذفه — الأدمن: يحذف أي ملف في مدرسته
+    if (access.role === "teacher" && material.teacherId !== access.userId) {
       return { success: false, error: true, message: "Forbidden" };
     }
 
@@ -203,9 +184,9 @@ export async function deleteStudyMaterial(
       console.warn("[deleteStudyMaterial] Cloudinary delete failed");
     }
 
-    await prisma.studyMaterial.delete({ where: { id } });
+    await prisma.studyMaterial.delete({ where: { id: material.id } });
 
-    revalidatePath(`/list/subjects/${subjectId}`);
+    revalidatePath(`/list/subjects/${material.subjectId}`);
     return { success: true, error: false, message: "Material deleted successfully!" };
   } catch (err) {
     console.error("[deleteStudyMaterial]", err);

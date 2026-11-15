@@ -2,6 +2,7 @@ import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getSchoolDayExceptions, getSchoolScheduleSettings } from "@/lib/schoolSettings";
+import { attendancePercentage, todayInTimeZone } from "@/lib/attendanceRules";
 
 type Props = {
   id: string;
@@ -48,7 +49,8 @@ const AttendanceCard = async ({ id, scope }: Props) => {
     return <h1 className="font-semibold text-xl">-</h1>;
   }
 
-  const today = new Date();
+  // End of today in the school's calendar, not UTC's.
+  const today = new Date(`${todayInTimeZone()}T23:59:59.999Z`);
   const yearStart = new Date(`${currentYear.startDate}T00:00:00.000Z`);
   const yearEnd = new Date(`${currentYear.endDate}T23:59:59.999Z`);
   const cappedEnd = today < yearEnd ? today : yearEnd;
@@ -91,20 +93,15 @@ const AttendanceCard = async ({ id, scope }: Props) => {
     },
   });
 
-  const presentDates = new Set(
-    attendance
-      .filter((item) => item.present)
-      .map((item) => toIsoDate(item.date))
-      .filter((iso) => expectedDateSet.has(iso)),
+  // Only school days with a record count, so days before the student joined
+  // or not entered yet don't lower the percentage.
+  const percentage = attendancePercentage(
+    attendance.map((item) => ({ date: toIsoDate(item.date), present: item.present })),
+    expectedDateSet,
   );
-
-  const expectedCount = expectedDateSet.size;
-  if (expectedCount === 0) {
+  if (percentage === null) {
     return <h1 className="font-semibold text-xl">-</h1>;
   }
-
-  const rawPercentage = (presentDates.size / expectedCount) * 100;
-  const percentage = Math.ceil(rawPercentage);
 
   return <h1 className="font-semibold text-xl">{percentage}%</h1>;
 };

@@ -1,5 +1,6 @@
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { syncAutoGrades } from "@/lib/actions/examWorkflow.actions";
+import { examGroupWhere, teacherExamAccessWhere } from "@/lib/exams/group";
+import { syncAutoGrades } from "@/lib/exams/grading";
 import prisma from "@/lib/prisma";
 import { redirect } from "next/navigation";
 import GradeClient from "./GradeClient";
@@ -24,38 +25,29 @@ const GradeSubmissionPage = async ({
     where: {
       id: examId,
       schoolId,
-      ...(role === "teacher"
-        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-        : {}),
+      ...(role === "teacher" ? teacherExamAccessWhere(userId) : {}),
     },
-    select: {
-      id: true,
-      title: true,
-      startTime: true,
-      endTime: true,
-      subjectId: true,
-      academicYearId: true,
-    },
+    select: { id: true, title: true, groupId: true },
   });
 
   if (!urlExam) redirect("/list/exams");
 
   // Find all exams in the same group
   const groupExams = await prisma.exam.findMany({
-    where: {
-      title: urlExam.title,
-      startTime: urlExam.startTime,
-      endTime: urlExam.endTime,
-      subjectId: urlExam.subjectId,
-      schoolId,
-      academicYearId: urlExam.academicYearId,
-      ...(role === "teacher"
-        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-        : {}),
-    },
+    where: examGroupWhere(urlExam.groupId, { userId, role, schoolId }),
     select: { id: true },
   });
   const allowedExamIds = groupExams.map((e) => e.id);
+
+  // Authorise the submission before re-scoring it.
+  const allowedSubmission = await prisma.submission.findFirst({
+    where: { id: submissionId, examId: { in: allowedExamIds }, schoolId },
+    select: { status: true },
+  });
+
+  if (!allowedSubmission || allowedSubmission.status === "IN_PROGRESS") {
+    redirect(`/list/exams/${examId}/submissions`);
+  }
 
   await syncAutoGrades(submissionId);
 

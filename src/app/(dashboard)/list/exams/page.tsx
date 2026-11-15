@@ -410,12 +410,7 @@ const ExamListPage = async ({
   const uniqueExamsMap = new Map<string, (typeof data)[0]>();
 
   for (const exam of data) {
-    const groupKey = [
-      exam.title,
-      exam.startTime.toISOString(),
-      exam.endTime.toISOString(),
-      exam.subject?.name,
-    ].join("|");
+    const groupKey = exam.groupId;
 
     if (!classGroups.has(groupKey)) {
       classGroups.set(groupKey, new Set<string>());
@@ -469,12 +464,7 @@ const ExamListPage = async ({
   const dataWithClassDisplay: ExamList[] = Array.from(
     uniqueExamsMap.values(),
   ).map((exam) => {
-    const groupKey = [
-      exam.title,
-      exam.startTime.toISOString(),
-      exam.endTime.toISOString(),
-      exam.subject?.name,
-    ].join("|");
+    const groupKey = exam.groupId;
 
     const groupedClasses = classGroups.get(groupKey);
     return {

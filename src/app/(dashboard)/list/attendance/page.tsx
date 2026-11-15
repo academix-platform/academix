@@ -1,3 +1,4 @@
+import Link from "next/link";
 import prisma from "@/lib/prisma";
 import { type PageSearchParams, getQueryParam } from "@/lib/pageParams";
 import { getAttendanceData, getWeeklyAttendanceData } from "@/lib/attendance";
@@ -185,6 +186,15 @@ const AttendancePage = async ({
         description={attendanceT("description")}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {scope === "students" && (
+              <Link
+                href={`/list/attendance/sheet${effectiveClassId ? `?classId=${effectiveClassId}` : ""}`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-outline bg-surface text-xs font-semibold text-brandPurple-700 hover:text-brandPurple-800 hover:bg-brandPurple-50 dark:hover:bg-brandPurple-950/40 transition shadow-2xs"
+              >
+                <span>{attendanceT("paperSheet")}</span>
+              </Link>
+            )}
+
             <Badge variant="outline" className="text-xs font-medium">
               <Calendar className="w-3.5 h-3.5 shrink-0 text-purple-600 dark:text-purple-400" />
               <span>{attendanceT("academicYear", { year: currentAcademicYear.name })}</span>

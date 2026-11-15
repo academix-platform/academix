@@ -1,42 +1,42 @@
 "use server";
 
 import { notifyGradePosted, notifyParentGradePosted, notifyGradeUpdated } from "./notification.actions";
-import { ResultSchema } from "../formValidationSchemas";
+import { resultSchema, ResultSchema } from "../formValidationSchemas";
 import prisma from "../prisma";
+import { hasOnlineSubmission, resolveManualResult } from "../results/manualResult";
 import {
   CurrentState,
-  getRequiredAcademicYearId,
   errorResult,
   parseNumericId,
   requireActionAccess,
   successResult,
-  canTeacherManageResultAssessment,
 } from "./helpers";
 
 export const createResult = async (
   currentState: CurrentState,
-  data: ResultSchema,
+  input: ResultSchema,
 ) => {
   const access = await requireActionAccess(["admin", "teacher"]);
   if ("error" in access) return access;
-  const role = access.role ?? null;
-  const userId = access.userId ?? null;
+
+  const parsed = resultSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: true, message: parsed.error.issues[0].message };
+  }
+  const data = parsed.data;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const target = await resolveManualResult(prisma, access, data);
+    if ("error" in target) {
+      return { success: false, error: true, message: target.error };
+    }
 
-    const isAllowed = await canTeacherManageResultAssessment({
-      role,
-      userId,
-      assessmentType: data.assessmentType,
-      assessmentId: data.assessmentId,
-    });
-
-    if (!isAllowed) {
+    if (await hasOnlineSubmission(prisma, data)) {
       return {
         success: false,
         error: true,
-        message: "You are not allowed to create results for this assessment.",
+        message:
+          "This student handed this work in online. Grade and publish it from its submissions page.",
       };
     }
 
@@ -45,10 +45,7 @@ export const createResult = async (
         score: data.score,
         schoolId: access.schoolId,
         studentId: data.studentId,
-        examId: data.assessmentType === "exam" ? data.assessmentId : null,
-        assignmentId:
-          data.assessmentType === "assignment" ? data.assessmentId : null,
-        academicYearId,
+        ...target,
       },
       select: {
         studentId: true,
@@ -93,9 +90,9 @@ export const createResult = async (
 
 export const updateResult = async (
   currentState: CurrentState,
-  data: ResultSchema,
+  input: ResultSchema,
 ) => {
-  if (!data.id) {
+  if (!input.id) {
     return { success: false, error: true, message: "Result id is required." };
   }
 
@@ -104,32 +101,16 @@ export const updateResult = async (
   const role = access.role ?? null;
   const userId = access.userId ?? null;
 
+  const parsed = resultSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: true, message: parsed.error.issues[0].message };
+  }
+  const data = parsed.data;
+  const resultId = input.id;
+
   try {
-    const assessmentYearId =
-      data.assessmentType === "exam"
-        ? (
-            await prisma.exam.findUnique({
-              where: { id: data.assessmentId, schoolId: access.schoolId },
-              select: { academicYearId: true },
-            })
-          )?.academicYearId
-        : (
-            await prisma.assignment.findUnique({
-              where: { id: data.assessmentId, schoolId: access.schoolId },
-              select: { academicYearId: true },
-            })
-          )?.academicYearId;
-
-    if (!assessmentYearId) {
-      return {
-        success: false,
-        error: true,
-        message: "Selected assessment was not found.",
-      };
-    }
-
     const existingResult = await prisma.result.findUnique({
-      where: { id: data.id, schoolId: access.schoolId },
+      where: { id: resultId, schoolId: access.schoolId },
       include: {
         exam: {
           select: {
@@ -176,30 +157,28 @@ export const updateResult = async (
       };
     }
 
-    const isAllowed = await canTeacherManageResultAssessment({
-      role,
-      userId,
-      assessmentType: data.assessmentType,
-      assessmentId: data.assessmentId,
-    });
+    const target = await resolveManualResult(prisma, access, data, resultId);
+    if ("error" in target) {
+      return { success: false, error: true, message: target.error };
+    }
 
-    if (!isAllowed) {
+    // Same rule as createResult: a grade for online work, including the
+    // Result its publishing created, changes only from its submissions page.
+    if (await hasOnlineSubmission(prisma, data)) {
       return {
         success: false,
         error: true,
-        message: "You are not allowed to assign this assessment.",
+        message:
+          "This student handed this work in online. Grade and publish it from its submissions page.",
       };
     }
 
     const updated = await prisma.result.updateMany({
-      where: { id: data.id, schoolId: access.schoolId },
+      where: { id: resultId, schoolId: access.schoolId },
       data: {
         score: data.score,
         studentId: data.studentId,
-        examId: data.assessmentType === "exam" ? data.assessmentId : null,
-        assignmentId:
-          data.assessmentType === "assignment" ? data.assessmentId : null,
-        academicYearId: assessmentYearId,
+        ...target,
       },
     });
     if (updated.count === 0) {
@@ -208,7 +187,7 @@ export const updateResult = async (
 
     // ✅ إشعار الطالب والولي بتحديث الدرجة
     const updatedResult = await prisma.result.findUnique({
-      where: { id: data.id },
+      where: { id: resultId },
       select: {
         studentId: true,
         score: true,

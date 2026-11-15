@@ -9,31 +9,6 @@ import {
   requireActionAccess,
 } from "./helpers";
 
-type StudentFinalResultDelegate = {
-  upsert: (args: {
-    where: {
-      schoolId_studentId_academicYearId: {
-        schoolId: number;
-        studentId: string;
-        academicYearId: number;
-      };
-    };
-    create: {
-      schoolId: number;
-      studentId: string;
-      academicYearId: number;
-      averageScore: number;
-      assessmentCount: number;
-      status: "PASS" | "FAIL";
-    };
-    update: {
-      averageScore: number;
-      assessmentCount: number;
-      status: "PASS" | "FAIL";
-    };
-  }) => Promise<unknown>;
-};
-
 export const updateStudentFinalGrade = async (
   currentState: CurrentState,
   formData: FormData,
@@ -95,12 +70,15 @@ export const updateStudentFinalGrade = async (
 
     const status = averageScore >= PASSING_AVERAGE ? "PASS" : "FAIL";
     const roundedAverage = Math.round(averageScore * 100) / 100;
+    // Marked manual so promotion uses it as-is instead of recomputing it.
+    const manualResult = {
+      averageScore: roundedAverage,
+      assessmentCount: 0,
+      status,
+      isManual: true,
+    };
 
-    await (
-      prisma as unknown as {
-        studentFinalResult: StudentFinalResultDelegate;
-      }
-    ).studentFinalResult.upsert({
+    await prisma.studentFinalResult.upsert({
       where: {
         schoolId_studentId_academicYearId: {
           schoolId: access.schoolId,
@@ -112,15 +90,9 @@ export const updateStudentFinalGrade = async (
         schoolId: access.schoolId,
         studentId,
         academicYearId,
-        averageScore: roundedAverage,
-        assessmentCount: 0,
-        status,
+        ...manualResult,
       },
-      update: {
-        averageScore: roundedAverage,
-        assessmentCount: 0,
-        status,
-      },
+      update: manualResult,
     });
 
     revalidatePath("/list/final-results");

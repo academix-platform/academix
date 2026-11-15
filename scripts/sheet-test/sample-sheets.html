@@ -1,0 +1,146 @@
+<!doctype html>
+<!--
+  Printable sheets for the reading accuracy test. All names are made up.
+  Open this file in a browser and print on A4 at 100% scale. run.ts reads the
+  names from the roster below, so both always agree.
+-->
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="utf-8" />
+    <title>Sample entry sheets</title>
+    <style>
+      @page {
+        size: A4;
+        margin: 0;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: #fff;
+        color: #000;
+        font-family: Tahoma, Arial, sans-serif;
+      }
+      .sheet {
+        width: 210mm;
+        height: 297mm;
+        padding: 10mm 14mm;
+        break-after: page;
+      }
+      header {
+        display: flex;
+        justify-content: space-between;
+        gap: 8mm;
+        height: 20mm;
+        font-size: 12pt;
+        line-height: 1.5;
+      }
+      .code {
+        font-size: 15pt;
+        font-weight: bold;
+        text-align: left;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      th,
+      td {
+        height: 8mm;
+        padding: 0 3mm;
+        border: 0.3mm solid #000;
+        font-size: 11pt;
+      }
+      th {
+        background: #eee;
+      }
+      .number {
+        width: 12mm;
+        text-align: center;
+      }
+      .box {
+        width: 36mm;
+      }
+      @media print {
+        .no-print {
+          display: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <p class="no-print" dir="ltr">
+      Print both pages on A4 at 100% scale, as many copies as you need. This note won't print.
+    </p>
+
+    <section class="sheet" data-kind="RESULT">
+      <header>
+        <div>
+          <div>مدرسة التجربة</div>
+          <div>الصف: تجربة ١ — اختبار تجريبي — من 20</div>
+        </div>
+        <div class="code">
+          <div>TEST-R1</div>
+          <div>صفحة 1</div>
+        </div>
+      </header>
+      <table>
+        <thead>
+          <tr>
+            <th class="number">#</th>
+            <th>اسم الطالب</th>
+            <th class="box">العلامة</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <section class="sheet" data-kind="ATTENDANCE">
+      <header>
+        <div>
+          <div>مدرسة التجربة</div>
+          <div>الصف: تجربة ١ — حضور يوم: ____ / ____ / ________</div>
+        </div>
+        <div class="code">
+          <div>TEST-A1</div>
+          <div>صفحة 1</div>
+        </div>
+      </header>
+      <table>
+        <thead>
+          <tr>
+            <th class="number">#</th>
+            <th>اسم الطالب</th>
+            <th class="box">غائب</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </section>
+
+    <script id="roster" type="application/json">
+      [
+        "سليم الوادي", "ليان القصير", "كريم الشامي", "نور الحلبي", "يزن الخطيب",
+        "رنا العمري", "طارق السعدي", "هالة البيطار", "زيد المصري", "دانا الزعبي",
+        "باسل النجار", "ريم الحداد", "عمر الكيلاني", "سارة الطحان", "ماجد الصباغ",
+        "لمى الخياط", "فارس العطار", "جنى الحموي", "وسيم الدباغ", "تالا الرفاعي",
+        "أنس البرغوثي", "ميس القاضي", "حازم الشريف", "سلمى المغربي", "إياد الجندي",
+        "ندى الهاشمي", "رامي التميمي", "شهد الغزاوي", "خالد العلمي", "آية المحتسب"
+      ]
+    </script>
+    <script>
+      const roster = JSON.parse(document.getElementById("roster").textContent);
+      for (const body of document.querySelectorAll("tbody")) {
+        roster.forEach((name, index) => {
+          const row = body.insertRow();
+          row.insertCell().textContent = index + 1;
+          row.cells[0].className = "number";
+          row.insertCell().textContent = name;
+          row.insertCell().className = "box";
+        });
+      }
+    </script>
+  </body>
+</html>

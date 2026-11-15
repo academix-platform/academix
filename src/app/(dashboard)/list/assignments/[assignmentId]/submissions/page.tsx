@@ -1,4 +1,5 @@
 import Table from "@/components/Table";
+import { assignmentGroupWhere } from "@/lib/assignments/group";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -172,8 +173,12 @@ const renderRow = (
             <Download className="h-3.5 w-3.5" />
             {t("actions.download")}
           </a>
+        </div>
+        <div className="mt-2">
           <AssignmentSubmissionAiEvaluation
             submissionId={item.id}
+            maxScore={maxScore}
+            evaluation={item.aiEvaluation}
             disabled={!isPdfSubmission}
           />
         </div>
@@ -220,17 +225,7 @@ const AssignmentSubmissionsPage = async ({ params, searchParams }: Props) => {
   if (!assignment) redirect("/list/assignments");
 
   const groupAssignments = await prisma.assignment.findMany({
-    where: {
-      title: assignment.title,
-      startDate: assignment.startDate,
-      endDate: assignment.endDate,
-      subjectId: assignment.subjectId,
-      schoolId,
-      academicYearId: assignment.academicYearId,
-      ...(role === "teacher"
-        ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
-        : {}),
-    },
+    where: assignmentGroupWhere(assignment, { userId, role, schoolId }),
     include: {
       class: { select: { id: true, name: true } },
     },

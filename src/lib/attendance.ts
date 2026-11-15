@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { defaultWorkingDays, type SchoolWeekDay } from "@/lib/schoolCalendar";
+import { ATTENDING_STUDENT_STATUSES } from "@/lib/attendanceRules";
 
 export type WeeklyDayInfo = {
   date: string; // "YYYY-MM-DD"
@@ -102,6 +103,8 @@ export const getAttendanceData = async ({
     const students = await prisma.student.findMany({
       where: {
         schoolId,
+        // Graduated or departed students can stay linked to their last class.
+        status: { in: [...ATTENDING_STUDENT_STATUSES] },
         ...(classId ? { classId } : {}),
         ...(!classId && gradeId ? { class: { gradeId } } : {}),
       },

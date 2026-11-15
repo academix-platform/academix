@@ -1,104 +1,8 @@
 // src/app/api/download/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import cloudinary from "@/lib/cloudinary";
-
-// ========== استخراج resource_type من URL ==========
-function extractResourceType(fileUrl: string): "image" | "video" | "raw" {
-  if (fileUrl.includes("/image/upload/")) return "image";
-  if (fileUrl.includes("/video/upload/")) return "video";
-  return "raw";
-}
-
-// ========== استخراج delivery type من URL ==========
-function extractDeliveryType(
-  fileUrl: string,
-): "upload" | "private" | "authenticated" {
-  try {
-    const url = new URL(fileUrl);
-    if (url.pathname.includes("/private/")) return "private";
-    if (url.pathname.includes("/authenticated/")) return "authenticated";
-    return "upload";
-  } catch {
-    return "upload";
-  }
-}
-
-// ========== استخراج public_id (بدون extension) + format ==========
-function extractCloudinaryAssetParts(fileUrl: string): {
-  publicIdNoExt: string;
-  format: string;
-} | null {
-  try {
-    const url = new URL(fileUrl);
-    const match = url.pathname.match(
-      /\/(?:image|video|raw)\/(?:upload|private|authenticated)\/(?:v\d+\/)?(.+)$/,
-    );
-    const pathAfterType = match?.[1];
-    if (!pathAfterType) return null;
-
-    const lastDot = pathAfterType.lastIndexOf(".");
-    if (lastDot === -1) return null;
-
-    const publicIdNoExt = pathAfterType.slice(0, lastDot);
-    const format = pathAfterType.slice(lastDot + 1).toLowerCase();
-    if (!publicIdNoExt || !format) return null;
-
-    return { publicIdNoExt, format };
-  } catch {
-    return null;
-  }
-}
-
-// ========== بناء قائمة URLs ==========
-function buildUrlsToTry(fileUrl: string): string[] {
-  try {
-    const url = new URL(fileUrl);
-    url.protocol = "https:";
-
-    const resourceType = extractResourceType(fileUrl);
-    const deliveryType = extractDeliveryType(fileUrl);
-    const assetParts = extractCloudinaryAssetParts(fileUrl);
-
-    console.log("[Download] resourceType:", resourceType);
-    console.log("[Download] deliveryType:", deliveryType);
-    console.log("[Download] assetParts:", assetParts);
-
-    // URL أصلي كما هو (بالـ version)
-    url.protocol = "https:";
-    const originalUrl = url.toString();
-
-    if (!assetParts) return [originalUrl];
-
-    // Cloudinary SDK-generated signed download URLs (more reliable than manual signing).
-    const signedPrimary = cloudinary.utils.private_download_url(
-      assetParts.publicIdNoExt,
-      assetParts.format,
-      {
-        resource_type: resourceType,
-        type: deliveryType,
-        expires_at: Math.floor(Date.now() / 1000) + 300,
-        attachment: true,
-      },
-    );
-
-    const signedRawUpload = cloudinary.utils.private_download_url(
-      assetParts.publicIdNoExt,
-      assetParts.format,
-      {
-        resource_type: "raw",
-        type: "upload",
-        expires_at: Math.floor(Date.now() / 1000) + 300,
-        attachment: true,
-      },
-    );
-
-    // Try original first (public assets), then signed fallbacks.
-    return [originalUrl, signedPrimary, signedRawUpload];
-  } catch {
-    return [fileUrl];
-  }
-}
+import { getAuthUser } from "@/lib/auth";
+import { getSignedFileUrls } from "@/lib/cloudinaryAssets";
+import { findAccessibleFile, StoredFileType } from "@/lib/fileAccess";
 
 // ========== كشف الامتداد من Magic Bytes ==========
 function detectExtensionFromBuffer(buffer: Buffer): string | null {
@@ -182,91 +86,47 @@ function getExtensionFromContentType(contentType: string): string {
   return map[baseType] || "bin";
 }
 
-type DownloadType = "assignment" | "studyMaterial" | "submission";
+const DOWNLOAD_TYPES: StoredFileType[] = ["assignment", "studyMaterial", "submission"];
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   try {
+    const user = await getAuthUser();
+    if (!user) {
+      return new NextResponse("Unauthorized", { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get("type") as DownloadType;
+    const type = searchParams.get("type") as StoredFileType;
     const { id: idStr } = await params;
     const recordId = Number(idStr);
 
-    if (isNaN(recordId)) {
+    if (!Number.isInteger(recordId)) {
       return new NextResponse("Invalid download id", { status: 400 });
     }
-
-    let fileUrl: string | null = null;
-    let baseName = "file";
-    let originalFileName: string | null = null;
-
-    // ========== 1. جلب البيانات من DB ==========
-    if (type === "assignment") {
-      const assignment = await prisma.assignment.findUnique({
-        where: { id: recordId },
-        select: { fileUrl: true, title: true, fileName: true },
-      });
-      if (!assignment)
-        return new NextResponse("Assignment not found", { status: 404 });
-      if (!assignment.fileUrl)
-        return new NextResponse("This assignment has no attached file", {
-          status: 404,
-        });
-      fileUrl = assignment.fileUrl;
-      originalFileName = assignment.fileName || null;
-      baseName = assignment.fileName || assignment.title || "assignment";
-    } else if (type === "studyMaterial") {
-      const material = await prisma.studyMaterial.findUnique({
-        where: { id: recordId },
-        select: { fileUrl: true, title: true, fileName: true },
-      });
-      if (!material)
-        return new NextResponse("Study material not found", { status: 404 });
-      if (!material.fileUrl)
-        return new NextResponse("This material has no attached file", {
-          status: 404,
-        });
-      fileUrl = material.fileUrl;
-      originalFileName = material.fileName || null;
-      baseName = material.fileName || material.title || "study-material";
-    } else if (type === "submission") {
-      const submission = await prisma.assignmentSubmission.findUnique({
-        where: { id: recordId },
-        include: {
-          student: { select: { name: true } },
-          assignment: { select: { title: true } },
-        },
-      });
-      if (!submission)
-        return new NextResponse("Submission not found", { status: 404 });
-      if (!submission.fileUrl)
-        return new NextResponse("This submission has no attached file", {
-          status: 404,
-        });
-      fileUrl = submission.fileUrl;
-      originalFileName = submission.fileName || null;
-      const studentName = submission.student?.name || "student";
-      const assignmentTitle = submission.assignment?.title || "submission";
-      baseName = submission.fileName || `${studentName}_${assignmentTitle}`;
-    } else {
+    if (!DOWNLOAD_TYPES.includes(type)) {
       return new NextResponse("Invalid download type", { status: 400 });
     }
 
+    // ========== 1. جلب البيانات من DB (مع التحقق من الصلاحية) ==========
+    const storedFile = await findAccessibleFile(type, recordId, user);
+    if (!storedFile) {
+      return new NextResponse("File not found", { status: 404 });
+    }
+
+    const fileUrl = storedFile.fileUrl;
+    const originalFileName = storedFile.fileName;
+    const baseName = storedFile.fileName || storedFile.fallbackName;
+
     // ========== 2. بناء قائمة URLs ==========
-    const isCloudinaryUrl =
-      fileUrl.includes("cloudinary.com") || fileUrl.includes("res.cloudinary");
-
-    const urlsToTry = isCloudinaryUrl ? buildUrlsToTry(fileUrl) : [fileUrl];
-
-    console.log("[Download] fileUrl from DB:", fileUrl);
-    console.log("[Download] urlsToTry:", urlsToTry);
+    // Signed URLs are never logged: they grant access to private files.
+    const urlsToTry = getSignedFileUrls(fileUrl, true);
 
     // ========== 3. جلب الملف ==========
     let fileResponse: Response | null = null;
     let lastStatus = 0;
-    let lastUrl = "";
 
     for (const url of urlsToTry) {
       try {
@@ -274,20 +134,18 @@ export async function GET(
           redirect: "follow",
           headers: { "User-Agent": "Mozilla/5.0 (compatible; SchoolApp/1.0)" },
         });
-        console.log("[Download] tried:", url, "->", res.status);
         if (res.ok) {
           fileResponse = res;
           break;
         }
         lastStatus = res.status;
-        lastUrl = url;
       } catch (err) {
-        console.error("[Download] fetch error for:", url, err);
+        console.error("[Download] fetch failed:", (err as Error).message);
       }
     }
 
     if (!fileResponse) {
-      console.error("[Download] All URLs failed. Last:", lastUrl, lastStatus);
+      console.error("[Download] All storage URLs failed. Last status:", lastStatus);
       return new NextResponse(
         `Failed to fetch file (storage returned ${lastStatus})`,
         { status: 502 },
@@ -323,6 +181,7 @@ export async function GET(
       "Content-Disposition",
       `attachment; filename*=UTF-8''${encodeURIComponent(finalFileName)}`,
     );
+    headers.set("X-Content-Type-Options", "nosniff");
     headers.set("Content-Length", buffer.length.toString());
     headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
 

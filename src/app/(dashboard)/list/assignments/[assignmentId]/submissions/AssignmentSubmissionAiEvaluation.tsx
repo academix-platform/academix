@@ -1,52 +1,37 @@
 "use client";
 
-import { evaluateAssignmentSubmissionWithAi } from "@/lib/actions/aiEvaluation.actions";
-import { Loader2, Sparkles } from "lucide-react";
+import AiEvaluationCard, {
+  AiEvaluationCardData,
+} from "@/components/AiEvaluationCard";
+import {
+  approveAssignmentSubmissionAiEvaluation,
+  evaluateAssignmentSubmissionWithAi,
+} from "@/lib/actions/aiEvaluation.actions";
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { useTransition } from "react";
-import { toast } from "react-toastify";
 
 type Props = {
   submissionId: number;
+  maxScore: number;
+  evaluation: AiEvaluationCardData | null;
   disabled?: boolean;
 };
 
 export default function AssignmentSubmissionAiEvaluation({
   submissionId,
+  maxScore,
+  evaluation,
   disabled,
 }: Props) {
   const t = useTranslations("aiEvaluation");
-  const router = useRouter();
-  const [isPending, startTransition] = useTransition();
-
-  const handleEvaluate = () => {
-    startTransition(async () => {
-      const result = await evaluateAssignmentSubmissionWithAi(submissionId);
-
-      if (result.success) {
-        toast.success(result.message);
-        router.refresh();
-      } else {
-        toast.error(result.message);
-      }
-    });
-  };
 
   return (
-    <button
-      type="button"
-      onClick={handleEvaluate}
-      disabled={disabled || isPending}
-      title={disabled ? t("pdfSubmissionsOnly") : t("evaluate")}
-      className="inline-flex items-center gap-2 rounded-md bg-academixPurpleDark px-3 py-1.5 text-xs font-medium text-white transition hover:brightness-90 disabled:cursor-not-allowed disabled:opacity-60"
-    >
-      {isPending ? (
-        <Loader2 className="h-3.5 w-3.5 animate-spin" />
-      ) : (
-        <Sparkles className="h-3.5 w-3.5" />
-      )}
-      {t("evaluate")}
-    </button>
+    <AiEvaluationCard
+      collapsible
+      maxScore={maxScore}
+      evaluation={evaluation}
+      disabledMessage={disabled ? t("pdfSubmissionsOnly") : undefined}
+      onEvaluate={() => evaluateAssignmentSubmissionWithAi(submissionId)}
+      onApprove={approveAssignmentSubmissionAiEvaluation}
+    />
   );
 }
