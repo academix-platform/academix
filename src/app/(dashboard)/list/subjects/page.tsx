@@ -4,16 +4,22 @@ import FormContainer from "@/components/FormContainer";
 import GradeFilter from "@/components/GradeFilter";
 import Pagination from "@/components/Pagination";
 import TableSearch from "@/components/TableSearch";
-import { getTranslations } from "next-intl/server";
+import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { Badge } from "@/components/ui/badge";
+import EmptyState from "@/components/states/EmptyState";
+import { getLocale, getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildSubjectQuery } from "@/lib/query-builders/subject-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { UserRole } from "@/lib/utils";
+import { cn, UserRole } from "@/lib/utils";
 import { Subject, Teacher } from "@prisma/client";
 import type { PageSearchParams } from "@/lib/pageParams";
 import Link from "next/link";
-import { BookText } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { getSubjectCardTheme } from "@/lib/subjectCardThemes";
+import { sanitizeSubjectName } from "@/lib/scheduleUtils";
 
 type SubjectList = Subject & {
   teachers: Teacher[];
@@ -27,6 +33,9 @@ const SubjectListPage = async ({
 }) => {
   const t = await getTranslations("pages");
   const emptyT = await getTranslations("emptyStates");
+  const subjectT = await getTranslations("subjectDetails");
+  const commonT = await getTranslations("common");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/subjects");
 
   const {
@@ -64,6 +73,7 @@ const SubjectListPage = async ({
     }),
     prisma.subject.count({ where: query }),
   ]);
+
   const grades =
     role === "admin"
       ? await prisma.grade.findMany({
@@ -73,61 +83,153 @@ const SubjectListPage = async ({
         })
       : [];
 
+  const breadcrumbs = [
+    {
+      label: commonT("dashboard"),
+      href: `/${role}`,
+    },
+    {
+      label: t("allSubjects"),
+      isCurrent: true,
+    },
+  ];
+
   return (
-    <div className="flex-1 bg-white m-4 mt-0 p-4 rounded-md">
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <h1 className="font-semibold text-lg">{t("allSubjects")}</h1>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <Breadcrumbs items={breadcrumbs} />
 
-        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
-          <TableSearch />
-          {role === "admin" && <GradeFilter grades={grades} />}
+      <DataPageHeader
+        title={t("allSubjects")}
+        description={subjectT("allSubjectsDesc")}
+        count={count}
+        actions={
+          role === "admin" ? (
+            <>
+              <ExportButton
+                href={`/api/admin/subjects/export?${exportQuery.toString()}`}
+              />
+              <FormContainer table="subject" type="create" />
+            </>
+          ) : undefined
+        }
+      />
 
-          <div className="flex items-center self-end gap-2">
-            <FilterSortActions sortKey="sort" />
-
-            {role === "admin" && (
-              <>
-                <ExportButton
-                  href={`/api/admin/subjects/export?${exportQuery.toString()}`}
-                />
-                <FormContainer table="subject" type="create" />
-              </>
-            )}
-          </div>
-        </div>
-      </div>
+      <DataPageToolbar
+        search={<TableSearch />}
+        filters={role === "admin" ? <GradeFilter grades={grades} /> : undefined}
+        actions={<FilterSortActions sortKey="sort" />}
+      />
 
       {data.length === 0 ? (
-        <div className="flex flex-col justify-center items-center bg-gray-50 mt-6 p-10 rounded-xl text-center">
-          <h3 className="font-semibold text-gray-700 text-base">
-            {emptyT("subjects")}
-          </h3>
-          <p className="mt-1 text-gray-400 text-sm">
-            {emptyT("filterDescription")}
-          </p>
-        </div>
+        <EmptyState
+          title={emptyT("subjects")}
+          description={emptyT("filterDescription")}
+        />
       ) : (
-        <div className="gap-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 mt-6">
-          {data.map((item: SubjectList) => (
-            <article
-              key={item.id}
-              className="group relative flex flex-col justify-between bg-gradient-to-br from-academixPurpleDark via-academixPurple to-academixPurpleLight hover:shadow-md p-5 rounded-xl min-h-[150px] transition-shadow"
-            >
-              <Link
-                href={`/list/subjects/${item.id}`}
-                aria-label={item.name}
-                className="absolute inset-0 z-0 rounded-xl"
-              />
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5">
+          {data.map((item: SubjectList, index: number) => {
+            const theme = getSubjectCardTheme(item.id, index);
+            const SubjectIcon = theme.defaultIcon;
+            const localizedName = sanitizeSubjectName(item.name, locale);
 
-              <div className="z-10 relative space-y-8 pointer-events-none">
-                <div className="flex justify-between items-start">
-                  {" "}
-                  <div className="flex items-center gap-1 font-semibold text-white group-hover:text-purple-600 text-lg transition-colors">
-                    <BookText className="inline mr-1 w-5 h-5" />
-                    {item.name}
+            return (
+              <article
+                key={item.id}
+                className={cn(
+                  "group relative flex flex-col justify-between rounded-2xl p-5 shadow-2xs hover:shadow-md transition-all duration-200 overflow-hidden border",
+                  theme.cardBg,
+                  theme.cardBorder,
+                  theme.hoverBorder,
+                )}
+              >
+                {/* Card click overlay */}
+                <Link
+                  href={`/list/subjects/${item.id}`}
+                  aria-label={item.name}
+                  className="absolute inset-0 z-0 rounded-2xl"
+                />
+
+                <div className="space-y-4 z-10 relative pointer-events-none">
+                  {/* Top Header: Icon, Subject Title & Unified Class Badge */}
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div
+                        className={cn(
+                          "w-11 h-11 rounded-xl flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform shadow-2xs border",
+                          theme.iconBg,
+                        )}
+                      >
+                        <SubjectIcon className="w-5 h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h2
+                          dir="auto"
+                          title={item.name}
+                          className={cn(
+                            "font-bold text-base md:text-lg text-content-primary transition-colors truncate",
+                            theme.accentText,
+                          )}
+                        >
+                          {item.name}
+                        </h2>
+                        {localizedName &&
+                        localizedName.toLowerCase() !==
+                          item.name.toLowerCase() ? (
+                          <span className="text-xs text-content-muted font-medium block truncate">
+                            {localizedName}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-content-muted font-medium block truncate">
+                            {subjectT("teacherCount", {
+                              count: item.teachers.length,
+                            })}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Unified Class Badge */}
+                    <Badge
+                      size="sm"
+                      className="font-semibold bg-white dark:bg-slate-900 text-content-primary border border-outline/90 shadow-2xs shrink-0 self-start mt-0.5"
+                    >
+                      {item.grade
+                        ? subjectT("gradeLevel", { level: item.grade.level })
+                        : "-"}
+                    </Badge>
                   </div>
+
+                  {/* Teachers Meta */}
+                  <div className="pt-3 border-t border-outline/60 space-y-1 text-xs">
+                    <div className="flex items-start justify-between gap-2 text-content-secondary">
+                      <span className="text-content-muted font-medium shrink-0">
+                        {subjectT("teachers")}:
+                      </span>
+                      <span className="font-semibold text-end text-content-primary line-clamp-1">
+                        {item.teachers.length > 0
+                          ? item.teachers
+                              .map((teacher) => teacher.name)
+                              .join(", ")
+                          : "-"}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Action Footer: View Details + Admin Actions */}
+                <div className="mt-4 pt-3 border-t border-outline/60 flex items-center justify-between text-xs font-semibold">
+                  <div
+                    className={cn(
+                      "flex items-center gap-1.5 group-hover:translate-x-0.5 rtl:group-hover:-translate-x-0.5 transition-transform pointer-events-none",
+                      theme.footerText,
+                    )}
+                  >
+                    <span>{subjectT("viewDetails")}</span>
+                    <ArrowRight className="w-4 h-4 rtl:rotate-180" />
+                  </div>
+
                   {role === "admin" && (
-                    <div className="flex items-center gap-2 pointer-events-auto">
+                    <div className="flex items-center gap-1.5 pointer-events-auto shrink-0 relative z-20">
                       <FormContainer
                         table="subject"
                         type="update"
@@ -141,29 +243,9 @@ const SubjectListPage = async ({
                     </div>
                   )}
                 </div>
-
-                <div>
-                  <p className="text-black text-sm">
-                    Grade:{" "}
-                    <span className="font-medium text-gray-700">
-                      {item.grade?.level ?? "-"}
-                    </span>
-                  </p>
-
-                  <p className="text-black text-sm line-clamp-2">
-                    Teachers:{" "}
-                    <span className="font-medium text-gray-700">
-                      {item.teachers.length > 0
-                        ? item.teachers
-                            .map((teacher) => teacher.name)
-                            .join(", ")
-                        : "-"}
-                    </span>
-                  </p>
-                </div>
-              </div>
-            </article>
-          ))}
+              </article>
+            );
+          })}
         </div>
       )}
 

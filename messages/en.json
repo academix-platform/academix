@@ -1721,6 +1721,8 @@
   },
   "subjectDetails": {
     "subjects": "Subjects",
+    "allSubjectsDesc": "View and manage curriculum subjects, grades, and assigned teachers.",
+    "viewDetails": "View details",
     "grade": "Grade",
     "gradeLevel": "Grade {level}",
     "teacherCount": "{count, plural, one {# teacher} other {# teachers}}",

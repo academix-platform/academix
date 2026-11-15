@@ -1,7 +1,9 @@
 "use client";
 
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "@/lib/utils";
+import { useMounted } from "@/hooks/useMounted";
 import { X } from "lucide-react";
 
 interface DialogContextValue {
@@ -87,9 +89,13 @@ export const DialogContent = React.forwardRef<
 >(({ className, size = "md", children, ...props }, ref) => {
   const context = React.useContext(DialogContext);
   if (!context) throw new Error("DialogContent must be used within Dialog");
+  const mounted = useMounted();
 
   React.useEffect(() => {
     if (!context.open) return;
+
+    const originalOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -98,14 +104,17 @@ export const DialogContent = React.forwardRef<
     };
 
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.body.style.overflow = originalOverflow;
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, [context]);
 
-  if (!context.open) return null;
+  if (!context.open || !mounted || typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div
-      className="z-50 fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-xs p-4 animate-in duration-200 fade-in-0"
+      className="z-[100] fixed inset-0 flex justify-center items-center bg-black/60 backdrop-blur-xs p-4 animate-in duration-200 fade-in-0"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) {
           context.onOpenChange(false);
@@ -134,7 +143,8 @@ export const DialogContent = React.forwardRef<
           <X className="w-4 h-4" />
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 });
 DialogContent.displayName = "DialogContent";

@@ -40,7 +40,7 @@ type AssignmentList = Assignment & {
   _count?: { assignmentSubmissions: number };
 };
 
-const formatDateTime = (date: Date, locale: string = "en") =>
+const formatDateTime = (date: Date, locale: string = "ar") =>
   new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -87,7 +87,7 @@ const renderRow = (
   item: AssignmentList,
   role: UserRole | null,
   assignmentsT: (key: string) => string,
-  locale: string = "en",
+  locale: string = "ar",
 ) => {
   const mySubmission = item.assignmentSubmissions?.[0] ?? null;
   const canManage = role === "teacher" || role === "admin";

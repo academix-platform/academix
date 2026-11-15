@@ -7,8 +7,9 @@ import {
   Users,
   ClipboardList,
   FileText,
-  ChevronRight,
   GraduationCap,
+  Info,
+  Calendar,
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
@@ -24,41 +25,63 @@ import StudyMaterialList, {
 import SubjectPageEditor from "@/components/SubjectPageEditor";
 import SubjectDetailsTabs from "@/components/SubjectDetailsTabs";
 import FormContainer from "@/components/FormContainer";
+import { Breadcrumbs } from "@/components/ui/breadcrumbs";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
 import { getLocale, getTranslations } from "next-intl/server";
+import { getSubjectCardTheme } from "@/lib/subjectCardThemes";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
   icon: Icon,
   label,
   value,
-  color,
+  tint,
 }: {
   icon: ElementType;
   label: string;
   value: number | string;
-  color: string;
+  tint: "blue" | "emerald" | "amber" | "purple";
 }) {
+  const tintStyles = {
+    blue: "bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-900/40",
+    emerald:
+      "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-100 dark:border-emerald-900/40",
+    amber:
+      "bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-100 dark:border-amber-900/40",
+    purple:
+      "bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border-purple-100 dark:border-purple-900/40",
+  };
+
   return (
-    <div className="flex items-center gap-4 bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
-      <div className={`p-3 rounded-xl ${color}`}>
-        <Icon className="w-5 h-5 text-white" />
+    <div className="bg-surface border border-outline/80 rounded-2xl p-4 sm:p-5 shadow-2xs flex items-center justify-between gap-3">
+      <div className="space-y-1 min-w-0">
+        <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-content-muted block truncate">
+          {label}
+        </span>
+        <div className="text-2xl sm:text-3xl font-bold tracking-tight text-content-primary tabular-nums">
+          {value}
+        </div>
       </div>
-      <div>
-        <p className="font-bold text-gray-800 text-2xl">{value}</p>
-        <p className="text-gray-500 text-sm">{label}</p>
+      <div
+        className={cn(
+          "p-2.5 sm:p-3 rounded-xl border shrink-0",
+          tintStyles[tint],
+        )}
+      >
+        <Icon className="w-5 h-5" />
       </div>
     </div>
   );
 }
 
-// ─── Day label map ────────────────────────────────────────────────────────────
 // ─── Section renderers ────────────────────────────────────────────────────────
 function AssignmentsSection({
   assignments,
   createAction,
   emptyLabel,
   labels,
-  locale = "en",
+  locale = "ar",
 }: {
   assignments: {
     id: number;
@@ -83,50 +106,56 @@ function AssignmentsSection({
   locale?: string;
 }) {
   return (
-    <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
-        <div className="flex items-center gap-2">
-          <ClipboardList className="w-4 h-4 text-orange-500" />
-          <h2 className="font-semibold text-gray-800 text-base">
+    <div className="bg-surface border border-outline/80 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="flex justify-between items-center px-5 py-3.5 border-b border-outline/60 bg-surface-muted/30">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-100 dark:border-amber-900/40">
+            <ClipboardList className="w-4 h-4" />
+          </div>
+          <h2 className="font-bold text-content-primary text-sm sm:text-base">
             {labels.assignments}
           </h2>
-          <span className="ml-1 text-gray-400 text-sm">
-            ({assignments.length})
-          </span>
+          <Badge variant="secondary" size="sm">
+            {assignments.length}
+          </Badge>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/list/assignments"
-            className="bg-orange-500 hover:bg-orange-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brandPurple-600 dark:text-brandPurple-400 hover:text-brandPurple-700 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-surface-muted"
           >
             {labels.manageAssignments}
           </Link>
           {createAction}
         </div>
       </div>
+
       {assignments.length === 0 ? (
-        <div className="px-6 py-8 text-center">
-          <p className="text-gray-400 text-sm">{emptyLabel}</p>
+        <div className="p-8 sm:p-12 text-center">
+          <ClipboardList className="mx-auto mb-2 w-10 h-10 text-content-muted/60" />
+          <p className="text-xs sm:text-sm font-medium text-content-muted">
+            {emptyLabel}
+          </p>
         </div>
       ) : (
-        <ul className="divide-y divide-gray-50">
+        <ul className="divide-y divide-outline/40 max-h-[380px] overflow-auto">
           {assignments.map((a) => {
             const isOverdue = new Date(a.endDate) < new Date() && !a.fileUrl;
             return (
               <li
                 key={a.id}
-                className="flex justify-between items-start gap-4 hover:bg-gray-50 px-6 py-4 transition-colors"
+                className="flex justify-between items-start gap-4 hover:bg-surface-muted/30 px-5 py-3.5 transition-colors"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-gray-800 truncate">
+                  <p className="font-semibold text-content-primary text-sm truncate">
                     {a.title}
                   </p>
                   {a.description && (
-                    <p className="mt-0.5 text-gray-500 text-sm line-clamp-1">
+                    <p className="mt-0.5 text-content-secondary text-xs sm:text-sm line-clamp-1">
                       {a.description}
                     </p>
                   )}
-                  <div className="flex items-center gap-2 mt-1 text-gray-400 text-xs">
+                  <div className="flex flex-wrap items-center gap-2 mt-1.5 text-content-muted text-xs">
                     <span>
                       {labels.class}: {a.class?.name ?? a.lesson?.class.name ?? "-"}
                     </span>
@@ -139,9 +168,9 @@ function AssignmentsSection({
                       })}
                     </span>
                     {isOverdue && (
-                      <span className="font-medium text-red-500">
+                      <Badge variant="destructive" size="sm">
                         {labels.overdue}
-                      </span>
+                      </Badge>
                     )}
                   </div>
                 </div>
@@ -151,10 +180,10 @@ function AssignmentsSection({
                     target="_blank"
                     rel="noopener noreferrer"
                     title={labels.downloadAssignmentFile}
-                    className="flex flex-shrink-0 items-center gap-1.5 bg-orange-50 hover:bg-orange-100 px-3 py-1.5 rounded-lg font-medium text-orange-700 text-xs transition-colors"
+                    className="flex shrink-0 items-center gap-1.5 bg-amber-50 dark:bg-amber-950/40 hover:bg-amber-100 dark:hover:bg-amber-900/50 border border-amber-200 dark:border-amber-800/50 px-3 py-1.5 rounded-lg font-semibold text-amber-700 dark:text-amber-300 text-xs transition-colors"
                   >
                     <FileText className="w-3.5 h-3.5" />
-                    {labels.download}
+                    <span>{labels.download}</span>
                   </a>
                 )}
               </li>
@@ -171,7 +200,7 @@ function ExamsSection({
   createAction,
   tableHeaders,
   labels,
-  locale = "en",
+  locale = "ar",
 }: {
   exams: {
     id: number;
@@ -195,19 +224,23 @@ function ExamsSection({
   locale?: string;
 }) {
   return (
-    <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
-        <div className="flex items-center gap-2">
-          <FileText className="w-4 h-4 text-yellow-500" />
-          <h2 className="font-semibold text-gray-800 text-base">
+    <div className="bg-surface border border-outline/80 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="flex justify-between items-center px-5 py-3.5 border-b border-outline/60 bg-surface-muted/30">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-purple-50 dark:bg-purple-950/50 text-purple-600 dark:text-purple-400 border border-purple-100 dark:border-purple-900/40">
+            <FileText className="w-4 h-4" />
+          </div>
+          <h2 className="font-bold text-content-primary text-sm sm:text-base">
             {labels.exams}
           </h2>
-          <span className="ml-1 text-gray-400 text-sm">({exams.length})</span>
+          <Badge variant="secondary" size="sm">
+            {exams.length}
+          </Badge>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/list/exams"
-            className="bg-yellow-500 hover:bg-yellow-600 px-3 py-1.5 rounded-md text-white text-sm transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-brandPurple-600 dark:text-brandPurple-400 hover:text-brandPurple-700 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-surface-muted"
           >
             {labels.manageExams}
           </Link>
@@ -215,30 +248,44 @@ function ExamsSection({
         </div>
       </div>
       {exams.length === 0 ? (
-        <div className="px-6 py-8 text-center">
-          <p className="text-gray-400 text-sm">{labels.noExams}</p>
+        <div className="p-8 sm:p-12 text-center">
+          <FileText className="mx-auto mb-2 w-10 h-10 text-content-muted/60" />
+          <p className="text-xs sm:text-sm font-medium text-content-muted">
+            {labels.noExams}
+          </p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+        <div className="overflow-x-auto max-h-[380px]">
+          <table className="w-full text-xs sm:text-sm text-start">
             <thead>
-              <tr className="bg-gray-50 text-gray-500 text-start">
-                <th className="px-6 py-3 font-medium">{tableHeaders.title}</th>
-                <th className="px-6 py-3 font-medium">{tableHeaders.class}</th>
-                <th className="px-6 py-3 font-medium">{tableHeaders.startTime}</th>
-                <th className="px-6 py-3 font-medium">{tableHeaders.endTime}</th>
+              <tr className="bg-surface-muted/40 border-b border-outline/60 text-content-muted font-semibold text-[11px] sm:text-xs uppercase tracking-wider">
+                <th className="px-5 py-3 text-start font-semibold">
+                  {tableHeaders.title}
+                </th>
+                <th className="px-5 py-3 text-start font-semibold">
+                  {tableHeaders.class}
+                </th>
+                <th className="px-5 py-3 text-start font-semibold">
+                  {tableHeaders.startTime}
+                </th>
+                <th className="px-5 py-3 text-start font-semibold">
+                  {tableHeaders.endTime}
+                </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
+            <tbody className="divide-y divide-outline/40">
               {exams.map((exam) => (
-                <tr key={exam.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-3 font-medium text-gray-800">
+                <tr
+                  key={exam.id}
+                  className="hover:bg-surface-muted/30 transition-colors"
+                >
+                  <td className="px-5 py-3 font-semibold text-content-primary">
                     {exam.title}
                   </td>
-                  <td className="px-6 py-3 text-gray-600">
+                  <td className="px-5 py-3 text-content-secondary">
                     {exam.class?.name ?? "-"}
                   </td>
-                  <td className="px-6 py-3 text-gray-600">
+                  <td className="px-5 py-3 text-content-secondary tabular-nums">
                     {new Date(exam.startTime).toLocaleString(locale, {
                       day: "numeric",
                       month: "short",
@@ -246,7 +293,7 @@ function ExamsSection({
                       minute: "2-digit",
                     })}
                   </td>
-                  <td className="px-6 py-3 text-gray-600">
+                  <td className="px-5 py-3 text-content-secondary tabular-nums">
                     {new Date(exam.endTime).toLocaleString(locale, {
                       day: "numeric",
                       month: "short",
@@ -263,6 +310,7 @@ function ExamsSection({
     </div>
   );
 }
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 export default async function SubjectDetailPage({
   params,
@@ -272,6 +320,7 @@ export default async function SubjectDetailPage({
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
   const subjectT = await getTranslations("subjectDetails");
+  const commonT = await getTranslations("common");
   const locale = await getLocale();
   const { id } = await params;
   const subjectId = Number(id);
@@ -280,15 +329,14 @@ export default async function SubjectDetailPage({
   const { userId, role, schoolId } = await requireAuth();
   const roleStr = role as string;
   const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
-  // الواجبات والامتحانات: السنة الحالية فقط، وللطالب وولي الأمر صفوفهم فقط
+
+  // Class content filtering
   const classContentWhere = subjectClassContentWhere(
     roleStr,
     userId,
     academicYearId,
   );
 
-  // جلب المادة مع كل البيانات + إعدادات الصفحة
-  // المعلم: المواد المسندة إليه فقط — الطالب وولي الأمر: مواد مستوى الطالب فقط
   const subject = await prisma.subject.findFirst({
     where: {
       id: subjectId,
@@ -335,7 +383,6 @@ export default async function SubjectDetailPage({
         },
         orderBy: { startTime: "asc" },
       },
-      // جلب إعدادات الصفحة — المعلم يجلب إعداداته، الأدمن والطالب يجلبون أول إعداد موجود
       pageSettings:
         roleStr === "teacher" && userId
           ? { where: { teacherId: userId }, take: 1 }
@@ -347,7 +394,10 @@ export default async function SubjectDetailPage({
 
   const classCount = new Set([
     ...subject.assignments
-      .map((assignment) => assignment.class?.name ?? assignment.lesson?.class.name)
+      .map(
+        (assignment) =>
+          assignment.class?.name ?? assignment.lesson?.class.name,
+      )
       .filter((className): className is string => !!className),
     ...subject.exams
       .map((exam) => exam.class?.name)
@@ -359,7 +409,6 @@ export default async function SubjectDetailPage({
     createdAt: new Date(m.createdAt),
   }));
 
-  // إعدادات الصفحة
   const pageSettings = subject.pageSettings[0] ?? null;
   const sectionsOrder: string[] = (
     (pageSettings?.sectionsOrder as string[]) ?? [
@@ -369,9 +418,8 @@ export default async function SubjectDetailPage({
     ]
   ).map((section) => (section === "lessons" ? "exams" : section));
 
-  const isAuthorized = roleStr === "teacher" || roleStr === "admin"; // الأدمن له نفس صلاحيات المعلم
+  const isAuthorized = roleStr === "teacher" || roleStr === "admin";
 
-  // خريطة الأقسام
   const sectionMap: Record<string, ReactNode> = {
     assignments: (
       <AssignmentsSection
@@ -421,7 +469,7 @@ export default async function SubjectDetailPage({
           isAuthorized ? (
             <Link
               href={`/list/exams/create-workflow?subjectId=${subjectId}`}
-              className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
+              className="inline-flex items-center gap-1.5 bg-brandPurple-600 hover:bg-brandPurple-700 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow-2xs transition-colors"
             >
               {subjectT("createExam")}
             </Link>
@@ -439,24 +487,32 @@ export default async function SubjectDetailPage({
     ),
   };
 
+  const theme = getSubjectCardTheme(subject.id);
+  const SubjectIcon = theme.defaultIcon;
+
+  const breadcrumbs = [
+    {
+      label: commonT("dashboard"),
+      href: `/${roleStr}`,
+    },
+    {
+      label: subjectT("subjects"),
+      href: "/list/subjects",
+    },
+    {
+      label: subject.name,
+      isCurrent: true,
+    },
+  ];
+
   return (
-    <div className="space-y-6 bg-gray-50 p-6 min-h-screen">
-      {/* Breadcrumb */}
-      <nav className="flex items-center gap-1.5 text-gray-500 text-sm">
-        <Link
-          href="/list/subjects"
-          className="hover:text-purple-600 transition-colors"
-        >
-          {subjectT("subjects")}
-        </Link>
-        <ChevronRight className="w-4 h-4" />
-        <span className="font-medium text-gray-800">{subject.name}</span>
-      </nav>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
+      <Breadcrumbs items={breadcrumbs} />
 
       {/* Banner Image */}
       {pageSettings?.bannerImage && (
         <div
-          className={`relative w-full rounded-xl overflow-hidden shadow-sm ${
+          className={`relative w-full rounded-2xl overflow-hidden shadow-2xs border border-outline ${
             pageSettings.bannerHeight === "sm"
               ? "h-32"
               : pageSettings.bannerHeight === "lg"
@@ -476,80 +532,98 @@ export default async function SubjectDetailPage({
       )}
 
       {/* Header */}
-      <div className="flex justify-between items-start gap-4 bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
-        <div className="flex items-start gap-4">
-          <div className="bg-purple-100 p-3 sm:p-4 rounded-xl">
-            <BookOpen className="w-6 sm:w-8 h-6 sm:h-8 text-purple-600" />
+      <div
+        className={cn(
+          "flex flex-col md:flex-row md:items-center justify-between gap-4 border rounded-2xl p-6 shadow-2xs",
+          theme.cardBg,
+          theme.cardBorder,
+        )}
+      >
+        <div className="flex items-start gap-4 min-w-0">
+          <div
+            className={cn(
+              "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 shadow-2xs border",
+              theme.iconBg,
+            )}
+          >
+            <SubjectIcon className="w-7 h-7" />
           </div>
-          <div>
-            <h1 className="font-bold text-gray-800 text-xl sm:text-2xl">
-              {subject.name}
-            </h1>
-            <p className="mt-1 text-gray-500 text-sm">
-              {subjectT("gradeLevel", { level: subject.grade.level })} ·{" "}
-              {subjectT("teacherCount", { count: subject.teachers.length })}
-            </p>
-            {/* Course description */}
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-bold text-xl sm:text-2xl text-content-primary tracking-tight">
+                {subject.name}
+              </h1>
+              <Badge className="font-semibold bg-white dark:bg-slate-900 text-content-primary border border-outline/90 shadow-2xs">
+                {subjectT("gradeLevel", { level: subject.grade.level })}
+              </Badge>
+              <Badge variant="secondary" className="font-semibold">
+                {subjectT("teacherCount", { count: subject.teachers.length })}
+              </Badge>
+            </div>
             {pageSettings?.description && (
-              <p className="mt-2 max-w-xl text-gray-600 text-sm">
+              <p className="text-content-secondary text-xs sm:text-sm leading-relaxed max-w-2xl">
                 {pageSettings.description}
               </p>
             )}
           </div>
         </div>
 
-        {/* Edit Page button — teachers only */}
+        {/* Edit Page button — teachers/admins */}
         {isAuthorized && (
-          <SubjectPageEditor
-            subjectId={subjectId}
-            initialSettings={{
-              announcement: pageSettings?.announcement ?? null,
-              description: pageSettings?.description ?? null,
-              bannerImage: pageSettings?.bannerImage ?? null,
-              bannerHeight: pageSettings?.bannerHeight ?? "md",
-              sectionsOrder,
-            }}
-          />
+          <div className="shrink-0 self-start md:self-center">
+            <SubjectPageEditor
+              subjectId={subjectId}
+              initialSettings={{
+                announcement: pageSettings?.announcement ?? null,
+                description: pageSettings?.description ?? null,
+                bannerImage: pageSettings?.bannerImage ?? null,
+                bannerHeight: pageSettings?.bannerHeight ?? "md",
+                sectionsOrder,
+              }}
+            />
+          </div>
         )}
       </div>
 
       {/* Announcement banner */}
       {pageSettings?.announcement && (
-        <div className="bg-purple-50 px-5 py-4 border border-purple-200 rounded-xl font-medium text-purple-800 text-sm">
-          📢 {pageSettings.announcement}
+        <div className="bg-brandPurple-50/70 dark:bg-brandPurple-950/30 px-5 py-3.5 border border-brandPurple-200/70 dark:border-brandPurple-800/50 rounded-2xl font-medium text-brandPurple-800 dark:text-brandPurple-300 text-xs sm:text-sm flex items-center gap-2.5 shadow-2xs">
+          <span className="text-base shrink-0">📢</span>
+          <span>{pageSettings.announcement}</span>
         </div>
       )}
 
       {/* Stats */}
-      <div className="gap-4 grid grid-cols-2 md:grid-cols-4">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
         <StatCard
           icon={Users}
           label={subjectT("teachers")}
           value={subject.teachers.length}
-          color="bg-blue-500"
+          tint="blue"
         />
         <StatCard
           icon={GraduationCap}
           label={subjectT("classes")}
           value={classCount}
-          color="bg-green-500"
+          tint="emerald"
         />
         <StatCard
           icon={ClipboardList}
           label={subjectT("assignments")}
           value={subject.assignments.length}
-          color="bg-orange-500"
+          tint="amber"
         />
         <StatCard
           icon={FileText}
           label={subjectT("exams")}
           value={subject.exams.length}
-          color="bg-yellow-500"
+          tint="purple"
         />
       </div>
 
       {/* Main grid */}
-      <div className="gap-6 grid grid-cols-1 lg:grid-cols-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left column (2/3): Tabs & Content */}
         <div className="space-y-6 lg:col-span-2">
           <SubjectDetailsTabs
             sectionsOrder={sectionsOrder}
@@ -559,121 +633,118 @@ export default async function SubjectDetailPage({
           />
         </div>
 
-        {/* Right column (1/3) */}
-        <div className="space-y-6 h-full">
-          {/* Subject info card */}
-          <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
-            <h3 className="mb-3 font-semibold text-gray-700 text-sm">
-              {subjectT("subjectInfo")}
-            </h3>
-            <dl className="space-y-2.5 text-sm">
-              <div className="flex justify-between">
-                <dt className="text-gray-500">{subjectT("grade")}</dt>
-                <dd className="font-medium text-gray-700">
+        {/* Right column (1/3): Info Card + Teachers */}
+        <div className="space-y-6">
+          {/* Subject info card with clear key-value layout */}
+          <div className="bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-outline/60">
+              <Info className="w-4 h-4 text-brandPurple-600 dark:text-brandPurple-400" />
+              <h3 className="font-bold text-sm text-content-primary">
+                {subjectT("subjectInfo")}
+              </h3>
+            </div>
+            <div className="space-y-2 text-xs sm:text-sm divide-y divide-outline/40">
+              <div className="flex items-center justify-between pt-2 first:pt-0">
+                <span className="text-content-muted font-medium">
+                  {subjectT("grade")}
+                </span>
+                <Badge className="font-semibold bg-white dark:bg-slate-900 text-content-primary border border-outline/90 shadow-2xs">
                   {subjectT("gradeLevel", { level: subject.grade.level })}
-                </dd>
+                </Badge>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">{subjectT("classes")}</dt>
-                <dd className="font-medium text-gray-700">{classCount}</dd>
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-content-muted font-medium">
+                  {subjectT("classes")}
+                </span>
+                <span className="font-semibold text-content-primary tabular-nums">
+                  {classCount}
+                </span>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">{subjectT("assignments")}</dt>
-                <dd className="font-medium text-gray-700">
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-content-muted font-medium">
+                  {subjectT("assignments")}
+                </span>
+                <span className="font-semibold text-content-primary tabular-nums">
                   {subject.assignments.length}
-                </dd>
+                </span>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">{subjectT("materials")}</dt>
-                <dd className="font-medium text-gray-700">
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-content-muted font-medium">
+                  {subjectT("materials")}
+                </span>
+                <span className="font-semibold text-content-primary tabular-nums">
                   {subject.studyMaterials.length}
-                </dd>
+                </span>
               </div>
-              <div className="flex justify-between">
-                <dt className="text-gray-500">{subjectT("exams")}</dt>
-                <dd className="font-medium text-gray-700">
+              <div className="flex items-center justify-between pt-2">
+                <span className="text-content-muted font-medium">
+                  {subjectT("exams")}
+                </span>
+                <span className="font-semibold text-content-primary tabular-nums">
                   {subject.exams.length}
-                </dd>
+                </span>
               </div>
-            </dl>
+            </div>
           </div>
 
-          {roleStr === "admin" && (
-            <div className="bg-white shadow-sm p-6 border border-gray-100 rounded-xl">
-              <h2 className="flex items-center gap-2 mb-4 font-semibold text-gray-800 text-base">
-                <Users className="w-4 h-4 text-blue-500" />
-                {subjectT("teachers")}
-              </h2>
-              {subject.teachers.length === 0 ? (
-                <p className="text-gray-400 text-sm">
-                  {emptyT("teachersAssigned")}
-                </p>
-              ) : (
-                <ul className="flex flex-wrap gap-3">
-                  {subject.teachers.map((t) => (
-                    <li key={t.id}>
-                      <Link
-                        href={`/list/teachers/${t.id}`}
-                        className="flex items-center gap-2 hover:bg-purple-50 px-3 py-2 border border-gray-100 hover:border-purple-200 rounded-lg transition-colors"
-                      >
-                        {t.img ? (
-                          <Image
-                            src={t.img}
-                            alt={t.name}
-                            width={28}
-                            height={28}
-                            className="rounded-full w-7 h-7 object-cover"
-                          />
-                        ) : (
-                          <div className="flex justify-center items-center bg-purple-100 rounded-full w-7 h-7 font-semibold text-purple-700 text-xs">
-                            {t.name[0]}
-                          </div>
-                        )}
-                        <span className="font-medium text-gray-700 text-sm">
-                          {t.name}
-                        </span>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-          {roleStr === "student" && subject.teachers.length > 0 && (
-            <div className="bg-white shadow-sm p-5 border border-gray-100 rounded-xl">
-              <h3 className="flex items-center gap-2 mb-4 font-semibold text-gray-700 text-sm">
-                <Users className="w-4 h-4 text-blue-500" />
-                {subjectT("yourTeachers", { count: subject.teachers.length })}
+          {/* Teachers Section */}
+          <div className="bg-surface border border-outline/80 rounded-2xl p-5 shadow-2xs space-y-4">
+            <div className="flex items-center gap-2 pb-3 border-b border-outline/60">
+              <Users className="w-4 h-4 text-brandPurple-600 dark:text-brandPurple-400" />
+              <h3 className="font-bold text-sm text-content-primary">
+                {roleStr === "student"
+                  ? subjectT("yourTeachers", {
+                      count: subject.teachers.length,
+                    })
+                  : subjectT("teachers")}
               </h3>
+            </div>
+
+            {subject.teachers.length === 0 ? (
+              <p className="text-xs text-content-muted font-medium py-2">
+                {emptyT("teachersAssigned")}
+              </p>
+            ) : (
               <ul className="space-y-3">
                 {subject.teachers.map((t) => (
-                  <li key={t.id} className="flex items-center gap-3">
+                  <li
+                    key={t.id}
+                    className="flex items-center gap-3 p-2 rounded-xl hover:bg-surface-muted/40 transition-colors"
+                  >
                     {t.img ? (
                       <Image
                         src={t.img}
                         alt={t.name}
-                        width={40}
-                        height={40}
-                        className="flex-shrink-0 rounded-full w-10 h-10 object-cover"
+                        width={36}
+                        height={36}
+                        className="rounded-full w-9 h-9 object-cover border border-outline shrink-0"
                       />
                     ) : (
-                      <div className="flex flex-shrink-0 justify-center items-center bg-purple-100 rounded-full w-10 h-10 font-bold text-purple-700 text-sm">
+                      <div className="flex shrink-0 justify-center items-center bg-brandPurple-100 dark:bg-brandPurple-950/60 text-brandPurple-700 dark:text-brandPurple-300 rounded-full w-9 h-9 font-bold text-xs border border-brandPurple-200/50">
                         {t.name[0]}
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium text-gray-800 text-sm">
+                    <div className="min-w-0 flex-1">
+                      <p className="font-semibold text-content-primary text-sm truncate">
                         {t.name}
                       </p>
-                      <p className="text-gray-400 text-xs">
+                      <p className="text-content-muted text-xs">
                         {subjectT("subjectTeacher")}
                       </p>
                     </div>
+                    {roleStr === "admin" && (
+                      <Link
+                        href={`/list/teachers/${t.id}`}
+                        className="text-xs font-semibold text-brandPurple-600 dark:text-brandPurple-400 hover:text-brandPurple-700 transition-colors shrink-0"
+                      >
+                        {subjectT("viewDetails")}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </div>

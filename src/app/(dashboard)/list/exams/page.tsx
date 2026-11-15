@@ -39,7 +39,7 @@ type ExamList = Exam & {
   questions?: { points: number }[];
 };
 
-const formatDateTime = (date: Date, locale: string = "en") =>
+const formatDateTime = (date: Date, locale: string = "ar") =>
   new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
@@ -111,7 +111,7 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
 const renderRow = (
   item: ExamList,
   role: UserRole | null,
-  locale: string = "en",
+  locale: string = "ar",
   actionsT?: (key: string) => string,
 ) => {
   const sub = item.studentSubmission;
