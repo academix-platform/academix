@@ -19,6 +19,8 @@ import {
 } from "@/lib/actions/studyMaterial.actions";
 import StudyMaterialUpload from "@/components/StudyMaterialUpload";
 import { useTranslations, useLocale } from "next-intl";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type StudyMaterialItem = {
@@ -35,27 +37,12 @@ export type StudyMaterialItem = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 function FileIcon({ type }: { type: string }) {
   if (["jpg", "jpeg", "png", "gif", "webp"].includes(type))
-    return <FileImage className="w-8 h-8 text-blue-400" />;
-  if (type === "pdf") return <FileText className="w-8 h-8 text-red-400" />;
-  return <File className="w-8 h-8 text-gray-400" />;
+    return <FileImage className="w-8 h-8 text-blue-500 shrink-0" />;
+  if (type === "pdf") return <FileText className="w-8 h-8 text-rose-500 shrink-0" />;
+  return <File className="w-8 h-8 text-slate-400 shrink-0" />;
 }
 
-const badgeColors: Record<string, string> = {
-  pdf: "bg-red-100 text-red-700",
-  doc: "bg-blue-100 text-blue-700",
-  docx: "bg-blue-100 text-blue-700",
-  ppt: "bg-orange-100 text-orange-700",
-  pptx: "bg-orange-100 text-orange-700",
-  xls: "bg-green-100 text-green-700",
-  xlsx: "bg-green-100 text-green-700",
-  png: "bg-purple-100 text-purple-700",
-  jpg: "bg-purple-100 text-purple-700",
-  jpeg: "bg-purple-100 text-purple-700",
-  zip: "bg-yellow-100 text-yellow-700",
-};
-
 // ─── Delete button ────────────────────────────────────────────────────────────
-// مكون منفصل حتى لا يتشارك الـ state مع باقي العناصر
 function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
   const t = useTranslations("subjectDetails");
   const init: StudyMaterialState = {
@@ -81,7 +68,7 @@ function DeleteButton({ id, subjectId }: { id: number; subjectId: number }) {
         type="submit"
         disabled={isPending}
         title={t("delete")}
-        className="hover:bg-red-50 disabled:opacity-40 p-1.5 rounded-lg text-gray-400 hover:text-red-500 transition-colors"
+        className="hover:bg-rose-50 dark:hover:bg-rose-950/40 disabled:opacity-40 p-2 rounded-xl border border-outline bg-surface text-content-muted hover:text-rose-600 transition-colors cursor-pointer"
       >
         {isPending ? (
           <Loader2 className="w-4 h-4 animate-spin" />
@@ -115,39 +102,43 @@ export default function StudyMaterialList({
 
   if (materials.length === 0) {
     return (
-      <div className="bg-white shadow-sm p-10 border border-gray-100 rounded-xl text-center">
-        <BookOpen className="mx-auto mb-3 w-10 h-10 text-gray-200" />
-        <p className="font-medium text-gray-500">{emptyT("studyMaterials")}</p>
-        <p className="mt-1 text-gray-400 text-sm">
+      <div className="bg-surface border border-outline/80 rounded-2xl p-8 sm:p-12 shadow-2xs text-center">
+        <div className="w-12 h-12 rounded-2xl bg-brandPurple-50 dark:bg-brandPurple-950/40 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100 dark:border-brandPurple-900/40 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+          <BookOpen className="w-6 h-6" />
+        </div>
+        <p className="font-semibold text-content-primary">{emptyT("studyMaterials")}</p>
+        <p className="mt-1 text-content-muted text-xs sm:text-sm max-w-sm mx-auto">
           {role === "teacher"
             ? emptyT("uploadFirstMaterial")
             : emptyT("noStudyMaterialsForStudent")}
         </p>
         {canUpload && (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 mt-4 px-4 py-2 rounded-md text-white text-sm transition-colors"
+            leftIcon={<Upload className="w-4 h-4" />}
+            className="mt-4"
           >
-            <Upload className="w-4 h-4" />
             {emptyT("uploadMaterial")}
-          </button>
+          </Button>
         )}
         {isUploadOpen && (
           <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
             <div
-              className="absolute inset-0 bg-black/40"
+              className="absolute inset-0 bg-black/50 backdrop-blur-xs"
               onClick={() => setIsUploadOpen(false)}
             />
-            <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="font-semibold text-gray-800 text-base">
+            <div className="relative bg-surface shadow-2xl p-6 border border-outline rounded-2xl w-full max-w-xl">
+              <div className="flex justify-between items-center mb-4 pb-3 border-b border-outline/60">
+                <h3 className="font-bold text-content-primary text-base">
                   {t("materialUpload.title")}
                 </h3>
                 <button
                   type="button"
                   onClick={() => setIsUploadOpen(false)}
-                  className="hover:bg-gray-100 p-1.5 rounded-lg text-gray-500 hover:text-gray-700"
+                  className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -165,30 +156,33 @@ export default function StudyMaterialList({
   }
 
   return (
-    <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
-      <div className="flex justify-between items-center px-6 py-4 border-gray-100 border-b">
-        <div className="flex items-center gap-2">
-          <BookOpen className="w-5 h-5 text-purple-500" />
-          <h2 className="font-semibold text-gray-800 text-base">
+    <div className="bg-surface border border-outline/80 rounded-2xl shadow-2xs overflow-hidden">
+      <div className="flex justify-between items-center px-5 py-3.5 border-b border-outline/60 bg-surface-muted/30">
+        <div className="flex items-center gap-2.5">
+          <div className="p-1.5 rounded-lg bg-brandPurple-50 dark:bg-brandPurple-950/50 text-brandPurple-600 dark:text-brandPurple-400 border border-brandPurple-100 dark:border-brandPurple-900/40">
+            <BookOpen className="w-4 h-4" />
+          </div>
+          <h2 className="font-bold text-content-primary text-sm sm:text-base">
             {t("studyMaterials")}
           </h2>
-          <span className="ml-1 text-gray-400 text-sm">
-            ({materials.length})
-          </span>
+          <Badge variant="secondary" size="sm">
+            {materials.length}
+          </Badge>
         </div>
         {canUpload && (
-          <button
+          <Button
             type="button"
+            variant="primary"
+            size="sm"
             onClick={() => setIsUploadOpen(true)}
-            className="inline-flex items-center gap-1.5 bg-academixPurpleDark px-3 py-1.5 rounded-md text-white text-sm hover:scale-[1.05] transition"
+            leftIcon={<Upload className="w-3.5 h-3.5" />}
           >
-            <Upload className="w-3.5 h-3.5" />
             {t("upload")}
-          </button>
+          </Button>
         )}
       </div>
 
-      <ul className="divide-y divide-gray-50">
+      <ul className="divide-y divide-outline/40 max-h-[380px] overflow-auto">
         {materials.map((m) => {
           const isOwner =
             role === "admin" ||
@@ -197,35 +191,32 @@ export default function StudyMaterialList({
           return (
             <li
               key={m.id}
-              className="flex items-start gap-4 hover:bg-gray-50 px-6 py-4 transition-colors"
+              className="flex items-start gap-4 hover:bg-surface-muted/30 px-5 py-3.5 transition-colors"
             >
-              {/* أيقونة نوع الملف */}
-              <div className="flex-shrink-0 mt-0.5">
+              {/* File Icon */}
+              <div className="shrink-0 mt-0.5">
                 <FileIcon type={m.fileType} />
               </div>
 
-              {/* المعلومات */}
+              {/* Info */}
               <div className="flex-1 min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-medium text-gray-800 truncate">
+                  <span className="font-semibold text-content-primary truncate text-sm">
                     {m.title}
                   </span>
-                  <span
-                    className={`text-xs font-medium px-2 py-0.5 rounded-full uppercase
-                    ${badgeColors[m.fileType] ?? "bg-gray-100 text-gray-600"}`}
-                  >
+                  <Badge variant="outline" size="sm" className="uppercase font-bold tracking-wider text-[10px]">
                     {m.fileType}
-                  </span>
+                  </Badge>
                 </div>
 
                 {m.description && (
-                  <p className="mt-0.5 text-gray-500 text-sm line-clamp-2">
+                  <p className="mt-1 text-content-secondary text-xs sm:text-sm line-clamp-2">
                     {m.description}
                   </p>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2 mt-1.5 text-gray-400 text-xs">
-                  <span>{m.teacher.name}</span>
+                <div className="flex flex-wrap items-center gap-2 mt-1.5 text-content-muted text-xs">
+                  <span className="font-medium">{m.teacher.name}</span>
                   <span>·</span>
                   <span>
                     {new Date(m.createdAt).toLocaleDateString(locale, {
@@ -235,25 +226,23 @@ export default function StudyMaterialList({
                     })}
                   </span>
                   <span>·</span>
-                  <span className="max-w-[140px] truncate">{m.fileName}</span>
+                  <span className="max-w-[160px] truncate">{m.fileName}</span>
                 </div>
               </div>
 
-              {/* أزرار الإجراءات */}
-              <div className="flex flex-shrink-0 items-center gap-1">
-                {/* تحميل — لجميع المستخدمين */}
+              {/* Actions */}
+              <div className="flex shrink-0 items-center gap-1.5 self-center">
                 <a
                   href={`/api/download/${m.id}?type=studyMaterial`}
                   target="_blank"
                   rel="noopener noreferrer"
                   download={m.fileName}
                   title={t("download")}
-                  className="hover:bg-purple-50 p-1.5 rounded-lg text-gray-400 hover:text-purple-600 transition-colors"
+                  className="p-2 rounded-xl border border-outline bg-surface hover:bg-surface-muted text-content-secondary hover:text-brandPurple-600 transition-colors"
                 >
                   <Download className="w-4 h-4" />
                 </a>
 
-                {/* حذف — للمعلم صاحب الملف فقط */}
                 {isOwner && <DeleteButton id={m.id} subjectId={subjectId} />}
               </div>
             </li>
@@ -264,18 +253,18 @@ export default function StudyMaterialList({
       {isUploadOpen && (
         <div className="z-50 fixed inset-0 flex justify-center items-center p-4">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-black/50 backdrop-blur-xs"
             onClick={() => setIsUploadOpen(false)}
           />
-          <div className="relative bg-white shadow-xl p-6 border border-gray-100 rounded-xl w-full max-w-xl">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="font-semibold text-gray-800 text-base">
+          <div className="relative bg-surface shadow-2xl p-6 border border-outline rounded-2xl w-full max-w-xl">
+            <div className="flex justify-between items-center mb-4 pb-3 border-b border-outline/60">
+              <h3 className="font-bold text-content-primary text-base">
                 {t("materialUpload.title")}
               </h3>
               <button
                 type="button"
                 onClick={() => setIsUploadOpen(false)}
-                className="hover:bg-gray-100 p-1.5 rounded-lg text-gray-500 hover:text-gray-700"
+                className="hover:bg-surface-muted p-1.5 rounded-xl text-content-muted hover:text-content-primary transition-colors cursor-pointer"
               >
                 <X className="w-4 h-4" />
               </button>

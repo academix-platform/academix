@@ -2,6 +2,8 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
+import { BookOpen, ClipboardList, FileText } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type SectionId = "assignments" | "exams" | "materials";
 
@@ -11,6 +13,12 @@ interface Props {
   examsContent: ReactNode;
   materialsContent: ReactNode;
 }
+
+const SECTION_ICONS: Record<SectionId, React.ElementType> = {
+  materials: BookOpen,
+  assignments: ClipboardList,
+  exams: FileText,
+};
 
 export default function SubjectDetailsTabs({
   sectionsOrder,
@@ -45,29 +53,36 @@ export default function SubjectDetailsTabs({
   );
 
   return (
-    <>
-      <div className="bg-white shadow-sm p-2 border border-gray-100 rounded-xl">
-        <div className="flex flex-wrap gap-2">
-          {orderedSections.map((section) => (
+    <div className="space-y-4">
+      <div className="p-1 bg-surface-muted/60 dark:bg-surface-muted border border-outline/70 rounded-xl inline-flex flex-wrap gap-1 shadow-2xs">
+        {orderedSections.map((section) => {
+          const Icon = SECTION_ICONS[section];
+          const isActive = activeSection === section;
+
+          return (
             <button
               key={section}
               type="button"
               onClick={() => setActiveSection(section)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeSection === section
-                  ? "bg-purple-600 text-white"
-                  : "bg-gray-50 text-gray-600 hover:bg-purple-50 hover:text-purple-700"
-              }`}
+              className={cn(
+                "inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs md:text-sm font-semibold transition-all cursor-pointer select-none",
+                isActive
+                  ? "bg-surface text-brandPurple-600 dark:text-brandPurple-400 font-bold shadow-2xs"
+                  : "text-content-secondary hover:text-content-primary hover:bg-surface/50",
+              )}
             >
-              {t(`tabs.${section}`)}
+              {Icon && <Icon className="w-4 h-4 shrink-0" />}
+              <span>{t(`tabs.${section}`)}</span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      {activeSection === "assignments" && assignmentsContent}
-      {activeSection === "exams" && examsContent}
-      {activeSection === "materials" && materialsContent}
-    </>
+      <div>
+        {activeSection === "assignments" && assignmentsContent}
+        {activeSection === "exams" && examsContent}
+        {activeSection === "materials" && materialsContent}
+      </div>
+    </div>
   );
 }

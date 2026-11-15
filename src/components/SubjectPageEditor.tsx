@@ -141,11 +141,12 @@ export default function SubjectPageEditor({
     <>
       {/* Trigger button */}
       <button
+        type="button"
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 bg-purple-50 hover:bg-purple-100 px-4 py-2 border border-purple-200 rounded-lg font-medium text-purple-700 text-sm transition-colors"
+        className="inline-flex items-center gap-2 bg-brandPurple-50 dark:bg-brandPurple-950/40 hover:bg-brandPurple-100 dark:hover:bg-brandPurple-900/50 px-3.5 py-2 border border-brandPurple-200 dark:border-brandPurple-800/60 rounded-xl font-semibold text-brandPurple-700 dark:text-brandPurple-300 text-xs sm:text-sm transition-colors shadow-2xs cursor-pointer"
       >
         <Settings className="w-4 h-4" />
-        <span className="hidden sm:block">{t("trigger")}</span>
+        <span>{t("trigger")}</span>
       </button>
 
       {/* Overlay */}
