@@ -56,7 +56,7 @@ const DashboardShell = ({
   }, [isMenuOpen, closeMenu]);
 
   return (
-    <div className="flex bg-canvas h-screen overflow-hidden text-content-primary font-sans">
+    <div className="flex bg-canvas h-screen overflow-hidden text-content-primary">
       {/* Mobile Drawer Backdrop */}
       {isMenuOpen && (
         <div

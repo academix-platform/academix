@@ -450,7 +450,9 @@
     "deleteAll": "Delete all",
     "signOut": "Sign out",
     "signingOut": "Signing out...",
-    "formNotFound": "Form not found!"
+    "formNotFound": "Form not found!",
+    "markAsRead": "Mark as read",
+    "view": "View"
   },
   "tables": {
     "grade": "grade",
@@ -561,7 +563,8 @@
     "supervisor": "Supervisor",
     "newest": "Newest",
     "oldest": "Oldest",
-    "searchStudent": "Search student..."
+    "searchStudent": "Search student...",
+    "gradeMarks": "Grades"
   },
   "finalResultStatus": {
     "PASS": "Pass",
@@ -661,7 +664,9 @@
     "showingCount": "Showing {count} of {total} {scope}",
     "filteredBy": "Filtered by \"{query}\"",
     "students": "students",
-    "teachers": "teachers"
+    "teachers": "teachers",
+    "prev": "Prev",
+    "next": "Next"
   },
   "archivePage": {
     "previewData": "Preview Data",
@@ -773,7 +778,13 @@
     "fileTypeBlocked": "File type \".{extension}\" is not allowed.",
     "allowedFilesOnly": "Only {extensions} files are allowed.",
     "minFileSize": "File size must be at least {size} MB.",
-    "maxFileSize": "File size exceeds {size} MB limit."
+    "maxFileSize": "File size exceeds {size} MB limit.",
+    "notice": "Notice",
+    "freeze": {
+      "title": "Network Disconnected",
+      "body": "Your exam has been paused because you are offline. Please check your internet connection. The exam will automatically resume once you are back online.",
+      "waiting": "Waiting for connection..."
+    }
   },
   "directMessage": {
     "titleMessageRequired": "Title and message are required",
@@ -1585,6 +1596,25 @@
     },
     "ai": {
       "pdfOnly": "AI evaluation supports PDF file answers only."
+    },
+    "extendTimeModal": {
+      "title": "Extend Time",
+      "buttonTooltip": "Extend time",
+      "custom": "Custom:",
+      "minutes": "minutes",
+      "min": "{minutes} min",
+      "addMinutes": "Add {minutes} min",
+      "extending": "Extending...",
+      "cancel": "Cancel",
+      "toastMin": "Please enter at least 1 minute.",
+      "toastFailed": "Failed to extend time.",
+      "toastSuccess": "Added {minutes} minute(s) for {studentName}."
+    },
+    "questionTypes": {
+      "TRUE_FALSE": "True / False",
+      "MCQ": "Multiple Choice",
+      "TEXT": "Text / Essay",
+      "FILE": "File Upload"
     }
   },
   "aiEvaluation": {
@@ -1646,7 +1676,8 @@
     "empty": {
       "title": "No assignments found",
       "description": "Try changing your filters or search terms."
-    }
+    },
+    "saveScore": "Save score"
   },
   "widgets": {
     "viewAll": "View All",
@@ -1805,5 +1836,20 @@
       "geography": "Geography",
       "french": "French"
     }
+  },
+  "notificationTypes": {
+    "NEW_ASSIGNMENT": "New Assignment",
+    "ASSIGNMENT_UPDATED": "Assignment Updated",
+    "ASSIGNMENT_SUBMITTED": "Assignment Submitted",
+    "ASSIGNMENT_FEEDBACK": "Feedback Received",
+    "NEW_EXAM": "New Exam",
+    "GRADE_POSTED": "Grade Posted",
+    "GRADE_UPDATED": "Grade Updated",
+    "NEW_ANNOUNCEMENT": "New Announcement",
+    "NEW_EVENT": "New Event",
+    "SCHEDULE_UPDATED": "Schedule Updated",
+    "ATTENDANCE_SAVED": "Attendance Saved",
+    "SUPERVISOR_ASSIGNED": "Class Supervisor",
+    "NEW_MESSAGE": "New Message"
   }
 }

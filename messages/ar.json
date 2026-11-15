@@ -450,7 +450,9 @@
     "deleteAll": "حذف الكل",
     "signOut": "تسجيل الخروج",
     "signingOut": "جار تسجيل الخروج...",
-    "formNotFound": "لم يتم العثور على النموذج!"
+    "formNotFound": "لم يتم العثور على النموذج!",
+    "markAsRead": "تعليم كمقروء",
+    "view": "عرض"
   },
   "tables": {
     "grade": "المرحلة",
@@ -561,7 +563,8 @@
     "supervisor": "المشرف",
     "newest": "الأحدث",
     "oldest": "الأقدم",
-    "searchStudent": "بحث عن طالب..."
+    "searchStudent": "بحث عن طالب...",
+    "gradeMarks": "الدرجات"
   },
   "attendance": {
     "title": "إدارة الحضور والغياب",
@@ -655,7 +658,9 @@
     "showingCount": "عرض {count} من أصل {total} {scope}",
     "filteredBy": "تمت التصفية حسب \"{query}\"",
     "students": "طالب",
-    "teachers": "معلم"
+    "teachers": "معلم",
+    "prev": "السابق",
+    "next": "التالي"
   },
   "archivePage": {
     "previewData": "معاينة البيانات",
@@ -767,7 +772,13 @@
     "fileTypeBlocked": "نوع الملف \".{extension}\" غير مسموح.",
     "allowedFilesOnly": "يسمح فقط بملفات {extensions}.",
     "minFileSize": "يجب ألا يقل حجم الملف عن {size} MB.",
-    "maxFileSize": "يتجاوز حجم الملف الحد الأقصى {size} MB."
+    "maxFileSize": "يتجاوز حجم الملف الحد الأقصى {size} MB.",
+    "notice": "تنبيه",
+    "freeze": {
+      "title": "انقطع الاتصال بالشبكة",
+      "body": "تم إيقاف الامتحان مؤقتًا لأنك غير متصل بالإنترنت. يرجى التحقق من اتصالك بالشبكة. سيُستأنف الامتحان تلقائيًا بمجرد عودة الاتصال.",
+      "waiting": "بانتظار عودة الاتصال..."
+    }
   },
   "directMessage": {
     "titleMessageRequired": "العنوان والرسالة مطلوبان",
@@ -932,7 +943,7 @@
     "completed": "اكتملت الترقية",
     "failed": "تعذّر إكمال الترقية",
     "notFinishedBody": "تنتهي السنة الأكاديمية {year} في {date}. يمكنك تحديث الطلاب بعد مرور آخر يوم.",
-    "confirmBody": "The academic year {year} has finished. Confirm this action to update students based on their final average. Students with 60% or higher pass.",
+    "confirmBody": "انتهت السنة الأكاديمية {year}. أكّد هذا الإجراء لتحديث حالة الطلاب بناءً على معدلهم النهائي. الطلاب الحاصلون على 60% أو أكثر ينتقلون للمرحلة التالية.",
     "promoted": "تمت الترقية",
     "graduated": "متخرجون",
     "repeated": "معادون",
@@ -1579,6 +1590,25 @@
     },
     "ai": {
       "pdfOnly": "يدعم التقييم الذكي إجابات ملفات PDF فقط."
+    },
+    "extendTimeModal": {
+      "title": "تمديد الوقت",
+      "buttonTooltip": "تمديد الوقت",
+      "custom": "مخصص:",
+      "minutes": "دقائق",
+      "min": "{minutes} دقيقة",
+      "addMinutes": "إضافة {minutes} دقيقة",
+      "extending": "جارٍ التمديد...",
+      "cancel": "إلغاء",
+      "toastMin": "يرجى إدخال دقيقة واحدة على الأقل.",
+      "toastFailed": "تعذر تمديد الوقت.",
+      "toastSuccess": "تمت إضافة {minutes} دقيقة للطالب {studentName}."
+    },
+    "questionTypes": {
+      "TRUE_FALSE": "صح / خطأ",
+      "MCQ": "اختيار من متعدد",
+      "TEXT": "سؤال مقالي",
+      "FILE": "ملف مرفق"
     }
   },
   "aiEvaluation": {
@@ -1640,7 +1670,8 @@
     "empty": {
       "title": "لم يتم العثور على واجبات",
       "description": "جرّب تغيير عوامل التصفية أو كلمات البحث."
-    }
+    },
+    "saveScore": "حفظ الدرجة"
   },
   "widgets": {
     "viewAll": "عرض الكل",
@@ -1805,5 +1836,20 @@
       "geography": "الجغرافيا",
       "french": "اللغة الفرنسية"
     }
+  },
+  "notificationTypes": {
+    "NEW_ASSIGNMENT": "واجب جديد",
+    "ASSIGNMENT_UPDATED": "تحديث الواجب",
+    "ASSIGNMENT_SUBMITTED": "تسليم واجب",
+    "ASSIGNMENT_FEEDBACK": "ملاحظات على الواجب",
+    "NEW_EXAM": "امتحان جديد",
+    "GRADE_POSTED": "تم رصد الدرجة",
+    "GRADE_UPDATED": "تم تحديث الدرجة",
+    "NEW_ANNOUNCEMENT": "إعلان جديد",
+    "NEW_EVENT": "فعالية جديدة",
+    "SCHEDULE_UPDATED": "تحديث الجدول",
+    "ATTENDANCE_SAVED": "تسجيل الحضور",
+    "SUPERVISOR_ASSIGNED": "مشرف الصف",
+    "NEW_MESSAGE": "رسالة جديدة"
   }
 }

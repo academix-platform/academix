@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { ClerkProvider } from "@clerk/nextjs";
+import { arSA } from "@clerk/localizations";
 import { ToastContainer } from "react-toastify";
 import { getLocale, getMessages } from "next-intl/server";
 import { NextIntlClientProvider } from "next-intl";
@@ -23,12 +24,17 @@ export default async function RootLayout({
     <html lang={locale} dir={isRtl ? "rtl" : "ltr"}>
       <body className={isRtl ? "font-arabic" : "font-sans"}>
         <ClerkProvider
+          localization={isRtl ? arSA : undefined}
           signInFallbackRedirectUrl="/post-login"
           signInForceRedirectUrl="/post-login"
         >
           <NextIntlClientProvider messages={messages}>
             {children}
-            <ToastContainer position="bottom-right" theme="dark" />
+            <ToastContainer
+              position={isRtl ? "bottom-left" : "bottom-right"}
+              theme="dark"
+              rtl={isRtl}
+            />
           </NextIntlClientProvider>
         </ClerkProvider>
       </body>
