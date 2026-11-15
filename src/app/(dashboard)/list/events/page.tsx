@@ -8,7 +8,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -54,6 +54,7 @@ const renderRow = (
   role: UserRole | null,
   totalClassesCount: number,
   allClassesLabel: string,
+  locale: string = "en",
 ) => (
   <tr
     key={item.id}
@@ -66,16 +67,16 @@ const renderRow = (
         </span>
         {/* Mobile secondary info: date & time */}
         <div className="flex flex-wrap items-center gap-1.5 mt-0.5 md:hidden text-xs text-slate-500 dark:text-slate-400">
-          <span>{new Intl.DateTimeFormat("en-US").format(item.startDate)}</span>
+          <span>{new Intl.DateTimeFormat(locale).format(item.startDate)}</span>
           <span>•</span>
           <span>
-            {item.startDate.toLocaleTimeString("en-US", {
+            {item.startDate.toLocaleTimeString(locale, {
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,
             })}
             {" - "}
-            {item.endDate.toLocaleTimeString("en-US", {
+            {item.endDate.toLocaleTimeString(locale, {
               hour: "2-digit",
               minute: "2-digit",
               hour12: false,
@@ -104,11 +105,11 @@ const renderRow = (
     </td>
 
     <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-      {new Intl.DateTimeFormat("en-US").format(item.startDate)}
+      {new Intl.DateTimeFormat(locale).format(item.startDate)}
     </td>
 
     <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-      {item.startDate.toLocaleTimeString("en-US", {
+      {item.startDate.toLocaleTimeString(locale, {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -116,7 +117,7 @@ const renderRow = (
     </td>
 
     <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-      {item.endDate.toLocaleTimeString("en-US", {
+      {item.endDate.toLocaleTimeString(locale, {
         hour: "2-digit",
         minute: "2-digit",
         hour12: false,
@@ -145,6 +146,7 @@ const EventListPage = async ({
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
   const emptyT = await getTranslations("emptyStates");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/events");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
@@ -278,7 +280,7 @@ const EventListPage = async ({
       <Table
         columns={getColumns(role, th)}
         renderRow={(item) =>
-          renderRow(item, role, totalClassesCount, filtersT("allClasses"))
+          renderRow(item, role, totalClassesCount, filtersT("allClasses"), locale)
         }
         data={data}
         emptyTitle={emptyT("events")}

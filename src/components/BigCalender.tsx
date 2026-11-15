@@ -2,8 +2,10 @@
 
 import { Calendar, momentLocalizer, View, Views } from "react-big-calendar";
 import moment from "moment";
+import "moment/locale/ar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore } from "react";
+import { useLocale, useTranslations } from "next-intl";
 import type { SchoolScheduleSettings } from "@/lib/schoolSettings";
 import type { SchoolWeekDay } from "@/lib/schoolCalendar";
 import Week from "react-big-calendar/lib/Week";
@@ -194,6 +196,20 @@ const BigCalendar = ({
   }[];
   settings: SchoolScheduleSettings;
 }) => {
+  const locale = useLocale();
+  const t = useTranslations("academicSchedule");
+
+  useEffect(() => {
+    const activeLocale = locale === "ar" ? "ar" : "en";
+    moment.locale(activeLocale);
+    moment.updateLocale(activeLocale, {
+      week: {
+        dow: 6,
+        doy: 1,
+      },
+    });
+  }, [locale]);
+
   const isMdDown = useMediaQuery("(max-width: 1023px)");
   const defaultView = isMdDown ? Views.DAY : Views.WEEK;
   const WorkingWeekView = useMemo(
@@ -252,7 +268,9 @@ const BigCalendar = ({
     event: { title: string; durationMinutes?: number };
   }) => (
     <>
-      <span className="lesson-duration">{`${event.durationMinutes ?? 45} min`}</span>
+      <span className="lesson-duration">
+        {t("minutes", { minutes: event.durationMinutes ?? 45 })}
+      </span>
       <span className="rbc-event-content">{event.title}</span>
     </>
   );
@@ -286,12 +304,12 @@ const BigCalendar = ({
 
     for (let slot = 1; slot <= settings.lessonsPerDay; slot += 1) {
       const labelDate = getSlotStartDate(slot, settings);
-      const timeKey = moment(labelDate).format("HH:mm");
-      labelsByTime.set(timeKey, `Lesson ${slot}`);
+      const timeKey = `${labelDate.getHours().toString().padStart(2, "0")}:${labelDate.getMinutes().toString().padStart(2, "0")}`;
+      labelsByTime.set(timeKey, t("periodNumber", { number: slot }));
     }
 
     return labelsByTime;
-  }, [settings]);
+  }, [settings, t]);
 
   const workingDaysSet = useMemo(
     () => new Set<SchoolWeekDay>(settings.workingDays),
@@ -313,7 +331,7 @@ const BigCalendar = ({
   };
 
   const timeGutterFormat = (date: Date) => {
-    const key = moment(date).format("HH:mm");
+    const key = `${date.getHours().toString().padStart(2, "0")}:${date.getMinutes().toString().padStart(2, "0")}`;
     return lessonStartLabels.get(key) ?? "";
   };
 
@@ -325,6 +343,15 @@ const BigCalendar = ({
     <div className="h-full">
       <Calendar
         className={view === Views.WEEK ? "calendar-week-mode" : ""}
+        culture={locale === "ar" ? "ar" : "en"}
+        messages={{
+          today: t("todayBadge"),
+          previous: "<",
+          next: ">",
+          week: t("viewWeek"),
+          day: t("viewDay"),
+          noEventsInRange: t("noLessonsDesc"),
+        }}
         localizer={localizer}
         events={displayEvents}
         startAccessor="start"

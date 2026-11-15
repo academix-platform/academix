@@ -9,7 +9,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import TakeExamConfirmation from "@/components/exam/TakeExamConfirmation";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildExamQuery } from "@/lib/query-builders/exam-query";
@@ -39,8 +39,8 @@ type ExamList = Exam & {
   questions?: { points: number }[];
 };
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -108,7 +108,12 @@ const getColumns = (role: UserRole | null, th: (key: string) => string) => {
   return columns;
 };
 
-const renderRow = (item: ExamList, role: UserRole | null) => {
+const renderRow = (
+  item: ExamList,
+  role: UserRole | null,
+  locale: string = "en",
+  actionsT?: (key: string) => string,
+) => {
   const sub = item.studentSubmission;
   const isTimerExpired =
     sub &&
@@ -146,7 +151,7 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
               </span>
             )}
             <span className="text-[11px] text-slate-400">
-              {formatDateTime(item.startTime)}
+              {formatDateTime(item.startTime, locale)}
             </span>
           </div>
         </div>
@@ -175,11 +180,11 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
       )}
 
       <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
-        {formatDateTime(item.startTime)}
+        {formatDateTime(item.startTime, locale)}
       </td>
 
       <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
-        {formatDateTime(item.endTime)}
+        {formatDateTime(item.endTime, locale)}
       </td>
 
       {role === "student" && (
@@ -262,8 +267,8 @@ const renderRow = (item: ExamList, role: UserRole | null) => {
               <Link
                 href={`/list/exams/create-workflow?examId=${item.id}`}
                 className="inline-flex justify-center items-center rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-2xs w-8 h-8 text-purple-700 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-950/40 hover:border-purple-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
-                aria-label="Edit exam workflow"
-                title="Edit exam"
+                aria-label={actionsT ? actionsT("edit") : "Edit"}
+                title={actionsT ? actionsT("edit") : "Edit"}
               >
                 <Pencil className="w-4 h-4" />
               </Link>
@@ -310,6 +315,8 @@ const ExamListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const examT = await getTranslations("examList");
+  const actionsT = await getTranslations("actions");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/exams");
 
   const resolvedSearchParams = await searchParams;
@@ -523,7 +530,7 @@ const ExamListPage = async ({
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role)}
+        renderRow={(item) => renderRow(item, role, locale, actionsT)}
         data={dataWithClassDisplay}
         emptyTitle={examT("noExams")}
         emptyDescription={examT("emptyDescription")}

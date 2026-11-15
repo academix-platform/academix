@@ -10,7 +10,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { buildAssignmentQuery } from "@/lib/query-builders/assignment-query";
 import prisma from "@/lib/prisma";
@@ -40,8 +40,8 @@ type AssignmentList = Assignment & {
   _count?: { assignmentSubmissions: number };
 };
 
-const formatDateTime = (date: Date) =>
-  new Intl.DateTimeFormat("en-US", {
+const formatDateTime = (date: Date, locale: string = "en") =>
+  new Intl.DateTimeFormat(locale, {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(date);
@@ -87,6 +87,7 @@ const renderRow = (
   item: AssignmentList,
   role: UserRole | null,
   assignmentsT: (key: string) => string,
+  locale: string = "en",
 ) => {
   const mySubmission = item.assignmentSubmissions?.[0] ?? null;
   const canManage = role === "teacher" || role === "admin";
@@ -114,7 +115,7 @@ const renderRow = (
               </span>
             )}
             <span className="text-[11px] text-slate-400">
-              {formatDateTime(item.endDate)}
+              {formatDateTime(item.endDate, locale)}
             </span>
           </div>
         </div>
@@ -182,7 +183,7 @@ const renderRow = (
       )}
 
       <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300 w-[180px] min-w-[180px]">
-        {formatDateTime(item.endDate)}
+        {formatDateTime(item.endDate, locale)}
       </td>
 
       <td className="px-4 py-3">
@@ -253,6 +254,7 @@ const AssignmentListPage = async ({
   const t = await getTranslations("pages");
   const th = await getTranslations("tableHeaders");
   const assignmentsT = await getTranslations("assignmentsPage");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess(
     "/list/assignments",
   );
@@ -371,7 +373,7 @@ const AssignmentListPage = async ({
 
       <Table
         columns={getColumns(role, th)}
-        renderRow={(item) => renderRow(item, role, assignmentsT)}
+        renderRow={(item) => renderRow(item, role, assignmentsT, locale)}
         data={data}
         emptyTitle={assignmentsT("empty.title")}
         emptyDescription={assignmentsT("empty.description")}

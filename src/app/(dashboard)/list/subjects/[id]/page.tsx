@@ -18,7 +18,7 @@ import StudyMaterialList, {
 import SubjectPageEditor from "@/components/SubjectPageEditor";
 import SubjectDetailsTabs from "@/components/SubjectDetailsTabs";
 import FormContainer from "@/components/FormContainer";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 // ─── Stat card ────────────────────────────────────────────────────────────────
 function StatCard({
@@ -52,6 +52,7 @@ function AssignmentsSection({
   createAction,
   emptyLabel,
   labels,
+  locale = "en",
 }: {
   assignments: {
     id: number;
@@ -73,6 +74,7 @@ function AssignmentsSection({
     download: string;
     downloadAssignmentFile: string;
   };
+  locale?: string;
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
@@ -125,7 +127,7 @@ function AssignmentsSection({
                     <span>·</span>
                     <span>
                       {labels.due}:{" "}
-                      {new Date(a.endDate).toLocaleDateString("en-GB", {
+                      {new Date(a.endDate).toLocaleDateString(locale, {
                         day: "numeric",
                         month: "short",
                       })}
@@ -163,6 +165,7 @@ function ExamsSection({
   createAction,
   tableHeaders,
   labels,
+  locale = "en",
 }: {
   exams: {
     id: number;
@@ -183,6 +186,7 @@ function ExamsSection({
     manageExams: string;
     noExams: string;
   };
+  locale?: string;
 }) {
   return (
     <div className="bg-white shadow-sm border border-gray-100 rounded-xl h-[300px] overflow-auto">
@@ -229,7 +233,7 @@ function ExamsSection({
                     {exam.class?.name ?? "-"}
                   </td>
                   <td className="px-6 py-3 text-gray-600">
-                    {new Date(exam.startTime).toLocaleString("en-GB", {
+                    {new Date(exam.startTime).toLocaleString(locale, {
                       day: "numeric",
                       month: "short",
                       hour: "2-digit",
@@ -237,7 +241,7 @@ function ExamsSection({
                     })}
                   </td>
                   <td className="px-6 py-3 text-gray-600">
-                    {new Date(exam.endTime).toLocaleString("en-GB", {
+                    {new Date(exam.endTime).toLocaleString(locale, {
                       day: "numeric",
                       month: "short",
                       hour: "2-digit",
@@ -262,6 +266,7 @@ export default async function SubjectDetailPage({
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
   const subjectT = await getTranslations("subjectDetails");
+  const locale = await getLocale();
   const { id } = await params;
   const subjectId = Number(id);
   if (isNaN(subjectId)) notFound();
@@ -363,6 +368,7 @@ export default async function SubjectDetailPage({
   const sectionMap: Record<string, ReactNode> = {
     assignments: (
       <AssignmentsSection
+        locale={locale}
         assignments={subject.assignments}
         emptyLabel={emptyT("assignments")}
         labels={{
@@ -392,6 +398,7 @@ export default async function SubjectDetailPage({
     exams: (
       <ExamsSection
         exams={subject.exams}
+        locale={locale}
         labels={{
           exams: subjectT("exams"),
           manageExams: subjectT("manageExams"),

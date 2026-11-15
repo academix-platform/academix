@@ -8,7 +8,7 @@ import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
 import { DataPageHeader, DataPageToolbar } from "@/components/data-table";
 import { Badge } from "@/components/ui/badge";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
@@ -46,6 +46,7 @@ const renderRow = (
   role: UserRole | null,
   totalClassesCount: number,
   allClassesLabel: string,
+  locale: string = "en",
 ) => (
   <tr
     key={item.id}
@@ -58,7 +59,7 @@ const renderRow = (
         </span>
         {/* Mobile secondary info: date */}
         <span className="text-[11px] text-slate-400 md:hidden">
-          {new Intl.DateTimeFormat("en-US").format(item.date)}
+          {new Intl.DateTimeFormat(locale).format(item.date)}
         </span>
       </div>
     </td>
@@ -87,7 +88,7 @@ const renderRow = (
     </td>
 
     <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-      {new Intl.DateTimeFormat("en-US").format(item.date)}
+      {new Intl.DateTimeFormat(locale).format(item.date)}
     </td>
 
     <td className="px-4 py-3">
@@ -112,6 +113,7 @@ const AnnouncementListPage = async ({
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
   const emptyT = await getTranslations("emptyStates");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess(
     "/list/announcements",
   );
@@ -242,7 +244,7 @@ const AnnouncementListPage = async ({
       <Table
         columns={getColumns(role, th)}
         renderRow={(item) =>
-          renderRow(item, role, totalClassesCount, filtersT("allClasses"))
+          renderRow(item, role, totalClassesCount, filtersT("allClasses"), locale)
         }
         data={data}
         emptyTitle={emptyT("announcements")}

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { X, Download, Users, FileText, CheckCircle, Clock, MessageSquare, Send, Loader2, Award } from "lucide-react";
 import { toast } from "react-toastify";
-import { useTranslations } from "next-intl";
+import { useTranslations, useLocale } from "next-intl";
 import {
   gradeAssignmentSubmission,
   publishAssignmentGrades,
@@ -61,6 +61,7 @@ export default function SubmissionsModal({
   endDate,
 }: Props) {
   const t = useTranslations("submissionsModal");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [submissions, setSubmissions] =  useState<Submission[]>([]);
   const [loading, setLoading] = useState(false);
@@ -210,7 +211,7 @@ export default function SubmissionsModal({
                   {t("deadlinePassed")}
                 </p>
                 <span className="ml-auto text-xs text-red-400">
-                  {new Date(endDate).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                  {new Date(endDate).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}
                 </span>
               </div>
             )}
@@ -335,7 +336,7 @@ export default function SubmissionsModal({
                           </p>
                         )}
                         <p className="text-xs text-gray-300 mt-1">
-                          {new Date(s.createdAt).toLocaleDateString("en-GB", {
+                          {new Date(s.createdAt).toLocaleDateString(locale, {
                             day: "numeric",
                             month: "short",
                             year: "numeric",

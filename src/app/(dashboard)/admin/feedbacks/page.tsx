@@ -11,7 +11,7 @@ import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { cn } from "@/lib/utils";
 import { CheckCircle } from "lucide-react";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 
 const statusOrder: Record<string, number> = {
   pending: 1,
@@ -37,6 +37,7 @@ const FeedbacksPage = async ({
   const filtersT = await getTranslations("filters");
   const feedbackT = await getTranslations("feedbackPage");
   const sidebarT = await getTranslations("sidebar.items");
+  const locale = await getLocale();
   const user = await getAuthUser();
 
   if (!user) {
@@ -179,7 +180,11 @@ const FeedbacksPage = async ({
                   </div>
 
                   <span className="text-xs text-content-muted">
-                    {new Date(feedback.createdAt).toLocaleDateString()}
+                    {new Date(feedback.createdAt).toLocaleDateString(locale, {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric",
+                    })}
                   </span>
                 </div>
 

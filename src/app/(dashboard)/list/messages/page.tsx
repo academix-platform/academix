@@ -19,7 +19,7 @@ import {
   MessageList,
 } from "@/lib/message";
 import { UserRole } from "@/lib/utils";
-import { getTranslations } from "next-intl/server";
+import { getLocale, getTranslations } from "next-intl/server";
 
 const isLimitedMessageRole = (role: UserRole | null) =>
   role === "student" || role === "parent" || role === "teacher";
@@ -95,6 +95,7 @@ const renderRow = (
   role: UserRole | null,
   totalClassesCount: number,
   allClassesLabel: string,
+  locale: string = "en",
 ) => {
   if (isLimitedMessageRole(role)) {
     return (
@@ -113,7 +114,7 @@ const renderRow = (
                 {getDescriptionPreview(item.description)}
               </span>
               <span className="text-[11px] text-slate-400">
-                {new Intl.DateTimeFormat("en-US").format(item.date)}
+                {new Intl.DateTimeFormat(locale).format(item.date)}
               </span>
             </div>
           </div>
@@ -122,10 +123,10 @@ const renderRow = (
           {getDescriptionPreview(item.description)}
         </td>
         <td className="hidden sm:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-          {new Intl.DateTimeFormat("en-US").format(item.date)}
+          {new Intl.DateTimeFormat(locale).format(item.date)}
         </td>
         <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-          {item.date.toLocaleTimeString("en-US", {
+          {item.date.toLocaleTimeString(locale, {
             hour: "2-digit",
             minute: "2-digit",
             hour12: false,
@@ -156,7 +157,7 @@ const renderRow = (
               {getDescriptionPreview(item.description)}
             </span>
             <span className="text-[11px] text-slate-400">
-              {new Intl.DateTimeFormat("en-US").format(item.date)}
+              {new Intl.DateTimeFormat(locale).format(item.date)}
             </span>
           </div>
         </div>
@@ -192,10 +193,10 @@ const renderRow = (
         )}
       </td>
       <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-        {new Intl.DateTimeFormat("en-US").format(item.date)}
+        {new Intl.DateTimeFormat(locale).format(item.date)}
       </td>
       <td className="hidden md:table-cell px-4 py-3 text-slate-600 dark:text-slate-300">
-        {item.date.toLocaleTimeString("en-US", {
+        {item.date.toLocaleTimeString(locale, {
           hour: "2-digit",
           minute: "2-digit",
           hour12: false,
@@ -225,6 +226,7 @@ const MessageListPage = async ({
   const th = await getTranslations("tableHeaders");
   const filtersT = await getTranslations("filters");
   const emptyT = await getTranslations("emptyStates");
+  const locale = await getLocale();
   const { role, userId, schoolId } = await enforceRouteAccess("/list/messages");
   const resolvedSearchParams = await searchParams;
   const { page, ...queryParams } = resolvedSearchParams;
@@ -350,7 +352,7 @@ const MessageListPage = async ({
       <Table
         columns={getColumns(role, th)}
         renderRow={(item) =>
-          renderRow(item, role, totalClassesCount, filtersT("allClasses"))
+          renderRow(item, role, totalClassesCount, filtersT("allClasses"), locale)
         }
         data={data}
         emptyTitle={emptyT("messages")}

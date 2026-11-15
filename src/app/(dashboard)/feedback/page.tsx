@@ -8,7 +8,7 @@ import { getAuthUser } from "@/lib/auth";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 
 const getTypeLabel = (type: string, t: (key: string) => string) => {
   switch (type) {
@@ -27,6 +27,7 @@ export default async function FeedbackPage({
   const feedbackT = await getTranslations("feedbackPage");
   const filtersT = await getTranslations("filters");
   const sidebarT = await getTranslations("sidebar.items");
+  const locale = await getLocale();
   const user = await getAuthUser();
 
   if (!user) {
@@ -108,7 +109,11 @@ export default async function FeedbackPage({
                 </div>
 
                 <span className="text-xs text-content-muted">
-                  {new Date(feedback.createdAt).toLocaleDateString()}
+                  {new Date(feedback.createdAt).toLocaleDateString(locale, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
                 </span>
               </div>
 
