@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 
-const locales = ["en", "ar"] as const;
+const locales = ["ar", "en"] as const;
 
 type LanguageSwitcherProps = {
   variant?: "default" | "compact";
@@ -23,7 +23,7 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
 
   const currentLocale = locales.includes(locale as (typeof locales)[number])
     ? (locale as (typeof locales)[number])
-    : "en";
+    : "ar";
 
   useEffect(() => {
     if (!isOpen) return;
@@ -57,7 +57,7 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
   };
 
   const toggleLocale = () => {
-    handleChange(currentLocale === "en" ? "ar" : "en");
+    handleChange(currentLocale === "ar" ? "en" : "ar");
   };
 
   if (variant === "compact") {
@@ -67,7 +67,7 @@ const LanguageSwitcher = ({ variant = "default" }: LanguageSwitcherProps) => {
         onClick={toggleLocale}
         disabled={isPending}
         aria-label={t("label")}
-        title={t(currentLocale === "en" ? "ar" : "en")}
+        title={t(currentLocale === "ar" ? "en" : "ar")}
         className="inline-flex items-center justify-center gap-1.5 bg-surface hover:bg-surface-muted active:bg-surface-muted text-content-primary hover:text-brandPurple-700 dark:hover:text-brandPurple-300 border border-outline hover:border-outline-strong rounded-lg px-2.5 h-8 font-bold text-xs uppercase shadow-2xs transition disabled:cursor-not-allowed disabled:opacity-60 whitespace-nowrap shrink-0"
       >
         <Languages className="w-3.5 h-3.5 text-brandPurple-600 dark:text-brandPurple-400 shrink-0" aria-hidden="true" />

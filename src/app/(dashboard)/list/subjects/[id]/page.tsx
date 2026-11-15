@@ -58,7 +58,7 @@ function AssignmentsSection({
   createAction,
   emptyLabel,
   labels,
-  locale = "en",
+  locale = "ar",
 }: {
   assignments: {
     id: number;
@@ -171,7 +171,7 @@ function ExamsSection({
   createAction,
   tableHeaders,
   labels,
-  locale = "en",
+  locale = "ar",
 }: {
   exams: {
     id: number;

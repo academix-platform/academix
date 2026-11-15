@@ -46,7 +46,7 @@ const renderRow = (
   role: UserRole | null,
   totalClassesCount: number,
   allClassesLabel: string,
-  locale: string = "en",
+  locale: string = "ar",
 ) => (
   <tr
     key={item.id}

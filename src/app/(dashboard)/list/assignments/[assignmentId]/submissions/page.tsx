@@ -49,7 +49,7 @@ const getColumns = (th: (key: string) => string) => [
   { header: th("actions"), accessor: "actions", className: "min-w-[130px] p-4" },
 ];
 
-const formatDateTime = (date: Date, locale: string = "en") =>
+const formatDateTime = (date: Date, locale: string = "ar") =>
   new Intl.DateTimeFormat(locale, {
     dateStyle: "short",
     timeStyle: "short",
@@ -104,7 +104,7 @@ const renderRow = (
   item: SubmissionRow,
   maxScore: number,
   t: (key: string) => string,
-  locale: string = "en",
+  locale: string = "ar",
 ) => {
   const isPdfSubmission = getFileExtension(item.fileName) === "pdf";
 

@@ -50,10 +50,13 @@ export const parseNumericId = (
 
 export const ensureAdminAccess = async () => {
   const user = await getAuthUser();
-  let isAr = false;
+  let isAr = true;
   try {
     const cookieStore = await cookies();
-    isAr = cookieStore.get("NEXT_LOCALE")?.value === "ar";
+    const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+    if (cookieLocale) {
+      isAr = cookieLocale === "ar";
+    }
   } catch {}
 
   if (user?.role !== "admin") {
@@ -86,10 +89,13 @@ export const requireActionAccess = async (
   | { success: false; error: true; message: string }
 > => {
   const user = await getAuthUser();
-  let isAr = false;
+  let isAr = true;
   try {
     const cookieStore = await cookies();
-    isAr = cookieStore.get("NEXT_LOCALE")?.value === "ar";
+    const cookieLocale = cookieStore.get("NEXT_LOCALE")?.value;
+    if (cookieLocale) {
+      isAr = cookieLocale === "ar";
+    }
   } catch {}
 
   if (!user || !user.role || !roles.includes(user.role)) {
