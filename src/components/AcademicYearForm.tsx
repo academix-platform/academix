@@ -20,6 +20,11 @@ type FormState = {
   startDate: string;
   endDate: string;
   isCurrent: boolean;
+  firstSemesterStartDate: string;
+  firstSemesterEndDate: string;
+  secondSemesterStartDate: string;
+  secondSemesterEndDate: string;
+  currentSemester: "FIRST" | "SECOND";
 };
 
 const emptyFormState: FormState = {
@@ -27,6 +32,11 @@ const emptyFormState: FormState = {
   startDate: "",
   endDate: "",
   isCurrent: false,
+  firstSemesterStartDate: "",
+  firstSemesterEndDate: "",
+  secondSemesterStartDate: "",
+  secondSemesterEndDate: "",
+  currentSemester: "FIRST",
 };
 
 const AcademicYearForm = ({ academicYears }: Props) => {
@@ -51,6 +61,11 @@ const AcademicYearForm = ({ academicYears }: Props) => {
       startDate: year.startDate,
       endDate: year.endDate,
       isCurrent: year.isCurrent,
+      firstSemesterStartDate: year.firstSemesterStartDate ?? "",
+      firstSemesterEndDate: year.firstSemesterEndDate ?? "",
+      secondSemesterStartDate: year.secondSemesterStartDate ?? "",
+      secondSemesterEndDate: year.secondSemesterEndDate ?? "",
+      currentSemester: year.currentSemester,
     });
     setIsModalOpen(true);
   };
@@ -70,6 +85,11 @@ const AcademicYearForm = ({ academicYears }: Props) => {
         startDate: new Date(form.startDate),
         endDate: new Date(form.endDate),
         isCurrent: form.isCurrent,
+        firstSemesterStartDate: new Date(form.firstSemesterStartDate),
+        firstSemesterEndDate: new Date(form.firstSemesterEndDate),
+        secondSemesterStartDate: new Date(form.secondSemesterStartDate),
+        secondSemesterEndDate: new Date(form.secondSemesterEndDate),
+        currentSemester: form.currentSemester,
       };
 
       const result = form.id
@@ -139,9 +159,16 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                     </td>
                     <td className="px-4 py-3">
                       {year.isCurrent ? (
-                        <Badge variant="success" size="sm" className="font-semibold">
-                          {actionsT("yes")}
-                        </Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant="success" size="sm" className="font-semibold">
+                            {actionsT("yes")}
+                          </Badge>
+                          <span className="text-[11px] text-content-muted">
+                            {year.currentSemester === "FIRST"
+                              ? t("firstSemester")
+                              : t("secondSemester")}
+                          </span>
+                        </div>
                       ) : (
                         <Badge variant="secondary" size="sm">
                           {actionsT("no")}
@@ -241,6 +268,106 @@ const AcademicYearForm = ({ academicYears }: Props) => {
                   }
                   required
                 />
+              </label>
+
+              <div className="md:col-span-2 border-t border-outline/60 pt-4">
+                <h4 className="font-bold text-sm text-content-primary">
+                  {t("semesterDates")}
+                </h4>
+              </div>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("firstSemesterStartDate")}
+                </span>
+                <input
+                  type="date"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  value={form.firstSemesterStartDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      firstSemesterStartDate: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("firstSemesterEndDate")}
+                </span>
+                <input
+                  type="date"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  value={form.firstSemesterEndDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      firstSemesterEndDate: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("secondSemesterStartDate")}
+                </span>
+                <input
+                  type="date"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  value={form.secondSemesterStartDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      secondSemesterStartDate: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("secondSemesterEndDate")}
+                </span>
+                <input
+                  type="date"
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  value={form.secondSemesterEndDate}
+                  onChange={(e) =>
+                    setForm((prev) => ({
+                      ...prev,
+                      secondSemesterEndDate: e.target.value,
+                    }))
+                  }
+                  required
+                />
+              </label>
+
+              <label className="flex flex-col gap-1.5 md:col-span-2">
+                <span className="font-semibold text-content-secondary text-xs uppercase tracking-wider">
+                  {t("currentSemester")}
+                </span>
+                <select
+                  className="bg-surface-muted/50 border border-outline/80 rounded-xl px-4 py-2.5 text-sm text-content-primary focus:border-brandPurple-500 focus:ring-2 focus:ring-brandPurple-500/20 outline-none transition-all font-medium"
+                  value={form.currentSemester}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    if (value === "FIRST" || value === "SECOND") {
+                      setForm((prev) => ({
+                        ...prev,
+                        currentSemester: value,
+                      }));
+                    }
+                  }}
+                >
+                  <option value="FIRST">{t("firstSemester")}</option>
+                  <option value="SECOND">{t("secondSemester")}</option>
+                </select>
               </label>
             </div>
 

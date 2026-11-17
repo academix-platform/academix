@@ -7,7 +7,6 @@ import { revalidatePath } from "next/cache";
 import prisma from "@/lib/prisma";
 import { deleteAssignmentResultsForSubmissions } from "@/lib/assignments/results";
 import { v2 as cloudinary } from "cloudinary";
-import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import {
   errorResult,
   requireActionAccess,
@@ -192,7 +191,14 @@ export async function submitAssignment(
           { lesson: { class: { students: { some: { id: userId } } } } },
         ],
       },
-      select: { id: true, startDate: true, endDate: true, allowLateSubmission: true },
+      select: {
+        id: true,
+        startDate: true,
+        endDate: true,
+        allowLateSubmission: true,
+        academicYearId: true,
+        semester: true,
+      },
     });
     if (!assignment) {
       return { success: false, error: true, message: "Assignment not found" };
@@ -204,11 +210,6 @@ export async function submitAssignment(
     }
     if (now > new Date(assignment.endDate) && !assignment.allowLateSubmission) {
       return { success: false, error: true, message: "Deadline passed. Submission is not allowed." };
-    }
-
-    const academicYear = await getCurrentAcademicYearOrNull(student.schoolId);
-    if (!academicYear) {
-      return { success: false, error: true, message: "No current academic year" };
     }
 
     const file = formData.get("file") as File | null;
@@ -258,7 +259,8 @@ export async function submitAssignment(
             assignmentId,
             studentId: userId,
             schoolId: student.schoolId,
-            academicYearId: academicYear.id,
+            academicYearId: assignment.academicYearId,
+            semester: assignment.semester,
           },
           update: {
             fileUrl: uploadedFile.url,
@@ -484,6 +486,7 @@ export async function publishAssignmentGrades(
         studentId: true,
         score: true,
         academicYearId: true,
+        semester: true,
       },
     });
 
@@ -505,6 +508,7 @@ export async function publishAssignmentGrades(
             assignmentId: submission.assignmentId,
             studentId: submission.studentId,
             academicYearId: submission.academicYearId,
+            semester: submission.semester,
           },
           select: { id: true },
         });
@@ -516,6 +520,7 @@ export async function publishAssignmentGrades(
           examId: null,
           assignmentId: submission.assignmentId,
           academicYearId: submission.academicYearId,
+          semester: submission.semester,
         };
 
         if (existingResult) {

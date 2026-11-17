@@ -1,5 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 type BuildExamQueryInput = {
@@ -22,7 +25,7 @@ export async function buildExamQuery({
   const currentPage = getQueryParam(page);
   const p = currentPage ? Number.parseInt(currentPage, 10) : 1;
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
   // Default to newest exams first unless the user explicitly asks for ascending order.
   const orderBy: Prisma.ExamOrderByWithRelationInput =
@@ -30,7 +33,7 @@ export async function buildExamQuery({
       ? { startTime: "asc" }
       : { startTime: "desc" };
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return {
       academicYearId: null,
       query: null,
@@ -41,7 +44,8 @@ export async function buildExamQuery({
 
   const query: Prisma.ExamWhereInput = {
     schoolId,
-    academicYearId,
+    academicYearId: academicYear.id,
+    ...semesterAndAnnualWhere(academicYear.currentSemester),
   };
 
   const conditions: Prisma.ExamWhereInput[] = [];
@@ -137,7 +141,7 @@ export async function buildExamQuery({
   }
 
   return {
-    academicYearId,
+    academicYearId: academicYear.id,
     query,
     orderBy,
     page: Number.isNaN(p) || p < 1 ? 1 : p,

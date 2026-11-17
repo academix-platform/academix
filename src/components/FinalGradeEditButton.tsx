@@ -11,6 +11,7 @@ type FinalGradeEditButtonProps = {
   studentId: string;
   studentName: string;
   academicYearId: number;
+  period: "ANNUAL" | "FIRST" | "SECOND";
   averageScore: number | null;
 };
 
@@ -24,6 +25,7 @@ export default function FinalGradeEditButton({
   studentId,
   studentName,
   academicYearId,
+  period,
   averageScore,
 }: FinalGradeEditButtonProps) {
   const t = useTranslations("finalGradeEdit");
@@ -80,6 +82,7 @@ export default function FinalGradeEditButton({
                 name="academicYearId"
                 value={academicYearId}
               />
+              <input type="hidden" name="period" value={period} />
 
               <label className="block text-sm font-medium text-gray-700">
                 {t("finalGrade")}

@@ -13,7 +13,10 @@ import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { Class, Event, Prisma } from "@prisma/client";
 import { UserRole } from "@/lib/utils";
 
@@ -152,13 +155,17 @@ const EventListPage = async ({
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.EventWhereInput = { schoolId, academicYearId };
+  const query: Prisma.EventWhereInput = {
+    schoolId,
+    academicYearId: academicYear.id,
+    ...semesterAndAnnualWhere(academicYear.currentSemester),
+  };
   const conditions: Prisma.EventWhereInput[] = [];
   if (queryParams) {
     for (const [key, rawValue] of Object.entries(queryParams)) {

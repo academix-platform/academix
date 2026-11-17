@@ -105,6 +105,7 @@ const ResultListPage = async ({
   searchParams: PageSearchParams;
 }) => {
   const t = await getTranslations("pages");
+  const componentT = await getTranslations("gradeComponents");
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
   const { role, userId, schoolId } = await enforceRouteAccess("/list/results");
@@ -200,6 +201,12 @@ const ResultListPage = async ({
                 className="bg-brandPurple-50 dark:bg-brandPurple-950/40 hover:bg-brandPurple-100 text-brandPurple-700 dark:text-brandPurple-400 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition border border-brandPurple-200 dark:border-brandPurple-900/50 shadow-2xs"
               >
                 {t("enterClassMarks")}
+              </Link>
+              <Link
+                href="/list/grade-components"
+                className="bg-slate-50 dark:bg-slate-900 hover:bg-slate-100 text-slate-700 dark:text-slate-300 px-3 py-2 rounded-xl text-xs md:text-sm font-semibold whitespace-nowrap transition border border-slate-200 dark:border-slate-700 shadow-2xs"
+              >
+                {componentT("manage")}
               </Link>
               <FormContainer table="result" type="create" />
             </>

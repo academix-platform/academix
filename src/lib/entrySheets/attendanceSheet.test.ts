@@ -368,7 +368,7 @@ describe("sheetAttendanceDateError", () => {
 
   it("refuses a date inside the 7 days but before the academic year started", () => {
     expect(sheetAttendanceDateError("2026-08-31", "2026-09-03", year)).toBe(
-      "This date is outside the current academic year.",
+      "This date is outside the current semester.",
     );
   });
 

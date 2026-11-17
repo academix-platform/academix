@@ -72,6 +72,7 @@ export async function GET(req: NextRequest) {
                     schoolId: number;
                     academicYearId: number;
                     studentId: { in: string[] };
+                    period: "ANNUAL";
                   };
                   select: {
                     studentId: boolean;
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
               schoolId: admin.schoolId,
               academicYearId: Number(academicYearId),
               studentId: { in: studentIds },
+              period: "ANNUAL",
             },
             select: {
               studentId: true,

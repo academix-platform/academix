@@ -1,5 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 type BuildResultQueryInput = {
@@ -22,14 +25,14 @@ export async function buildResultQuery({
   const currentPage = getQueryParam(page);
   const p = currentPage ? Number.parseInt(currentPage, 10) : 1;
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
   const sortParam = getQueryParam(sort);
 
   const orderBy: Prisma.ResultOrderByWithRelationInput =
     sortParam === "asc" ? { id: "asc" } : { id: "desc" };
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return {
       academicYearId: null,
       query: null,
@@ -40,7 +43,8 @@ export async function buildResultQuery({
 
   const query: Prisma.ResultWhereInput = {
     schoolId,
-    academicYearId,
+    academicYearId: academicYear.id,
+    ...semesterAndAnnualWhere(academicYear.currentSemester),
   };
 
   const conditions: Prisma.ResultWhereInput[] = [];
@@ -168,7 +172,7 @@ export async function buildResultQuery({
   }
 
   return {
-    academicYearId,
+    academicYearId: academicYear.id,
     query,
     orderBy,
     page: Number.isNaN(p) || p < 1 ? 1 : p,

@@ -2,7 +2,10 @@ import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { examGroupWhere } from "@/lib/exams/group";
 import prisma from "@/lib/prisma";
 import ExamWorkflowForm from "@/components/forms/ExamWorkflowForm";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import { isFileConfig } from "@/lib/formValidationSchemas";
@@ -23,10 +26,12 @@ export default async function CreateExamWorkflowPage({
     ? Number.parseInt(subjectIdParam, 10)
     : NaN;
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
-  if (!academicYearId) {
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage />;
   }
+  const academicYearId = academicYear.id;
+  const semesterWhere = semesterAndAnnualWhere(academicYear.currentSemester);
 
   const subjects = await prisma.subject.findMany({
     where: {
@@ -35,7 +40,15 @@ export default async function CreateExamWorkflowPage({
         ? {
             OR: [
               { teachers: { some: { id: userId } } },
-              { lessons: { some: { teacherId: userId, academicYearId } } },
+              {
+                lessons: {
+                  some: {
+                    teacherId: userId,
+                    academicYearId,
+                    ...semesterWhere,
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -50,11 +63,15 @@ export default async function CreateExamWorkflowPage({
           id: examId,
           schoolId,
           academicYearId,
+          ...semesterWhere,
           ...(role === "teacher"
             ? { OR: [{ teacherId: userId }, { lesson: { teacherId: userId } }] }
             : {}),
         },
         include: {
+          gradeSchemeComponent: {
+            select: { componentId: true },
+          },
           questions: {
             orderBy: { order: "asc" },
           },
@@ -66,6 +83,7 @@ export default async function CreateExamWorkflowPage({
         where: {
           ...examGroupWhere(exam.groupId, { userId, role, schoolId }),
           academicYearId,
+          semester: exam.semester,
         },
         select: { classId: true },
       })
@@ -84,6 +102,7 @@ export default async function CreateExamWorkflowPage({
         title: exam.title,
         instructions: exam.instructions ?? "",
         teacherId: exam.teacherId ?? "",
+        gradeComponentId: exam.gradeSchemeComponent?.componentId,
         startTime: exam.startTime,
         endTime: exam.endTime,
         subjectId: exam.subjectId ?? undefined,
@@ -130,7 +149,15 @@ export default async function CreateExamWorkflowPage({
             OR: [
               { gradeId: { in: subjectGradeIds } },
               { teachers: { some: { id: userId } } },
-              { lessons: { some: { teacherId: userId, academicYearId } } },
+              {
+                lessons: {
+                  some: {
+                    teacherId: userId,
+                    academicYearId,
+                    ...semesterWhere,
+                  },
+                },
+              },
             ],
           }
         : {}),
@@ -147,10 +174,17 @@ export default async function CreateExamWorkflowPage({
         })
       : [];
 
+  const gradeComponents = await prisma.gradeComponent.findMany({
+    where: { schoolId },
+    select: { id: true, key: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   const lessonPairs = await prisma.lesson.findMany({
     where: {
       schoolId,
       academicYearId,
+      ...semesterWhere,
       ...(role === "teacher" ? { teacherId: userId } : {}),
     },
     select: { subjectId: true, classId: true },
@@ -187,6 +221,7 @@ export default async function CreateExamWorkflowPage({
         subjects={subjects}
         classes={classes}
         teachers={teachers}
+        gradeComponents={gradeComponents}
         canSelectTeacher={role === "admin"}
         teacherLessons={subjectClassPairs}
         mode={exam ? "update" : "create"}

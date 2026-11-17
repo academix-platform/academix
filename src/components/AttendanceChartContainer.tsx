@@ -1,6 +1,9 @@
 import AttendanceChart from "./AttendanceChart";
 import prisma from "@/lib/prisma";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { requireAuth } from "@/lib/auth";
 import { getTranslations } from "next-intl/server";
@@ -11,9 +14,9 @@ const AttendanceChartContainer = async () => {
   const adminT = await getTranslations("adminDashboard");
   const user = await requireAuth();
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(user.schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
@@ -32,7 +35,8 @@ const AttendanceChartContainer = async () => {
     prisma.attendance.findMany({
       where: {
         schoolId: user.schoolId,
-        academicYearId,
+        academicYearId: academicYear.id,
+        ...semesterAndAnnualWhere(academicYear.currentSemester),
         studentId: { not: null },
         date: {
           gte: weekStart,

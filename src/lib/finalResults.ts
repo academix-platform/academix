@@ -5,7 +5,12 @@ const roundTo = (value: number, digits: number) => {
 
 export const PASSING_AVERAGE = 60;
 
-export type FinalResultStatus = "PASS" | "FAIL" | "NO_RESULTS" | "NOT_UPDATED";
+export type FinalResultStatus =
+  | "PASS"
+  | "FAIL"
+  | "NO_RESULTS"
+  | "NOT_UPDATED"
+  | "INCOMPLETE";
 
 export type FinalResultSummary = {
   averageScore: number | null;

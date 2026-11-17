@@ -25,8 +25,9 @@ export const createResultSheetWith = async (
   ref: AssessmentRef,
   academicYearId: number,
   makeCode: () => string = newSheetCode,
+  semester?: "FIRST" | "SECOND",
 ): Promise<{ error: "notFound" | "noStudents" } | { sheetId: string; code: string; pageCount: number }> => {
-  const entry = await loadClassEntry(db, access, ref, academicYearId);
+  const entry = await loadClassEntry(db, access, ref, academicYearId, semester);
   if (!entry) return { error: "notFound" };
   if (entry.rows.length === 0) return { error: "noStudents" };
 
@@ -37,6 +38,7 @@ export const createResultSheetWith = async (
       kind: "RESULT",
       schoolId: access.schoolId,
       academicYearId,
+      semester: entry.assessment.semester,
       classId: entry.classId,
       examId: ref.type === "exam" ? ref.id : null,
       assignmentId: ref.type === "assignment" ? ref.id : null,

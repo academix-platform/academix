@@ -8,7 +8,7 @@ import {
   errorResult,
   parseNumericId,
   successResult,
-  getRequiredAcademicYearId,
+  getRequiredAcademicSemester,
   requireActionAccess,
 } from "./helpers";
 
@@ -20,7 +20,9 @@ export const createMessage = async (
   if ("error" in access) return access;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
 
     await prisma.message.create({
       data: {
@@ -29,6 +31,7 @@ export const createMessage = async (
         schoolId: access.schoolId,
         date: new Date(),
         academicYearId,
+        semester,
         classes: {
           connect: (data.classIds ?? []).map((classId) => ({ id: classId })),
         },

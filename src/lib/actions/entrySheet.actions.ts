@@ -56,6 +56,24 @@ const fail = (message: string, studentId?: string): EntrySheetActionState => ({
   ...(studentId ? { studentId } : {}),
 });
 
+const getCurrentAttendanceSemester = async (schoolId: number) => {
+  const year = await getCurrentAcademicYearOrNull(schoolId);
+  if (
+    !year ||
+    !year.currentSemesterStartDate ||
+    !year.currentSemesterEndDate
+  ) {
+    return null;
+  }
+
+  return {
+    id: year.id,
+    startDate: year.currentSemesterStartDate,
+    endDate: year.currentSemesterEndDate,
+    semester: year.currentSemester,
+  };
+};
+
 class RowError extends Error {
   constructor(
     message: string,
@@ -125,6 +143,8 @@ export const createResultSheet = async (
       access,
       { type: parsed.data.assessmentType, id: parsed.data.assessmentId },
       year.id,
+      undefined,
+      year.currentSemester,
     );
     if ("error" in outcome) {
       return fail(
@@ -147,7 +167,7 @@ const attendanceSheetSchema = z.object({
 
 const attendanceSheetErrors = {
   badDate: "Choose a valid date.",
-  outsideYear: "This date is outside the current academic year.",
+  outsideYear: "This date is outside the current semester.",
   notFound: "This class isn't available.",
   noStudents: "There are no students to list on this sheet.",
 } as const;
@@ -162,8 +182,8 @@ export const createAttendanceSheet = async (
   const parsed = attendanceSheetSchema.safeParse(input);
   if (!parsed.success) return fail("Choose a class and a date.");
 
-  const year = await getCurrentAcademicYearOrNull(access.schoolId);
-  if (!year) return fail("No current academic year found.");
+  const year = await getCurrentAttendanceSemester(access.schoolId);
+  if (!year) return fail("Configure the current semester dates in settings.");
 
   try {
     const outcome = await createAttendanceSheetWith(prisma, access, parsed.data, year);
@@ -316,7 +336,7 @@ export const readAttendanceSheetPhoto = async (formData: FormData): Promise<Phot
 
   // Don't pay for a read that saveAttendanceSheet would refuse. The page hides
   // the upload outside this window, but the action must not rely on it.
-  const year = await getCurrentAcademicYearOrNull(access.schoolId);
+  const year = await getCurrentAttendanceSemester(access.schoolId);
   if (!year || sheetUploadWindow(parsed.data.date, todayInTimeZone(), year) !== "open") {
     return { success: false, reason: "dateClosed" };
   }
@@ -379,8 +399,8 @@ export const saveAttendanceSheet = async (
   const access = await requireActionAccess(["admin", "teacher"]);
   if ("error" in access) return access;
 
-  const year = await getCurrentAcademicYearOrNull(access.schoolId);
-  if (!year) return fail("No current academic year found.");
+  const year = await getCurrentAttendanceSemester(access.schoolId);
+  if (!year) return fail("Configure the current semester dates in settings.");
 
   let saved: { savedCount: number; date: string };
   try {

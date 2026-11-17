@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 import prisma from "@/lib/prisma";
 import { requireAuth } from "@/lib/auth";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import {
   subjectAccessWhere,
   subjectClassContentWhere,
@@ -279,12 +279,14 @@ export default async function SubjectDetailPage({
 
   const { userId, role, schoolId } = await requireAuth();
   const roleStr = role as string;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
+  const academicYearId = academicYear?.id ?? null;
   // الواجبات والامتحانات: السنة الحالية فقط، وللطالب وولي الأمر صفوفهم فقط
   const classContentWhere = subjectClassContentWhere(
     roleStr,
     userId,
     academicYearId,
+    academicYear?.currentSemester,
   );
 
   // جلب المادة مع كل البيانات + إعدادات الصفحة
@@ -301,7 +303,10 @@ export default async function SubjectDetailPage({
         select: { id: true, name: true, img: true },
       },
       studyMaterials: {
-        where: subjectMaterialWhere(academicYearId),
+        where: subjectMaterialWhere(
+          academicYearId,
+          academicYear?.currentSemester,
+        ),
         include: {
           teacher: { select: { id: true, name: true } },
         },

@@ -34,6 +34,7 @@ export {
 // Result actions
 export { createResult, updateResult, deleteResult } from "./result.actions";
 export { updateStudentFinalGrade } from "./finalResult.actions";
+export { saveGradeScheme } from "./gradeComponent.actions";
 
 // Attendance actions
 export {

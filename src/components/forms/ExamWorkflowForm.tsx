@@ -17,11 +17,13 @@ import InputField from "../InputField";
 import { FileText } from "lucide-react";
 import TeacherSearchInput from "./TeacherSearchInput";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
 type ExamWorkflowFormProps = {
   subjects: { id: number; name: string }[];
   classes: { id: number; name: string }[];
   teachers?: { id: string; name: string }[];
+  gradeComponents: { id: number; key: string | null; name: string }[];
   canSelectTeacher?: boolean;
   mode?: "create" | "update";
   examId?: number;
@@ -527,6 +529,7 @@ export default function ExamWorkflowForm({
   subjects,
   classes,
   teachers = [],
+  gradeComponents,
   canSelectTeacher = false,
   mode = "create",
   examId,
@@ -534,6 +537,7 @@ export default function ExamWorkflowForm({
   teacherLessons,
 }: ExamWorkflowFormProps) {
   const t = useTranslations("forms.examWorkflow");
+  const gradeT = useTranslations("gradeComponents");
   const commonT = useTranslations("forms.common");
   const actionsT = useTranslations("actions");
   const router = useRouter();
@@ -553,6 +557,7 @@ export default function ExamWorkflowForm({
       title: initialData?.title ?? "",
       instructions: initialData?.instructions ?? "",
       teacherId: initialData?.teacherId ?? "",
+      gradeComponentId: initialData?.gradeComponentId,
       startTime: (toDateTimeLocalValue(initialData?.startTime) ||
         (mode === "create" ? createDateTimeDefault : "")) as any,
       endTime: (toDateTimeLocalValue(initialData?.endTime) ||
@@ -780,6 +785,37 @@ export default function ExamWorkflowForm({
                       ? t("noClassesForSubject")
                       : t("selectSubjectFirst")}
                   </p>
+                )}
+              </div>
+              <div className="flex flex-col gap-2 md:col-span-2 w-full">
+                <label className="font-medium text-gray-700 text-sm">
+                  {gradeT("assessmentComponent")}
+                </label>
+                <select
+                  {...register("gradeComponentId")}
+                  className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+                >
+                  <option value="">{gradeT("chooseAssessmentComponent")}</option>
+                  {gradeComponents.map((component) => (
+                    <option key={component.id} value={component.id}>
+                      {component.key
+                        ? gradeT(`defaults.${component.key}`)
+                        : component.name}
+                    </option>
+                  ))}
+                </select>
+                {errors.gradeComponentId?.message && (
+                  <p className="font-medium text-red-500 text-xs">
+                    {errors.gradeComponentId.message}
+                  </p>
+                )}
+                {gradeComponents.length === 0 && (
+                  <Link
+                    href="/list/grade-components"
+                    className="text-sm font-medium text-purple-700 hover:underline"
+                  >
+                    {gradeT("setupRequired")}
+                  </Link>
                 )}
               </div>
               {errors.classIds?.message && (

@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import {
   errorResult,
-  getRequiredAcademicYearId,
+  getRequiredAcademicSemester,
   requireActionAccess,
   successResult,
 } from "./helpers";
@@ -91,12 +91,14 @@ const detectTeacherConflicts = async ({
   selectedEntries,
   settings,
   academicYearId,
+  semester,
   schoolId,
 }: {
   classId: number;
   selectedEntries: SelectedScheduleEntry[];
   settings: SchoolScheduleSettings;
   academicYearId: number;
+  semester: "FIRST" | "SECOND";
   schoolId: number;
 }) => {
   if (selectedEntries.length === 0) return null;
@@ -122,6 +124,7 @@ const detectTeacherConflicts = async ({
       classId: { not: classId },
       schoolId,
       academicYearId,
+      semester,
       teacherId: { in: teacherIds },
       day: { in: days },
     },
@@ -173,7 +176,9 @@ export const saveLessonSchedule = async (
       (await getSchoolScheduleSettings(access.schoolId)) ??
       getDefaultSchoolScheduleSettings();
     const allowedDays = new Set(settings.workingDays);
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
     const selectedEntries = toSelectedEntries(data.entries);
 
     const hasInvalidSlot = selectedEntries.some(
@@ -205,6 +210,7 @@ export const saveLessonSchedule = async (
       selectedEntries: filteredSelectedEntries,
       settings,
       academicYearId,
+      semester,
       schoolId: access.schoolId,
     });
 
@@ -218,7 +224,12 @@ export const saveLessonSchedule = async (
 
     await prisma.$transaction(async (tx) => {
       const existingLessons = await tx.lesson.findMany({
-        where: { classId: data.classId, academicYearId, schoolId: access.schoolId },
+        where: {
+          classId: data.classId,
+          academicYearId,
+          semester,
+          schoolId: access.schoolId,
+        },
         select: {
           id: true,
           day: true,
@@ -295,6 +306,7 @@ export const saveLessonSchedule = async (
               teacherId: entry.teacherId,
               schoolId: access.schoolId,
               academicYearId,
+              semester,
             },
           });
 

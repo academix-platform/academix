@@ -5,7 +5,7 @@ import prisma from "../prisma";
 import { normalizeStoredAnswer } from "../examAnswerUtils";
 import {
   requireActionAccess,
-  getRequiredAcademicYearId,
+  getRequiredAcademicSemester,
   successResult,
   errorResult,
   CurrentState,
@@ -53,6 +53,7 @@ import {
   getFileExtension,
   isExamFilePublicIdFor,
 } from "../exams/files";
+import { findGradeSchemeComponent } from "../gradeComponentAccess";
 
 // ============================================================
 // HELPERS
@@ -89,6 +90,7 @@ type ExamAccess = {
 const getExamClassAssignments = async (
   access: ExamAccess,
   academicYearId: number,
+  semester: "FIRST" | "SECOND" | null,
   subjectId: number,
   classIds: number[]
 ) => {
@@ -128,6 +130,7 @@ const getExamClassAssignments = async (
   const lessons = await prisma.lesson.findMany({
     where: {
       academicYearId,
+      semester,
       schoolId: access.schoolId,
       subjectId,
       classId: { in: uniqueClassIds },
@@ -243,11 +246,14 @@ export const createExamWorkflow = async (
   const data = parsed.data;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
 
     const assignmentResult = await getExamClassAssignments(
       access,
       academicYearId,
+      semester,
       data.subjectId,
       data.classIds
     );
@@ -264,6 +270,49 @@ export const createExamWorkflow = async (
     if ("error" in selectedTeacher) {
       return { success: false, error: true, message: selectedTeacher.error };
     }
+    const gradeComponentId = data.gradeComponentId;
+    if (!gradeComponentId) {
+      return {
+        success: false,
+        error: true,
+        message: "Choose a grade component for this exam.",
+      };
+    }
+
+    const componentAssignments = await Promise.all(
+      assignmentResult.assignments.map(async (assignment) => {
+        const component = await findGradeSchemeComponent(prisma, {
+          schoolId: access.schoolId,
+          teacherId: selectedTeacher.teacherId ?? assignment.teacherId,
+          classId: assignment.classId,
+          subjectId: data.subjectId,
+          academicYearId,
+          semester,
+          componentId: gradeComponentId,
+        });
+        return component
+          ? { classId: assignment.classId, componentId: component.id }
+          : null;
+      }),
+    );
+    const resolvedComponents = componentAssignments.filter(
+      (component): component is NonNullable<typeof component> =>
+        component !== null,
+    );
+    if (resolvedComponents.length !== assignmentResult.assignments.length) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Set up the grading breakdown for every selected class before creating this exam.",
+      };
+    }
+    const componentIdByClass = new Map(
+      resolvedComponents.map((component) => [
+        component.classId,
+        component.componentId,
+      ]),
+    );
 
     const groupId = randomUUID();
     const questionsData = buildQuestionsData(data.questions, access.schoolId);
@@ -279,6 +328,8 @@ export const createExamWorkflow = async (
             classId: assignment.classId,
             subjectId: data.subjectId,
             academicYearId,
+            semester,
+            gradeSchemeComponentId: componentIdByClass.get(assignment.classId),
             schoolId: access.schoolId,
             questions: { createMany: { data: questionsData } },
           },
@@ -312,16 +363,24 @@ export const updateExamWorkflow = async (
   const data = parsed.data;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
 
     const existingExam = await prisma.exam.findFirst({
       where: {
         id: examId,
         schoolId: access.schoolId,
         academicYearId,
+        semester,
         ...(access.role === "teacher" ? teacherExamAccessWhere(access.userId) : {}),
       },
-      select: { id: true, groupId: true },
+      select: {
+        id: true,
+        groupId: true,
+        semester: true,
+        gradeSchemeComponent: { select: { componentId: true } },
+      },
     });
 
     if (!existingExam) {
@@ -335,6 +394,7 @@ export const updateExamWorkflow = async (
     const assignmentResult = await getExamClassAssignments(
       access,
       academicYearId,
+      existingExam.semester,
       data.subjectId,
       data.classIds
     );
@@ -352,10 +412,78 @@ export const updateExamWorkflow = async (
       return { success: false, error: true, message: selectedTeacher.error };
     }
     const selectedTeacherId = selectedTeacher.teacherId;
+    const gradeComponentId =
+      data.gradeComponentId ?? existingExam.gradeSchemeComponent?.componentId;
+    const existingSemester = existingExam.semester;
+    if (existingSemester && !gradeComponentId) {
+      return {
+        success: false,
+        error: true,
+        message: "Choose a grade component for this exam.",
+      };
+    }
+
+    if (!existingSemester && data.gradeComponentId) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Annual legacy exams cannot be assigned to a semester grade component.",
+      };
+    }
+
+    const componentAssignments = existingSemester && gradeComponentId
+      ? await Promise.all(
+          assignmentResult.assignments.map(async (assignment) => {
+            const component = await findGradeSchemeComponent(prisma, {
+              schoolId: access.schoolId,
+              teacherId: selectedTeacherId ?? assignment.teacherId,
+              classId: assignment.classId,
+              subjectId: data.subjectId,
+              academicYearId,
+              semester: existingSemester,
+              componentId: gradeComponentId,
+            });
+            return component
+              ? { classId: assignment.classId, componentId: component.id }
+              : null;
+          }),
+        )
+      : [];
+    const resolvedComponents = componentAssignments.filter(
+      (component): component is NonNullable<typeof component> =>
+        component !== null,
+    );
+    if (
+      existingSemester &&
+      resolvedComponents.length !== assignmentResult.assignments.length
+    ) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Set up the grading breakdown for every selected class before updating this exam.",
+      };
+    }
+    const componentIdByClass = new Map(
+      resolvedComponents.map((component) => [
+        component.classId,
+        component.componentId,
+      ]),
+    );
 
     const groupExams = await prisma.exam.findMany({
-      where: { ...examGroupWhere(existingExam.groupId, access), academicYearId },
-      select: { id: true, classId: true, teacherId: true },
+      where: {
+        ...examGroupWhere(existingExam.groupId, access),
+        academicYearId,
+        semester: existingExam.semester,
+      },
+      select: {
+        id: true,
+        classId: true,
+        teacherId: true,
+        gradeSchemeComponentId: true,
+      },
     });
 
     const selectedAssignmentsByClass = new Map<
@@ -402,6 +530,9 @@ export const updateExamWorkflow = async (
             data: {
               ...settingsData,
               teacherId: selectedTeacherId ?? exam.teacherId,
+              gradeSchemeComponentId:
+                componentIdByClass.get(exam.classId ?? -1) ??
+                exam.gradeSchemeComponentId,
             },
           })
         )
@@ -437,6 +568,7 @@ export const updateExamWorkflow = async (
                 null,
               classId,
               subjectId: data.subjectId,
+              gradeSchemeComponentId: componentIdByClass.get(classId),
             },
           });
 
@@ -460,6 +592,8 @@ export const updateExamWorkflow = async (
               classId,
               subjectId: data.subjectId,
               academicYearId,
+              semester: existingExam.semester,
+              gradeSchemeComponentId: componentIdByClass.get(classId),
               schoolId: access.schoolId,
               questions: { createMany: { data: questionsData } },
             },
@@ -528,6 +662,8 @@ export const startExam = async (examId: number) => {
         studentId: access.userId,
         schoolId: access.schoolId,
         lastSyncedAt: now,
+        academicYearId: exam.academicYearId,
+        semester: exam.semester,
       },
       update: {},
       include: { answers: true },
@@ -1180,7 +1316,7 @@ export const publishExamGrades = async (examId: number) => {
         examId: true,
         studentId: true,
         totalScore: true,
-        exam: { select: { academicYearId: true } },
+        exam: { select: { academicYearId: true, semester: true } },
       },
     });
 
@@ -1190,11 +1326,21 @@ export const publishExamGrades = async (examId: number) => {
         examId: { in: examIds },
         studentId: { in: gradedSubmissions.map((s) => s.studentId) },
       },
-      select: { id: true, examId: true, studentId: true, academicYearId: true },
+      select: {
+        id: true,
+        examId: true,
+        studentId: true,
+        academicYearId: true,
+        semester: true,
+      },
     });
 
-    const resultKey = (r: { examId: number | null; studentId: string; academicYearId: number }) =>
-      `${r.examId}:${r.studentId}:${r.academicYearId}`;
+    const resultKey = (r: {
+      examId: number | null;
+      studentId: string;
+      academicYearId: number;
+      semester: "FIRST" | "SECOND" | null;
+    }) => `${r.examId}:${r.studentId}:${r.academicYearId}:${r.semester}`;
     const existingResultIds = new Map(
       existingResults.map((result) => [resultKey(result), result.id])
     );
@@ -1212,6 +1358,7 @@ export const publishExamGrades = async (examId: number) => {
         examId: submission.examId,
         assignmentId: null,
         academicYearId: submission.exam.academicYearId,
+        semester: submission.exam.semester,
       };
 
       const existingId = existingResultIds.get(resultKey(resultData));

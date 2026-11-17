@@ -1,6 +1,10 @@
 import { NextRequest } from "next/server";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { createCsvResponse, generateCsv } from "@/lib/csv";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import prisma from "@/lib/prisma";
 
 export async function GET(req: NextRequest) {
@@ -16,9 +20,16 @@ export async function GET(req: NextRequest) {
     return new Response("Class ID is required", { status: 400 });
   }
 
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
+  if (!academicYear) {
+    return new Response("No active academic year found.", { status: 400 });
+  }
+
   const lessons = await prisma.lesson.findMany({
     where: {
       classId: Number(classId),
+      academicYearId: academicYear.id,
+      ...semesterAndAnnualWhere(academicYear.currentSemester),
       class: {
         schoolId,
       },

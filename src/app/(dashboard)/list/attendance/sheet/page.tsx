@@ -24,6 +24,11 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
   const attendanceT = await getTranslations("attendance");
   const year = await getCurrentAcademicYearOrNull(user.schoolId);
   if (!year) return <NoCurrentAcademicYearMessage />;
+  const semesterStartDate = year.currentSemesterStartDate;
+  const semesterEndDate = year.currentSemesterEndDate;
+  if (!semesterStartDate || !semesterEndDate) {
+    return <NoCurrentAcademicYearMessage />;
+  }
 
   const access = { userId: user.userId, role: user.role, schoolId: user.schoolId };
   const classes = await loadAttendanceClasses(prisma, access);
@@ -44,13 +49,24 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
   const dateParam = getQueryParam(resolved.date);
   const today = todayInTimeZone();
   const date = isIsoDate(dateParam) ? dateParam : today;
-  const inYear = date >= year.startDate && date <= year.endDate;
+  const inYear = date >= semesterStartDate && date <= semesterEndDate;
   // Sheets can be printed ahead, but only uploaded from their date to 7 days after.
-  const uploadWindow = sheetUploadWindow(date, today, year);
+  const attendanceSemester = {
+    id: year.id,
+    startDate: semesterStartDate,
+    endDate: semesterEndDate,
+    semester: year.currentSemester,
+  };
+  const uploadWindow = sheetUploadWindow(date, today, attendanceSemester);
   // Only classes the caller may use are offered, so another class id finds nothing.
   const selected = classes.find((option) => String(option.id) === classParam);
   const students = selected
-    ? await loadAttendanceEntry(prisma, user.schoolId, { classId: selected.id, date, academicYearId: year.id })
+    ? await loadAttendanceEntry(prisma, user.schoolId, {
+        classId: selected.id,
+        date,
+        academicYearId: year.id,
+        semester: year.currentSemester,
+      })
     : [];
 
   return (
@@ -76,8 +92,8 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
             type="date"
             name="date"
             defaultValue={date}
-            min={year.startDate}
-            max={year.endDate}
+            min={semesterStartDate}
+            max={semesterEndDate}
             className="p-2 border rounded-md text-sm"
           />
         </label>
@@ -100,7 +116,7 @@ const AttendanceSheetPage = async ({ searchParams }: { searchParams: PageSearchP
           </div>
           {!inYear && (
             <p className="bg-amber-50 mt-3 px-3 py-2 border border-amber-200 rounded-md text-amber-800 text-sm">
-              {attendanceT("dateOutsideAcademicYear", { start: year.startDate, end: year.endDate })}
+              {attendanceT("dateOutsideAcademicYear", { start: semesterStartDate, end: semesterEndDate })}
             </p>
           )}
           {students.length === 0 ? (

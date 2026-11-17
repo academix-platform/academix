@@ -51,11 +51,12 @@ const AttendancePage = async ({
 
   const scope: "students" | "teachers" =
     rawScope === "teachers" ? "teachers" : "students";
-  const isSelectedDateInAcademicYear = isDateWithinRange(
-    selectedDate,
-    currentAcademicYear.startDate,
-    currentAcademicYear.endDate,
-  );
+  const semesterStartDate = currentAcademicYear.currentSemesterStartDate;
+  const semesterEndDate = currentAcademicYear.currentSemesterEndDate;
+  const isSelectedDateInAcademicYear =
+    !!semesterStartDate &&
+    !!semesterEndDate &&
+    isDateWithinRange(selectedDate, semesterStartDate, semesterEndDate);
 
   // Authorization check for editing historical or current records
   const canEdit =
@@ -199,6 +200,14 @@ const AttendancePage = async ({
               <Calendar className="w-3.5 h-3.5 shrink-0 text-purple-600 dark:text-purple-400" />
               <span>{attendanceT("academicYear", { year: currentAcademicYear.name })}</span>
             </Badge>
+            <Badge variant="outline" className="text-xs font-medium">
+              {attendanceT("currentSemester", {
+                semester:
+                  currentAcademicYear.currentSemester === "FIRST"
+                    ? attendanceT("firstSemester")
+                    : attendanceT("secondSemester"),
+              })}
+            </Badge>
 
             {isSelectedDateInAcademicYear ? (
               hasAttendance ? (
@@ -213,8 +222,8 @@ const AttendancePage = async ({
             ) : (
               <Badge variant="destructive" size="sm">
                 {attendanceT("dateOutsideAcademicYear", {
-                  start: currentAcademicYear.startDate,
-                  end: currentAcademicYear.endDate,
+                  start: semesterStartDate ?? "-",
+                  end: semesterEndDate ?? "-",
                 })}
               </Badge>
             )}
@@ -238,8 +247,8 @@ const AttendancePage = async ({
         <div className="rounded-2xl border border-amber-200 dark:border-amber-800/80 bg-amber-50 dark:bg-amber-950/30 p-4 text-xs md:text-sm text-amber-800 dark:text-amber-300 flex items-center gap-2">
           <span>
             {attendanceT("dateOutsideAcademicYear", {
-              start: currentAcademicYear.startDate,
-              end: currentAcademicYear.endDate,
+              start: semesterStartDate ?? "-",
+              end: semesterEndDate ?? "-",
             })}
           </span>
         </div>
@@ -258,8 +267,8 @@ const AttendancePage = async ({
         academicYear={{
           id: currentAcademicYear.id,
           name: currentAcademicYear.name,
-          startDate: currentAcademicYear.startDate,
-          endDate: currentAcademicYear.endDate,
+          startDate: currentAcademicYear.currentSemesterStartDate ?? currentAcademicYear.startDate,
+          endDate: currentAcademicYear.currentSemesterEndDate ?? currentAcademicYear.endDate,
         }}
         classes={classes}
         effectiveClassId={effectiveClassId}

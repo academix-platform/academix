@@ -33,8 +33,10 @@ const ClassEntryPage = async ({ searchParams }: { searchParams: PageSearchParams
   const selected = parseAssessmentParam(selectedParam);
 
   const [assessments, entry] = await Promise.all([
-    loadEntryAssessments(prisma, access, year.id),
-    selected ? loadClassEntry(prisma, access, selected, year.id) : null,
+    loadEntryAssessments(prisma, access, year.id, year.currentSemester),
+    selected
+      ? loadClassEntry(prisma, access, selected, year.id, year.currentSemester)
+      : null,
   ]);
 
   return (

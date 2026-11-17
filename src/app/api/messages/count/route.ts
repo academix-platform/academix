@@ -1,4 +1,8 @@
 import { getAuthUser } from "@/lib/auth";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import prisma from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -11,17 +15,26 @@ export async function GET() {
     }
 
     const { userId, role, schoolId } = authUser;
+    const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
     let messageCount = 0;
 
-    if (role === "admin") {
+    if (!academicYear) {
+      messageCount = 0;
+    } else if (role === "admin") {
       messageCount = await prisma.message.count({
-        where: { schoolId },
+        where: {
+          schoolId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
+        },
       });
     } else if (role === "teacher") {
       messageCount = await prisma.message.count({
         where: {
           schoolId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
           teachers: {
             some: { id: userId },
           },
@@ -31,6 +44,8 @@ export async function GET() {
       messageCount = await prisma.message.count({
         where: {
           schoolId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
           students: {
             some: { id: userId },
           },
@@ -40,6 +55,8 @@ export async function GET() {
       messageCount = await prisma.message.count({
         where: {
           schoolId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
           parents: {
             some: { id: userId },
           },

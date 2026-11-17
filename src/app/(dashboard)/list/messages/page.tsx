@@ -11,7 +11,10 @@ import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { Prisma } from "@prisma/client";
 import {
   getDescriptionPreview,
@@ -232,13 +235,17 @@ const MessageListPage = async ({
   const { page, ...queryParams } = resolvedSearchParams;
   const currentPage = getQueryParam(page);
   const p = currentPage ? parseInt(currentPage) : 1;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage />;
   }
 
-  const query: Prisma.MessageWhereInput = { schoolId, academicYearId };
+  const query: Prisma.MessageWhereInput = {
+    schoolId,
+    academicYearId: academicYear.id,
+    ...semesterAndAnnualWhere(academicYear.currentSemester),
+  };
   const andConditions: Prisma.MessageWhereInput[] = [];
 
   if (queryParams) {

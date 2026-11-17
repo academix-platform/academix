@@ -9,6 +9,7 @@ import { Dispatch, SetStateAction, useMemo, useTransition } from "react";
 import { toast } from "react-toastify";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
 const toDatetimeLocalValue = (value: unknown) => {
   if (!value) return "";
@@ -37,6 +38,7 @@ const ExamForm = ({
   relatedData?: any;
 }) => {
   const t = useTranslations("forms.exam");
+  const gradeT = useTranslations("gradeComponents");
   const commonT = useTranslations("forms.common");
   const actionsT = useTranslations("actions");
   const {
@@ -50,6 +52,8 @@ const ExamForm = ({
     defaultValues: {
       subjectId: data?.subjectId,
       classIds: data?.classId ? [data.classId] : [],
+      gradeComponentId:
+        data?.gradeSchemeComponent?.componentId ?? data?.gradeComponentId,
     },
   });
 
@@ -80,7 +84,12 @@ const ExamForm = ({
     });
   });
 
-  const { subjects = [], classes = [], lessons = [] } = relatedData ?? {};
+  const {
+    subjects = [],
+    classes = [],
+    lessons = [],
+    gradeComponents = [],
+  } = relatedData ?? {};
   const selectedSubjectId = useWatch({ control, name: "subjectId" });
   const watchedClassIds = useWatch({ control, name: "classIds" });
   const classIdsRegister = register("classIds");
@@ -225,6 +234,34 @@ const ExamForm = ({
             <p className="font-medium text-red-500 text-xs">
               {errors.subjectId.message.toString()}
             </p>
+          )}
+        </div>
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {gradeT("assessmentComponent")}
+          </label>
+          <select
+            {...register("gradeComponentId")}
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+          >
+            <option value="">{gradeT("chooseAssessmentComponent")}</option>
+            {gradeComponents.map(
+              (component: { id: number; key: string | null; name: string }) => (
+                <option key={component.id} value={component.id}>
+                  {component.key
+                    ? gradeT(`defaults.${component.key}`)
+                    : component.name}
+                </option>
+              ),
+            )}
+          </select>
+          {gradeComponents.length === 0 && (
+            <Link
+              href="/list/grade-components"
+              className="text-sm font-medium text-purple-700 hover:underline"
+            >
+              {gradeT("setupRequired")}
+            </Link>
           )}
         </div>
 

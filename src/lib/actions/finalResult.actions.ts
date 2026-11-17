@@ -19,8 +19,18 @@ export const updateStudentFinalGrade = async (
   const studentId = String(formData.get("studentId") ?? "");
   const academicYearId = Number(formData.get("academicYearId"));
   const averageScore = Number(formData.get("averageScore"));
+  const rawPeriod = String(formData.get("period") ?? "ANNUAL");
+  const period =
+    rawPeriod === "FIRST" || rawPeriod === "SECOND" || rawPeriod === "ANNUAL"
+      ? rawPeriod
+      : null;
 
-  if (!studentId || Number.isNaN(academicYearId) || academicYearId < 1) {
+  if (
+    !studentId ||
+    Number.isNaN(academicYearId) ||
+    academicYearId < 1 ||
+    !period
+  ) {
     return {
       success: false,
       error: true,
@@ -80,16 +90,18 @@ export const updateStudentFinalGrade = async (
 
     await prisma.studentFinalResult.upsert({
       where: {
-        schoolId_studentId_academicYearId: {
+        schoolId_studentId_academicYearId_period: {
           schoolId: access.schoolId,
           studentId,
           academicYearId,
+          period,
         },
       },
       create: {
         schoolId: access.schoolId,
         studentId,
         academicYearId,
+        period,
         ...manualResult,
       },
       update: manualResult,

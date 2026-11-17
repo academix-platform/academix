@@ -6,6 +6,11 @@ import {
   PASSING_AVERAGE,
   type AssessmentScore,
 } from "../finalResults";
+import {
+  calculateAnnualGrade,
+  calculateWeightedSemesterGrade,
+  type WeightedGradeSemesterScore,
+} from "../gradeComponents";
 import { isAcademicYearFinished } from "../promotion";
 import {
   errorResult,
@@ -95,6 +100,7 @@ export const promoteStudentsByPerformance = async (
           id: true,
           gradeId: true,
           studentId: true,
+          classId: true,
         },
       }),
     ]);
@@ -137,8 +143,21 @@ export const promoteStudentsByPerformance = async (
         select: {
           studentId: true,
           score: true,
-          assignment: { select: { maxScore: true } },
-          exam: { select: { questions: { select: { points: true } } } },
+          semester: true,
+          assignment: {
+            select: {
+              maxScore: true,
+              gradeSchemeComponentId: true,
+              classId: true,
+            },
+          },
+          exam: {
+            select: {
+              gradeSchemeComponentId: true,
+              classId: true,
+              questions: { select: { points: true } },
+            },
+          },
         },
       }),
       prisma.studentFinalResult.findMany({
@@ -146,18 +165,25 @@ export const promoteStudentsByPerformance = async (
           schoolId: access.schoolId,
           academicYearId: currentAcademicYearId,
           studentId: { in: studentIds },
+          period: { in: ["ANNUAL", "FIRST", "SECOND"] },
           isManual: true,
         },
-        select: { studentId: true, averageScore: true },
+        select: { studentId: true, period: true, averageScore: true },
       }),
     ]);
 
-    // A final grade a teacher or admin set by hand wins over the computed one.
-    const manualAverageByStudent = new Map(
-      manualFinalResults.map((result) => [result.studentId, result.averageScore]),
+    const manualAverageByStudentAndPeriod = new Map(
+      manualFinalResults.map((result) => [
+        `${result.studentId}:${result.period}`,
+        result.averageScore,
+      ]),
     );
 
     const scoresByStudent = new Map<string, AssessmentScore[]>();
+    const weightedScoresByStudent = new Map<
+      string,
+      WeightedGradeSemesterScore[]
+    >();
 
     for (const result of results) {
       const examMaxScore =
@@ -173,16 +199,111 @@ export const promoteStudentsByPerformance = async (
         maxScore,
       });
       scoresByStudent.set(result.studentId, existingScores);
+
+      const gradeSchemeComponentId =
+        result.assignment?.gradeSchemeComponentId ??
+        result.exam?.gradeSchemeComponentId;
+      if (gradeSchemeComponentId && result.semester) {
+        const weightedScores =
+          weightedScoresByStudent.get(result.studentId) ?? [];
+        weightedScores.push({
+          gradeSchemeComponentId,
+          score: result.score,
+          maxScore: maxScore ?? 0,
+          semester: result.semester,
+        });
+        weightedScoresByStudent.set(result.studentId, weightedScores);
+      }
     }
+
+    const classIds = [
+      ...new Set(
+        enrollments
+          .map(({ classId }) => classId)
+          .filter((classId): classId is number => classId !== null),
+      ),
+    ];
+    const gradeSchemes = classIds.length
+      ? await prisma.gradeScheme.findMany({
+          where: {
+            schoolId: access.schoolId,
+            academicYearId: currentAcademicYearId,
+            classId: { in: classIds },
+          },
+          select: {
+            classId: true,
+            semester: true,
+            components: { select: { id: true, weight: true } },
+          },
+        })
+      : [];
 
     await prisma.$transaction(async (tx) => {
       for (const enrollment of enrollments) {
         const currentGrade = gradeById.get(enrollment.gradeId);
-        const manualAverage = manualAverageByStudent.get(enrollment.studentId);
-        const finalSummary = calculateFinalResultSummary(
+        const manualAnnualAverage = manualAverageByStudentAndPeriod.get(
+          `${enrollment.studentId}:ANNUAL`,
+        );
+        const legacySummary = calculateFinalResultSummary(
           scoresByStudent.get(enrollment.studentId) ?? [],
         );
-        const averageScore = manualAverage ?? finalSummary.averageScore;
+        const studentSchemes = gradeSchemes
+          .filter((scheme) => scheme.classId === enrollment.classId)
+          .map((scheme) => ({
+            semester: scheme.semester,
+            components: scheme.components.map((component) => ({
+              id: component.id,
+              weight: Number(component.weight),
+            })),
+          }));
+        let finalSummary: {
+          averageScore: number | null;
+          assessmentCount: number;
+        } = legacySummary;
+        if (studentSchemes.length > 0) {
+          const weightedScores =
+            weightedScoresByStudent.get(enrollment.studentId) ?? [];
+          const firstSemester = calculateWeightedSemesterGrade(
+            studentSchemes
+              .filter((scheme) => scheme.semester === "FIRST")
+              .map(({ components }) => ({ components })),
+            weightedScores
+              .filter((score) => score.semester === "FIRST")
+              .map(({ gradeSchemeComponentId, score, maxScore }) => ({
+                gradeSchemeComponentId,
+                score,
+                maxScore,
+              })),
+          );
+          const secondSemester = calculateWeightedSemesterGrade(
+            studentSchemes
+              .filter((scheme) => scheme.semester === "SECOND")
+              .map(({ components }) => ({ components })),
+            weightedScores
+              .filter((score) => score.semester === "SECOND")
+              .map(({ gradeSchemeComponentId, score, maxScore }) => ({
+                gradeSchemeComponentId,
+                score,
+                maxScore,
+              })),
+          );
+          const manualFirstAverage = manualAverageByStudentAndPeriod.get(
+            `${enrollment.studentId}:FIRST`,
+          );
+          const manualSecondAverage = manualAverageByStudentAndPeriod.get(
+            `${enrollment.studentId}:SECOND`,
+          );
+          if (manualFirstAverage !== undefined) {
+            firstSemester.averageScore = manualFirstAverage;
+            firstSemester.complete = true;
+          }
+          if (manualSecondAverage !== undefined) {
+            secondSemester.averageScore = manualSecondAverage;
+            secondSemester.complete = true;
+          }
+          finalSummary = calculateAnnualGrade(firstSemester, secondSemester);
+        }
+        const averageScore = manualAnnualAverage ?? finalSummary.averageScore;
 
         if (!currentGrade || averageScore === null) {
           skippedCount += 1;
@@ -199,7 +320,10 @@ export const promoteStudentsByPerformance = async (
           continue;
         }
 
-        if (manualAverage === undefined && finalSummary.averageScore !== null) {
+        if (
+          manualAnnualAverage === undefined &&
+          finalSummary.averageScore !== null
+        ) {
           const computed = {
             averageScore: finalSummary.averageScore,
             assessmentCount: finalSummary.assessmentCount,
@@ -208,16 +332,18 @@ export const promoteStudentsByPerformance = async (
 
           await tx.studentFinalResult.upsert({
             where: {
-              schoolId_studentId_academicYearId: {
+              schoolId_studentId_academicYearId_period: {
                 schoolId: access.schoolId,
                 studentId: enrollment.studentId,
                 academicYearId: currentAcademicYearId,
+                period: "ANNUAL",
               },
             },
             create: {
               schoolId: access.schoolId,
               studentId: enrollment.studentId,
               academicYearId: currentAcademicYearId,
+              period: "ANNUAL",
               ...computed,
             },
             update: computed,

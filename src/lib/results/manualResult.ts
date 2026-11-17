@@ -38,7 +38,12 @@ export const resolveManualResult = async (
   existingResultId?: number,
 ): Promise<
   | { error: string }
-  | { academicYearId: number; examId: number | null; assignmentId: number | null }
+  | {
+      academicYearId: number;
+      semester: "FIRST" | "SECOND" | null;
+      examId: number | null;
+      assignmentId: number | null;
+    }
 > => {
   const isExam = data.assessmentType === "exam";
   const where = {
@@ -53,6 +58,7 @@ export const resolveManualResult = async (
           where,
           select: {
             academicYearId: true,
+            semester: true,
             classId: true,
             lesson: { select: { classId: true } },
             questions: { select: { points: true } },
@@ -62,6 +68,7 @@ export const resolveManualResult = async (
           (exam) =>
             exam && {
               academicYearId: exam.academicYearId,
+              semester: exam.semester,
               classId: exam.classId ?? exam.lesson?.classId ?? null,
               maxScore: examMaxScore(exam.questions),
             },
@@ -71,6 +78,7 @@ export const resolveManualResult = async (
           where,
           select: {
             academicYearId: true,
+            semester: true,
             classId: true,
             lesson: { select: { classId: true } },
             maxScore: true,
@@ -80,6 +88,7 @@ export const resolveManualResult = async (
           (assignment) =>
             assignment && {
               academicYearId: assignment.academicYearId,
+              semester: assignment.semester,
               classId: assignment.classId ?? assignment.lesson?.classId ?? null,
               maxScore: assignment.maxScore,
             },
@@ -126,6 +135,7 @@ export const resolveManualResult = async (
 
   return {
     academicYearId: assessment.academicYearId,
+    semester: assessment.semester,
     examId: isExam ? data.assessmentId : null,
     assignmentId: isExam ? null : data.assessmentId,
   };

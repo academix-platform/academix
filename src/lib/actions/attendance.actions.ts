@@ -2,14 +2,16 @@
 
 import { notifyAttendanceSaved } from "./notification.actions";
 import prisma from "../prisma";
-import { getCurrentAcademicYearOrNull } from "../academicYears";
 import {
   ATTENDING_STUDENT_STATUSES,
   attendanceDateError,
   parseAttendanceRecords,
   todayInTimeZone,
 } from "../attendanceRules";
-import { requireActionAccess, getRequiredAcademicYearId } from "./helpers";
+import {
+  requireActionAccess,
+  getRequiredAcademicSemester,
+} from "./helpers";
 
 const fail = (message: string) => ({ success: false, error: true, message });
 
@@ -25,12 +27,11 @@ export const saveDailyAttendance = async (
   if ("error" in access) return access;
 
   try {
-    const year = await getCurrentAcademicYearOrNull(access.schoolId);
-    if (!year) {
-      return fail(
-        "No current academic year found. Create one and mark it as current in settings.",
-      );
-    }
+    const semester = await getRequiredAcademicSemester(access.schoolId);
+    const period = {
+      startDate: semester.semesterStartDate.toISOString().slice(0, 10),
+      endDate: semester.semesterEndDate.toISOString().slice(0, 10),
+    };
 
     const scope = formData.get("scope");
     if (scope !== "students" && scope !== "teachers") {
@@ -42,7 +43,7 @@ export const saveDailyAttendance = async (
     }
 
     const rawDate = formData.get("date");
-    const dateError = attendanceDateError(rawDate, todayInTimeZone(), year);
+    const dateError = attendanceDateError(rawDate, todayInTimeZone(), period);
     if (dateError) return fail(dateError);
     const date = rawDate as string;
     const day = new Date(`${date}T00:00:00.000Z`);
@@ -85,15 +86,16 @@ export const saveDailyAttendance = async (
             where: {
               studentId_academicYearId_date: {
                 studentId: id,
-                academicYearId: year.id,
+                academicYearId: semester.academicYearId,
                 date: day,
               },
             },
-            update: { present },
+            update: { present, semester: semester.semester },
             create: {
               schoolId: access.schoolId,
               studentId: id,
-              academicYearId: year.id,
+              academicYearId: semester.academicYearId,
+              semester: semester.semester,
               date: day,
               present,
             },
@@ -104,15 +106,16 @@ export const saveDailyAttendance = async (
           where: {
             teacherId_academicYearId_date: {
               teacherId: id,
-              academicYearId: year.id,
+              academicYearId: semester.academicYearId,
               date: day,
             },
           },
-          update: { present },
+          update: { present, semester: semester.semester },
           create: {
             schoolId: access.schoolId,
             teacherId: id,
-            academicYearId: year.id,
+            academicYearId: semester.academicYearId,
+            semester: semester.semester,
             date: day,
             present,
           },
@@ -143,8 +146,6 @@ export const saveWeeklyAttendance = async (
   if ("error" in access) return access;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
-
     const scope = formData.get("scope");
     if (scope !== "students" && scope !== "teachers") {
       throw new Error("Invalid scope");
@@ -165,6 +166,25 @@ export const saveWeeklyAttendance = async (
       return { success: true, error: false };
     }
 
+    const {
+      academicYearId,
+      semester,
+      semesterStartDate,
+      semesterEndDate,
+    } = await getRequiredAcademicSemester(access.schoolId);
+    const semesterStart = semesterStartDate.toISOString().slice(0, 10);
+    const semesterEnd = semesterEndDate.toISOString().slice(0, 10);
+    if (
+      changes.some(
+        ({ date }) =>
+          !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+          date < semesterStart ||
+          date > semesterEnd,
+      )
+    ) {
+      throw new Error("Attendance dates must be within the current semester.");
+    }
+
     await prisma.$transaction(
       changes.map(({ id, date, present }) => {
         const day = new Date(new Date(date).toISOString().slice(0, 10));
@@ -177,11 +197,12 @@ export const saveWeeklyAttendance = async (
                 date: day,
               },
             },
-            update: { present },
+            update: { present, semester },
             create: {
               schoolId: access.schoolId,
               studentId: id,
               academicYearId,
+              semester,
               date: day,
               present,
             },
@@ -196,11 +217,12 @@ export const saveWeeklyAttendance = async (
               date: day,
             },
           },
-          update: { present },
+          update: { present, semester },
           create: {
             schoolId: access.schoolId,
             teacherId: id,
             academicYearId,
+            semester,
             date: day,
             present,
           },

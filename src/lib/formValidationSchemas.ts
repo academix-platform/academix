@@ -336,6 +336,19 @@ export const academicYearSchema = z
     startDate: z.coerce.date({ message: "Start date is required." }),
     endDate: z.coerce.date({ message: "End date is required." }),
     isCurrent: z.coerce.boolean().default(false),
+    firstSemesterStartDate: z.coerce.date({
+      message: "First semester start date is required.",
+    }),
+    firstSemesterEndDate: z.coerce.date({
+      message: "First semester end date is required.",
+    }),
+    secondSemesterStartDate: z.coerce.date({
+      message: "Second semester start date is required.",
+    }),
+    secondSemesterEndDate: z.coerce.date({
+      message: "Second semester end date is required.",
+    }),
+    currentSemester: z.enum(["FIRST", "SECOND"]),
   })
   .superRefine((data, ctx) => {
     if (data.endDate <= data.startDate) {
@@ -343,6 +356,44 @@ export const academicYearSchema = z
         code: z.ZodIssueCode.custom,
         message: "Academic year end date must be after start date.",
         path: ["endDate"],
+      });
+    }
+
+    const semesterDates = [
+      ["firstSemesterStartDate", data.firstSemesterStartDate],
+      ["firstSemesterEndDate", data.firstSemesterEndDate],
+      ["secondSemesterStartDate", data.secondSemesterStartDate],
+      ["secondSemesterEndDate", data.secondSemesterEndDate],
+    ] as const;
+    for (const [field, date] of semesterDates) {
+      if (date < data.startDate || date > data.endDate) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Semester dates must be within the academic year.",
+          path: [field],
+        });
+      }
+    }
+
+    if (data.firstSemesterEndDate <= data.firstSemesterStartDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "First semester end date must be after its start date.",
+        path: ["firstSemesterEndDate"],
+      });
+    }
+    if (data.secondSemesterEndDate <= data.secondSemesterStartDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Second semester end date must be after its start date.",
+        path: ["secondSemesterEndDate"],
+      });
+    }
+    if (data.secondSemesterStartDate <= data.firstSemesterEndDate) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Second semester must start after the first semester ends.",
+        path: ["secondSemesterStartDate"],
       });
     }
   });
@@ -359,6 +410,7 @@ export const examSchema = z
     endTime: z.coerce.date({ message: "End time is required!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
     teacherId: z.string().optional().nullable(),
+    gradeComponentId: z.coerce.number().int().positive().optional(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
@@ -382,6 +434,7 @@ export const assignmentSchema = z
       .positive({ message: "Marks must be greater than 0!" }),
     subjectId: z.coerce.number().min(1, { message: "Subject is required!" }),
     teacherId: z.string().optional().nullable(),
+    gradeComponentId: z.coerce.number().int().positive().optional(),
     classIds: z
       .array(z.coerce.number())
       .min(1, { message: "At least one class is required!" }),
@@ -627,6 +680,7 @@ export const createExamWorkflowSchema = z.object({
   title: z.string().min(1, "Title is required"),
   instructions: z.string().optional().nullable(),
   teacherId: z.string().optional().nullable(),
+  gradeComponentId: z.coerce.number().int().positive().optional(),
   startTime: z.coerce.date(),
   endTime: z.coerce.date(),
   subjectId: z.coerce.number().min(1, "Subject is required"),

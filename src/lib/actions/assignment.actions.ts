@@ -7,6 +7,7 @@ import prisma from "../prisma";
 import {
   CurrentState,
   errorResult,
+  getRequiredAcademicSemester,
   getRequiredAcademicYearId,
   parseNumericId,
   requireActionAccess,
@@ -20,6 +21,7 @@ import {
   assignmentManagerWhere,
   deleteAssignmentFileIfUnused,
 } from "../assignments/group";
+import { findGradeSchemeComponent } from "../gradeComponentAccess";
 
 async function uploadAssignmentFile(file: File, folder = "assignments"): Promise<{ url: string; name: string }> {
   const arrayBuffer = await file.arrayBuffer();
@@ -46,6 +48,7 @@ type AssignmentAccess = {
 const getAssignmentClassAssignments = async (
   access: AssignmentAccess,
   academicYearId: number,
+  semester: "FIRST" | "SECOND" | null,
   subjectId: number,
   classIds: number[],
 ) => {
@@ -84,6 +87,7 @@ const getAssignmentClassAssignments = async (
   const lessons = await prisma.lesson.findMany({
     where: {
       academicYearId,
+      semester,
       schoolId: access.schoolId,
       subjectId,
       classId: { in: classIds },
@@ -160,6 +164,7 @@ function extractAssignmentData(formData: FormData): {
   subjectId: number;
   teacherId: string | null;
   maxScore: number;
+  gradeComponentId: number | undefined;
   classIds: number[];
   file: File | null;
   removeFile: boolean;
@@ -180,6 +185,7 @@ function extractAssignmentData(formData: FormData): {
       ? teacherIdRaw.trim()
       : null;
   const maxScoreRaw = Number(formData.get("maxScore") ?? 10);
+  const gradeComponentIdRaw = Number(formData.get("gradeComponentId"));
   const classIdsRaw = formData.getAll("classIds");
   const classIds = classIdsRaw.map(c => Number(c)).filter(id => !isNaN(id));
   const file = formData.get("file") as File | null;
@@ -196,6 +202,10 @@ function extractAssignmentData(formData: FormData): {
     subjectId,
     teacherId,
     maxScore: Number.isFinite(maxScoreRaw) && maxScoreRaw > 0 ? maxScoreRaw : 10,
+    gradeComponentId:
+      Number.isInteger(gradeComponentIdRaw) && gradeComponentIdRaw > 0
+        ? gradeComponentIdRaw
+        : undefined,
     classIds,
     file,
     removeFile,
@@ -212,7 +222,7 @@ export const createAssignment = async (
   const role = access.role;
   const userId = access.userId;
 
-  const { title, rubric, startDate, endDate, subjectId, teacherId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { title, rubric, startDate, endDate, subjectId, teacherId, maxScore, gradeComponentId, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   const validation = assignmentSchema.safeParse({
@@ -223,6 +233,7 @@ export const createAssignment = async (
     maxScore,
     subjectId,
     teacherId,
+    gradeComponentId,
     classIds,
     allowLateSubmission,
   });
@@ -231,7 +242,9 @@ export const createAssignment = async (
   }
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
     const selectedTeacherId =
       access.role === "admin" && teacherId ? teacherId : null;
 
@@ -252,6 +265,7 @@ export const createAssignment = async (
     const assignmentResult = await getAssignmentClassAssignments(
       access,
       academicYearId,
+      semester,
       subjectId,
       classIds,
     );
@@ -263,6 +277,48 @@ export const createAssignment = async (
         message: assignmentResult.message,
       };
     }
+    if (!gradeComponentId) {
+      return {
+        success: false,
+        error: true,
+        message: "Choose a grade component for this assignment.",
+      };
+    }
+
+    const componentAssignments = await Promise.all(
+      assignmentResult.assignments.map(async (assignment) => {
+        const component = await findGradeSchemeComponent(prisma, {
+          schoolId: access.schoolId,
+          teacherId: selectedTeacherId ?? assignment.teacherId,
+          classId: assignment.classId,
+          subjectId,
+          academicYearId,
+          semester,
+          componentId: gradeComponentId,
+        });
+        return component
+          ? { classId: assignment.classId, componentId: component.id }
+          : null;
+      }),
+    );
+    const resolvedComponents = componentAssignments.filter(
+      (component): component is NonNullable<typeof component> =>
+        component !== null,
+    );
+    if (resolvedComponents.length !== assignmentResult.assignments.length) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Set up the grading breakdown for every selected class before creating this assignment.",
+      };
+    }
+    const componentIdByClass = new Map(
+      resolvedComponents.map((component) => [
+        component.classId,
+        component.componentId,
+      ]),
+    );
 
     let fileUrl: string | null = null;
     let fileName: string | null = null;
@@ -293,6 +349,8 @@ export const createAssignment = async (
             subjectId,
             maxScore,
             academicYearId,
+            semester,
+            gradeSchemeComponentId: componentIdByClass.get(assignment.classId),
             schoolId: access.schoolId,
             fileUrl,
             fileName,
@@ -324,7 +382,7 @@ export const updateAssignment = async (
   currentState: CurrentState,
   formData: FormData,
 ) => {
-  const { id, title, rubric, startDate, endDate, subjectId, teacherId, maxScore, classIds, file, removeFile, allowLateSubmission } =
+  const { id, title, rubric, startDate, endDate, subjectId, teacherId, maxScore, gradeComponentId, classIds, file, removeFile, allowLateSubmission } =
     extractAssignmentData(formData);
 
   if (!id) {
@@ -344,6 +402,7 @@ export const updateAssignment = async (
     maxScore,
     subjectId,
     teacherId,
+    gradeComponentId,
     classIds,
     allowLateSubmission,
   });
@@ -373,7 +432,13 @@ export const updateAssignment = async (
     // Check ownership before touching anything, including the attachment.
     const existingAssignment = await prisma.assignment.findFirst({
       where: { id, schoolId: access.schoolId, ...assignmentManagerWhere(access) },
-      select: { fileUrl: true, fileName: true, ...ASSIGNMENT_GROUP_SELECT },
+      select: {
+        fileUrl: true,
+        fileName: true,
+        semester: true,
+        gradeSchemeComponentId: true,
+        ...ASSIGNMENT_GROUP_SELECT,
+      },
     });
     if (!existingAssignment) {
       return { success: false, error: true, message: "Assignment not found." };
@@ -382,6 +447,7 @@ export const updateAssignment = async (
     const assignmentResult = await getAssignmentClassAssignments(
       access,
       academicYearId,
+      existingAssignment.semester,
       subjectId,
       classIds,
     );
@@ -391,6 +457,85 @@ export const updateAssignment = async (
         success: false,
         error: true,
         message: assignmentResult.message,
+      };
+    }
+
+    const groupAssignments = await prisma.assignment.findMany({
+      where: {
+        ...assignmentGroupWhere(existingAssignment, access),
+        academicYearId,
+        semester: existingAssignment.semester,
+      },
+      select: {
+        id: true,
+        classId: true,
+        teacherId: true,
+        gradeSchemeComponentId: true,
+      },
+    });
+    const selectedAssignmentsByClass = new Map(
+      assignmentResult.assignments.map((assignment) => [
+        assignment.classId,
+        assignment,
+      ]),
+    );
+
+    let componentIdByClass = new Map<number, number>();
+    const existingSemester = existingAssignment.semester;
+    if (existingSemester) {
+      if (!gradeComponentId) {
+        return {
+          success: false,
+          error: true,
+          message: "Choose a grade component for this assignment.",
+        };
+      }
+      const componentAssignments = await Promise.all(
+        assignmentResult.assignments.map(async (assignment) => {
+          const currentClassAssignment = groupAssignments.find(
+            (item) => item.classId === assignment.classId,
+          );
+          const component = await findGradeSchemeComponent(prisma, {
+            schoolId: access.schoolId,
+            teacherId:
+              selectedTeacherId ??
+              currentClassAssignment?.teacherId ??
+              assignment.teacherId,
+            classId: assignment.classId,
+            subjectId,
+            academicYearId,
+            semester: existingSemester,
+            componentId: gradeComponentId,
+          });
+          return component
+            ? { classId: assignment.classId, componentId: component.id }
+            : null;
+        }),
+      );
+      const resolvedComponents = componentAssignments.filter(
+        (component): component is NonNullable<typeof component> =>
+          component !== null,
+      );
+      if (resolvedComponents.length !== assignmentResult.assignments.length) {
+        return {
+          success: false,
+          error: true,
+          message:
+            "Set up the grading breakdown for every selected class before updating this assignment.",
+        };
+      }
+      componentIdByClass = new Map(
+        resolvedComponents.map((component) => [
+          component.classId,
+          component.componentId,
+        ]),
+      );
+    } else if (gradeComponentId) {
+      return {
+        success: false,
+        error: true,
+        message:
+          "Annual legacy assignments cannot be assigned to a semester grade component.",
       };
     }
 
@@ -410,19 +555,6 @@ export const updateAssignment = async (
       uploadedFileUrl = upload.url;
       fileUrl = upload.url;
       fileName = upload.name;
-    }
-
-    const groupAssignments = await prisma.assignment.findMany({
-      where: { ...assignmentGroupWhere(existingAssignment, access), academicYearId },
-      select: { id: true, classId: true, teacherId: true },
-    });
-
-    const selectedAssignmentsByClass = new Map<
-      number,
-      (typeof assignmentResult.assignments)[number]
-    >();
-    for (const assignment of assignmentResult.assignments) {
-      selectedAssignmentsByClass.set(assignment.classId, assignment);
     }
 
     try {
@@ -451,6 +583,11 @@ export const updateAssignment = async (
             subjectId,
             maxScore,
             academicYearId,
+            semester: existingAssignment.semester,
+            gradeSchemeComponentId:
+              componentIdByClass.get(classId) ??
+              existingClassAssignment?.gradeSchemeComponentId ??
+              null,
             schoolId: access.schoolId,
             fileUrl,
             fileName,

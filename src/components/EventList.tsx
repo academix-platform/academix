@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { requireAuth } from "@/lib/auth";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -12,9 +15,9 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
 
   const baseDate = dateParam ? new Date(dateParam) : new Date();
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(user.schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
@@ -29,7 +32,8 @@ const EventList = async ({ dateParam }: { dateParam: string | undefined }) => {
     orderBy: { startDate: "asc" },
     where: {
       schoolId: user.schoolId,
-      academicYearId,
+      academicYearId: academicYear.id,
+      ...semesterAndAnnualWhere(academicYear.currentSemester),
       startDate: {
         gte: startOfDay,
         lte: endOfDay,

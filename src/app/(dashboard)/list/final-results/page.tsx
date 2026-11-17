@@ -1,6 +1,7 @@
 import AcademicYearFilter from "@/components/AcademicYearFilter";
 import ClassFilter from "@/components/ClassFilter";
 import FinalGradeEditButton from "@/components/FinalGradeEditButton";
+import FinalResultPeriodFilter from "@/components/FinalResultPeriodFilter";
 import GradeFilter from "@/components/GradeFilter";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
 import Pagination from "@/components/Pagination";
@@ -11,7 +12,7 @@ import { Badge, type BadgeProps } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   getAcademicYears,
-  getCurrentAcademicYearIdOrNull,
+  getCurrentAcademicYearOrNull,
 } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
 import {
@@ -19,6 +20,12 @@ import {
   type AssessmentScore,
   type FinalResultStatus,
 } from "@/lib/finalResults";
+import {
+  calculateAnnualGrade,
+  calculateWeightedAcademicYearGrade,
+  calculateWeightedSemesterGrade,
+  type WeightedGradeSemesterScore,
+} from "@/lib/gradeComponents";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
@@ -63,6 +70,7 @@ const statusBadgeVariant: Record<FinalResultStatus, BadgeProps["variant"]> = {
   FAIL: "destructive",
   NO_RESULTS: "secondary",
   NOT_UPDATED: "warning",
+  INCOMPLETE: "warning",
 };
 
 const AverageBadge = ({ value }: { value: number | null }) => (
@@ -87,6 +95,7 @@ const renderRow = (
   item: FinalResultRow,
   statusT: (key: FinalResultStatus) => string,
   academicYearId: number,
+  period: "ANNUAL" | "FIRST" | "SECOND",
   canEdit: boolean,
 ) => (
   <tr
@@ -114,6 +123,7 @@ const renderRow = (
           studentId={item.id}
           studentName={item.name}
           academicYearId={academicYearId}
+          period={period}
           averageScore={item.storedAverageScore ?? item.averageScore}
         />
       </td>
@@ -130,6 +140,7 @@ export default async function FinalResultsPage({
   const th = await getTranslations("tableHeaders");
   const emptyT = await getTranslations("emptyStates");
   const statusT = await getTranslations("finalResultStatus");
+  const periodT = await getTranslations("finalResultPeriods");
   const { role, userId, schoolId } = await enforceRouteAccess(
     "/list/final-results",
   );
@@ -139,13 +150,19 @@ export default async function FinalResultsPage({
   const classIdParam = getQueryParam(resolvedSearchParams.classId);
   const gradeIdParam = getQueryParam(resolvedSearchParams.gradeId);
   const academicYearParam = getQueryParam(resolvedSearchParams.academicYearId);
+  const periodParam = getQueryParam(resolvedSearchParams.period);
   const page = pageParam ? Number.parseInt(pageParam, 10) : 1;
   const currentPage = Number.isNaN(page) || page < 1 ? 1 : page;
   const classId = classIdParam ? Number.parseInt(classIdParam, 10) : null;
   const gradeId = gradeIdParam ? Number.parseInt(gradeIdParam, 10) : null;
-  const currentAcademicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const currentAcademicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!currentAcademicYearId) return <NoCurrentAcademicYearMessage />;
+  if (!currentAcademicYear) return <NoCurrentAcademicYearMessage />;
+  const currentAcademicYearId = currentAcademicYear.id;
+  const period =
+    periodParam === "FIRST" || periodParam === "SECOND"
+      ? periodParam
+      : "ANNUAL";
 
   const academicYears =
     role === "student" || role === "parent"
@@ -219,43 +236,80 @@ export default async function FinalResultsPage({
   ]);
 
   const studentIds = students.map((student) => student.id);
-  const results = studentIds.length
-    ? await prisma.result.findMany({
-        where: { schoolId, academicYearId, studentId: { in: studentIds } },
-        select: {
-          studentId: true,
-          score: true,
-          assignment: { select: { maxScore: true } },
-          exam: { select: { questions: { select: { points: true } } } },
-        },
-      })
-    : [];
+  const [results, studentAcademicYears] = studentIds.length
+    ? await Promise.all([
+        prisma.result.findMany({
+            where: {
+              schoolId,
+              academicYearId,
+              studentId: { in: studentIds },
+              ...(period === "ANNUAL" ? {} : { semester: period }),
+            },
+            select: {
+              studentId: true,
+              score: true,
+              semester: true,
+              assignment: {
+                select: {
+                  maxScore: true,
+                  classId: true,
+                  gradeSchemeComponentId: true,
+                },
+            },
+              exam: {
+                select: {
+                  classId: true,
+                  gradeSchemeComponentId: true,
+                  questions: { select: { points: true } },
+                },
+            },
+          },
+          }),
+        prisma.studentAcademicYear.findMany({
+          where: {
+            schoolId,
+            academicYearId,
+            studentId: { in: studentIds },
+          },
+          select: { studentId: true, classId: true },
+        }),
+      ])
+    : [[], []];
 
   const storedFinalResults = studentIds.length
     ? await prisma.studentFinalResult.findMany({
-        where: { schoolId, academicYearId, studentId: { in: studentIds } },
+        where: {
+          schoolId,
+          academicYearId,
+          studentId: { in: studentIds },
+          period:
+            period === "ANNUAL"
+              ? { in: ["ANNUAL", "FIRST", "SECOND"] }
+              : period,
+        },
         select: {
           studentId: true,
+          period: true,
           averageScore: true,
           assessmentCount: true,
           status: true,
+          isManual: true,
         },
       })
     : [];
 
+  const classIdByStudent = new Map(
+    studentAcademicYears.flatMap((enrollment) =>
+      enrollment.classId === null
+        ? []
+        : [[enrollment.studentId, enrollment.classId] as const],
+    ),
+  );
   const scoresByStudent = new Map<string, AssessmentScore[]>();
-  const storedStatusByStudent = new Map<string, FinalResultStatus>(
-    storedFinalResults.map((result) => [
-      result.studentId,
-      result.status === "PASS" || result.status === "FAIL"
-        ? result.status
-        : "NOT_UPDATED",
-    ]),
-  );
-  const storedFinalResultByStudent = new Map(
-    storedFinalResults.map((result) => [result.studentId, result]),
-  );
-
+  const weightedScoresByStudent = new Map<
+    string,
+    WeightedGradeSemesterScore[]
+  >();
   for (const result of results) {
     const maxScore =
       result.assignment?.maxScore ??
@@ -267,18 +321,151 @@ export default async function FinalResultsPage({
     const scores = scoresByStudent.get(result.studentId) ?? [];
     scores.push({ score: result.score, maxScore });
     scoresByStudent.set(result.studentId, scores);
+
+    const classId = result.assignment?.classId ?? result.exam?.classId;
+    if (
+      !classIdByStudent.has(result.studentId) &&
+      classId !== null &&
+      classId !== undefined
+    ) {
+      classIdByStudent.set(result.studentId, classId);
+    }
+
+    const gradeSchemeComponentId =
+      result.assignment?.gradeSchemeComponentId ??
+      result.exam?.gradeSchemeComponentId;
+    if (gradeSchemeComponentId && result.semester) {
+      const weightedScores =
+        weightedScoresByStudent.get(result.studentId) ?? [];
+      weightedScores.push({
+        gradeSchemeComponentId,
+        score: result.score,
+        maxScore: maxScore ?? 0,
+        semester: result.semester,
+      });
+      weightedScoresByStudent.set(result.studentId, weightedScores);
+    }
   }
 
+  const classIds = [...new Set(classIdByStudent.values())];
+  const gradeSchemes = classIds.length
+    ? await prisma.gradeScheme.findMany({
+        where: {
+          schoolId,
+          academicYearId,
+          classId: { in: classIds },
+          semester: period === "ANNUAL" ? { in: ["FIRST", "SECOND"] } : period,
+        },
+        select: {
+          classId: true,
+          semester: true,
+          components: { select: { id: true, weight: true } },
+        },
+      })
+    : [];
+
+  const storedResultsByStudent = new Map(
+    storedFinalResults.map((result) => [
+      `${result.studentId}:${result.period}`,
+      result,
+    ]),
+  );
   const data: FinalResultRow[] = students.map((student) => {
-    const summary = calculateFinalResultSummary(
+    const legacySummary = calculateFinalResultSummary(
       scoresByStudent.get(student.id) ?? [],
     );
-    const storedFinalResult = storedFinalResultByStudent.get(student.id);
+    const classId = classIdByStudent.get(student.id);
+    const studentSchemes = gradeSchemes
+      .filter((scheme) => scheme.classId === classId)
+      .map((scheme) => ({
+        semester: scheme.semester,
+        components: scheme.components.map((component) => ({
+          id: component.id,
+          weight: Number(component.weight),
+        })),
+      }));
+    const weightedScores = weightedScoresByStudent.get(student.id) ?? [];
+    const annualStoredResult = storedResultsByStudent.get(`${student.id}:ANNUAL`);
+    const firstStoredResult = storedResultsByStudent.get(`${student.id}:FIRST`);
+    const secondStoredResult = storedResultsByStudent.get(`${student.id}:SECOND`);
+    const selectedStoredResult = storedResultsByStudent.get(
+      `${student.id}:${period}`,
+    );
+    const storedFinalResult =
+      period === "ANNUAL" ? annualStoredResult : selectedStoredResult;
+    const weightedSummary =
+      period === "ANNUAL"
+        ? calculateWeightedAcademicYearGrade(studentSchemes, weightedScores)
+        : studentSchemes.length === 0
+          ? null
+          : calculateWeightedSemesterGrade(
+            studentSchemes
+              .filter((scheme) => scheme.semester === period)
+              .map(({ components }) => ({ components })),
+            weightedScores
+              .filter((score) => score.semester === period)
+              .map(({ gradeSchemeComponentId, score, maxScore }) => ({
+                gradeSchemeComponentId,
+                score,
+                maxScore,
+              })),
+            );
+    let summary = weightedSummary ?? legacySummary;
+    if (period === "ANNUAL" && weightedSummary) {
+      const firstSemester = calculateWeightedSemesterGrade(
+        studentSchemes
+          .filter((scheme) => scheme.semester === "FIRST")
+          .map(({ components }) => ({ components })),
+        weightedScores
+          .filter((score) => score.semester === "FIRST")
+          .map(({ gradeSchemeComponentId, score, maxScore }) => ({
+            gradeSchemeComponentId,
+            score,
+            maxScore,
+          })),
+      );
+      const secondSemester = calculateWeightedSemesterGrade(
+        studentSchemes
+          .filter((scheme) => scheme.semester === "SECOND")
+          .map(({ components }) => ({ components })),
+        weightedScores
+          .filter((score) => score.semester === "SECOND")
+          .map(({ gradeSchemeComponentId, score, maxScore }) => ({
+            gradeSchemeComponentId,
+            score,
+            maxScore,
+          })),
+      );
+      if (firstStoredResult?.isManual) {
+        firstSemester.averageScore = firstStoredResult.averageScore;
+        firstSemester.complete = true;
+      }
+      if (secondStoredResult?.isManual) {
+        secondSemester.averageScore = secondStoredResult.averageScore;
+        secondSemester.complete = true;
+      }
+      summary = calculateAnnualGrade(firstSemester, secondSemester);
+    }
+    if (period !== "ANNUAL" && selectedStoredResult?.isManual) {
+      summary = {
+        ...summary,
+        averageScore: selectedStoredResult.averageScore,
+        complete: true,
+      };
+    }
     const hasStoredFinalResult = !!storedFinalResult;
     const averageScore =
-      storedFinalResult?.averageScore ?? summary.averageScore;
+      storedFinalResult?.isManual
+        ? storedFinalResult.averageScore
+        : weightedSummary
+          ? summary.averageScore
+          : selectedStoredResult?.averageScore ?? summary.averageScore;
     const assessmentCount =
-      storedFinalResult?.assessmentCount ?? summary.assessmentCount;
+      storedFinalResult?.isManual
+        ? storedFinalResult.assessmentCount
+        : weightedSummary
+          ? summary.assessmentCount
+          : selectedStoredResult?.assessmentCount ?? summary.assessmentCount;
 
     return {
       id: student.id,
@@ -288,16 +475,27 @@ export default async function FinalResultsPage({
       assessmentCount,
       storedAverageScore: storedFinalResult?.averageScore ?? null,
       status:
-        !hasStoredFinalResult && summary.assessmentCount === 0
+        weightedSummary &&
+        summary.averageScore === null &&
+        !storedFinalResult?.isManual
+          ? "INCOMPLETE"
+          : !hasStoredFinalResult && summary.assessmentCount === 0
           ? "NO_RESULTS"
-          : (storedStatusByStudent.get(student.id) ?? "NOT_UPDATED"),
+          : selectedStoredResult?.status === "PASS" ||
+              selectedStoredResult?.status === "FAIL"
+            ? selectedStoredResult.status
+            : "NOT_UPDATED",
     };
   });
   const canEdit = role === "admin" || role === "teacher";
+  const title =
+    period === "ANNUAL"
+      ? t("finalAverages")
+      : periodT("semesterTitle", { semester: periodT(period) });
 
   return (
     <div className="w-full max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
-      <DataPageHeader title={t("finalAverages")} count={count} />
+      <DataPageHeader title={title} count={count} />
 
       <DataPageToolbar
         search={<TableSearch />}
@@ -315,6 +513,15 @@ export default async function FinalResultsPage({
                 <ClassFilter classes={classes} />
               </>
             )}
+            <FinalResultPeriodFilter
+              period={period}
+              label={periodT("label")}
+              options={[
+                { value: "ANNUAL", label: periodT("ANNUAL") },
+                { value: "FIRST", label: periodT("FIRST") },
+                { value: "SECOND", label: periodT("SECOND") },
+              ]}
+            />
           </>
         }
       />
@@ -372,6 +579,7 @@ export default async function FinalResultsPage({
                     studentId={item.id}
                     studentName={item.name}
                     academicYearId={academicYearId}
+                    period={period}
                     averageScore={item.storedAverageScore ?? item.averageScore}
                   />
                 </div>
@@ -386,7 +594,7 @@ export default async function FinalResultsPage({
         <Table
           columns={columns(th, canEdit)}
           renderRow={(item) =>
-            renderRow(item, statusT, academicYearId, canEdit)
+            renderRow(item, statusT, academicYearId, period, canEdit)
           }
           data={data}
           emptyTitle={emptyT("finalAverages")}

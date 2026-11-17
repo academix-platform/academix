@@ -23,6 +23,11 @@ const getAcademicYearDelegate = () =>
             startDate: Date;
             endDate: Date;
             isCurrent: boolean;
+            firstSemesterStartDate: Date;
+            firstSemesterEndDate: Date;
+            secondSemesterStartDate: Date;
+            secondSemesterEndDate: Date;
+            currentSemester: "FIRST" | "SECOND";
             schoolId: number;
           };
         }) => Promise<unknown>;
@@ -33,6 +38,11 @@ const getAcademicYearDelegate = () =>
             startDate: Date;
             endDate: Date;
             isCurrent: boolean;
+            firstSemesterStartDate: Date;
+            firstSemesterEndDate: Date;
+            secondSemesterStartDate: Date;
+            secondSemesterEndDate: Date;
+            currentSemester: "FIRST" | "SECOND";
             schoolId?: number;
           };
         }) => Promise<unknown>;
@@ -74,6 +84,10 @@ export const createAcademicYear = async (
 
     const normalizedStartDate = toUtcDate(parsed.data.startDate);
     const normalizedEndDate = toUtcDate(parsed.data.endDate);
+    const firstSemesterStartDate = toUtcDate(parsed.data.firstSemesterStartDate);
+    const firstSemesterEndDate = toUtcDate(parsed.data.firstSemesterEndDate);
+    const secondSemesterStartDate = toUtcDate(parsed.data.secondSemesterStartDate);
+    const secondSemesterEndDate = toUtcDate(parsed.data.secondSemesterEndDate);
 
     if (parsed.data.isCurrent) {
       await delegate.updateMany({
@@ -89,6 +103,11 @@ export const createAcademicYear = async (
         startDate: normalizedStartDate,
         endDate: normalizedEndDate,
         isCurrent: parsed.data.isCurrent,
+        firstSemesterStartDate,
+        firstSemesterEndDate,
+        secondSemesterStartDate,
+        secondSemesterEndDate,
+        currentSemester: parsed.data.currentSemester,
       },
     });
 
@@ -136,6 +155,10 @@ export const updateAcademicYear = async (
 
     const normalizedStartDate = toUtcDate(parsed.data.startDate);
     const normalizedEndDate = toUtcDate(parsed.data.endDate);
+    const firstSemesterStartDate = toUtcDate(parsed.data.firstSemesterStartDate);
+    const firstSemesterEndDate = toUtcDate(parsed.data.firstSemesterEndDate);
+    const secondSemesterStartDate = toUtcDate(parsed.data.secondSemesterStartDate);
+    const secondSemesterEndDate = toUtcDate(parsed.data.secondSemesterEndDate);
 
     if (parsed.data.isCurrent) {
       await delegate.updateMany({
@@ -152,6 +175,11 @@ export const updateAcademicYear = async (
         startDate: normalizedStartDate,
         endDate: normalizedEndDate,
         isCurrent: parsed.data.isCurrent,
+        firstSemesterStartDate,
+        firstSemesterEndDate,
+        secondSemesterStartDate,
+        secondSemesterEndDate,
+        currentSemester: parsed.data.currentSemester,
       },
     });
 

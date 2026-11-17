@@ -41,6 +41,7 @@ export function subjectClassContentWhere(
   role: Role,
   userId: string | null | undefined,
   academicYearId: number | null,
+  semester?: "FIRST" | "SECOND",
 ): Prisma.AssignmentWhereInput & Prisma.ExamWhereInput {
   // No current year means nothing is "current": show no content.
   if (academicYearId === null) return { id: -1 };
@@ -53,7 +54,17 @@ export function subjectClassContentWhere(
   // (older rows have no classId), so both paths count.
   const inClass = (students: Prisma.StudentWhereInput) => {
     const classWhere = { students: { some: students } };
-    where.OR = [{ class: classWhere }, { lesson: { class: classWhere } }];
+    const classCondition = {
+      OR: [{ class: classWhere }, { lesson: { class: classWhere } }],
+    };
+    if (semester) {
+      where.AND = [
+        { OR: [{ semester }, { semester: null }] },
+        classCondition,
+      ];
+    } else {
+      where.OR = classCondition.OR;
+    }
   };
 
   if (role === "student") {
@@ -62,14 +73,24 @@ export function subjectClassContentWhere(
     inClass({ parentId: userId ?? "" });
   }
 
+  if (semester && !where.AND) {
+    where.AND = [{ OR: [{ semester }, { semester: null }] }];
+  }
+
   return where;
 }
 
 /** Study materials shown on the subject page: the current academic year only. */
 export function subjectMaterialWhere(
   academicYearId: number | null,
+  semester?: "FIRST" | "SECOND",
 ): Prisma.StudyMaterialWhereInput {
-  return academicYearId === null ? { id: -1 } : { academicYearId };
+  if (academicYearId === null) return { id: -1 };
+
+  return {
+    academicYearId,
+    ...(semester ? { OR: [{ semester }, { semester: null }] } : {}),
+  };
 }
 
 /**

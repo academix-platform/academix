@@ -36,8 +36,8 @@ export const isIsoDate = (value: unknown): value is string => {
 };
 
 /**
- * Attendance can only be taken for today, inside the current academic
- * year — the same rule the page applies. Returns an error message or null.
+ * Attendance can only be taken for today, inside the current semester.
+ * Returns an error message or null.
  */
 export const attendanceDateError = (
   date: unknown,
@@ -47,7 +47,7 @@ export const attendanceDateError = (
   if (!isIsoDate(date)) return "Invalid date.";
   if (date !== today) return "Attendance can only be saved for today.";
   if (date < year.startDate || date > year.endDate) {
-    return "This date is outside the current academic year.";
+    return "This date is outside the current semester.";
   }
   return null;
 };

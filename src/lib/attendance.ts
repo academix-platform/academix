@@ -1,5 +1,8 @@
 import prisma from "@/lib/prisma";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
 import { defaultWorkingDays, type SchoolWeekDay } from "@/lib/schoolCalendar";
 import { ATTENDING_STUDENT_STATUSES } from "@/lib/attendanceRules";
@@ -60,20 +63,31 @@ export const getAttendanceData = async ({
   schoolId: number;
 }) => {
   // exact date match ONLY
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return {
       data: [],
       hasAttendance: false,
       noCurrentYear: true,
     };
   }
+  if (
+    !academicYear.currentSemesterStartDate ||
+    !academicYear.currentSemesterEndDate
+  ) {
+    return {
+      data: [],
+      hasAttendance: false,
+      noCurrentYear: false,
+    };
+  }
 
   const attendance = await prisma.attendance.findMany({
     where: {
       schoolId,
-      academicYearId,
+      academicYearId: academicYear.id,
+      ...semesterAndAnnualWhere(academicYear.currentSemester),
       date: day,
       ...(scope === "students"
         ? { studentId: { not: null } }
@@ -188,9 +202,9 @@ export const getWeeklyAttendanceData = async ({
   anchorDate: string; // "YYYY-MM-DD"
   schoolId: number;
 }): Promise<WeeklyAttendanceDataResult> => {
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return {
       weekDays: [],
       weekStartDate: "",
@@ -198,6 +212,19 @@ export const getWeeklyAttendanceData = async ({
       data: [],
       hasAttendance: false,
       noCurrentYear: true,
+    };
+  }
+  if (
+    !academicYear.currentSemesterStartDate ||
+    !academicYear.currentSemesterEndDate
+  ) {
+    return {
+      weekDays: [],
+      weekStartDate: "",
+      weekEndDate: "",
+      data: [],
+      hasAttendance: false,
+      noCurrentYear: false,
     };
   }
 
@@ -237,7 +264,11 @@ export const getWeeklyAttendanceData = async ({
     const dayName = schoolWeekDaysMap[curDayOfWeek];
 
     // Only include school working days
-    if (workingDays.includes(dayName)) {
+    if (
+      workingDays.includes(dayName) &&
+      isoDate >= academicYear.currentSemesterStartDate &&
+      isoDate <= academicYear.currentSemesterEndDate
+    ) {
       weekDays.push({
         date: isoDate,
         dayName,
@@ -269,7 +300,8 @@ export const getWeeklyAttendanceData = async ({
   const attendance = await prisma.attendance.findMany({
     where: {
       schoolId,
-      academicYearId,
+      academicYearId: academicYear.id,
+      ...semesterAndAnnualWhere(academicYear.currentSemester),
       date: {
         gte: new Date(`${weekStartDate}T00:00:00.000Z`),
         lte: new Date(`${weekEndDate}T23:59:59.999Z`),

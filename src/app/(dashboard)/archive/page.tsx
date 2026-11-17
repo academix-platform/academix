@@ -86,6 +86,7 @@ const ArchivePage = async ({
                   schoolId: number;
                   academicYearId: number;
                   studentId: { in: string[] };
+                  period: "ANNUAL";
                 };
                 select: {
                   studentId: boolean;
@@ -99,6 +100,7 @@ const ArchivePage = async ({
             schoolId: admin.schoolId,
             academicYearId: Number(selectedYear),
             studentId: { in: studentIds },
+            period: "ANNUAL",
           },
           select: {
             studentId: true,

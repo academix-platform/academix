@@ -1,5 +1,8 @@
 import { Prisma } from "@prisma/client";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { getQueryParam, type PageSearchParams } from "@/lib/pageParams";
 
 type BuildAssignmentQueryInput = {
@@ -22,14 +25,14 @@ export async function buildAssignmentQuery({
   const currentPage = getQueryParam(page);
   const p = currentPage ? Number.parseInt(currentPage, 10) : 1;
 
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
   const sortParam = getQueryParam(sort);
 
   const orderBy: Prisma.AssignmentOrderByWithRelationInput =
     sortParam === "desc" ? { endDate: "desc" } : { endDate: "asc" };
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return {
       academicYearId: null,
       query: null,
@@ -40,7 +43,8 @@ export async function buildAssignmentQuery({
 
   const query: Prisma.AssignmentWhereInput = {
     schoolId,
-    academicYearId,
+    academicYearId: academicYear.id,
+    ...semesterAndAnnualWhere(academicYear.currentSemester),
   };
 
   const conditions: Prisma.AssignmentWhereInput[] = [];
@@ -140,7 +144,7 @@ export async function buildAssignmentQuery({
   }
 
   return {
-    academicYearId,
+    academicYearId: academicYear.id,
     query,
     orderBy,
     page: Number.isNaN(p) || p < 1 ? 1 : p,

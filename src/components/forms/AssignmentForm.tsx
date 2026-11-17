@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { Download, Upload, X, Clock, Search } from "lucide-react";
 import TeacherSearchInput from "./TeacherSearchInput";
 import { useTranslations } from "next-intl";
+import Link from "next/link";
 
 // دالة مساعدة لتحويل التاريخ إلى صيغة datetime-local
 const toDatetimeLocalValue = (value: unknown) => {
@@ -155,6 +156,7 @@ const AssignmentForm = ({
   const t = useTranslations("forms.assignment");
   const commonT = useTranslations("forms.common");
   const actionsT = useTranslations("actions");
+  const gradeT = useTranslations("gradeComponents");
   const {
     register,
     handleSubmit,
@@ -170,6 +172,8 @@ const AssignmentForm = ({
       maxScore: data?.maxScore ?? 10,
       rubric: data?.rubric ?? "",
       teacherId: data?.teacherId ?? "",
+      gradeComponentId:
+        data?.gradeSchemeComponent?.componentId ?? data?.gradeComponentId,
       allowLateSubmission: data?.allowLateSubmission ?? false,
     },
   });
@@ -226,6 +230,7 @@ const AssignmentForm = ({
     classes = [],
     lessons = [],
     teachers = [],
+    gradeComponents = [],
     role,
   } = relatedData ?? {};
   const selectedSubjectId = useWatch({ control, name: "subjectId" });
@@ -349,6 +354,39 @@ const AssignmentForm = ({
           error={errors?.maxScore}
           inputProps={{ min: 1, step: 0.5 }}
         />
+        <div className="flex flex-col gap-2 w-full">
+          <label className="font-medium text-gray-700 text-sm">
+            {gradeT("assessmentComponent")}
+          </label>
+          <select
+            {...register("gradeComponentId")}
+            className="bg-white focus:bg-academixPurpleLight px-4 py-3 border-2 border-gray-200 focus:border-academixPurpleDark rounded-lg focus:outline-none focus:ring-0 w-full text-sm transition-all"
+          >
+            <option value="">{gradeT("chooseAssessmentComponent")}</option>
+            {gradeComponents.map(
+              (component: { id: number; key: string | null; name: string }) => (
+                <option key={component.id} value={component.id}>
+                  {component.key
+                    ? gradeT(`defaults.${component.key}`)
+                    : component.name}
+                </option>
+              ),
+            )}
+          </select>
+          {errors.gradeComponentId?.message && (
+            <p className="font-medium text-red-500 text-xs">
+              {errors.gradeComponentId.message.toString()}
+            </p>
+          )}
+          {gradeComponents.length === 0 && (
+            <Link
+              href="/list/grade-components"
+              className="text-sm font-medium text-purple-700 hover:underline"
+            >
+              {gradeT("setupRequired")}
+            </Link>
+          )}
+        </div>
         {role === "admin" && (
           <div className="xl:col-span-2">
             <input type="hidden" {...register("teacherId")} />

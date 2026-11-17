@@ -292,6 +292,7 @@ const AssignmentListPage = async ({
     prisma.assignment.findMany({
       where: query,
       include: {
+        gradeSchemeComponent: { select: { componentId: true } },
         subject: { select: { name: true } },
         class: { select: { name: true } },
         lesson: { select: { teacher: { select: { name: true } } } },

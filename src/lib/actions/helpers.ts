@@ -135,6 +135,48 @@ export const getRequiredAcademicYearId = async (schoolId: number) => {
   return currentYearId;
 };
 
+export const getRequiredAcademicSemester = async (schoolId: number) => {
+  const academicYear = await prisma.academicYear.findFirst({
+    where: { schoolId, isCurrent: true },
+    select: {
+      id: true,
+      currentSemester: true,
+      firstSemesterStartDate: true,
+      firstSemesterEndDate: true,
+      secondSemesterStartDate: true,
+      secondSemesterEndDate: true,
+    },
+  });
+
+  if (!academicYear) {
+    throw new Error(
+      "No current academic year found. Create one and mark it as current in settings.",
+    );
+  }
+
+  const semesterStartDate =
+    academicYear.currentSemester === "FIRST"
+      ? academicYear.firstSemesterStartDate
+      : academicYear.secondSemesterStartDate;
+  const semesterEndDate =
+    academicYear.currentSemester === "FIRST"
+      ? academicYear.firstSemesterEndDate
+      : academicYear.secondSemesterEndDate;
+
+  if (!semesterStartDate || !semesterEndDate) {
+    throw new Error(
+      "Configure the current semester dates in academic year settings before adding academic data.",
+    );
+  }
+
+  return {
+    academicYearId: academicYear.id,
+    semester: academicYear.currentSemester,
+    semesterStartDate,
+    semesterEndDate,
+  };
+};
+
 export const serializeActionError = (err: unknown) => {
   if (!err || typeof err !== "object") {
     return { raw: err };

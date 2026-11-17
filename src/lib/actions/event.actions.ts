@@ -8,7 +8,7 @@ import {
   errorResult,
   parseNumericId,
   successResult,
-  getRequiredAcademicYearId,
+  getRequiredAcademicSemester,
   requireActionAccess,
 } from "./helpers";
 
@@ -20,7 +20,9 @@ export const createEvent = async (
   if ("error" in access) return access;
 
   try {
-    const academicYearId = await getRequiredAcademicYearId(access.schoolId);
+    const { academicYearId, semester } = await getRequiredAcademicSemester(
+      access.schoolId,
+    );
 
     await prisma.event.create({
       data: {
@@ -30,6 +32,7 @@ export const createEvent = async (
         endDate: data.endDate,
         schoolId: access.schoolId,
         academicYearId,
+        semester,
         classes: {
           connect: data.classIds.map((classId) => ({ id: classId })),
         },

@@ -4,8 +4,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import prisma from "@/lib/prisma";
 import { v2 as cloudinary } from "cloudinary";
-import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
-import { parseNumericId, requireActionAccess } from "./helpers";
+import {
+  getRequiredAcademicSemester,
+  parseNumericId,
+  requireActionAccess,
+} from "./helpers";
 
 // ─── Cloudinary config ────────────────────────────────────────────────────────
 cloudinary.config({
@@ -100,11 +103,8 @@ export async function createStudyMaterial(
       return { success: false, error: true, message: "No teacher assigned to this subject" };
     }
 
-    const academicYear = await getCurrentAcademicYearOrNull(schoolId);
-    if (!academicYear) {
-      return { success: false, error: true, message: "No current academic year found" };
-    }
-    const academicYearId = academicYear.id;
+    const { academicYearId, semester } =
+      await getRequiredAcademicSemester(schoolId);
 
     // التحقق من الملف
     const file = formData.get("file") as File | null;
@@ -130,6 +130,7 @@ export async function createStudyMaterial(
         teacherId,
         schoolId,
         academicYearId,
+        semester,
       },
     });
 

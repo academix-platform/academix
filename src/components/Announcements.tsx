@@ -1,5 +1,8 @@
 import { requireAuth } from "@/lib/auth";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import prisma from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
@@ -14,9 +17,9 @@ const Announcements = async () => {
   const locale = await getLocale();
   const user = await requireAuth();
   const { role, userId, schoolId } = user;
-  const academicYearId = await getCurrentAcademicYearIdOrNull(schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
@@ -29,13 +32,18 @@ const Announcements = async () => {
     role !== "admin"
       ? {
           schoolId: schoolId,
-          academicYearId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
           classes: {
             some:
               roleConditions[role as keyof typeof roleConditions] || undefined,
           },
         }
-      : { schoolId: schoolId, academicYearId };
+      : {
+          schoolId: schoolId,
+          academicYearId: academicYear.id,
+          ...semesterAndAnnualWhere(academicYear.currentSemester),
+        };
 
   const data = await prisma.announcement.findMany({
     take: 3,

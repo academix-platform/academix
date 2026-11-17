@@ -17,6 +17,7 @@ export type EntryAssessment = AssessmentRef & {
   title: string;
   className: string;
   maxScore: number;
+  semester: "FIRST" | "SECOND" | null;
 };
 
 export type ClassEntryRow = {
@@ -36,9 +37,16 @@ export const parseAssessmentParam = (param?: string | null): AssessmentRef | nul
   return match ? { type: match[1] as AssessmentType, id: Number(match[2]) } : null;
 };
 
-export const entryAssessmentWhere = (access: ResultAccess, academicYearId: number) => ({
+export const entryAssessmentWhere = (
+  access: ResultAccess,
+  academicYearId: number,
+  semester?: "FIRST" | "SECOND",
+) => ({
   schoolId: access.schoolId,
   academicYearId,
+  ...(semester
+    ? { OR: [{ semester }, { semester: null }] }
+    : {}),
   AND: [
     ...(access.role === "teacher" ? [assessmentOwnerWhere(access)] : []),
     // An assessment with no class has no name list to enter marks against.
@@ -70,6 +78,7 @@ export const buildClassEntryRows = (
 const classSelect = {
   id: true,
   title: true,
+  semester: true,
   classId: true,
   class: { select: { name: true } },
   lesson: { select: { classId: true, class: { select: { name: true } } } },
@@ -78,6 +87,7 @@ const classSelect = {
 type AssessmentRow = {
   id: number;
   title: string;
+  semester: "FIRST" | "SECOND" | null;
   classId: number | null;
   class: { name: string } | null;
   lesson: { classId: number; class: { name: string } } | null;
@@ -92,8 +102,9 @@ export const loadEntryAssessments = async (
   db: EntryDb,
   access: ResultAccess,
   academicYearId: number,
+  semester?: "FIRST" | "SECOND",
 ): Promise<EntryAssessment[]> => {
-  const where = entryAssessmentWhere(access, academicYearId);
+  const where = entryAssessmentWhere(access, academicYearId, semester);
   const [exams, assignments] = await Promise.all([
     db.exam.findMany({
       where,
@@ -114,6 +125,7 @@ export const loadEntryAssessments = async (
       title: exam.title,
       className: classOf(exam).className,
       maxScore: examMaxScore(exam.questions),
+      semester: exam.semester,
     })),
     ...assignments.map((assignment) => ({
       type: "assignment" as const,
@@ -121,6 +133,7 @@ export const loadEntryAssessments = async (
       title: assignment.title,
       className: classOf(assignment).className,
       maxScore: assignment.maxScore,
+      semester: assignment.semester,
     })),
   ];
 };
@@ -131,8 +144,12 @@ export const loadClassEntry = async (
   access: ResultAccess,
   ref: AssessmentRef,
   academicYearId: number,
+  semester?: "FIRST" | "SECOND",
 ) => {
-  const where = { id: ref.id, ...entryAssessmentWhere(access, academicYearId) };
+  const where = {
+    id: ref.id,
+    ...entryAssessmentWhere(access, academicYearId, semester),
+  };
   const found =
     ref.type === "exam"
       ? await db.exam
@@ -155,7 +172,11 @@ export const loadClassEntry = async (
       ? db.submission.findMany({ where: { examId: ref.id }, select: { studentId: true } })
       : db.assignmentSubmission.findMany({ where: { assignmentId: ref.id }, select: { studentId: true } }),
     db.result.findMany({
-      where: { schoolId: access.schoolId, ...assessmentRef },
+      where: {
+        schoolId: access.schoolId,
+        ...assessmentRef,
+        semester: found.semester,
+      },
       select: { studentId: true, score: true },
     }),
   ]);
@@ -168,6 +189,7 @@ export const loadClassEntry = async (
       title: found.title,
       className,
       maxScore: found.maxScore,
+      semester: found.semester,
     } satisfies EntryAssessment,
     ...buildClassEntryRows(
       students,

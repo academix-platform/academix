@@ -10,7 +10,12 @@ import { SheetRow, buildSheetRows, newSheetCode, sheetRowsSchema, splitIntoPages
 // Attendance sheets: one class on one date. Teachers may only use classes
 // they supervise, the same rule as direct attendance; admins use their school.
 
-export type AttendanceYear = { id: number; startDate: string; endDate: string };
+export type AttendanceYear = {
+  id: number;
+  startDate: string;
+  endDate: string;
+  semester?: "FIRST" | "SECOND" | null;
+};
 
 export type PrintableAttendanceSheet = {
   code: string;
@@ -52,13 +57,21 @@ export type AttendanceEntryRow = { studentId: string; name: string; existingPres
 export const loadAttendanceEntry = async (
   db: Pick<PrismaClient, "student" | "attendance">,
   schoolId: number,
-  ref: { classId: number; date: string; academicYearId: number },
+  ref: {
+    classId: number;
+    date: string;
+    academicYearId: number;
+    semester?: "FIRST" | "SECOND";
+  },
 ): Promise<AttendanceEntryRow[]> => {
   const students = await loadAttendanceStudents(db, schoolId, ref.classId);
   const saved = await db.attendance.findMany({
     where: {
       schoolId,
       academicYearId: ref.academicYearId,
+      ...(ref.semester
+        ? { OR: [{ semester: ref.semester }, { semester: null }] }
+        : {}),
       date: dayOf(ref.date),
       studentId: { in: students.map((student) => student.id) },
     },
@@ -109,6 +122,7 @@ export const createAttendanceSheetWith = async (
       kind: "ATTENDANCE",
       schoolId: access.schoolId,
       academicYearId: year.id,
+      semester: year.semester ?? null,
       classId: found.id,
       examId: null,
       assignmentId: null,
@@ -208,7 +222,7 @@ export const sheetAttendanceDateError = (
     return "Attendance from a sheet can only be saved up to 7 days late.";
   }
   if (date < year.startDate || date > year.endDate) {
-    return "This date is outside the current academic year.";
+    return "This date is outside the current semester.";
   }
   return null;
 };
@@ -257,7 +271,7 @@ export const saveAttendanceSheetWith = async (
 
   const sheet = await db.entrySheet.findFirst({
     where: { id: sheetId, ...attendanceSheetAccessWhere(access) },
-    select: { classId: true, date: true, academicYearId: true },
+    select: { classId: true, date: true, academicYearId: true, semester: true },
   });
   if (!sheet?.date) return { error: "Sheet not found." };
   if (sheet.academicYearId !== year.id) return { error: "This sheet is from another academic year." };
@@ -291,11 +305,12 @@ export const saveAttendanceSheetWith = async (
       where: {
         studentId_academicYearId_date: { studentId: row.studentId, academicYearId: year.id, date: day },
       },
-      update: { present: row.present },
+      update: { present: row.present, semester: sheet.semester },
       create: {
         schoolId: access.schoolId,
         studentId: row.studentId,
         academicYearId: year.id,
+        semester: sheet.semester,
         date: day,
         present: row.present,
       },

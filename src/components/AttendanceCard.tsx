@@ -1,4 +1,7 @@
-import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import { getAuthUser } from "@/lib/auth";
 import prisma from "@/lib/prisma";
 import { getSchoolDayExceptions, getSchoolScheduleSettings } from "@/lib/schoolSettings";
@@ -49,13 +52,19 @@ const AttendanceCard = async ({ id, scope }: Props) => {
     return <h1 className="font-semibold text-xl">-</h1>;
   }
 
+  const semesterStartDate = currentYear.currentSemesterStartDate;
+  const semesterEndDate = currentYear.currentSemesterEndDate;
+  if (!semesterStartDate || !semesterEndDate) {
+    return <h1 className="font-semibold text-xl">-</h1>;
+  }
+
   // End of today in the school's calendar, not UTC's.
   const today = new Date(`${todayInTimeZone()}T23:59:59.999Z`);
-  const yearStart = new Date(`${currentYear.startDate}T00:00:00.000Z`);
-  const yearEnd = new Date(`${currentYear.endDate}T23:59:59.999Z`);
-  const cappedEnd = today < yearEnd ? today : yearEnd;
+  const termStart = new Date(`${semesterStartDate}T00:00:00.000Z`);
+  const termEnd = new Date(`${semesterEndDate}T23:59:59.999Z`);
+  const cappedEnd = today < termEnd ? today : termEnd;
 
-  if (cappedEnd < yearStart) {
+  if (cappedEnd < termStart) {
     return <h1 className="font-semibold text-xl">-</h1>;
   }
 
@@ -64,7 +73,7 @@ const AttendanceCard = async ({ id, scope }: Props) => {
     exceptions.map((item) => [item.date, item.type]),
   );
 
-  const expectedDates = enumerateAcademicDates(yearStart, cappedEnd).filter((d) => {
+  const expectedDates = enumerateAcademicDates(termStart, cappedEnd).filter((d) => {
     const iso = toIsoDate(d);
     const dayName = jsDayToSchoolDay[d.getUTCDay()];
     const exception = exceptionsByDate.get(iso);
@@ -81,8 +90,9 @@ const AttendanceCard = async ({ id, scope }: Props) => {
     where: {
       schoolId: user.schoolId,
       academicYearId: currentYear.id,
+      ...semesterAndAnnualWhere(currentYear.currentSemester),
       date: {
-        gte: new Date(`${currentYear.startDate}T00:00:00.000Z`),
+        gte: termStart,
         lte: cappedEnd,
       },
       ...(scope === "student" ? { studentId: id } : { teacherId: id }),

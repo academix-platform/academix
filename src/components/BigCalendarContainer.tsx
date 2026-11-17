@@ -1,7 +1,10 @@
 import prisma from "@/lib/prisma";
 import AcademicSchedule from "./Schedule/AcademicSchedule";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 import NoCurrentAcademicYearMessage from "./NoCurrentAcademicYearMessage";
 import { requireAuth } from "@/lib/auth";
 import { getLocale } from "next-intl/server";
@@ -28,9 +31,9 @@ const BigCalendarContainer = async ({
   const locale = await getLocale();
 
   const schoolSettings = await getSchoolScheduleSettings(user.schoolId);
-  const academicYearId = await getCurrentAcademicYearIdOrNull(user.schoolId);
+  const academicYear = await getCurrentAcademicYearOrNull(user.schoolId);
 
-  if (!academicYearId) {
+  if (!academicYear) {
     return <NoCurrentAcademicYearMessage compact />;
   }
 
@@ -59,7 +62,8 @@ const BigCalendarContainer = async ({
   const dataRes = await prisma.lesson.findMany({
     where: {
       schoolId: user.schoolId,
-      academicYearId,
+      academicYearId: academicYear.id,
+      ...semesterAndAnnualWhere(academicYear.currentSemester),
       ...(type === "teacherId"
         ? { teacherId: id as string }
         : { classId: id as number }),

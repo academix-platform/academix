@@ -2,7 +2,10 @@ import prisma from "@/lib/prisma";
 import FormModal from "./FormModal";
 import { getAuthUser } from "@/lib/auth";
 import { getSchoolScheduleSettings } from "@/lib/schoolSettings";
-import { getCurrentAcademicYearIdOrNull } from "@/lib/academicYears";
+import {
+  getCurrentAcademicYearOrNull,
+  semesterAndAnnualWhere,
+} from "@/lib/academicYears";
 
 export type FormContainerProps = {
   table:
@@ -40,12 +43,13 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
     ];
 
     let academicYearId: number | undefined;
+    let activeSemester: "FIRST" | "SECOND" | undefined;
     if (yearScopedTables.includes(table)) {
-      const currentAcademicYearId = schoolId
-        ? await getCurrentAcademicYearIdOrNull(schoolId)
+      const currentAcademicYear = schoolId
+        ? await getCurrentAcademicYearOrNull(schoolId)
         : null;
 
-      if (!currentAcademicYearId) {
+      if (!currentAcademicYear) {
         return (
           <div>
             <FormModal
@@ -59,7 +63,8 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         );
       }
 
-      academicYearId = currentAcademicYearId;
+      academicYearId = currentAcademicYear.id;
+      activeSemester = currentAcademicYear.currentSemester;
     }
 
     switch (table) {
@@ -115,7 +120,11 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           orderBy: { name: "asc" },
         });
         const classLessons = await prisma.lesson.findMany({
-          where: { schoolId, academicYearId: academicYearId! },
+          where: {
+            schoolId,
+            academicYearId: academicYearId!,
+            ...semesterAndAnnualWhere(activeSemester!),
+          },
           select: {
             id: true,
             classId: true,
@@ -176,10 +185,16 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         if (!schoolId) break;
         const role = authUser?.role;
         const userId = authUser?.userId;
+        const examGradeComponents = await prisma.gradeComponent.findMany({
+          where: { schoolId },
+          select: { id: true, key: true, name: true },
+          orderBy: { name: "asc" },
+        });
         const examLessons = await prisma.lesson.findMany({
           where: {
             schoolId,
             academicYearId: academicYearId!,
+            ...semesterAndAnnualWhere(activeSemester!),
             ...(role === "teacher" ? { teacherId: userId! } : {}),
           },
           select: {
@@ -200,6 +215,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         }
 
         relatedData = {
+          gradeComponents: examGradeComponents,
           subjects: Array.from(subjectsMap.values()),
           classes: Array.from(classesMap.values()),
           lessons: examLessons.map((lesson) => ({
@@ -213,6 +229,11 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         if (!schoolId) break;
         const assignmentRole = authUser?.role;
         const assignmentUserId = authUser?.userId;
+        const assignmentGradeComponents = await prisma.gradeComponent.findMany({
+          where: { schoolId },
+          select: { id: true, key: true, name: true },
+          orderBy: { name: "asc" },
+        });
         const assignmentSubjects = await prisma.subject.findMany({
           where: {
             schoolId,
@@ -225,6 +246,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
                         some: {
                           teacherId: assignmentUserId!,
                           academicYearId: academicYearId!,
+                          ...semesterAndAnnualWhere(activeSemester!),
                         },
                       },
                     },
@@ -251,6 +273,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
                         some: {
                           teacherId: assignmentUserId!,
                           academicYearId: academicYearId!,
+                          ...semesterAndAnnualWhere(activeSemester!),
                         },
                       },
                     },
@@ -265,6 +288,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           where: {
             schoolId,
             academicYearId: academicYearId!,
+            ...semesterAndAnnualWhere(activeSemester!),
             ...(assignmentRole === "teacher"
               ? { teacherId: assignmentUserId! }
               : {}),
@@ -308,6 +332,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
         }
 
         relatedData = {
+          gradeComponents: assignmentGradeComponents,
           subjects: assignmentSubjects,
           classes: assignmentClasses,
           lessons: Array.from(assignmentPairsMap.values()),
@@ -330,6 +355,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
                       some: {
                         teacherId: resultUserId!,
                         academicYearId: academicYearId!,
+                        ...semesterAndAnnualWhere(activeSemester!),
                       },
                     },
                   },
@@ -344,6 +370,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           where: {
             schoolId,
             academicYearId: academicYearId!,
+            ...semesterAndAnnualWhere(activeSemester!),
             ...(resultRole === "teacher"
               ? {
                   OR: [
@@ -372,6 +399,7 @@ const FormContainer = async ({ table, type, data, id }: FormContainerProps) => {
           where: {
             schoolId,
             academicYearId: academicYearId!,
+            ...semesterAndAnnualWhere(activeSemester!),
             ...(resultRole === "teacher"
               ? {
                   OR: [
