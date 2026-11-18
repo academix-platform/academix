@@ -107,7 +107,7 @@ describe("saving new students", () => {
     expect(tables.students).toHaveLength(2);
   });
 
-  it("deletes the login when the database step fails, and carries on with the next row", async () => {
+  it("stops when the database fails, deletes that login, and keeps the row already saving", async () => {
     const { deps, failures, users, tables } = setup();
     let enrollments = 0;
     const db = deps.db as unknown as { studentAcademicYear: { create: (args: unknown) => Promise<unknown> } };
@@ -117,15 +117,43 @@ describe("saving new students", () => {
       return create(args);
     };
 
-    const { results } = await save(deps, [row(lina, 2), row(yousef, 3)]);
+    const { results, stopped } = await save(deps, [row(lina, 2), row(yousef, 3)]);
 
-    expect(results.map((r) => [r.outcome, r.reasons])).toEqual([
-      ["failed", ["saveFailed"]],
-      ["created", []],
-    ]);
-    expect(results[0].logins).toEqual([]);
+    expect(stopped).toBe("saveProblem");
+    // Row 2 wasn't saved, so it is left out to be saved again. Row 3 was already saving.
+    expect(results.map((r) => [r.sourceRow, r.outcome])).toEqual([[3, "created"]]);
     expect(users.size).toBe(1);
     expect(tables.students.map((s) => s.nationalId)).toEqual(["000000018"]);
+  });
+
+  it("stops when Clerk won't make more accounts, and saves nobody half-way", async () => {
+    const { deps, clerk, tables } = setup();
+    clerk.createUser = async () => {
+      throw Object.assign(new Error("Forbidden"), { status: 403, errors: [{ code: "user_quota_exceeded" }] });
+    };
+
+    const { results, stopped } = await save(deps, [row(lina, 2), row(yousef, 3)]);
+
+    expect(stopped).toBe("accountLimit");
+    expect(results).toEqual([]);
+    expect(tables.students).toEqual([]);
+  });
+
+  it("still fails only the row when Clerk refuses that person's data", async () => {
+    const { deps, clerk, tables } = setup();
+    const createUser = clerk.createUser;
+    let calls = 0;
+    clerk.createUser = async (params) => {
+      if (calls++ === 0) throw Object.assign(new Error("Unprocessable"), { status: 422 });
+      return createUser(params);
+    };
+
+    const { results, stopped } = await save(deps, [row(lina, 2), row(yousef, 3)]);
+
+    expect(stopped).toBeUndefined();
+    expect(results.map((r) => r.outcome).sort()).toEqual(["created", "failed"]);
+    expect(results.find((r) => r.outcome === "failed")?.reasons).toEqual(["accountFailed"]);
+    expect(tables.students).toHaveLength(1);
   });
 
   it("stops at a full class", async () => {

@@ -127,7 +127,7 @@ describe("saving new teachers", () => {
     expect(tables.teachers).toEqual([]);
   });
 
-  it("deletes the login when the database step fails, and carries on with the next row", async () => {
+  it("stops when the database fails, deletes that login, and keeps the row already saving", async () => {
     const { deps, users, tables } = setup();
     const db = deps.db as unknown as { teacher: { create: (args: { data: { phone: string } }) => Promise<unknown> } };
     const create = db.teacher.create;
@@ -136,31 +136,69 @@ describe("saving new teachers", () => {
       return create(args);
     };
 
-    const { results } = await save(deps, [row(sara, 2), row(huda, 3)]);
+    const { results, stopped } = await save(deps, [row(sara, 2), row(huda, 3)]);
 
-    expect(results.map((r) => [r.outcome, r.reasons])).toEqual([
-      ["failed", ["saveFailed"]],
-      ["created", []],
-    ]);
-    expect(results[0].logins).toEqual([]);
+    expect(stopped).toBe("saveProblem");
+    expect(results.map((r) => [r.sourceRow, r.outcome])).toEqual([[3, "created"]]);
     expect(users.size).toBe(1);
     expect(tables.teachers.map((t) => t.phone)).toEqual(["0599333333"]);
   });
 
-  it("says the login couldn't be made when Clerk refuses, and saves the others", async () => {
+  it("still fails only the row when Clerk refuses that person's data", async () => {
     const { deps, clerk, tables } = setup();
     const createUser = clerk.createUser;
     let calls = 0;
     clerk.createUser = async (params) => {
-      if (calls++ === 0) throw new Error("clerk create failed");
+      if (calls++ === 0) throw Object.assign(new Error("Unprocessable"), { status: 422 });
       return createUser(params);
     };
 
-    const { results } = await save(deps, [row(sara, 2), row(huda, 3)]);
+    const { results, stopped } = await save(deps, [row(sara, 2), row(huda, 3)]);
 
+    expect(stopped).toBeUndefined();
     expect(results.map((r) => r.outcome).sort()).toEqual(["created", "failed"]);
     expect(results.find((r) => r.outcome === "failed")?.reasons).toEqual(["accountFailed"]);
     expect(tables.teachers).toHaveLength(1);
+  });
+
+  it("stops when Clerk won't make more accounts, and starts no new row after", async () => {
+    const { deps, clerk, calls, tables } = setup();
+    clerk.createUser = async (params) => {
+      calls.push({ method: "createUser", params });
+      throw Object.assign(new Error("Forbidden"), { status: 403, errors: [{ code: "user_quota_exceeded" }] });
+    };
+    const teachers = Array.from({ length: 6 }, (_, i) => row({ teacherName: `معلم ${i}`, phone: `059944444${i}`, sex: "ذكر" }, i + 2));
+
+    const { results, stopped } = await save(deps, teachers);
+
+    expect(stopped).toBe("accountLimit");
+    expect(results).toEqual([]);
+    // Only the rows already running tried Clerk: the last two never started.
+    expect(calls.filter((call) => call.method === "createUser")).toHaveLength(4);
+    expect(tables.teachers).toEqual([]);
+  });
+
+  it("stops when Clerk can't be reached", async () => {
+    const { deps, fail } = setup();
+    fail.create = true;
+
+    const { results, stopped } = await save(deps, [row(sara, 2), row(huda, 3)]);
+
+    expect(stopped).toBe("accountService");
+    expect(results).toEqual([]);
+  });
+
+  it("stops before saving anyone when usernames can't be checked", async () => {
+    const { deps, clerk, calls } = setup();
+    clerk.getUserList = async () => {
+      throw Object.assign(new Error("Service Unavailable"), { status: 503 });
+    };
+
+    const { results, stopped } = await save(deps, [row(sara, 2), row(huda, 3)]);
+
+    expect(stopped).toBe("accountService");
+    expect(results).toEqual([]);
+    expect(calls.filter((call) => call.method === "createUser")).toEqual([]);
   });
 
   it("waits and tries again once when Clerk is busy", async () => {

@@ -5,7 +5,18 @@ import { updateAccount, type ClerkUsers } from "@/lib/people/accounts";
 import { createParentWith } from "@/lib/people/parents";
 import { createStudentWith } from "@/lib/people/students";
 
-import { AccountError, ROWS_AT_ONCE, emailLogins, politeClerk, runLimited, type Login, type SendEmail } from "./batchTools";
+import {
+  AccountError,
+  ROWS_AT_ONCE,
+  emailLogins,
+  politeClerk,
+  runLimited,
+  stopReasonOf,
+  stopSignal,
+  type Login,
+  type SendEmail,
+  type StopReason,
+} from "./batchTools";
 import type { PersonField, StudentField } from "./columns";
 import { generatePassword, pickFreeUsernames, type UsernameLookup } from "./logins";
 import type { ExistingParent, ExistingStudent, SchoolClass } from "./matching";
@@ -14,15 +25,18 @@ import { SAVE_BATCH_SIZE } from "./saveBatchSize";
 import type { TeacherRowFlag } from "./teacherFlags";
 
 // Saving one batch of reviewed import rows. Every check is repeated here
-// against the database, each row is saved on its own, and a failed row never
-// stops the others. Passwords are returned once and never stored or logged.
+// against the database, and each row is saved on its own. A problem with one
+// row never stops the others, but a problem no row can get past (Clerk full or
+// down, the database down) stops the batch: no new row starts, the rows saved
+// so far stay saved, and rows not saved are left out of the results so they
+// can be saved later. Passwords are returned once and never stored or logged.
 //
 // A few rows are saved at the same time, since each one mostly waits on Clerk
 // and the database. Rows that share a new parent are saved one after another,
 // so the parent is made once, and class seats are counted before any row starts.
 
 export { SAVE_BATCH_SIZE };
-export type { Login };
+export type { Login, StopReason };
 
 export type SaveDb = Pick<PrismaClient, "student" | "class" | "parent" | "studentAcademicYear" | "$transaction">;
 
@@ -61,6 +75,9 @@ export type SaveReason =
   | "accountFailed"
   | "saveFailed"
   | "parentFailed";
+
+/** A batch's results, and why it stopped early, if it did. */
+export type SaveBatchResult = { results: SaveRowResult[]; stopped?: StopReason };
 
 export type SaveRowResult = {
   sourceRow: number;
@@ -123,10 +140,11 @@ export const saveStudentBatchWith = async (
   deps: SaveDeps,
   schoolId: number,
   rows: SaveRowInput[],
-): Promise<{ results: SaveRowResult[] }> => {
+): Promise<SaveBatchResult> => {
   if (rows.length > SAVE_BATCH_SIZE) throw new Error(`A batch holds at most ${SAVE_BATCH_SIZE} rows.`);
 
   const { db, academicYearId } = deps;
+  const signal = stopSignal();
   const clerk = politeClerk(deps.clerk, deps.wait);
   const context = await loadStudentContext(db, schoolId);
   const decisions = Object.fromEntries(rows.map((row) => [row.sourceRow, row.decision ?? {}]));
@@ -143,8 +161,10 @@ export const saveStudentBatchWith = async (
   try {
     studentNames = await pickFreeUsernames(clerk, "student", newStudents);
     parentNames = await pickFreeUsernames(clerk, "parent", newParentPhones.size);
-  } catch {
+  } catch (err) {
     namesFailed = true;
+    // Clerk can't be asked, so no new person can be made in this batch.
+    signal.stop(stopReasonOf(err) ?? "accountService");
   }
 
   /** Parents created by earlier rows of this batch, by phone. */
@@ -168,7 +188,9 @@ export const saveStudentBatchWith = async (
       createdParents.set(row.parent.phone, created.id);
       logins.push({ role: "parent", name: row.parent.name, username, password, email: row.parent.email, emailed: false });
       return true;
-    } catch {
+    } catch (err) {
+      const stop = stopReasonOf(err);
+      if (stop) signal.stop(stop);
       return false;
     }
   };
@@ -280,28 +302,33 @@ export const saveStudentBatchWith = async (
     return classId !== undefined && freeSeats.has(classId) ? classId : undefined;
   };
 
-  const saveRow = async (row: ReviewedStudentRow): Promise<SaveRowResult> => {
+  /** Saves one row. Undefined when a problem that stops the batch kept it from saving. */
+  const saveRow = async (row: ReviewedStudentRow): Promise<SaveRowResult | undefined> => {
     const classId = seatFor(row);
     if (classId !== undefined) {
       const left = freeSeats.get(classId) ?? 0;
       if (left <= 0) return { sourceRow: row.sourceRow, outcome: "failed", reasons: ["classFull"], logins: [] };
       freeSeats.set(classId, left - 1);
     }
-    let result: SaveRowResult;
+    let result: SaveRowResult | undefined;
     try {
       result = row.status === "new" ? await createRow(row) : await updateRow(row);
     } catch (err) {
-      const reason = err instanceof AccountError ? "accountFailed" : "saveFailed";
-      result = { sourceRow: row.sourceRow, outcome: "failed", reasons: [reason], logins: [] };
+      const stop = stopReasonOf(err);
+      if (stop) signal.stop(stop);
+      else {
+        const reason = err instanceof AccountError ? "accountFailed" : "saveFailed";
+        result = { sourceRow: row.sourceRow, outcome: "failed", reasons: [reason], logins: [] };
+      }
     }
     // A failed row with logins kept its student, and so its seat.
-    if (classId !== undefined && result.outcome === "failed" && !result.logins.length) {
+    if (classId !== undefined && (!result || (result.outcome === "failed" && !result.logins.length))) {
       freeSeats.set(classId, (freeSeats.get(classId) ?? 0) + 1);
     }
     return result;
   };
 
-  const results: SaveRowResult[] = new Array(reviewed.length);
+  const results: (SaveRowResult | undefined)[] = new Array(reviewed.length);
   // Rows to save, in chains: rows sharing a new parent's phone form one chain,
   // saved in file order, so the first creates the parent and the rest link it.
   const chains = new Map<string, number[]>();
@@ -320,13 +347,18 @@ export const saveStudentBatchWith = async (
 
   await runLimited(
     [...chains.values()].map((indexes) => async () => {
-      for (const index of indexes) results[index] = await saveRow(reviewed[index]);
+      for (const index of indexes) {
+        // After a stop no new row starts. Rows already running finish.
+        if (signal.reason) return;
+        results[index] = await saveRow(reviewed[index]);
+      }
     }),
     ROWS_AT_ONCE,
   );
 
+  const saved = results.filter((result): result is SaveRowResult => result !== undefined);
   // Emails go out once everyone is saved, a few at a time.
-  await emailLogins(results.flatMap((result) => result.logins), deps.sendEmail);
+  await emailLogins(saved.flatMap((result) => result.logins), deps.sendEmail);
 
-  return { results };
+  return { results: saved, ...(signal.reason && { stopped: signal.reason }) };
 };

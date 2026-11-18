@@ -15,7 +15,7 @@ import { MAX_PDF_BYTES } from "../peopleImport/fileCheck";
 import { reviewSchema, saveBatchSchema } from "../peopleImport/importInput";
 import { readPeopleFileWith, type ReadFileProblem } from "../peopleImport/readFile";
 import { reviewStudentRows, type ReviewedStudentRow } from "../peopleImport/rowFlags";
-import { loadStudentContext, saveStudentBatchWith, type SaveRowResult } from "../peopleImport/saveBatch";
+import { loadStudentContext, saveStudentBatchWith, type SaveRowResult, type StopReason } from "../peopleImport/saveBatch";
 import { loadTeacherContext, saveTeacherBatchWith } from "../peopleImport/saveTeacherBatch";
 import { reviewTeacherRows, type ReviewedTeacherRow, type SubjectLabel } from "../peopleImport/teacherFlags";
 import { errorResult, getRequiredAcademicYearId, requireActionAccess, successResult } from "./helpers";
@@ -92,7 +92,7 @@ export const reviewStudentImport = async (
  */
 export const saveStudentImportBatch = async (
   rows: unknown,
-): Promise<{ success: boolean; error: boolean; message?: string; results?: SaveRowResult[] }> => {
+): Promise<{ success: boolean; error: boolean; message?: string; results?: SaveRowResult[]; stopped?: StopReason }> => {
   const access = await requireActionAccess(["admin"]);
   if ("error" in access) return access;
 
@@ -100,7 +100,7 @@ export const saveStudentImportBatch = async (
   if (!parsed.success) return { success: false, error: true, message: "The rows sent can't be saved." };
 
   try {
-    const { results } = await saveStudentBatchWith(
+    const { results, stopped } = await saveStudentBatchWith(
       {
         db: prisma,
         clerk: (await clerkClient()).users,
@@ -110,7 +110,7 @@ export const saveStudentImportBatch = async (
       access.schoolId,
       parsed.data,
     );
-    return { ...successResult(["/list/students", "/list/parents"]), results };
+    return { ...successResult(["/list/students", "/list/parents"]), results, stopped };
   } catch (err) {
     return errorResult(err);
   }
@@ -156,7 +156,7 @@ export const reviewTeacherImport = async (
  */
 export const saveTeacherImportBatch = async (
   rows: unknown,
-): Promise<{ success: boolean; error: boolean; message?: string; results?: SaveRowResult[] }> => {
+): Promise<{ success: boolean; error: boolean; message?: string; results?: SaveRowResult[]; stopped?: StopReason }> => {
   const access = await requireActionAccess(["admin"]);
   if ("error" in access) return access;
 
@@ -164,12 +164,12 @@ export const saveTeacherImportBatch = async (
   if (!parsed.success) return { success: false, error: true, message: "The rows sent can't be saved." };
 
   try {
-    const { results } = await saveTeacherBatchWith(
+    const { results, stopped } = await saveTeacherBatchWith(
       { db: prisma, clerk: (await clerkClient()).users, sendEmail: sendAccountEmail },
       access.schoolId,
       parsed.data,
     );
-    return { ...successResult(["/list/teachers"]), results };
+    return { ...successResult(["/list/teachers"]), results, stopped };
   } catch (err) {
     return errorResult(err);
   }

@@ -2194,6 +2194,14 @@
       "progress": "Saving rows",
       "nothingToSave": "No rows are ready to save.",
       "savedSummary": "Saved {saved}. Not saved {failed}.",
+      "stopped": {
+        "title": "Saving stopped",
+        "accountLimit": "The login service (Clerk) won't create more accounts. Its user limit may be full. Free up space or upgrade the plan, then save again.",
+        "accountService": "The login service (Clerk) isn't answering right now. Wait a moment, then save again.",
+        "saveProblem": "Something went wrong while saving, so saving stopped to keep the data safe. Try saving again in a moment.",
+        "connection": "The server couldn't be reached. Check the internet connection, then save again.",
+        "kept": "The {saved} rows saved so far stay saved. {left} rows are still waiting: press Save to continue."
+      },
       "previous": "Previous",
       "next": "Next",
       "page": "Page {page} of {pages}",

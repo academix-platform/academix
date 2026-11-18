@@ -48,10 +48,66 @@ export const runLimited = async <T>(tasks: (() => Promise<T>)[], limit: number):
   return results;
 };
 
-export class AccountError extends Error {}
+/**
+ * Why saving stopped: a problem no row can get past, so the import stops
+ * instead of failing every row after it.
+ * - accountLimit: Clerk won't make more accounts, such as a full user quota.
+ * - accountService: Clerk can't be reached, or keeps refusing calls.
+ * - saveProblem: the database or something unexpected failed.
+ */
+export type StopReason = "accountLimit" | "accountService" | "saveProblem";
 
 const statusOf = (err: unknown) =>
   typeof err === "object" && err !== null && "status" in err ? (err as { status: unknown }).status : undefined;
+
+const clerkCodes = (err: unknown): string[] => {
+  const errors = typeof err === "object" && err !== null ? (err as { errors?: unknown }).errors : undefined;
+  return Array.isArray(errors) ? errors.map((e) => String((e as { code?: unknown } | null)?.code ?? "")) : [];
+};
+
+/** A Clerk reply's stop reason, or undefined when only this person's data was refused. */
+const clerkStop = (status: number, codes: string[]): StopReason | undefined => {
+  if (status !== 429 && codes.some((code) => /quota|limit/i.test(code))) return "accountLimit";
+  if (status === 402 || status === 403) return "accountLimit";
+  if (status === 400 || status === 404 || status === 422) return undefined;
+  return "accountService";
+};
+
+/** A failed account creation. `stop` is set when no other account can be made either. */
+export class AccountError extends Error {
+  constructor(readonly stop?: StopReason) {
+    super(stop ?? "account");
+    this.name = "AccountError";
+  }
+}
+
+/** A value taken by someone else, or a record gone since the review: this row's problem only. */
+const isRowClash = (err: unknown) => {
+  const code = typeof err === "object" && err !== null ? (err as { code?: unknown }).code : undefined;
+  return code === "P2002" || code === "P2025";
+};
+
+/** Why an error should stop the import, or undefined when it only affects its own row. */
+export const stopReasonOf = (err: unknown): StopReason | undefined => {
+  if (err instanceof AccountError) return err.stop;
+  const status = statusOf(err);
+  if (typeof status === "number") return clerkStop(status, clerkCodes(err));
+  if (isRowClash(err)) return undefined;
+  return "saveProblem";
+};
+
+/** Remembers the first reason to stop. Rows check it before they start. */
+export const stopSignal = () => {
+  let reason: StopReason | undefined;
+  return {
+    stop: (why: StopReason) => {
+      reason ??= why;
+    },
+    get reason() {
+      return reason;
+    },
+  };
+};
 
 /**
  * Clerk calls that wait out a rate limit once, as Clerk's 429 reply asks
@@ -75,7 +131,9 @@ export const politeClerk = (
   return {
     createUser: (params) =>
       retry(() => clerk.createUser(params)).catch((err) => {
-        throw new AccountError(err instanceof Error ? err.name : "account");
+        const status = statusOf(err);
+        // No status means Clerk couldn't be reached at all.
+        throw new AccountError(typeof status === "number" ? clerkStop(status, clerkCodes(err)) : "accountService");
       }),
     updateUser: (userId, params) => retry(() => clerk.updateUser(userId, params)),
     deleteUser: (userId) => retry(() => clerk.deleteUser(userId)),

@@ -3,18 +3,30 @@ import type { PrismaClient } from "@prisma/client";
 
 import { changeTeacherWith, createTeacherWith, type TeacherChanges } from "@/lib/people/teachers";
 
-import { AccountError, ROWS_AT_ONCE, emailLogins, politeClerk, runLimited, type BatchClerk, type Login, type SendEmail } from "./batchTools";
+import {
+  AccountError,
+  ROWS_AT_ONCE,
+  emailLogins,
+  politeClerk,
+  runLimited,
+  stopReasonOf,
+  stopSignal,
+  type BatchClerk,
+  type Login,
+  type SendEmail,
+} from "./batchTools";
 import type { TeacherField } from "./columns";
 import { generatePassword, pickFreeUsernames } from "./logins";
 import type { ExistingTeacher } from "./matching";
-import type { SaveReason, SaveRowInput, SaveRowResult } from "./saveBatch";
+import type { SaveBatchResult, SaveReason, SaveRowInput, SaveRowResult } from "./saveBatch";
 import { SAVE_BATCH_SIZE } from "./saveBatchSize";
 import { isBlockingTeacherFlag, reviewTeacherRows, type ReviewedTeacherRow, type TeacherContext } from "./teacherFlags";
 
 // Saving one batch of reviewed teacher rows, the same way student rows are
-// saved: every check is repeated here against the database, a few rows are
-// saved at the same time, each on its own, and a failed row never stops the
-// others. Passwords are returned once and never stored or logged.
+// saved: every check is repeated here against the database, and a few rows
+// are saved at the same time, each on its own. A problem with one row never
+// stops the others; a problem no row can get past stops the batch, keeping
+// the rows saved so far. Passwords are returned once and never stored or logged.
 
 export type TeacherSaveDb = Pick<PrismaClient, "teacher" | "subject" | "class">;
 
@@ -66,10 +78,11 @@ export const saveTeacherBatchWith = async (
   deps: TeacherSaveDeps,
   schoolId: number,
   rows: SaveRowInput[],
-): Promise<{ results: SaveRowResult[] }> => {
+): Promise<SaveBatchResult> => {
   if (rows.length > SAVE_BATCH_SIZE) throw new Error(`A batch holds at most ${SAVE_BATCH_SIZE} rows.`);
 
   const { db } = deps;
+  const signal = stopSignal();
   const clerk = politeClerk(deps.clerk, deps.wait);
   const context = await loadTeacherContext(db, schoolId);
   const decisions = Object.fromEntries(rows.map((row) => [row.sourceRow, row.decision ?? {}]));
@@ -79,8 +92,9 @@ export const saveTeacherBatchWith = async (
   let usernames: string[] = [];
   try {
     usernames = await pickFreeUsernames(clerk, "teacher", reviewed.filter((row) => row.canSave && row.status === "new").length);
-  } catch {
-    // Each new row then reports that no username could be found.
+  } catch (err) {
+    // Clerk can't be asked, so no new teacher can be made in this batch.
+    signal.stop(stopReasonOf(err) ?? "accountService");
   }
 
   const failed = (row: ReviewedTeacherRow, reason: SaveReason): SaveRowResult => ({
@@ -142,17 +156,23 @@ export const saveTeacherBatchWith = async (
     return changed.ok ? { sourceRow: row.sourceRow, outcome: "updated", reasons: [], logins: [] } : failed(row, changed.problem);
   };
 
-  const saveRow = async (row: ReviewedTeacherRow): Promise<SaveRowResult> => {
+  /** Saves one row. Undefined when a problem that stops the batch kept it from saving. */
+  const saveRow = async (row: ReviewedTeacherRow): Promise<SaveRowResult | undefined> => {
     try {
       return row.status === "new" ? await createRow(row) : await updateRow(row);
     } catch (err) {
       // An email or phone taken since the review, such as by another import running now.
       if (isUniqueClash(err)) return failed(row, "contactTaken");
+      const stop = stopReasonOf(err);
+      if (stop) {
+        signal.stop(stop);
+        return undefined;
+      }
       return failed(row, err instanceof AccountError ? "accountFailed" : "saveFailed");
     }
   };
 
-  const results: SaveRowResult[] = new Array(reviewed.length);
+  const results: (SaveRowResult | undefined)[] = new Array(reviewed.length);
   const toSave: number[] = [];
   reviewed.forEach((row, index) => {
     if (row.status === "skipped") {
@@ -171,13 +191,16 @@ export const saveTeacherBatchWith = async (
   // a different teacher and they can be saved side by side.
   await runLimited(
     toSave.map((index) => async () => {
+      // After a stop no new row starts. Rows already running finish.
+      if (signal.reason) return;
       results[index] = await saveRow(reviewed[index]);
     }),
     ROWS_AT_ONCE,
   );
 
+  const saved = results.filter((result): result is SaveRowResult => result !== undefined);
   // Emails go out once everyone is saved, a few at a time.
-  await emailLogins(results.flatMap((result) => result.logins), deps.sendEmail);
+  await emailLogins(saved.flatMap((result) => result.logins), deps.sendEmail);
 
-  return { results };
+  return { results: saved, ...(signal.reason && { stopped: signal.reason }) };
 };

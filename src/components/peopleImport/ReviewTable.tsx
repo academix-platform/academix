@@ -1,6 +1,6 @@
 "use client";
 
-import { Loader2 } from "lucide-react";
+import { AlertTriangle, Loader2 } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -24,7 +24,10 @@ import {
   type ReviewState,
   type ReviewedRow,
 } from "@/lib/peopleImport/reviewState";
-import type { Login, SaveRowResult } from "@/lib/peopleImport/saveBatch";
+import type { Login, SaveRowResult, StopReason } from "@/lib/peopleImport/saveBatch";
+
+/** Why saving stopped: a reason from the server, or the server couldn't be reached. */
+type SaveStop = StopReason | "connection";
 import type { SubjectLabel } from "@/lib/peopleImport/teacherFlags";
 
 import ReviewRow from "./ReviewRow";
@@ -55,6 +58,7 @@ export default function ReviewTable({
   const [checking, setChecking] = useState(true);
   const [checkFailed, setCheckFailed] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
+  const [stopped, setStopped] = useState<{ reason: SaveStop; left: number } | null>(null);
   const [filter, setFilter] = useState<ReviewFilter>("all");
   const [page, setPage] = useState(1);
   const latest = useRef(0);
@@ -114,21 +118,32 @@ export default function ReviewTable({
     let done = 0;
     let current = state;
     setProgress({ done, total });
+    setStopped(null);
+    // At the first problem no row can get past, saving stops. What saved stays
+    // saved, and the rows not saved stay ready to save once it's fixed.
     for (const batch of batches) {
-      let results: SaveRowResult[];
+      let results: SaveRowResult[] = [];
+      let stop: SaveStop | undefined;
       try {
         const reply = kind === "students" ? await saveStudentImportBatch(batch) : await saveTeacherImportBatch(batch);
-        results = reply.success && reply.results
-          ? reply.results
-          : batch.map((row) => ({ sourceRow: row.sourceRow, outcome: "failed" as const, reasons: ["saveFailed" as const], logins: [] }));
+        if (reply.success && reply.results) {
+          results = reply.results;
+          stop = reply.stopped;
+        } else {
+          stop = "saveProblem";
+        }
       } catch {
-        results = batch.map((row) => ({ sourceRow: row.sourceRow, outcome: "failed" as const, reasons: ["saveFailed" as const], logins: [] }));
+        stop = "connection";
       }
       onLogins(results.flatMap((result) => result.logins));
       current = recordResults(current, results);
       setState(current);
-      done += batch.length;
+      done += results.length;
       setProgress({ done, total });
+      if (stop) {
+        setStopped({ reason: stop, left: total - done });
+        break;
+      }
     }
     setProgress(null);
     setFilter("needsFixing");
@@ -177,6 +192,16 @@ export default function ReviewTable({
               {t("tryAgain")}
             </button>
           </p>
+        )}
+        {stopped && !saving && (
+          <div role="alert" className="flex items-start gap-3 bg-red-50 my-1 p-3 border border-red-200 rounded-md text-red-900">
+            <AlertTriangle className="mt-0.5 w-5 h-5 text-red-600 shrink-0" aria-hidden="true" />
+            <div className="flex flex-col gap-1">
+              <p className="font-semibold">{t("stopped.title")}</p>
+              <p>{t(`stopped.${stopped.reason}`)}</p>
+              <p className="text-red-800">{t("stopped.kept", { saved: savedCount, left: stopped.left })}</p>
+            </div>
+          </div>
         )}
         {savedCount + failedCount > 0 && !saving && (
           <p className="text-gray-700">{t("savedSummary", { saved: savedCount, failed: failedCount })}</p>
