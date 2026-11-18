@@ -1,6 +1,6 @@
 "use client";
 
-import { FileText, Loader2, Upload } from "lucide-react";
+import { Download, FileText, Loader2, Upload } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { useId, useRef, useState } from "react";
 
@@ -14,7 +14,9 @@ import {
   findHeaderRow,
   type ColumnChoice,
   type ImportKind,
+  type PersonField,
 } from "@/lib/peopleImport/columns";
+import { mappingFromHeaders, type FieldLabels } from "@/lib/peopleImport/importSheet";
 import { decodeCsv, parseCsv } from "@/lib/peopleImport/csv";
 import {
   IMPORT_FILE_ACCEPT,
@@ -136,6 +138,16 @@ export default function ImportUpload({
 
   const readColumns = async () => {
     if (!rows) return;
+    // A sheet downloaded from here has the import's own headers: no need to ask the column reader.
+    const labels = Object.fromEntries(
+      fieldsFor(kind).map((field: PersonField) => [field, t(`fields.${field}`)]),
+    ) as FieldLabels;
+    const known = mappingFromHeaders(kind, header, labels);
+    if (known) {
+      setMapping(known);
+      setMappingFailed(false);
+      return;
+    }
     const columns = describeColumns(header, dataRows);
     setBusy("columns");
     try {
@@ -198,6 +210,17 @@ export default function ImportUpload({
             {t("upload.reading")}
           </p>
         )}
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 bg-slate-50 p-3 rounded-md text-sm">
+          <a
+            href={kind === "students" ? "/api/admin/students/import-sheet" : "/api/admin/teachers/import-sheet"}
+            download
+            className="inline-flex items-center gap-1.5 bg-white hover:bg-slate-100 px-3 border border-slate-200 rounded-lg h-9 font-medium text-slate-700 hover:text-purple-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600"
+          >
+            <Download className="w-4 h-4" aria-hidden="true" />
+            {t("sheet.download")}
+          </a>
+          <span className="text-gray-600">{t(kind === "students" ? "sheet.studentsHint" : "sheet.teachersHint")}</span>
+        </div>
         <p className="text-gray-600 text-sm">{t("upload.photoNote", { pages: MAX_PDF_PAGES })}</p>
         {busy === "reading" && (
           <p role="status" className="inline-flex items-center gap-2 text-gray-600 text-sm">

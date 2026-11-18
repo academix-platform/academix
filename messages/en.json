@@ -2038,6 +2038,16 @@
       "hint": "Excel (.xlsx), CSV, a photo, or a PDF. Printed or handwritten, from any school, with the columns in any order.",
       "reading": "Reading the file…"
     },
+    "sheet": {
+      "download": "Download Excel sheet",
+      "studentsHint": "The school's students and parents in the import's columns. Add new rows or change values, then upload it here.",
+      "teachersHint": "The school's teachers in the import's columns. Add new rows or change values, then upload it here.",
+      "studentsSheetName": "Students",
+      "teachersSheetName": "Teachers",
+      "male": "Male",
+      "female": "Female",
+      "direction": "ltr"
+    },
     "fileProblems": {
       "xls": "This is an old Excel file (.xls). Open it in Excel, save it as .xlsx, and upload it again.",
       "unsupported": "This file type can't be imported. Upload an Excel (.xlsx) or CSV file, a JPEG, PNG or WebP photo, or a PDF.",
