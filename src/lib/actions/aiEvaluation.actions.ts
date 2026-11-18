@@ -7,6 +7,7 @@ import {
   downloadPrivateCloudinaryFileToBuffer,
 } from "@/lib/ai/cloudinaryFile";
 import { evaluateWithGemini } from "@/lib/ai/geminiEvaluation";
+import { aiModel } from "@/lib/ai/geminiModel";
 import type { AiEvaluationSuggestion } from "@/lib/ai/evaluationPrompt";
 import { assignmentManagerWhere } from "@/lib/assignments/group";
 import { deleteAssignmentResultsForSubmissions } from "@/lib/assignments/results";
@@ -65,7 +66,7 @@ const recordFailure = async (
 ) => {
   const data = {
     schoolId,
-    model: process.env.GEMINI_MODEL || "gemini-3.5-flash",
+    model: aiModel(),
     status: AiEvaluationStatus.FAILED,
     score: null,
     maxScore,

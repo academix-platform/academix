@@ -36,6 +36,7 @@
     "react-dom": "^19.2.3",
     "react-hook-form": "^7.52.2",
     "react-toastify": "^11.0.5",
+    "read-excel-file": "9.3.14",
     "recharts": "^2.12.7",
     "zod": "^3.23.8"
   },

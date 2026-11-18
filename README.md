@@ -19,6 +19,7 @@ Academix is a modern **School Management and Assessment System** designed to str
 ### Administration
 
 - Manage students, teachers, parents, and classes
+- Import students with their parents, or teachers, from one file: Excel, CSV, a photo, or a PDF, printed or handwritten. Every row is checked on a review screen before anything is saved, and people who already exist are updated, never added twice
 - Organize academic years, subjects, and schedules
 - School-wide analytics and reporting
 - User and role management
@@ -77,7 +78,7 @@ Academix is a modern **School Management and Assessment System** designed to str
 - **Authentication:** Clerk
 - **Forms & Validation:** React Hook Form, Zod
 - **Internationalization:** next-intl
-- **AI Integration:** Google Gemini API
+- **AI Integration:** Google Gemini API, and Groq for reading spreadsheet columns
 - **File Storage:** Cloudinary
 - **Email:** Nodemailer
 - **Data Visualization:** Recharts

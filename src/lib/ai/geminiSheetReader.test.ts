@@ -29,7 +29,8 @@ const goodReply = JSON.stringify({
 describe("readSheetPhoto", () => {
   beforeEach(() => {
     vi.stubEnv("GEMINI_API_KEY", "test-key");
-    vi.stubEnv("GEMINI_MODEL", "");
+    vi.stubEnv("AI_MODEL", "");
+    vi.stubEnv("AI_PROVIDER", "");
     create.mockReset();
     create.mockResolvedValue({ output_text: goodReply, usage: {} });
   });
@@ -99,8 +100,8 @@ describe("readSheetPhoto", () => {
     expect(usage).toEqual({ inputTokens: 1000, outputTokens: 200, thoughtTokens: 50 });
   });
 
-  it("uses the GEMINI_MODEL setting when it is set", async () => {
-    vi.stubEnv("GEMINI_MODEL", "gemini-test-model");
+  it("uses the AI_MODEL setting when it is set", async () => {
+    vi.stubEnv("AI_MODEL", "gemini-test-model");
 
     const { model } = await readSheetPhoto(input);
 
@@ -111,7 +112,7 @@ describe("readSheetPhoto", () => {
   it("defaults to a stable model that isn't deprecated", async () => {
     const { model } = await readSheetPhoto(input);
 
-    expect(model).toBe("gemini-3.6-flash");
+    expect(model).toBe("gemini-3.8-flash");
   });
 
   it("fails clearly when the API key is missing", async () => {
