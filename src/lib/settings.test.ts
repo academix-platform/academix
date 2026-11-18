@@ -19,6 +19,14 @@ describe("routePermissions", () => {
     expect(rolesFor("/list/entry-sheets/abc/print")).toEqual(["admin", "teacher"]);
   });
 
+  it.each(["/list/students/import", "/list/teachers/import"])("lets only admins import at %s", (pathname) => {
+    expect(rolesFor(pathname)).toEqual(["admin"]);
+  });
+
+  it("still lets teachers see the students list", () => {
+    expect(rolesFor("/list/students")).toEqual(["admin", "teacher"]);
+  });
+
   it("still lets students and parents see their results", () => {
     expect(rolesFor("/list/results")).toEqual(["admin", "teacher", "student", "parent"]);
   });

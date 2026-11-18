@@ -8,13 +8,9 @@ import {
   parseSheetReply,
   sheetReplySchema,
 } from "./sheetReadingPrompt";
+import { aiProvider, geminiModel } from "./geminiModel";
+import { groqJson } from "./groqChat";
 
-// gemini-3.5-flash, the default in geminiEvaluation.ts, is deprecated in favour
-// of this model: https://aistudio.google.com/docs/models/gemini-3.5-flash
-const DEFAULT_MODEL = "gemini-3.6-flash";
-
-/** The model sheets are read with, from GEMINI_MODEL or the default. */
-export const sheetReadingModel = () => process.env.GEMINI_MODEL || DEFAULT_MODEL;
 
 export type SheetPhotoMimeType =
   | "image/jpeg"
@@ -38,7 +34,8 @@ export type SheetReadResult = {
 };
 
 let client: GoogleGenAI | null = null;
-const getClient = () => {
+/** The shared Gemini client, also used to read people imports. */
+export const getGeminiClient = () => {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured.");
   }
@@ -62,8 +59,23 @@ export async function readSheetPhoto({
   kind,
   rowNumbers,
 }: SheetReadInput): Promise<SheetReadResult> {
-  const gemini = getClient();
-  const model = sheetReadingModel();
+  if (aiProvider() === "groq") {
+    const read = await groqJson({
+      system: SHEET_READING_SYSTEM_INSTRUCTION,
+      text: buildSheetReadingPrompt(kind),
+      image: { data: photo, mimeType },
+      schema: sheetReplySchema,
+      name: "sheet_reply",
+    });
+    return {
+      reply: parseSheetReply(read.text, { kind, rowNumbers }),
+      model: read.model,
+      usage: { ...read.usage, thoughtTokens: 0 },
+    };
+  }
+
+  const gemini = getGeminiClient();
+  const model = geminiModel();
 
   const interaction = await gemini.interactions.create({
     model,

@@ -1,4 +1,11 @@
 import z from "zod";
+import { nationalIdProblem, readNationalId } from "./peopleImport/nationalId";
+
+// An empty date input sends "", which would otherwise become an invalid date.
+const optionalDate = z.preprocess(
+  (value) => (value === "" || value == null ? undefined : value),
+  z.coerce.date({ message: "Invalid date!" }).optional(),
+);
 
 export const subjectSchema = z.object({
   id: z.coerce.number().optional(),
@@ -49,10 +56,10 @@ export const teacherSchema = z.object({
     .optional()
     .or(z.literal("")),
   phone: z.string().optional(),
-  address: z.string().min(1, { message: "Address Type is required!" }),
+  address: z.string().optional(),
   img: z.string().optional(),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
+  bloodType: z.string().optional(),
+  birthday: optionalDate,
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   subjects: z.array(z.string()).optional(), // subject ids
   subjectClassPairs: z
@@ -79,6 +86,17 @@ export const studentSchema = z.object({
     .optional()
     .or(z.literal("")),
   name: z.string().min(1, { message: "First name is required!" }),
+  // The message is a translation key under forms.student.nationalIdErrors.
+  nationalId: z
+    .preprocess((value) => value ?? "", z.string())
+    .superRefine((value, ctx) => {
+      const problem = nationalIdProblem(value);
+      if (problem) ctx.addIssue({ code: z.ZodIssueCode.custom, message: problem });
+    })
+    .transform((value) => {
+      const read = readNationalId(value);
+      return read.ok ? read.id : value;
+    }),
   email: z
     .string()
     .email({ message: "Invalid email address!" })
@@ -89,10 +107,10 @@ export const studentSchema = z.object({
     .min(10, { message: "Phone number must be at least 10 characters long!" })
     .max(10, { message: "Phone number must be at most 10 characters long!" })
     .optional(),
-  address: z.string().min(1, { message: "Address Type is required!" }),
+  address: z.string().optional(),
   img: z.string().optional(),
-  bloodType: z.string().min(1, { message: "Blood Type is required!" }),
-  birthday: z.coerce.date({ message: "Birthday is required!" }),
+  bloodType: z.string().optional(),
+  birthday: optionalDate,
   sex: z.enum(["MALE", "FEMALE"], { message: "Sex is required!" }),
   gradeId: z.coerce.number().min(1, { message: "Grade is required!" }),
   classId: z.coerce.number().min(1, { message: "Class is required!" }),
@@ -127,7 +145,7 @@ export const parentSchema = z.object({
     .string()
     .min(10, { message: "Phone number must be at least 10 characters long!" })
     .max(10, { message: "Phone number must be at most 10 characters long!" }),
-  address: z.string().min(1, { message: "Address Type is required!" }),
+  address: z.string().optional(),
   students: z.array(z.string()).optional(), // students ids
 });
 

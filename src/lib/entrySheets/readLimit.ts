@@ -47,7 +47,8 @@ export type ReadLogDb = Pick<PrismaClient, "entrySheetRead">;
  * Logs a page read before Gemini is called, so every paid call counts towards
  * the limit even if it fails. Refuses, logging nothing, once the school has
  * reached its limit for the day. The log holds only the school, sheet, model,
- * status and time: never the photo, marks or names.
+ * status and time: never the photo, marks or names. A read that isn't of a
+ * printed sheet, such as a people import page, is logged without a sheet.
  */
 export const reserveSheetRead = async (
   db: ReadLogDb,
@@ -57,7 +58,7 @@ export const reserveSheetRead = async (
     model,
     limit,
     now = new Date(),
-  }: { schoolId: number; sheetId: string; model: string; limit: number; now?: Date },
+  }: { schoolId: number; sheetId?: string; model: string; limit: number; now?: Date },
 ): Promise<{ allowed: false } | { allowed: true; readId: number }> => {
   const usedToday = await db.entrySheetRead.count({
     where: { schoolId, createdAt: { gte: startOfSchoolDay(now) } },
@@ -66,13 +67,50 @@ export const reserveSheetRead = async (
   if (usedToday >= limit) return { allowed: false };
 
   const { id } = await db.entrySheetRead.create({
-    data: { schoolId, sheetId, model, succeeded: false },
+    data: { schoolId, sheetId: sheetId ?? null, model, succeeded: false },
     select: { id: true },
   });
   return { allowed: true, readId: id };
 };
 
-/** Marks a logged read as succeeded, against the sheet the photo matched. */
-export const markSheetReadSucceeded = async (db: ReadLogDb, readId: number, sheetId: string) => {
-  await db.entrySheetRead.update({ where: { id: readId }, data: { sheetId, succeeded: true } });
+/** Marks a logged read as succeeded, against the sheet the photo matched when there is one. */
+export const markSheetReadSucceeded = async (db: ReadLogDb, readId: number, sheetId?: string) => {
+  await db.entrySheetRead.update({
+    where: { id: readId },
+    data: { ...(sheetId !== undefined && { sheetId }), succeeded: true },
+  });
+};
+
+/**
+ * Logs every page of one file before Gemini is called, or none of them: a
+ * file that would take the school past its limit for the day is refused
+ * whole. Used for people imports, where a PDF holds several pages and each
+ * page counts. The log holds no sheet, and never the file or what it says.
+ */
+export const reservePageReads = async (
+  db: ReadLogDb,
+  { schoolId, model, limit, pages, now = new Date() }: { schoolId: number; model: string; limit: number; pages: number; now?: Date },
+): Promise<{ allowed: false } | { allowed: true; readIds: number[] }> => {
+  if (!Number.isInteger(pages) || pages < 1) throw new Error("A file has at least one page.");
+
+  const usedToday = await db.entrySheetRead.count({
+    where: { schoolId, createdAt: { gte: startOfSchoolDay(now) } },
+  });
+  // Two reads at the same moment can both pass, so a school may go a file over.
+  if (usedToday + pages > limit) return { allowed: false };
+
+  const readIds: number[] = [];
+  for (let page = 0; page < pages; page++) {
+    const { id } = await db.entrySheetRead.create({
+      data: { schoolId, sheetId: null, model, succeeded: false },
+      select: { id: true },
+    });
+    readIds.push(id);
+  }
+  return { allowed: true, readIds };
+};
+
+/** Marks every logged page of a file as read. */
+export const markPageReadsSucceeded = async (db: ReadLogDb, readIds: number[]) => {
+  for (const readId of readIds) await markSheetReadSucceeded(db, readId);
 };

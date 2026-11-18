@@ -186,7 +186,7 @@ const ParentForm = ({
           error={errors.phone}
         />
         <InputField
-          label={commonT("address")}
+          label={`${commonT("address")} (${commonT("optional")})`}
           name="address"
           defaultValue={data?.address}
           register={register}

@@ -2,6 +2,7 @@ import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import PromoteStudentsButton from "@/components/PromoteStudentsButton";
+import ImportLink from "@/components/peopleImport/ImportLink";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -10,11 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { getTranslations } from "next-intl/server";
 import { getCurrentAcademicYearOrNull } from "@/lib/academicYears";
 import { enforceRouteAccess } from "@/lib/enforce-route-access";
-import { buildStudentQuery } from "@/lib/query-builders/student-query";
+import {
+  buildStudentQuery,
+  missingNationalIdWhere,
+} from "@/lib/query-builders/student-query";
 import prisma from "@/lib/prisma";
 import { ITEM_PER_PAGE } from "@/lib/settings";
 import { Class, Student } from "@prisma/client";
-import { Eye } from "lucide-react";
+import { Eye, IdCard } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import NoCurrentAcademicYearMessage from "@/components/NoCurrentAcademicYearMessage";
@@ -150,6 +154,7 @@ const StudentListPage = async ({
     query,
     orderBy,
     page: p,
+    missingNationalIdOnly,
   } = await buildStudentQuery({
     searchParams,
     schoolId,
@@ -171,6 +176,21 @@ const StudentListPage = async ({
   );
 
   exportQuery.set("academicYearId", String(academicYearId));
+
+  // Admins see how many students still need a national ID, and can list them.
+  const missingNationalIdCount =
+    role === "admin"
+      ? await prisma.student.count({ where: missingNationalIdWhere(query) })
+      : 0;
+
+  const missingNationalIdQuery = new URLSearchParams(exportQuery);
+  missingNationalIdQuery.delete("academicYearId");
+  missingNationalIdQuery.delete("page");
+  if (missingNationalIdOnly) {
+    missingNationalIdQuery.delete("missingNationalId");
+  } else {
+    missingNationalIdQuery.set("missingNationalId", "1");
+  }
 
   const classWhere =
     role === "teacher"
@@ -240,6 +260,7 @@ const StudentListPage = async ({
               <ExportButton
                 href={`/api/admin/students/export?${exportQuery.toString()}`}
               />
+              <ImportLink href="/list/students/import" />
               <PromoteStudentsButton
                 academicYearName={currentAcademicYear.name}
                 academicYearEndDate={currentAcademicYear.endDate}
@@ -256,6 +277,22 @@ const StudentListPage = async ({
           <>
             <GradeFilter grades={grades} />
             <ClassFilter classes={classes} />
+            {role === "admin" && (missingNationalIdCount > 0 || missingNationalIdOnly) && (
+              <Link
+                href={`?${missingNationalIdQuery.toString()}`}
+                aria-current={missingNationalIdOnly ? "true" : undefined}
+                className={`inline-flex items-center gap-2 h-9 rounded-lg border px-3 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-600 ${
+                  missingNationalIdOnly
+                    ? "border-purple-700 bg-purple-700 text-white"
+                    : "border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-200"
+                }`}
+              >
+                <IdCard className="w-4 h-4" aria-hidden="true" />
+                {missingNationalIdOnly
+                  ? t("showAllStudents")
+                  : t("missingNationalId", { count: missingNationalIdCount })}
+              </Link>
+            )}
           </>
         }
         actions={<FilterSortActions sortKey="sort" />}

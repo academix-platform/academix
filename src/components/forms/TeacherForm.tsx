@@ -233,21 +233,21 @@ const TeacherForm = ({
             error={errors.phone}
           />
           <InputField
-            label={commonT("address")}
+            label={`${commonT("address")} (${commonT("optional")})`}
             name="address"
             defaultValue={data?.address}
             register={register}
             error={errors.address}
           />
           <InputField
-            label={commonT("bloodType")}
+            label={`${commonT("bloodType")} (${commonT("optional")})`}
             name="bloodType"
             defaultValue={data?.bloodType}
             register={register}
             error={errors.bloodType}
           />
           <InputField
-            label={commonT("birthday")}
+            label={`${commonT("birthday")} (${commonT("optional")})`}
             name="birthday"
             defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
             register={register}

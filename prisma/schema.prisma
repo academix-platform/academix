@@ -136,11 +136,12 @@ model Student {
   school                School                 @relation(fields: [schoolId], references: [id])
   username              String
   name                  String
+  nationalId            String? // Required by the app. Empty only for students added before it was.
   email                 String?
   phone                 String?
-  address               String
+  address               String?
   img                   String?
-  bloodType             String
+  bloodType             String?
   sex                   UserSex
   status                StudentStatus          @default(ACTIVE)
   repeatCount           Int                    @default(0)
@@ -156,13 +157,14 @@ model Student {
   finalResults          StudentFinalResult[]
   messages              Message[]
   academicYears         StudentAcademicYear[]
-  birthday              DateTime
+  birthday              DateTime?
   submissions           Submission[] // exam submissions
   assignmentSubmissions AssignmentSubmission[] // assignment submissions
 
   @@unique([schoolId, username])
   @@unique([schoolId, email])
   @@unique([schoolId, phone])
+  @@unique([schoolId, nationalId])
   @@index([schoolId])
 }
 
@@ -174,9 +176,9 @@ model Teacher {
   name                String
   email               String?
   phone               String?
-  address             String
+  address             String?
   img                 String?
-  bloodType           String
+  bloodType           String?
   sex                 UserSex
   createdAt           DateTime              @default(now())
   subjects            Subject[]
@@ -186,7 +188,7 @@ model Teacher {
   attendances         Attendance[]
   messages            Message[]
   studyMaterials      StudyMaterial[]
-  birthday            DateTime
+  birthday            DateTime?
   exams               Exam[]
   assignments         Assignment[]
   subjectPageSettings SubjectPageSettings[]
@@ -205,7 +207,7 @@ model Parent {
   name      String
   email     String?
   phone     String
-  address   String
+  address   String?
   createdAt DateTime  @default(now())
   students  Student[]
   messages  Message[]
@@ -892,8 +894,8 @@ model EntrySheetRead {
   id        Int        @id @default(autoincrement())
   schoolId  Int
   school    School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
-  sheetId   String
-  sheet     EntrySheet @relation(fields: [sheetId], references: [id], onDelete: Cascade)
+  sheetId   String?
+  sheet     EntrySheet? @relation(fields: [sheetId], references: [id], onDelete: Cascade)
   model     String
   succeeded Boolean
   createdAt DateTime   @default(now())

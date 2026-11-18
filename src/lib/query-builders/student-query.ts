@@ -85,6 +85,13 @@ export async function buildStudentQuery({
   });
   break;
 
+  case "missingNationalId":
+    // Only admins manage national IDs.
+    if (role === "admin" && value === "1") {
+      conditions.push({ nationalId: null });
+    }
+    break;
+
   case "teacherId":
     conditions.push({
       class: {
@@ -145,6 +152,7 @@ export async function buildStudentQuery({
  
 return {
   query,
+  missingNationalIdOnly: role === "admin" && getQueryParam(queryParams.missingNationalId) === "1",
   orderBy,
   page: Number.isNaN(p) || p < 1 ? 1 : p,
   selectedAcademicYearId,
@@ -152,3 +160,12 @@ return {
   selectedRepeatCount,
 };
 }
+
+/**
+ * Students in the list's year and status who still have no national ID,
+ * ignoring search and class filters, for the count shown to admins.
+ */
+export const missingNationalIdWhere = (query: Prisma.StudentWhereInput): Prisma.StudentWhereInput => {
+  const { AND: _filters, ...base } = query;
+  return { ...base, nationalId: null };
+};

@@ -1,6 +1,7 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ImportLink from "@/components/peopleImport/ImportLink";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -234,6 +235,7 @@ const TeacherListPage = async ({
               <ExportButton
                 href={`/api/admin/teachers/export?${exportQuery.toString()}`}
               />
+              <ImportLink href="/list/teachers/import" />
               <FormContainer table="teacher" type="create" />
             </>
           ) : undefined

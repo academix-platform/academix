@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import {
   DEFAULT_SHEET_SCAN_DAILY_LIMIT,
   ReadLogDb,
+  markPageReadsSucceeded,
   markSheetReadSucceeded,
+  reservePageReads,
   reserveSheetRead,
   sheetScanDailyLimit,
   startOfSchoolDay,
@@ -12,7 +14,7 @@ import {
 type LogRow = {
   id: number;
   schoolId: number;
-  sheetId: string;
+  sheetId: string | null;
   model: string;
   succeeded: boolean;
   createdAt: Date;
@@ -139,6 +141,36 @@ describe("reserveSheetRead", () => {
   });
 });
 
+describe("a read with no sheet, such as a people import page", () => {
+  const reservePeopleRead = (db: ReadLogDb, limit = 3) =>
+    reserveSheetRead(db, { schoolId: 1, model: "gemini-test", limit, now: NOW });
+
+  it("is logged without a sheet", async () => {
+    const { db, table, written } = fakeReadLog();
+    expect(await reservePeopleRead(db)).toEqual({ allowed: true, readId: 1 });
+    expect(table[0]).toMatchObject({ schoolId: 1, sheetId: null, succeeded: false });
+    expect(Object.keys(written[0]).sort()).toEqual(["model", "schoolId", "sheetId", "succeeded"]);
+  });
+
+  it("shares the school's daily limit with sheet reads", async () => {
+    const { db, table } = fakeReadLog([read(1, NOW), read(1, NOW)]);
+    expect(await reservePeopleRead(db, 3)).toMatchObject({ allowed: true });
+    expect(await reservePeopleRead(db, 3)).toEqual({ allowed: false });
+    expect(await reserve(db, 3)).toEqual({ allowed: false });
+    expect(table).toHaveLength(3);
+  });
+
+  it("is marked as succeeded without being given a sheet", async () => {
+    const { db, table, written } = fakeReadLog();
+    const outcome = await reservePeopleRead(db);
+    if (!outcome.allowed) throw new Error("expected the read to be allowed");
+    await markSheetReadSucceeded(db, outcome.readId);
+
+    expect(written[1]).toEqual({ succeeded: true });
+    expect(table[0]).toMatchObject({ sheetId: null, succeeded: true });
+  });
+});
+
 describe("the read log", () => {
   it("holds only the school, sheet, model and status, and the database adds the time", async () => {
     const { db, table, written } = fakeReadLog();
@@ -150,5 +182,58 @@ describe("the read log", () => {
     expect(Object.keys(written[1]).sort()).toEqual(["sheetId", "succeeded"]);
     expect(Object.keys(table[0]).sort()).toEqual(["createdAt", "id", "model", "schoolId", "sheetId", "succeeded"]);
     expect(table[0]).toMatchObject({ sheetId: "sheet_2", succeeded: true });
+  });
+});
+
+describe("reading a file of several pages", () => {
+  const reservePages = (db: ReadLogDb, pages: number, limit = 10) =>
+    reservePageReads(db, { schoolId: 1, model: "gemini-test", limit, pages, now: NOW });
+
+  it("logs one read for each page, without a sheet", async () => {
+    const { db, table } = fakeReadLog();
+
+    const reserved = await reservePages(db, 3);
+
+    expect(reserved).toEqual({ allowed: true, readIds: [1, 2, 3] });
+    expect(table).toHaveLength(3);
+    expect(table.every((row) => row.sheetId === null && row.succeeded === false && row.schoolId === 1)).toBe(true);
+  });
+
+  it("allows a file that brings the school exactly to its limit", async () => {
+    const { db, table } = fakeReadLog([read(1, NOW), read(1, NOW)]);
+
+    expect((await reservePages(db, 8)).allowed).toBe(true);
+    expect(table).toHaveLength(10);
+  });
+
+  it("refuses the whole file, logging nothing, when its pages would pass the limit", async () => {
+    const { db, table } = fakeReadLog([read(1, NOW), read(1, NOW), read(1, NOW)]);
+
+    expect(await reservePages(db, 8)).toEqual({ allowed: false });
+    expect(table).toHaveLength(3);
+  });
+
+  it("shares the day's limit with sheet reads, and counts only this school", async () => {
+    const { db } = fakeReadLog([read(2, NOW), read(2, NOW), read(2, NOW)]);
+
+    expect((await reservePages(db, 10)).allowed).toBe(true);
+    expect((await reserve(db, 10)).allowed).toBe(false);
+  });
+
+  it("marks every page as read once the file was read", async () => {
+    const { db, table } = fakeReadLog();
+    const reserved = await reservePages(db, 2);
+    if (!reserved.allowed) throw new Error("expected the read to be allowed");
+
+    await markPageReadsSucceeded(db, reserved.readIds);
+
+    expect(table.map((row) => row.succeeded)).toEqual([true, true]);
+    expect(table.every((row) => row.sheetId === null)).toBe(true);
+  });
+
+  it("refuses a file with no pages", async () => {
+    const { db } = fakeReadLog();
+
+    await expect(reservePages(db, 0)).rejects.toThrow();
   });
 });
