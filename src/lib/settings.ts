@@ -12,8 +12,6 @@ export const routePermissions: Record<string, UserRole[]> = {
 
   "/list/lessons(.*)": ["admin"],
   "/list/teachers(.*)": ["admin"],
-  // Must stay above "/list/students(.*)": the proxy stops at the first match.
-  "/list/students/import(.*)": ["admin"],
   "/list/students(.*)": ["admin", "teacher"],
   "/list/parents(.*)": ["admin", "teacher"],
   "/list/subjects(.*)": ["admin", "teacher", "student", "parent"],

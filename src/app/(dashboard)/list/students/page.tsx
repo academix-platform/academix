@@ -2,7 +2,7 @@ import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
 import PromoteStudentsButton from "@/components/PromoteStudentsButton";
-import ImportLink from "@/components/peopleImport/ImportLink";
+import ImportButton from "@/components/peopleImport/ImportButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -133,6 +133,11 @@ const renderRow = (item: StudentList, role: UserRole | null) => (
   </tr>
 );
 
+// The import dialog's server actions run under this page's limit, and reading
+// a 10-page PDF can take most of a minute.
+// Source: https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#maxduration
+export const maxDuration = 60;
+
 const StudentListPage = async ({
   searchParams,
 }: {
@@ -260,7 +265,7 @@ const StudentListPage = async ({
               <ExportButton
                 href={`/api/admin/students/export?${exportQuery.toString()}`}
               />
-              <ImportLink href="/list/students/import" />
+              <ImportButton kind="students" />
               <PromoteStudentsButton
                 academicYearName={currentAcademicYear.name}
                 academicYearEndDate={currentAcademicYear.endDate}

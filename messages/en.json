@@ -2024,7 +2024,12 @@
     "importButton": "Import",
     "studentsTitle": "Import students and parents",
     "teachersTitle": "Import teachers",
-    "back": "Back to the list",
+    "closeConfirm": {
+      "title": "Close the import?",
+      "description": "The loaded file and any logins you have not printed yet will be lost.",
+      "confirm": "Close",
+      "cancel": "Keep importing"
+    },
     "upload": {
       "label": "Choose a file",
       "photoNote": "A photo or a PDF (up to 4 MB and {pages} pages) is sent to be read, and is not kept. Each page counts toward the school's daily reading limit.",

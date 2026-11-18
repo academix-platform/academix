@@ -14,9 +14,16 @@ import ReviewTable from "./ReviewTable";
 /**
  * The people import, from uploading a file to reviewing and saving its rows.
  * New logins are kept in this page's memory only, never stored, so they are
- * gone once the admin leaves.
+ * gone once the admin leaves or closes the import.
  */
-export default function PeopleImport({ kind }: { kind: ImportKind }) {
+export default function PeopleImport({
+  kind,
+  onDirtyChange,
+}: {
+  kind: ImportKind;
+  /** Told whether closing now would lose a loaded file or logins nobody has received. */
+  onDirtyChange?: (dirty: boolean) => void;
+}) {
   const t = useTranslations("peopleImport");
   const [rows, setRows] = useState<ReviewState["rows"] | null>(null);
   const [logins, setLogins] = useState<Login[]>([]);
@@ -29,6 +36,11 @@ export default function PeopleImport({ kind }: { kind: ImportKind }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [unsent]);
+
+  const dirty = rows !== null || unsent;
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
 
   if (!rows) return <ImportUpload kind={kind} onReady={setRows} />;
 
