@@ -1,6 +1,7 @@
 import ExportButton from "@/components/ExportButton";
 import FilterSortActions from "@/components/FilterSortActions";
 import FormContainer from "@/components/FormContainer";
+import ImportButton from "@/components/peopleImport/ImportButton";
 import Pagination from "@/components/Pagination";
 import Table from "@/components/Table";
 import TableSearch from "@/components/TableSearch";
@@ -149,6 +150,11 @@ const renderRow = (item: TeacherList, role: UserRole | null) => (
   </tr>
 );
 
+// The import dialog's server actions run under this page's limit, and reading
+// a 10-page PDF can take most of a minute.
+// Source: https://nextjs.org/docs/app/api-reference/file-conventions/route-segment-config#maxduration
+export const maxDuration = 60;
+
 const TeacherListPage = async ({
   searchParams,
 }: {
@@ -234,6 +240,7 @@ const TeacherListPage = async ({
               <ExportButton
                 href={`/api/admin/teachers/export?${exportQuery.toString()}`}
               />
+              <ImportButton kind="teachers" />
               <FormContainer table="teacher" type="create" />
             </>
           ) : undefined

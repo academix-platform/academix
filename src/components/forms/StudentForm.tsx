@@ -90,7 +90,13 @@ const StudentForm = ({
           return;
         }
 
-        toast.error(result.message ?? commonT("somethingWentWrong"));
+        // The server repeats the ID check, and also catches an ID used in the school.
+        const code = "code" in result ? result.code : undefined;
+        toast.error(
+          code
+            ? t(`nationalIdErrors.${code}`)
+            : (result.message ?? commonT("somethingWentWrong")),
+        );
       })();
     });
   });
@@ -185,6 +191,25 @@ const StudentForm = ({
             error={errors.name}
           />
           <InputField
+            label={t("nationalId")}
+            name="nationalId"
+            defaultValue={data?.nationalId ?? ""}
+            register={register}
+            error={
+              errors.nationalId && {
+                ...errors.nationalId,
+                message: t(`nationalIdErrors.${errors.nationalId.message}`),
+              }
+            }
+            inputProps={{
+              inputMode: "numeric",
+              autoComplete: "off",
+              dir: "ltr",
+              placeholder: t("nationalIdPlaceholder"),
+              "aria-invalid": errors.nationalId ? true : undefined,
+            }}
+          />
+          <InputField
             label={commonT("phone")}
             name="phone"
             defaultValue={data?.phone}
@@ -192,21 +217,21 @@ const StudentForm = ({
             error={errors.phone}
           />
           <InputField
-            label={commonT("address")}
+            label={`${commonT("address")} (${commonT("optional")})`}
             name="address"
             defaultValue={data?.address}
             register={register}
             error={errors.address}
           />
           <InputField
-            label={commonT("bloodType")}
+            label={`${commonT("bloodType")} (${commonT("optional")})`}
             name="bloodType"
             defaultValue={data?.bloodType}
             register={register}
             error={errors.bloodType}
           />
           <InputField
-            label={commonT("birthday")}
+            label={`${commonT("birthday")} (${commonT("optional")})`}
             name="birthday"
             defaultValue={data?.birthday?.toISOString?.().split("T")[0]}
             register={register}

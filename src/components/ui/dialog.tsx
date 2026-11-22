@@ -73,7 +73,7 @@ export const DialogTrigger = React.forwardRef<
 DialogTrigger.displayName = "DialogTrigger";
 
 export interface DialogContentProps extends React.HTMLAttributes<HTMLDivElement> {
-  size?: "sm" | "md" | "lg" | "xl";
+  size?: "sm" | "md" | "lg" | "xl" | "2xl";
 }
 
 const sizeStyles = {
@@ -81,6 +81,7 @@ const sizeStyles = {
   md: "max-w-lg",
   lg: "max-w-2xl",
   xl: "max-w-4xl",
+  "2xl": "max-w-6xl",
 };
 
 export const DialogContent = React.forwardRef<

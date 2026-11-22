@@ -4,7 +4,8 @@ import { Prisma } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getCurrentAcademicYearOrNull } from "../academicYears";
-import { readSheetPhoto, sheetReadingModel } from "../ai/geminiSheetReader";
+import { aiModel } from "../ai/geminiModel";
+import { readSheetPhoto } from "../ai/geminiSheetReader";
 import { InvalidSheetReplyError, SheetKind } from "../ai/sheetReadingPrompt";
 import { todayInTimeZone } from "../attendanceRules";
 import { markSheetReadSucceeded, reserveSheetRead, sheetScanDailyLimit } from "../entrySheets/readLimit";
@@ -227,7 +228,7 @@ const readPhotoAgainst = async (
     reservation = await reserveSheetRead(prisma, {
       schoolId,
       sheetId: sheets[0].id,
-      model: sheetReadingModel(),
+      model: aiModel(),
       limit: sheetScanDailyLimit(),
     });
   } catch (err) {

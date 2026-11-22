@@ -9,9 +9,10 @@ import {
   parseEvaluationReply,
 } from "./evaluationPrompt";
 
-export type { AiEvaluationSuggestion } from "./evaluationPrompt";
+import { PdfNotSupportedError, aiProvider, geminiModel } from "./geminiModel";
+import { groqJson } from "./groqChat";
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-3.5-flash";
+export type { AiEvaluationSuggestion } from "./evaluationPrompt";
 
 let client: GoogleGenAI | null = null;
 const getClient = () => {
@@ -41,6 +42,18 @@ export async function evaluateWithGemini(
 ): Promise<{ suggestion: AiEvaluationSuggestion; model: string }> {
   const { studentPdf, instructionsPdf, ...promptInput } = input;
 
+  if (aiProvider() === "groq") {
+    // Groq reads text and images, not PDFs.
+    if (studentPdf || instructionsPdf) throw new PdfNotSupportedError();
+    const read = await groqJson({
+      system: EVALUATION_SYSTEM_INSTRUCTION,
+      text: buildEvaluationPrompt({ ...promptInput, studentAnswer: promptInput.studentAnswer ?? "", hasInstructionsFile: false }),
+      schema: evaluationResponseSchema(input.maxScore),
+      name: "evaluation",
+    });
+    return { suggestion: parseEvaluationReply(read.text, input.maxScore), model: read.model };
+  }
+
   const parts: Part[] = [
     {
       text: buildEvaluationPrompt({
@@ -60,8 +73,9 @@ export async function evaluateWithGemini(
     );
   }
 
+  const model = geminiModel();
   const response = await getClient().models.generateContent({
-    model: GEMINI_MODEL,
+    model,
     contents: [{ role: "user", parts }],
     config: {
       systemInstruction: EVALUATION_SYSTEM_INSTRUCTION,
@@ -71,5 +85,5 @@ export async function evaluateWithGemini(
   });
 
   const suggestion = parseEvaluationReply(response.text ?? "", input.maxScore);
-  return { suggestion, model: GEMINI_MODEL };
+  return { suggestion, model };
 }
