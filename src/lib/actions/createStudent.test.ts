@@ -84,7 +84,7 @@ beforeEach(() => {
   mocks.saved.students.length = 0;
   mocks.saved.enrollments.length = 0;
   mocks.failEnrollment = false;
-  mocks.classFindUnique.mockResolvedValue({ capacity: 30, _count: { students: 5 } });
+  mocks.classFindUnique.mockResolvedValue({ gradeId: 3, capacity: 30, _count: { students: 5 } });
   mocks.getRequiredAcademicYearId.mockResolvedValue(7);
   mocks.studentFindFirst.mockResolvedValue(null);
   mocks.createUser.mockResolvedValue({ id: "user_1" });
@@ -127,8 +127,19 @@ describe("createStudent", () => {
     expect(mocks.saved.enrollments).toEqual([]);
   });
 
+  it("creates nothing when the class doesn't belong to the selected grade", async () => {
+    mocks.classFindUnique.mockResolvedValue({ gradeId: 999, capacity: 30, _count: { students: 5 } });
+
+    const result = await createStudent(state, student);
+
+    expect(result).toMatchObject({ success: false, error: true });
+    expect(mocks.createUser).not.toHaveBeenCalled();
+    expect(mocks.saved.students).toEqual([]);
+    expect(mocks.saved.enrollments).toEqual([]);
+  });
+
   it("creates nothing when the class is already full", async () => {
-    mocks.classFindUnique.mockResolvedValue({ capacity: 30, _count: { students: 31 } });
+    mocks.classFindUnique.mockResolvedValue({ gradeId: 3, capacity: 30, _count: { students: 31 } });
 
     const result = await createStudent(state, student);
 

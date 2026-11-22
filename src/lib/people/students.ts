@@ -84,7 +84,7 @@ export const createStudentWith = async (
     where: { id: input.classId, schoolId },
     include: { _count: { select: { students: true } } },
   });
-  if (!classItem) return { ok: false, problem: "classNotFound" };
+  if (!classItem || classItem.gradeId !== input.gradeId) return { ok: false, problem: "classNotFound" };
   if (classItem._count.students >= classItem.capacity) return { ok: false, problem: "classFull" };
 
   // Look up the year first, so a missing year stops before anything is created.
@@ -143,8 +143,8 @@ export const updateStudentWith = async (
 
   if (!(await parentInSchool(db, schoolId, input.parentId))) return { ok: false, problem: "parentNotFound" };
 
-  const classItem = await db.class.findUnique({ where: { id: input.classId, schoolId }, select: { id: true } });
-  if (!classItem) return { ok: false, problem: "classNotFound" };
+  const classItem = await db.class.findUnique({ where: { id: input.classId, schoolId }, select: { id: true, gradeId: true } });
+  if (!classItem || classItem.gradeId !== input.gradeId) return { ok: false, problem: "classNotFound" };
 
   await updateAccount(clerk, input.id, {
     username: input.username,

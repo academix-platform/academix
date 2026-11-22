@@ -121,7 +121,15 @@ export const deleteStudent = async (
       select: { parentId: true },
     });
 
-    const parentId = student?.parentId ?? null;
+    if (!student) {
+      return {
+        success: false,
+        error: true,
+        message: "Student not found.",
+      };
+    }
+
+    const parentId = student.parentId ?? null;
 
     if (deleteParent && parentId) {
       const siblingCount = await prisma.student.count({
