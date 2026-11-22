@@ -7,6 +7,7 @@ import { createParentWith, updateParentWith, type ParentProblem } from "../peopl
 import {
   CurrentState,
   errorResult,
+  isClerkUserNotFoundError,
   requireActionAccess,
   successResult,
 } from "./helpers";
@@ -90,13 +91,24 @@ export const deleteParent = async (
     return { success: false, error: true, message: "Invalid parent id." };
 
   try {
-    await (await clerkClient()).users.deleteUser(id);
+    const existing = await prisma.parent.findFirst({
+      where: { id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: true, message: "Parent not found." };
+    }
 
-    const deleted = await prisma.parent.deleteMany({
+    await prisma.parent.deleteMany({
       where: { id, schoolId: access.schoolId },
     });
-    if (deleted.count === 0) {
-      return { success: false, error: true, message: "Parent not found." };
+
+    try {
+      await (await clerkClient()).users.deleteUser(id);
+    } catch (err) {
+      if (!isClerkUserNotFoundError(err)) {
+        throw err;
+      }
     }
 
     return successResult();

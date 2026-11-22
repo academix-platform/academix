@@ -99,12 +99,12 @@ export const deleteTeacher = async (
     return { success: false, error: true, message: "Invalid teacher id." };
 
   try {
-    try {
-      await (await clerkClient()).users.deleteUser(id);
-    } catch (err) {
-      if (!isClerkUserNotFoundError(err)) {
-        throw err;
-      }
+    const existing = await prisma.teacher.findFirst({
+      where: { id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existing) {
+      return { success: false, error: true, message: "Teacher not found." };
     }
 
     await prisma.$transaction(async (tx) => {
@@ -126,6 +126,14 @@ export const deleteTeacher = async (
         where: { id, schoolId: access.schoolId },
       });
     });
+
+    try {
+      await (await clerkClient()).users.deleteUser(id);
+    } catch (err) {
+      if (!isClerkUserNotFoundError(err)) {
+        throw err;
+      }
+    }
 
     return successResult();
   } catch (err) {

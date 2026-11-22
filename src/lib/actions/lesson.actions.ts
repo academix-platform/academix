@@ -169,6 +169,18 @@ export const saveLessonSchedule = async (
   if ("error" in access) return access;
 
   try {
+    const targetClass = await prisma.class.findFirst({
+      where: { id: data.classId, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!targetClass) {
+      return {
+        success: false,
+        error: true,
+        message: "Class not found.",
+      };
+    }
+
     const settings =
       (await getSchoolScheduleSettings(access.schoolId)) ??
       getDefaultSchoolScheduleSettings();
@@ -199,6 +211,29 @@ export const saveLessonSchedule = async (
     const filteredSelectedEntries = selectedEntries.filter((entry) =>
       allowedDays.has(entry.day),
     );
+
+    const subjectIds = [...new Set(filteredSelectedEntries.map((e) => e.subjectId))];
+    const teacherIds = [...new Set(filteredSelectedEntries.map((e) => e.teacherId))];
+
+    const [validSubjectsCount, validTeachersCount] = await Promise.all([
+      prisma.subject.count({
+        where: { id: { in: subjectIds }, schoolId: access.schoolId },
+      }),
+      prisma.teacher.count({
+        where: { id: { in: teacherIds }, schoolId: access.schoolId },
+      }),
+    ]);
+
+    if (
+      validSubjectsCount !== subjectIds.length ||
+      validTeachersCount !== teacherIds.length
+    ) {
+      return {
+        success: false,
+        error: true,
+        message: "One or more subjects or teachers were not found in your school.",
+      };
+    }
 
     const conflict = await detectTeacherConflicts({
       classId: data.classId,

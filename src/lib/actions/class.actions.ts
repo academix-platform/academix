@@ -37,6 +37,24 @@ export const createClass = async (
   if ("error" in access) return access;
 
   try {
+    const grade = await prisma.grade.findFirst({
+      where: { id: data.gradeId, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!grade) {
+      return { success: false, error: true, message: "Grade not found." };
+    }
+
+    if (data.supervisorId) {
+      const supervisor = await prisma.teacher.findFirst({
+        where: { id: data.supervisorId, schoolId: access.schoolId },
+        select: { id: true },
+      });
+      if (!supervisor) {
+        return { success: false, error: true, message: "Supervisor not found." };
+      }
+    }
+
     await prisma.class.create({
       data: { ...data, schoolId: access.schoolId },
     });
@@ -59,6 +77,24 @@ export const updateClass = async (
   }
 
   try {
+    const grade = await prisma.grade.findFirst({
+      where: { id: data.gradeId, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!grade) {
+      return { success: false, error: true, message: "Grade not found." };
+    }
+
+    if (data.supervisorId) {
+      const supervisor = await prisma.teacher.findFirst({
+        where: { id: data.supervisorId, schoolId: access.schoolId },
+        select: { id: true },
+      });
+      if (!supervisor) {
+        return { success: false, error: true, message: "Supervisor not found." };
+      }
+    }
+
     // جلب البيانات القديمة للمقارنة
     const existingClass = await prisma.class.findUnique({
       where: { id: data.id, schoolId: access.schoolId },
@@ -173,7 +209,7 @@ export const deleteClass = async (
 
     if (data.strategy === "existing") {
       const targetClass = await prisma.class.findUnique({
-        where: { id: data.targetClassId },
+        where: { id: data.targetClassId, schoolId: access.schoolId },
         select: { id: true, gradeId: true, capacity: true },
       });
 

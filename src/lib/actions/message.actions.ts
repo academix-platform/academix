@@ -22,6 +22,39 @@ export const createMessage = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
+    const classIds = Array.from(new Set(data.classIds ?? []));
+    const studentIds = Array.from(new Set(data.studentIds ?? []));
+    const parentIds = Array.from(new Set(data.parentIds ?? []));
+    const teacherIds = Array.from(new Set(data.teacherIds ?? []));
+
+    const [classCount, studentCount, parentCount, teacherCount] = await Promise.all([
+      classIds.length > 0
+        ? prisma.class.count({ where: { id: { in: classIds }, schoolId: access.schoolId } })
+        : 0,
+      studentIds.length > 0
+        ? prisma.student.count({ where: { id: { in: studentIds }, schoolId: access.schoolId } })
+        : 0,
+      parentIds.length > 0
+        ? prisma.parent.count({ where: { id: { in: parentIds }, schoolId: access.schoolId } })
+        : 0,
+      teacherIds.length > 0
+        ? prisma.teacher.count({ where: { id: { in: teacherIds }, schoolId: access.schoolId } })
+        : 0,
+    ]);
+
+    if (
+      classCount !== classIds.length ||
+      studentCount !== studentIds.length ||
+      parentCount !== parentIds.length ||
+      teacherCount !== teacherIds.length
+    ) {
+      return {
+        success: false,
+        error: true,
+        message: "One or more selected recipients or classes do not belong to your school.",
+      };
+    }
+
     await prisma.message.create({
       data: {
         title: data.title,
@@ -30,20 +63,20 @@ export const createMessage = async (
         date: new Date(),
         academicYearId,
         classes: {
-          connect: (data.classIds ?? []).map((classId) => ({ id: classId })),
+          connect: classIds.map((classId) => ({ id: classId })),
         },
         students: {
-          connect: (data.studentIds ?? []).map((studentId) => ({
+          connect: studentIds.map((studentId) => ({
             id: studentId,
           })),
         },
         parents: {
-          connect: (data.parentIds ?? []).map((parentId) => ({
+          connect: parentIds.map((parentId) => ({
             id: parentId,
           })),
         },
         teachers: {
-          connect: (data.teacherIds ?? []).map((teacherId) => ({
+          connect: teacherIds.map((teacherId) => ({
             id: teacherId,
           })),
         },
@@ -51,8 +84,8 @@ export const createMessage = async (
     });
 
     // ✅ إشعار المستقبلين بالرسالة الجديدة
-    const allStudentIds = data.studentIds ?? [];
-    const allTeacherIds = data.teacherIds ?? [];
+    const allStudentIds = studentIds;
+    const allTeacherIds = teacherIds;
 
     // إشعار الطلاب
     if (allStudentIds.length > 0) {
@@ -77,7 +110,6 @@ export const createMessage = async (
     }
 
     // ✅ إشعار الأولياء بالرسالة الجديدة
-    const parentIds = data.parentIds ?? [];
     if (parentIds.length > 0) {
       await notifyParentsNewMessage({
         schoolId: access.schoolId,
@@ -122,6 +154,39 @@ export const updateMessage = async (
       };
     }
 
+    const classIds = Array.from(new Set(data.classIds ?? []));
+    const studentIds = Array.from(new Set(data.studentIds ?? []));
+    const parentIds = Array.from(new Set(data.parentIds ?? []));
+    const teacherIds = Array.from(new Set(data.teacherIds ?? []));
+
+    const [classCount, studentCount, parentCount, teacherCount] = await Promise.all([
+      classIds.length > 0
+        ? prisma.class.count({ where: { id: { in: classIds }, schoolId: access.schoolId } })
+        : 0,
+      studentIds.length > 0
+        ? prisma.student.count({ where: { id: { in: studentIds }, schoolId: access.schoolId } })
+        : 0,
+      parentIds.length > 0
+        ? prisma.parent.count({ where: { id: { in: parentIds }, schoolId: access.schoolId } })
+        : 0,
+      teacherIds.length > 0
+        ? prisma.teacher.count({ where: { id: { in: teacherIds }, schoolId: access.schoolId } })
+        : 0,
+    ]);
+
+    if (
+      classCount !== classIds.length ||
+      studentCount !== studentIds.length ||
+      parentCount !== parentIds.length ||
+      teacherCount !== teacherIds.length
+    ) {
+      return {
+        success: false,
+        error: true,
+        message: "One or more selected recipients or classes do not belong to your school.",
+      };
+    }
+
     await prisma.message.update({
       where: { id: data.id },
       data: {
@@ -129,16 +194,16 @@ export const updateMessage = async (
         description: data.description,
         date: existingMessage.date,
         classes: {
-          set: (data.classIds ?? []).map((classId) => ({ id: classId })),
+          set: classIds.map((classId) => ({ id: classId })),
         },
         students: {
-          set: (data.studentIds ?? []).map((studentId) => ({ id: studentId })),
+          set: studentIds.map((studentId) => ({ id: studentId })),
         },
         parents: {
-          set: (data.parentIds ?? []).map((parentId) => ({ id: parentId })),
+          set: parentIds.map((parentId) => ({ id: parentId })),
         },
         teachers: {
-          set: (data.teacherIds ?? []).map((teacherId) => ({ id: teacherId })),
+          set: teacherIds.map((teacherId) => ({ id: teacherId })),
         },
       },
     });
