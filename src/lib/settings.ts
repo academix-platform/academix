@@ -33,14 +33,10 @@ export const routePermissions: Record<string, UserRole[]> = {
 
 // Get allowed roles for a given pathname
 export function getAllowedRoles(pathname: string): UserRole[] | null {
-  if (routePermissions[pathname]) {
-    return routePermissions[pathname];
-  }
-
-  // Nested match (e.g. /list/attendance/123)
-  for (const route in routePermissions) {
-    if (pathname.startsWith(route)) {
-      return routePermissions[route];
+  for (const [routePattern, roles] of Object.entries(routePermissions)) {
+    const regex = new RegExp(`^${routePattern}$`);
+    if (regex.test(pathname)) {
+      return roles;
     }
   }
 

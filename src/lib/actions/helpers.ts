@@ -108,7 +108,7 @@ export const requireActionAccess = async (
     };
   }
 
-  if (user.role === "admin" && user.schoolStatus !== "ACTIVE") {
+  if (user.role !== "superAdmin" && user.schoolStatus !== "ACTIVE") {
     return {
       success: false,
       error: true,

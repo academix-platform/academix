@@ -41,8 +41,12 @@ export async function createFeedback(formData: FormData) {
 export async function updateFeedbackStatus(formData: FormData) {
   const user = await getAuthUser();
 
-  if (!user) {
+  if (!user || user.role !== "admin") {
     throw new Error("Unauthorized");
+  }
+
+  if (user.schoolStatus !== "ACTIVE") {
+    throw new Error("School is not active");
   }
 
   const id = formData.get("id") as string;
