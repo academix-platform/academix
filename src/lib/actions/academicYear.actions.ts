@@ -124,6 +124,18 @@ export const updateAcademicYear = async (
       };
     }
 
+    const existingYear = await prisma.academicYear.findFirst({
+      where: { id: parsed.data.id, schoolId: access.schoolId },
+      select: { id: true },
+    });
+    if (!existingYear) {
+      return {
+        success: false,
+        error: true,
+        message: "Academic year not found.",
+      };
+    }
+
     const delegate = getAcademicYearDelegate();
     if (!delegate?.update || !delegate?.updateMany) {
       return {
@@ -148,7 +160,6 @@ export const updateAcademicYear = async (
       where: { id: parsed.data.id },
       data: {
         name: parsed.data.name.trim(),
-        schoolId: access.schoolId,
         startDate: normalizedStartDate,
         endDate: normalizedEndDate,
         isCurrent: parsed.data.isCurrent,

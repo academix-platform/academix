@@ -60,6 +60,22 @@ export const updateStudentFinalGrade = async (
       };
     }
 
+    const academicYear = await prisma.academicYear.findFirst({
+      where: {
+        id: academicYearId,
+        schoolId: access.schoolId,
+      },
+      select: { id: true },
+    });
+
+    if (!academicYear) {
+      return {
+        success: false,
+        error: true,
+        message: "Academic year was not found.",
+      };
+    }
+
     if (access.role === "teacher" && student.class.supervisorId !== access.userId) {
       return {
         success: false,

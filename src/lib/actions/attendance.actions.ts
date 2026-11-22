@@ -150,6 +150,14 @@ export const saveWeeklyAttendance = async (
       throw new Error("Invalid scope");
     }
 
+    if (scope === "teachers" && access.role !== "admin") {
+      return {
+        success: false,
+        error: true,
+        message: "You are not allowed to perform this action.",
+      };
+    }
+
     const raw = formData.get("changes");
     if (!raw || typeof raw !== "string") {
       throw new Error("No changes");
@@ -163,6 +171,34 @@ export const saveWeeklyAttendance = async (
 
     if (!Array.isArray(changes) || changes.length === 0) {
       return { success: true, error: false };
+    }
+
+    const ids = [...new Set(changes.map((c) => c.id))];
+    const allowed =
+      scope === "students"
+        ? await prisma.student.count({
+            where: {
+              id: { in: ids },
+              schoolId: access.schoolId,
+              status: { in: [...ATTENDING_STUDENT_STATUSES] },
+              ...(access.role === "teacher"
+                ? { class: { supervisorId: access.userId } }
+                : {}),
+            },
+          })
+        : await prisma.teacher.count({
+            where: { id: { in: ids }, schoolId: access.schoolId },
+          });
+
+    if (allowed !== ids.length) {
+      return {
+        success: false,
+        error: true,
+        message:
+          scope === "students"
+            ? "Some students aren't in your classes, or are no longer active."
+            : "Some teachers weren't found in your school.",
+      };
     }
 
     await prisma.$transaction(
