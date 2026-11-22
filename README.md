@@ -2,10 +2,6 @@
 
 Academix is a modern **School Management and Assessment System** designed to streamline academic operations and improve collaboration between administrators, teachers, students, and parents. It provides a centralized platform for managing users, classes, assessments, attendance, communication, and academic performance through dedicated role-based portals.
 
-<p align="center">
-  <img src="./assets/hero-dashboard.png" alt="Academix Dashboard" width="100%">
-</p>
-
 ---
 
 ## 🚀 Live Demo
@@ -87,49 +83,6 @@ Academix is a modern **School Management and Assessment System** designed to str
 
 ---
 
-## 📸 Screenshots
-
-### Admin & Student Portals
-
-<p align="center">
-  <img src="./assets/admin-dashboard.png" alt="Admin Dashboard" width="49%">
-  <img src="./assets/student-dashboard.png" alt="Student Dashboard" width="49%">
-</p>
-
-Dedicated dashboards tailored to each role, providing quick access to courses, assignments, examinations, grades, and classroom management tools.
-
----
-
-### Assessment System
-
-<p align="center">
-  <img src="./assets/assessment-management.png" alt="Assessment Management" width="49%">
-  <img src="./assets/online-exam.png" alt="Online Examination" width="49%">
-</p>
-
-Manage assessments, create online exams, and review student submissions through a streamlined workflow.
-
----
-
-### Subject Virtual Classroom
-
-<p align="center">
-  <img src="./assets/virtual-classroom.png" alt="Subject Virtual Classroom" width="100%">
-</p>
-
-A dedicated workspace for each subject where teachers and students can collaborate through announcements, assignments, learning materials, examinations, and discussions.
-
----
-
-### AI-Assisted Evaluation
-
-<p align="center">
-  <img src="./assets/ai-evaluation.jpeg" alt="AI-Assisted Evaluation" width="100%">
-</p>
-
-Teachers can leverage AI-generated grading suggestions and feedback for written responses while maintaining full control over the final evaluation.
-
----
 
 ## 🌟 Project Highlights
 
@@ -143,9 +96,3 @@ Teachers can leverage AI-generated grading suggestions and feedback for written 
 - Responsive design
 - Secure file uploads
 - Modern and intuitive user interface
-
----
-
-## 📄 License
-
-This project is intended for educational and demonstration purposes.
