@@ -22,6 +22,20 @@ export const createAnnouncement = async (
   try {
     const academicYearId = await getRequiredAcademicYearId(access.schoolId);
 
+    const classIds = Array.from(new Set(data.classIds ?? []));
+    if (classIds.length > 0) {
+      const classCount = await prisma.class.count({
+        where: { id: { in: classIds }, schoolId: access.schoolId },
+      });
+      if (classCount !== classIds.length) {
+        return {
+          success: false,
+          error: true,
+          message: "One or more classes do not belong to your school.",
+        };
+      }
+    }
+
     await prisma.announcement.create({
       data: {
         title: data.title,
@@ -30,7 +44,7 @@ export const createAnnouncement = async (
         schoolId: access.schoolId,
         academicYearId,
         classes: {
-          connect: data.classIds.map((classId) => ({ id: classId })),
+          connect: classIds.map((classId) => ({ id: classId })),
         },
       },
     });
@@ -39,14 +53,14 @@ export const createAnnouncement = async (
     await notifyNewAnnouncement({
       schoolId: access.schoolId,
       announcementTitle: data.title,
-      targetClassIds: data.classIds.length > 0 ? data.classIds : undefined,
+      targetClassIds: classIds.length > 0 ? classIds : undefined,
     }).catch(() => {});
 
     // ✅ إشعار الأولياء بالإعلان الجديد
     await notifyParentsNewAnnouncement({
       schoolId: access.schoolId,
       announcementTitle: data.title,
-      targetClassIds: data.classIds.length > 0 ? data.classIds : undefined,
+      targetClassIds: classIds.length > 0 ? classIds : undefined,
     }).catch(() => {});
 
     return successResult(["/list/announcements"]);
@@ -79,6 +93,20 @@ export const updateAnnouncement = async (
       return { success: false, error: true, message: "Announcement not found." };
     }
 
+    const classIds = Array.from(new Set(data.classIds ?? []));
+    if (classIds.length > 0) {
+      const classCount = await prisma.class.count({
+        where: { id: { in: classIds }, schoolId: access.schoolId },
+      });
+      if (classCount !== classIds.length) {
+        return {
+          success: false,
+          error: true,
+          message: "One or more classes do not belong to your school.",
+        };
+      }
+    }
+
     await prisma.announcement.update({
       where: { id: data.id },
       data: {
@@ -86,7 +114,7 @@ export const updateAnnouncement = async (
         description: data.description,
         date: data.date,
         classes: {
-          set: data.classIds.map((classId) => ({ id: classId })),
+          set: classIds.map((classId) => ({ id: classId })),
         },
       },
     });
